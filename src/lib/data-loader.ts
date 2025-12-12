@@ -1,7 +1,3 @@
-import "dotenv/config";
-import { execSync } from "node:child_process";
-import * as fs from "node:fs";
-import * as path from "node:path";
 import type { Semester } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -12,79 +8,33 @@ const logger = {
   debug: (msg: string) => console.debug(`[DEBUG] ${msg}`),
 };
 
-async function run(cmd: string, cwd?: string) {
-  try {
-    return execSync(cmd, { cwd, encoding: "utf-8", stdio: "pipe" });
-  } catch (error: unknown) {
-    const err = error as Error;
-    throw new Error(`Command failed: ${cmd}\n${err.message}`);
-  }
-}
-
-async function downloadStaticCache(targetDir: string): Promise<string> {
-  /**
-   * Ensure Life-USTC/static@gh-pages is present and updated, sparse-checkout 'cache'.
-   * Returns path to cache directory.
-   */
-  const repoDir = path.join(targetDir, "static");
-  const cacheDir = path.join(repoDir, "cache");
-
-  fs.mkdirSync(targetDir, { recursive: true });
-
-  if (fs.existsSync(repoDir) && fs.existsSync(path.join(repoDir, ".git"))) {
-    logger.info("Updating existing static cache...");
-    run(
-      "git remote set-url origin https://github.com/Life-USTC/static.git",
-      repoDir,
-    );
-    run("git fetch --depth 1 origin gh-pages", repoDir);
-    run("git checkout -B gh-pages", repoDir);
-    run("git reset --hard origin/gh-pages", repoDir);
-    run("git sparse-checkout init --cone", repoDir);
-    run("git sparse-checkout set cache", repoDir);
-    run("git checkout", repoDir);
-  } else {
-    logger.info("Cloning Life-USTC/static...");
-    fs.mkdirSync(repoDir, { recursive: true });
-    run(
-      "git clone --no-checkout --depth 1 --branch gh-pages https://github.com/Life-USTC/static.git .",
-      repoDir,
-    );
-    run("git sparse-checkout init --cone", repoDir);
-    run("git sparse-checkout set cache", repoDir);
-    run("git checkout", repoDir);
-  }
-
-  return cacheDir;
-}
-
-async function loadSemestersFromCache(cacheRoot: string) {
-  const filePath = path.join(
-    cacheRoot,
-    "catalog",
-    "api",
-    "teach",
-    "semester",
-    "list.json",
-  );
-  const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-
+export async function loadSemestersFromData(data: any[]) {
   const semesters = [];
   for (const semesterJson of data) {
+    // Validate dates
+    const startDate = new Date(semesterJson.start);
+    const endDate = new Date(semesterJson.end);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new Error(
+        `Invalid date format for semester ${semesterJson.id}: start=${semesterJson.start}, end=${semesterJson.end}`,
+      );
+    }
+
     const semester = await prisma.semester.upsert({
       where: { jwId: semesterJson.id },
       update: {
         name: semesterJson.nameZh,
         code: semesterJson.code,
-        startDate: new Date(semesterJson.start),
-        endDate: new Date(semesterJson.end),
+        startDate,
+        endDate,
       },
       create: {
         jwId: semesterJson.id,
         name: semesterJson.nameZh,
         code: semesterJson.code,
-        startDate: new Date(semesterJson.start),
-        endDate: new Date(semesterJson.end),
+        startDate,
+        endDate,
       },
     });
     semesters.push(semester);
@@ -141,11 +91,17 @@ async function updateOrCreateDepartment(deptJson: Record<string, unknown>) {
   });
 }
 
+const UNKNOWN_DEPARTMENT_PREFIX = "未知";
+
 async function getOrCreateDepartment(code: string) {
   return prisma.department.upsert({
     where: { code },
     update: {},
-    create: { code, nameCn: `未知(${code})`, isCollege: false },
+    create: {
+      code,
+      nameCn: `${UNKNOWN_DEPARTMENT_PREFIX}(${code})`,
+      isCollege: false,
+    },
   });
 }
 
@@ -264,6 +220,13 @@ async function updateOrCreateSection(
       )
     : null;
 
+  // Normalize dateTimePlacePersonText - it can be a string or an object with 'cn' property
+  const dateTimePlacePersonText =
+    typeof sectionInfo.dateTimePlacePersonText === "object" &&
+    sectionInfo.dateTimePlacePersonText !== null
+      ? sectionInfo.dateTimePlacePersonText.cn || null
+      : sectionInfo.dateTimePlacePersonText;
+
   const section = await prisma.section.upsert({
     where: { jwId: sectionInfo.id },
     update: {},
@@ -277,7 +240,7 @@ async function updateOrCreateSection(
       limitCount: sectionInfo.limitCount,
       graduateAndPostgraduate: sectionInfo.graduateAndPostgraduate,
       dateTimePlaceText: sectionInfo.dateTimePlaceText,
-      dateTimePlacePersonText: sectionInfo.dateTimePlacePersonText,
+      dateTimePlacePersonText,
       courseId,
       semesterId,
       campusId: campus?.id || null,
@@ -356,41 +319,18 @@ async function updateOrCreateSection(
   return section;
 }
 
-async function loadSections(cacheRoot: string, semester: Semester) {
-  const filePath = path.join(
-    cacheRoot,
-    "catalog",
-    "api",
-    "teach",
-    "lesson",
-    "list-for-teach",
-    `${semester.jwId}.json`,
-  );
-
-  if (!fs.existsSync(filePath)) {
-    logger.warning(
-      `Sections list not found for semester ${semester.id} in ${filePath}`,
-    );
-    return;
-  }
-
-  const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-
-  const _created = 0;
-  let _updated = 0;
+export async function loadSectionsFromData(data: any[], semester: Semester) {
+  let updated = 0;
 
   for (const sectionInfo of data) {
     const course = await updateOrCreateCourse(sectionInfo);
-    const _section = await updateOrCreateSection(
-      sectionInfo,
-      semester.id,
-      course.id,
-    );
+    await updateOrCreateSection(sectionInfo, semester.id, course.id);
     logger.debug(`Processed section: ${sectionInfo.id}`);
-    _updated++;
+    updated++;
   }
 
   logger.info(`Sections loaded for semester ${semester.id}: ${data.length}`);
+  return updated;
 }
 
 async function updateOrCreateRoom(roomData: any) {
@@ -502,6 +442,8 @@ async function updateOrCreateTeacher(
   return teacher;
 }
 
+const UNKNOWN_TEACHER = "未知教师";
+
 async function createSchedule(scheduleData: any, sectionId: number) {
   const room = scheduleData.room
     ? await updateOrCreateRoom(scheduleData.room)
@@ -510,7 +452,7 @@ async function createSchedule(scheduleData: any, sectionId: number) {
   const teacher = await updateOrCreateTeacher(
     scheduleData.teacherId || null,
     scheduleData.personId || null,
-    scheduleData.personName || "未知教师",
+    scheduleData.personName || UNKNOWN_TEACHER,
   );
 
   const scheduleGroup = await prisma.scheduleGroup.findFirst({
@@ -524,6 +466,12 @@ async function createSchedule(scheduleData: any, sectionId: number) {
     return;
   }
 
+  // Validate date
+  const date = new Date(scheduleData.date);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid date format for schedule: ${scheduleData.date}`);
+  }
+
   return prisma.schedule.create({
     data: {
       sectionId,
@@ -531,7 +479,7 @@ async function createSchedule(scheduleData: any, sectionId: number) {
       roomId: room?.id || null,
       teacherId: teacher?.id || null,
       periods: scheduleData.periods,
-      date: new Date(scheduleData.date),
+      date,
       weekday: scheduleData.weekday,
       startTime: scheduleData.startTime,
       endTime: scheduleData.endTime,
@@ -546,8 +494,8 @@ async function createSchedule(scheduleData: any, sectionId: number) {
   });
 }
 
-async function loadSchedules(
-  cacheRoot: string,
+export async function loadSchedulesFromData(
+  schedulesData: Record<string, any>,
   semester: { id: number; jwId: number },
 ) {
   const sections = await prisma.section.findMany({
@@ -557,20 +505,19 @@ async function loadSchedules(
 
   if (sections.length === 0) {
     logger.warning(`No sections found for semester ${semester.id}`);
-    return;
+    return 0;
   }
 
-  const datumDir = path.join(cacheRoot, "jw", "api", "schedule-table", "datum");
+  let processedCount = 0;
 
   for (const { id, jwId } of sections) {
-    const filePath = path.join(datumDir, `${jwId}.json`);
+    const data = schedulesData[jwId.toString()];
 
-    if (!fs.existsSync(filePath)) {
+    if (!data) {
       logger.debug(`Schedule datum not found for section ${jwId}`);
       continue;
     }
 
-    const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
     const result = data.result;
 
     // Load schedule groups
@@ -605,41 +552,9 @@ async function loadSchedules(
     }
 
     logger.debug(`Loaded schedules for section ${jwId}`);
+    processedCount++;
   }
 
   logger.info(`Schedules loaded for semester ${semester.id}`);
+  return processedCount;
 }
-
-async function main() {
-  const cacheDir = process.argv[2] || "./.cache/life-ustc/static";
-
-  try {
-    logger.info("Downloading static cache...");
-    const cacheRoot = await downloadStaticCache(cacheDir);
-    logger.info(`Static cache at: ${cacheRoot}`);
-
-    logger.info("Loading semesters...");
-    const semesters = await loadSemestersFromCache(cacheRoot);
-
-    if (semesters.length === 0) {
-      logger.error("No semesters loaded. Aborting.");
-      process.exit(1);
-    }
-
-    for (const semester of semesters) {
-      logger.info(`Processing semester: ${semester.name} (${semester.code})`);
-      await loadSections(cacheRoot, semester);
-      await loadSchedules(cacheRoot, semester);
-    }
-
-    logger.info("Data load complete!");
-  } catch (error: unknown) {
-    const err = error as Error;
-    logger.error(`Fatal error: ${err.message}`);
-    process.exit(1);
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-main();

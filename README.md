@@ -39,7 +39,40 @@ bun run prisma:reset
 
 # Open Prisma Studio
 bun run prisma:studio
+
+# Load data from static repository (legacy method)
+bun run db:load
 ```
+
+## Data Loading
+
+### Webhook API (Recommended)
+
+The webhook API allows you to load course and schedule data directly via HTTP POST requests, reducing network overhead compared to the legacy script-based approach.
+
+See [WEBHOOK_API.md](WEBHOOK_API.md) for detailed documentation on:
+- Authentication setup
+- API endpoints and payload formats
+- Example usage with curl and JavaScript/TypeScript
+- Migration from script-based loading
+
+Quick example:
+```bash
+# Set WEBHOOK_SECRET in your .env file first
+curl -X POST http://localhost:3000/api/webhooks/load-data \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $WEBHOOK_SECRET" \
+  -d '{"type": "semesters", "data": [...]}'
+```
+
+### Legacy Script-based Loading
+
+For local development or one-time imports, you can still use the script-based loader:
+```bash
+bun run db:load [cache-dir]
+```
+
+This downloads the static repository and imports all data. Use the webhook API for production deployments.
 
 ## Docker
 
@@ -203,9 +236,22 @@ server-nextjs/
 
 ## Environment Variables
 
-See `.env.example` for available options.
+See `.env.example` for available options:
 
-**Important:** For production, use Supabase or managed PostgreSQL database.
+- `DATABASE_URL` - PostgreSQL connection string
+- `WEBHOOK_SECRET` - Authentication secret for webhook API (required for data loading)
+
+**Important:** 
+- For production, use Supabase or managed PostgreSQL database
+- Keep `WEBHOOK_SECRET` secure and never commit it to version control
+- Generate a secure token: `openssl rand -hex 32`
+
+## Security
+
+- **Webhook Authentication**: All webhook endpoints require authentication via `WEBHOOK_SECRET`
+- **HTTPS**: Always use HTTPS in production to protect authentication tokens
+- **Environment Variables**: Never commit `.env` files with real credentials
+- **Rate Limiting**: Consider implementing rate limiting for production deployments
 
 ## Support
 
