@@ -36,10 +36,10 @@ WORKDIR /usr/src/app
 USER bun
 
 # Copy production node_modules and minimal app files
-COPY --from=install /temp/prod/node_modules node_modules
-COPY --from=prerelease /usr/src/app/package.json package.json
-COPY --from=prerelease /usr/src/app/.next .next
-COPY --from=prerelease /usr/src/app/prisma prisma
+COPY --chown=bun:bun --from=install /temp/prod/node_modules node_modules
+COPY --chown=bun:bun --from=prerelease /usr/src/app/package.json package.json
+COPY --chown=bun:bun --from=prerelease /usr/src/app/.next .next
+COPY --chown=bun:bun --from=prerelease /usr/src/app/prisma prisma
 
 # Expose default Next.js port
 EXPOSE 3000/tcp
