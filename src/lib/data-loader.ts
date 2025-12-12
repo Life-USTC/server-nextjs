@@ -220,6 +220,13 @@ async function updateOrCreateSection(
       )
     : null;
 
+  // Normalize dateTimePlacePersonText - it can be a string or an object with 'cn' property
+  const dateTimePlacePersonText =
+    typeof sectionInfo.dateTimePlacePersonText === "object" &&
+    sectionInfo.dateTimePlacePersonText !== null
+      ? sectionInfo.dateTimePlacePersonText.cn
+      : sectionInfo.dateTimePlacePersonText;
+
   const section = await prisma.section.upsert({
     where: { jwId: sectionInfo.id },
     update: {},
@@ -233,7 +240,7 @@ async function updateOrCreateSection(
       limitCount: sectionInfo.limitCount,
       graduateAndPostgraduate: sectionInfo.graduateAndPostgraduate,
       dateTimePlaceText: sectionInfo.dateTimePlaceText,
-      dateTimePlacePersonText: sectionInfo.dateTimePlacePersonText,
+      dateTimePlacePersonText,
       courseId,
       semesterId,
       campusId: campus?.id || null,

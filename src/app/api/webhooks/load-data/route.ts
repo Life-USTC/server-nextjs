@@ -27,7 +27,15 @@ const SectionSchema = z.object({
   limitCount: z.number().optional(),
   graduateAndPostgraduate: z.boolean().optional(),
   dateTimePlaceText: z.string().optional().nullable(),
-  dateTimePlacePersonText: z.string().optional().nullable(),
+  dateTimePlacePersonText: z
+    .union([
+      z.string(),
+      z.object({
+        cn: z.string(),
+      }),
+    ])
+    .optional()
+    .nullable(),
   course: z.object({
     id: z.number(),
     code: z.string(),
@@ -71,7 +79,7 @@ const SectionSchema = z.object({
     .nullable(),
   courseClassify: z
     .object({
-      cn: z.string(),
+      cn: z.string().nullable(),
       en: z.string().optional().nullable(),
     })
     .optional()
