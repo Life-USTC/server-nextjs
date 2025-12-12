@@ -20,117 +20,102 @@ const SemesterSchema = z.object({
 const SectionSchema = z.object({
   id: z.number(),
   code: z.string(),
-  credits: z.number().optional(),
-  period: z.number().optional(),
-  periodsPerWeek: z.number().optional(),
-  stdCount: z.number().optional(),
-  limitCount: z.number().optional(),
-  graduateAndPostgraduate: z.boolean().optional(),
-  dateTimePlaceText: z.string().optional().nullable(),
+  credits: z.number().nullable(),
+  period: z.number().nullable(),
+  periodsPerWeek: z.number().nullable(),
+  stdCount: z.number().nullable(),
+  limitCount: z.number().nullable(),
+  graduateAndPostgraduate: z.boolean().nullable(),
+  dateTimePlaceText: z.string().nullable(),
   dateTimePlacePersonText: z
     .union([
       z.string(),
       z.object({
-        cn: z.string().optional(),
+        cn: z.string().nullable(),
       }),
     ])
-    .optional()
     .nullable(),
   course: z.object({
     id: z.number(),
     code: z.string(),
     cn: z.string(),
-    en: z.string().optional().nullable(),
+    en: z.string().nullable(),
   }),
   education: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   courseGradation: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   courseCategory: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   classType: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   courseType: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   courseClassify: z
     .object({
       cn: z.string().nullable(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   campus: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   openDepartment: z
     .object({
       code: z.string(),
       cn: z.string(),
-      en: z.string().optional().nullable(),
-      college: z.boolean().optional(),
+      en: z.string().nullable(),
+      college: z.boolean(),
     })
-    .optional()
     .nullable(),
   examMode: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
   teachLang: z
     .object({
       cn: z.string(),
-      en: z.string().optional().nullable(),
+      en: z.string().nullable(),
     })
-    .optional()
     .nullable(),
-  teacherAssignmentList: z
-    .array(
-      z.object({
-        cn: z.string(),
-        en: z.string().optional().nullable(),
-        departmentCode: z.string().optional().nullable(),
-      }),
-    )
-    .optional(),
-  adminClasses: z
-    .array(
-      z.object({
-        cn: z.string(),
-        en: z.string().optional().nullable(),
-      }),
-    )
-    .optional(),
+  teacherAssignmentList: z.array(
+    z.object({
+      cn: z.string(),
+      en: z.string().nullable(),
+      departmentCode: z.string().nullable(),
+    })
+  ),
+  adminClasses: z.array(
+    z.object({
+      cn: z.string(),
+      en: z.string().nullable(),
+    })
+  ),
 });
 
 const WebhookPayloadSchema = z.discriminatedUnion("type", [
@@ -178,7 +163,7 @@ export async function POST(request: NextRequest) {
     if (!authenticateRequest(request)) {
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing authentication token" },
-        { status: 401 },
+        { status: 401 }
       );
     }
 
@@ -192,7 +177,7 @@ export async function POST(request: NextRequest) {
           error: "Invalid payload",
           details: validationResult.error.issues,
         },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -203,13 +188,10 @@ export async function POST(request: NextRequest) {
       case "semesters": {
         const semesters = await loadSemestersFromData(payload.data);
         // Return semester mapping for client convenience
-        const semesterMapping = semesters.reduce(
-          (acc, s) => {
-            acc[s.jwId] = { id: s.id, name: s.name, code: s.code };
-            return acc;
-          },
-          {} as Record<number, { id: number; name: string; code: string }>,
-        );
+        const semesterMapping = semesters.reduce((acc, s) => {
+          acc[s.jwId] = { id: s.id, name: s.name, code: s.code };
+          return acc;
+        }, {} as Record<number, { id: number; name: string; code: string }>);
         result = {
           success: true,
           message: `Loaded ${semesters.length} semesters`,
@@ -228,7 +210,7 @@ export async function POST(request: NextRequest) {
         if (!semester) {
           return NextResponse.json(
             { error: `Semester with jwId ${payload.semesterJwId} not found` },
-            { status: 404 },
+            { status: 404 }
           );
         }
 
@@ -252,7 +234,7 @@ export async function POST(request: NextRequest) {
         if (!semester) {
           return NextResponse.json(
             { error: `Semester with jwId ${payload.semesterJwId} not found` },
-            { status: 404 },
+            { status: 404 }
           );
         }
 
@@ -276,7 +258,7 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         message: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
