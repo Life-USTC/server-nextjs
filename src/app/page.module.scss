@@ -1,0 +1,132 @@
+.hero {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-radius: var(--radius-lg);
+  padding: 4rem 3rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  
+  @media (max-width: 768px) {
+    padding: 2.5rem 2rem;
+  }
+  
+  @media (max-width: 576px) {
+    padding: 2rem 1.5rem;
+  }
+}
+
+.heroTitle {
+  color: white !important;
+  font-size: 3.5rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 1rem !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  
+  @media (max-width: 768px) {
+    font-size: 2.5rem !important;
+  }
+  
+  @media (max-width: 576px) {
+    font-size: 2rem !important;
+  }
+}
+
+.heroDescription {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 1.25rem !important;
+  font-weight: 500 !important;
+  margin-bottom: 0 !important;
+  
+  @media (max-width: 768px) {
+    font-size: 1.1rem !important;
+  }
+  
+  @media (max-width: 576px) {
+    font-size: 1rem !important;
+  }
+}
+
+.statsGrid {
+  margin-bottom: 2rem;
+}
+
+.statCard {
+  text-decoration: none;
+  display: block;
+  
+  :global(.ant-card) {
+    transition: all 0.3s ease;
+  }
+  
+  &:hover :global(.ant-card) {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.recentCard {
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+}
+
+.semesterItem {
+  text-decoration: none;
+  display: block;
+}
+
+.semesterCard {
+  background: var(--color-gray-50);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateX(8px);
+    border-color: var(--color-primary);
+    background: white;
+  }
+  
+  @media (max-width: 768px) {
+    &:hover {
+      transform: translateX(4px);
+    }
+  }
+}
+
+.semesterContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  
+  @media (max-width: 576px) {
+    flex-direction: column;
+  }
+}
+
+.apiCard {
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-lg);
+}
+
+.apiList {
+  list-style: none;
+  padding: 0;
+  
+  li {
+    padding: 0.75rem 1rem;
+    background: var(--color-gray-50);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+    
+    code {
+      background: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      color: var(--color-primary);
+      border: 1px solid var(--color-primary-bg);
+    }
+  }
+}

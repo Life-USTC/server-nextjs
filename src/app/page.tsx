@@ -1,128 +1,185 @@
-export default function Home() {
+import {
+  AppstoreOutlined,
+  BookOutlined,
+  CalendarOutlined,
+  TeamOutlined,
+} from "@ant-design/icons";
+import { Alert, Card, Col, Row, Space, Statistic, Typography } from "antd";
+import Link from "next/link";
+import AppLayout from "@/components/AppLayout";
+import { db } from "@/lib/db";
+import styles from "./page.module.scss";
+
+const { Title, Paragraph, Text } = Typography;
+
+async function getStats() {
+  try {
+    const [coursesCount, semestersCount] = await Promise.all([
+      db.course.count(),
+      db.semester.count(),
+    ]);
+
+    return {
+      courses: coursesCount,
+      semesters: semestersCount,
+    };
+  } catch (error) {
+    console.error("Failed to fetch stats:", error);
+    return {
+      courses: 0,
+      semesters: 0,
+    };
+  }
+}
+
+async function getRecentSemesters() {
+  try {
+    const semesters = await db.semester.findMany({
+      orderBy: { startDate: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        startDate: true,
+        endDate: true,
+      },
+    });
+    return semesters;
+  } catch (error) {
+    console.error("Failed to fetch semesters:", error);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const stats = await getStats();
+  const recentSemesters = await getRecentSemesters();
+
   return (
-    <div className="min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-6">Life USTC Server API</h1>
+    <AppLayout>
+      <div className={styles.hero}>
+        <Title level={1} className={styles.heroTitle}>
+          Life@USTC
+        </Title>
+        <Paragraph className={styles.heroDescription}>
+          Your comprehensive course and schedule management system
+        </Paragraph>
+      </div>
 
-        <p className="text-lg mb-8 text-gray-600 dark:text-gray-400">
-          Modern course and schedule management API for USTC built with Next.js,
-          Prisma, and Supabase.
-        </p>
+      <Row gutter={[16, 16]} className={styles.statsGrid}>
+        <Col xs={24} sm={12} lg={6}>
+          <Link href="/semesters" className={styles.statCard}>
+            <Card hoverable>
+              <Statistic
+                title="Semesters"
+                value={stats.semesters}
+                prefix={<CalendarOutlined />}
+                valueStyle={{ color: "var(--color-primary)" }}
+              />
+            </Card>
+          </Link>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Link href="/courses" className={styles.statCard}>
+            <Card hoverable>
+              <Statistic
+                title="Courses"
+                value={stats.courses}
+                prefix={<BookOutlined />}
+                valueStyle={{ color: "var(--color-primary)" }}
+              />
+            </Card>
+          </Link>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Link href="/sections" className={styles.statCard}>
+            <Card hoverable>
+              <Statistic
+                title="Sections"
+                value="-"
+                prefix={<AppstoreOutlined />}
+                valueStyle={{ color: "var(--color-primary)" }}
+              />
+            </Card>
+          </Link>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Link href="/teachers" className={styles.statCard}>
+            <Card hoverable>
+              <Statistic
+                title="Teachers"
+                value="-"
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: "var(--color-primary)" }}
+              />
+            </Card>
+          </Link>
+        </Col>
+      </Row>
 
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4">Features</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-700 dark:text-gray-300">
-            <li>Complete RESTful API for course management</li>
-            <li>Advanced filtering and pagination</li>
-            <li>Type-safe with TypeScript and Prisma</li>
-            <li>Fast runtime with Bun</li>
-            <li>Modern Next.js App Router architecture</li>
-          </ul>
-        </div>
-
-        <div className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4">API Endpoints</h2>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-medium mb-2">Campuses</h3>
-              <ul className="space-y-1 font-mono text-sm">
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/campuses
-                </li>
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/campuses/[id]
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-medium mb-2">Semesters</h3>
-              <ul className="space-y-1 font-mono text-sm">
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/semesters
-                </li>
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/semesters/current
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-medium mb-2">Courses</h3>
-              <ul className="space-y-1 font-mono text-sm">
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/courses?search=query
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-medium mb-2">Sections</h3>
-              <ul className="space-y-1 font-mono text-sm">
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/sections?courseId=1&semesterId=1
-                </li>
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/sections/[id]
-                </li>
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/sections/[id]/schedules
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-medium mb-2">Schedules</h3>
-              <ul className="space-y-1 font-mono text-sm">
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/schedules?dateFrom=2024-01-01
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-medium mb-2">Metadata</h3>
-              <ul className="space-y-1 font-mono text-sm">
-                <li className="text-blue-600 dark:text-blue-400">
-                  GET /api/metadata
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t pt-8">
-          <h2 className="text-2xl font-semibold mb-4">Tech Stack</h2>
-          <div className="flex flex-wrap gap-2">
-            {[
-              "Next.js",
-              "Prisma",
-              "Supabase",
-              "PostgreSQL",
-              "TypeScript",
-              "Bun",
-              "Zod",
-            ].map((tech) => (
-              <span
-                key={tech}
-                className="px-3 py-1 bg-gray-200 dark:bg-gray-800 rounded-full text-sm"
+      <Card title="Recent Semesters" className={styles.recentCard}>
+        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+          {recentSemesters.length > 0 ? (
+            recentSemesters.map((semester: (typeof recentSemesters)[0]) => (
+              <Link
+                key={semester.id}
+                href={`/semesters/${semester.id}`}
+                className={styles.semesterItem}
               >
-                {tech}
-              </span>
-            ))}
-          </div>
-        </div>
+                <Card size="small" hoverable className={styles.semesterCard}>
+                  <div className={styles.semesterContent}>
+                    <div>
+                      <Text strong>{semester.name}</Text>
+                      {semester.startDate && semester.endDate && (
+                        <div>
+                          <Text
+                            type="secondary"
+                            style={{ fontSize: "0.875rem" }}
+                          >
+                            {new Date(semester.startDate).toLocaleDateString()}{" "}
+                            - {new Date(semester.endDate).toLocaleDateString()}
+                          </Text>
+                        </div>
+                      )}
+                    </div>
+                    <Text code>{semester.code}</Text>
+                  </div>
+                </Card>
+              </Link>
+            ))
+          ) : (
+            <Alert message="No semesters available" type="info" showIcon />
+          )}
+        </Space>
+      </Card>
 
-        <div className="mt-12 p-6 bg-blue-50 dark:bg-blue-950 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Getting Started</h2>
-          <p className="text-gray-700 dark:text-gray-300 mb-4">
-            Check out the README.md for setup instructions and documentation.
-          </p>
-          <code className="block bg-gray-900 text-green-400 p-4 rounded">
-            bun install && bun run prisma:generate && bun dev
-          </code>
-        </div>
-      </main>
-    </div>
+      <Card title="API Access" className={styles.apiCard}>
+        <Paragraph>
+          This system provides a RESTful API for programmatic access:
+        </Paragraph>
+        <ul className={styles.apiList}>
+          <li>
+            <code>GET /api/courses</code> - List all courses
+          </li>
+          <li>
+            <code>GET /api/semesters</code> - List all semesters
+          </li>
+          <li>
+            <code>GET /api/sections</code> - List all sections
+          </li>
+          <li>
+            <code>GET /api/schedules</code> - Get schedules
+          </li>
+        </ul>
+        <Paragraph style={{ marginTop: 16 }}>
+          Visit the{" "}
+          <Link href="/api/metadata" style={{ color: "var(--color-primary)" }}>
+            API metadata endpoint
+          </Link>{" "}
+          for more information.
+        </Paragraph>
+      </Card>
+    </AppLayout>
   );
 }
