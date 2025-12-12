@@ -133,12 +133,12 @@ const WebhookPayloadSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("sections"),
     data: z.array(SectionSchema),
-    semesterId: z.number(),
+    semesterJwId: z.number(),
   }),
   z.object({
     type: z.literal("schedules"),
     data: z.record(z.string(), z.any()), // Record mapping section jwId to schedule data
-    semesterId: z.number(),
+    semesterJwId: z.number(),
   }),
 ]);
 
@@ -194,23 +194,32 @@ export async function POST(request: NextRequest) {
     switch (payload.type) {
       case "semesters": {
         const semesters = await loadSemestersFromData(payload.data);
+        // Return semester mapping for client convenience
+        const semesterMapping = semesters.reduce(
+          (acc, s) => {
+            acc[s.jwId] = { id: s.id, name: s.name, code: s.code };
+            return acc;
+          },
+          {} as Record<number, { id: number; name: string; code: string }>,
+        );
         result = {
           success: true,
           message: `Loaded ${semesters.length} semesters`,
           count: semesters.length,
+          semesters: semesterMapping,
         };
         break;
       }
 
       case "sections": {
-        // Find the semester
+        // Find the semester by jwId
         const semester = await prisma.semester.findUnique({
-          where: { id: payload.semesterId },
+          where: { jwId: payload.semesterJwId },
         });
 
         if (!semester) {
           return NextResponse.json(
-            { error: `Semester with id ${payload.semesterId} not found` },
+            { error: `Semester with jwId ${payload.semesterJwId} not found` },
             { status: 404 },
           );
         }
@@ -221,19 +230,20 @@ export async function POST(request: NextRequest) {
           message: `Loaded ${count} sections for semester ${semester.name}`,
           count,
           semesterId: semester.id,
+          semesterJwId: semester.jwId,
         };
         break;
       }
 
       case "schedules": {
-        // Find the semester
+        // Find the semester by jwId
         const semester = await prisma.semester.findUnique({
-          where: { id: payload.semesterId },
+          where: { jwId: payload.semesterJwId },
         });
 
         if (!semester) {
           return NextResponse.json(
-            { error: `Semester with id ${payload.semesterId} not found` },
+            { error: `Semester with jwId ${payload.semesterJwId} not found` },
             { status: 404 },
           );
         }
@@ -244,6 +254,7 @@ export async function POST(request: NextRequest) {
           message: `Loaded schedules for ${count} sections in semester ${semester.name}`,
           count,
           semesterId: semester.id,
+          semesterJwId: semester.jwId,
         };
         break;
       }

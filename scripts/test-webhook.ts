@@ -14,14 +14,14 @@ if (!WEBHOOK_SECRET) {
   process.exit(1);
 }
 
-async function sendWebhook(type: string, data: any, semesterId?: number) {
+async function sendWebhook(type: string, data: any, semesterJwId?: number) {
   const payload: any = {
     type,
     data,
   };
 
-  if (semesterId) {
-    payload.semesterId = semesterId;
+  if (semesterJwId) {
+    payload.semesterJwId = semesterJwId;
   }
 
   console.log(`\nSending ${type} data to webhook...`);
@@ -73,13 +73,13 @@ async function main() {
     return;
   }
 
-  // Get the semester ID from the database to use in the next requests
-  // In a real scenario, you would query the database or use the returned data
+  // The response includes semester mappings
+  console.log("\nSemester mapping:", semesterResult.semesters);
   console.log(
-    "\nNote: To test sections and schedules, you need a valid semesterId",
+    "\nNote: To test sections and schedules, use the semester jwId (999999)",
   );
   console.log(
-    "Example: await sendWebhook('sections', sectionsData, <semesterId>);",
+    "Example: await sendWebhook('sections', sectionsData, 999999);",
   );
 
   // Example 2: Load sections (commented out - requires actual data)
@@ -105,7 +105,7 @@ async function main() {
     }
   ];
   
-  const sectionsResult = await sendWebhook('sections', sectionsData, 1);
+  const sectionsResult = await sendWebhook('sections', sectionsData, 999999);
   */
 
   // Example 3: Load schedules (commented out - requires actual data)
@@ -119,7 +119,7 @@ async function main() {
     }
   };
   
-  const schedulesResult = await sendWebhook('schedules', schedulesData, 1);
+  const schedulesResult = await sendWebhook('schedules', schedulesData, 999999);
   */
 
   console.log("\nTest completed!");

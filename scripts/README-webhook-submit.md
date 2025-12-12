@@ -24,34 +24,17 @@ export CACHE_ROOT="./cache"  # Path to the static cache directory
 
 ### 2. Run the Script
 
-#### Submit Semesters Only
+Simply run:
 
 ```bash
 python submit-via-webhook.py
 ```
 
-This will:
+The script will automatically:
 - Load semester data from `cache/catalog/api/teach/semester/list.json`
-- Submit it to the webhook API
-- Print the semester information
-
-#### Submit All Data (Semesters, Sections, Schedules)
-
-First, you need to create a semester ID mapping. After submitting semesters, query your database to get the mapping between `jwId` and database `id`:
-
-```python
-semester_mapping = {
-    123: 1,  # jwId 123 maps to database ID 1
-    124: 2,  # jwId 124 maps to database ID 2
-    # Add more mappings...
-}
-```
-
-Edit the script to include your mapping, then run:
-
-```bash
-python submit-via-webhook.py --with-mapping
-```
+- Submit semesters to the webhook API
+- For each semester, load and submit sections and schedules using the semester's `jwId`
+- No manual mapping required!
 
 ## Script Structure
 
@@ -60,16 +43,16 @@ The script includes a `WebhookSubmitter` class with the following methods:
 ### `submit_semesters()`
 Loads and submits semester data from `cache/catalog/api/teach/semester/list.json`
 
-### `submit_sections(semester_id, semester_jw_id)`
-Loads and submits section data for a specific semester from:
+### `submit_sections(semester_jw_id)`
+Loads and submits section data for a specific semester using its `jwId` from:
 `cache/catalog/api/teach/lesson/list-for-teach/{semester_jw_id}.json`
 
-### `submit_schedules(semester_id, section_jw_ids)`
-Loads and submits schedule data for sections from:
+### `submit_schedules(semester_jw_id, section_jw_ids)`
+Loads and submits schedule data for sections using the semester's `jwId` from:
 `cache/jw/api/schedule-table/datum/{section_jw_id}.json`
 
-### `submit_all(semester_id_mapping)`
-Orchestrates the submission of all data types in the correct order
+### `submit_all()`
+Orchestrates the submission of all data types in the correct order. No manual mapping required - the API handles semester lookup by `jwId` automatically.
 
 ## Example Output
 
@@ -79,7 +62,7 @@ Found 10 semesters
 Submitting semesters data...
 ✓ Success: Loaded 10 semesters
 
-=== Processing Semester: 2024-2025学年第一学期 (jwId=123, dbId=1) ===
+=== Processing Semester: 2024-2025学年第一学期 (jwId=123) ===
 Submitting sections...
   Found 1500 sections
 Submitting sections data...

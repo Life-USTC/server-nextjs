@@ -81,19 +81,28 @@ Load semester information.
 {
   "success": true,
   "message": "Loaded 1 semesters",
-  "count": 1
+  "count": 1,
+  "semesters": {
+    "123": {
+      "id": 1,
+      "name": "2024-2025学年第一学期",
+      "code": "2024-2025-1"
+    }
+  }
 }
 ```
 
+The response includes a `semesters` mapping of `jwId` to database information for convenience.
+
 ### 2. Sections
 
-Load course sections for a specific semester.
+Load course sections for a specific semester using the semester's `jwId` (not database ID).
 
 **Request:**
 ```json
 {
   "type": "sections",
-  "semesterId": 1,
+  "semesterJwId": 123,
   "data": [
     {
       "id": 456,
@@ -150,19 +159,20 @@ Load course sections for a specific semester.
   "success": true,
   "message": "Loaded 1 sections for semester 2024-2025学年第一学期",
   "count": 1,
-  "semesterId": 1
+  "semesterId": 1,
+  "semesterJwId": 123
 }
 ```
 
 ### 3. Schedules
 
-Load schedule data for sections in a specific semester.
+Load schedule data for sections in a specific semester using the semester's `jwId`.
 
 **Request:**
 ```json
 {
   "type": "schedules",
-  "semesterId": 1,
+  "semesterJwId": 123,
   "data": {
     "456": {
       "result": {
@@ -236,7 +246,8 @@ Load schedule data for sections in a specific semester.
   "success": true,
   "message": "Loaded schedules for 1 sections in semester 2024-2025学年第一学期",
   "count": 1,
-  "semesterId": 1
+  "semesterId": 1,
+  "semesterJwId": 123
 }
 ```
 
@@ -268,7 +279,7 @@ Load schedule data for sections in a specific semester.
 ### 404 Not Found
 ```json
 {
-  "error": "Semester with id 999 not found"
+  "error": "Semester with jwId 999 not found"
 }
 ```
 
@@ -302,13 +313,13 @@ curl -X POST https://your-server.com/api/webhooks/load-data \
     ]
   }'
 
-# Load sections
+# Load sections (use jwId from semesters response)
 curl -X POST https://your-server.com/api/webhooks/load-data \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer your_webhook_secret" \
   -d '{
     "type": "sections",
-    "semesterId": 1,
+    "semesterJwId": 123,
     "data": [...]
   }'
 ```
@@ -316,7 +327,7 @@ curl -X POST https://your-server.com/api/webhooks/load-data \
 ### Using JavaScript/TypeScript
 
 ```typescript
-async function loadData(type: string, data: any, semesterId?: number) {
+async function loadData(type: string, data: any, semesterJwId?: number) {
   const response = await fetch('https://your-server.com/api/webhooks/load-data', {
     method: 'POST',
     headers: {
@@ -326,7 +337,7 @@ async function loadData(type: string, data: any, semesterId?: number) {
     body: JSON.stringify({
       type,
       data,
-      semesterId
+      ...(semesterJwId && { semesterJwId })
     })
   });
 
@@ -339,8 +350,12 @@ async function loadData(type: string, data: any, semesterId?: number) {
 }
 
 // Usage
-const result = await loadData('semesters', semestersData);
-console.log(result.message);
+const semestersResult = await loadData('semesters', semestersData);
+console.log(semestersResult.message);
+console.log('Semester mapping:', semestersResult.semesters);
+
+// Use jwId directly for sections
+const sectionsResult = await loadData('sections', sectionsData, 123);
 ```
 
 ## Migration from Script-based Loading

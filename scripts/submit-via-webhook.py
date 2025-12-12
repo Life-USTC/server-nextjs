@@ -45,7 +45,7 @@ class WebhookSubmitter:
         self,
         data_type: str,
         data: Any,
-        semester_id: Optional[int] = None,
+        semester_jw_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Submit data to the webhook endpoint.
@@ -53,7 +53,7 @@ class WebhookSubmitter:
         Args:
             data_type: Type of data ('semesters', 'sections', or 'schedules')
             data: The data payload to submit
-            semester_id: Optional semester ID (required for sections and schedules)
+            semester_jw_id: Optional semester jwId (required for sections and schedules)
 
         Returns:
             Response from the webhook API
@@ -66,8 +66,8 @@ class WebhookSubmitter:
             "data": data,
         }
 
-        if semester_id is not None:
-            payload["semesterId"] = semester_id
+        if semester_jw_id is not None:
+            payload["semesterJwId"] = semester_jw_id
 
         print(f"Submitting {data_type} data...")
 
@@ -130,7 +130,6 @@ class WebhookSubmitter:
 
     def submit_sections(
         self,
-        semester_id: int,
         semester_jw_id: int,
     ) -> Dict[str, Any]:
         """Load and submit section data for a semester."""
@@ -140,7 +139,7 @@ class WebhookSubmitter:
             return {"success": True, "message": "No sections to load", "count": 0}
 
         print(f"  Found {len(sections)} sections")
-        return self.submit_data("sections", sections, semester_id)
+        return self.submit_data("sections", sections, semester_jw_id)
 
     def load_schedules(self, section_jw_ids: List[int]) -> Dict[str, Any]:
         """Load schedule data for multiple sections."""
@@ -160,7 +159,7 @@ class WebhookSubmitter:
 
     def submit_schedules(
         self,
-        semester_id: int,
+        semester_jw_id: int,
         section_jw_ids: List[int],
     ) -> Dict[str, Any]:
         """Load and submit schedule data for sections in a semester."""
@@ -170,55 +169,31 @@ class WebhookSubmitter:
             return {"success": True, "message": "No schedules to load", "count": 0}
 
         print(f"  Found schedules for {len(schedules)} sections")
-        return self.submit_data("schedules", schedules, semester_id)
+        return self.submit_data("schedules", schedules, semester_jw_id)
 
-    def submit_all(
-        self,
-        semester_id_mapping: Optional[Dict[int, int]] = None,
-    ) -> None:
+    def submit_all(self) -> None:
         """
         Load and submit all data (semesters, sections, schedules).
-
-        Args:
-            semester_id_mapping: Optional mapping of semester jwId to database ID.
-                                If None, will need to query the database or API.
+        
+        The API automatically handles semester lookup by jwId, so no mapping is needed.
         """
         # Submit semesters first
         print("\n=== Submitting Semesters ===")
         semester_result = self.submit_semesters()
 
-        # If we don't have a mapping, we need to get it
-        if semester_id_mapping is None:
-            print(
-                "\nNote: Semester ID mapping not provided. "
-                "You'll need to manually map jwId to database IDs."
-            )
-            print(
-                "Example: {123: 1, 124: 2} where 123 is jwId and 1 is database ID"
-            )
-            return
-
         # Submit sections and schedules for each semester
         semesters = self.load_semesters()
         for semester in semesters:
             semester_jw_id = semester["id"]
-            semester_db_id = semester_id_mapping.get(semester_jw_id)
-
-            if semester_db_id is None:
-                print(
-                    f"\n⚠ Skipping semester {semester_jw_id} "
-                    f"({semester['nameZh']}): No database ID mapping"
-                )
-                continue
 
             print(
                 f"\n=== Processing Semester: {semester['nameZh']} "
-                f"(jwId={semester_jw_id}, dbId={semester_db_id}) ==="
+                f"(jwId={semester_jw_id}) ==="
             )
 
             # Submit sections
             print("Submitting sections...")
-            sections_result = self.submit_sections(semester_db_id, semester_jw_id)
+            sections_result = self.submit_sections(semester_jw_id)
 
             # Load section JW IDs for schedule submission
             sections = self.load_sections(semester_jw_id)
@@ -227,7 +202,7 @@ class WebhookSubmitter:
             # Submit schedules
             if section_jw_ids:
                 print("Submitting schedules...")
-                self.submit_schedules(semester_db_id, section_jw_ids)
+                self.submit_schedules(semester_jw_id, section_jw_ids)
 
         print("\n=== All data submitted successfully! ===")
 
@@ -254,21 +229,8 @@ def main():
     # Create submitter
     submitter = WebhookSubmitter(webhook_url, webhook_secret, cache_root)
 
-    # Check for semester mapping argument
-    if len(sys.argv) > 1 and sys.argv[1] == "--with-mapping":
-        # Example mapping - you would need to provide actual mappings
-        print(
-            "Note: Using example mapping. "
-            "Edit this script to provide actual semester ID mappings."
-        )
-        semester_mapping = {
-            # jwId: database_id
-            # Example: 123: 1,
-        }
-        submitter.submit_all(semester_mapping)
-    else:
-        # Just submit semesters
-        submitter.submit_all()
+    # Submit all data - no mapping needed!
+    submitter.submit_all()
 
 
 if __name__ == "__main__":
