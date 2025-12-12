@@ -31,7 +31,7 @@ const SectionSchema = z.object({
     .union([
       z.string(),
       z.object({
-        cn: z.string(),
+        cn: z.string().optional(),
       }),
     ])
     .optional()

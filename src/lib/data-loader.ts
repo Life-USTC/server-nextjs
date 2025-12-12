@@ -224,7 +224,7 @@ async function updateOrCreateSection(
   const dateTimePlacePersonText =
     typeof sectionInfo.dateTimePlacePersonText === "object" &&
     sectionInfo.dateTimePlacePersonText !== null
-      ? sectionInfo.dateTimePlacePersonText.cn
+      ? sectionInfo.dateTimePlacePersonText.cn || null
       : sectionInfo.dateTimePlacePersonText;
 
   const section = await prisma.section.upsert({
