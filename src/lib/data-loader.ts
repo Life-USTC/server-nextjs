@@ -11,20 +11,30 @@ const logger = {
 export async function loadSemestersFromData(data: any[]) {
   const semesters = [];
   for (const semesterJson of data) {
+    // Validate dates
+    const startDate = new Date(semesterJson.start);
+    const endDate = new Date(semesterJson.end);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      throw new Error(
+        `Invalid date format for semester ${semesterJson.id}: start=${semesterJson.start}, end=${semesterJson.end}`,
+      );
+    }
+
     const semester = await prisma.semester.upsert({
       where: { jwId: semesterJson.id },
       update: {
         name: semesterJson.nameZh,
         code: semesterJson.code,
-        startDate: new Date(semesterJson.start),
-        endDate: new Date(semesterJson.end),
+        startDate,
+        endDate,
       },
       create: {
         jwId: semesterJson.id,
         name: semesterJson.nameZh,
         code: semesterJson.code,
-        startDate: new Date(semesterJson.start),
-        endDate: new Date(semesterJson.end),
+        startDate,
+        endDate,
       },
     });
     semesters.push(semester);
@@ -81,11 +91,17 @@ async function updateOrCreateDepartment(deptJson: Record<string, unknown>) {
   });
 }
 
+const UNKNOWN_DEPARTMENT_PREFIX = "未知";
+
 async function getOrCreateDepartment(code: string) {
   return prisma.department.upsert({
     where: { code },
     update: {},
-    create: { code, nameCn: `未知(${code})`, isCollege: false },
+    create: {
+      code,
+      nameCn: `${UNKNOWN_DEPARTMENT_PREFIX}(${code})`,
+      isCollege: false,
+    },
   });
 }
 
@@ -419,6 +435,8 @@ async function updateOrCreateTeacher(
   return teacher;
 }
 
+const UNKNOWN_TEACHER = "未知教师";
+
 async function createSchedule(scheduleData: any, sectionId: number) {
   const room = scheduleData.room
     ? await updateOrCreateRoom(scheduleData.room)
@@ -427,7 +445,7 @@ async function createSchedule(scheduleData: any, sectionId: number) {
   const teacher = await updateOrCreateTeacher(
     scheduleData.teacherId || null,
     scheduleData.personId || null,
-    scheduleData.personName || "未知教师",
+    scheduleData.personName || UNKNOWN_TEACHER,
   );
 
   const scheduleGroup = await prisma.scheduleGroup.findFirst({
@@ -441,6 +459,12 @@ async function createSchedule(scheduleData: any, sectionId: number) {
     return;
   }
 
+  // Validate date
+  const date = new Date(scheduleData.date);
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Invalid date format for schedule: ${scheduleData.date}`);
+  }
+
   return prisma.schedule.create({
     data: {
       sectionId,
@@ -448,7 +472,7 @@ async function createSchedule(scheduleData: any, sectionId: number) {
       roomId: room?.id || null,
       teacherId: teacher?.id || null,
       periods: scheduleData.periods,
-      date: new Date(scheduleData.date),
+      date,
       weekday: scheduleData.weekday,
       startTime: scheduleData.startTime,
       endTime: scheduleData.endTime,

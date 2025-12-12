@@ -125,11 +125,22 @@ const SectionSchema = z.object({
     .optional(),
 });
 
-const WebhookPayloadSchema = z.object({
-  type: z.enum(["semesters", "sections", "schedules"]),
-  data: z.any(),
-  semesterId: z.number().optional(),
-});
+const WebhookPayloadSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("semesters"),
+    data: z.array(SemesterSchema),
+  }),
+  z.object({
+    type: z.literal("sections"),
+    data: z.array(SectionSchema),
+    semesterId: z.number(),
+  }),
+  z.object({
+    type: z.literal("schedules"),
+    data: z.record(z.string(), z.any()), // Record mapping section jwId to schedule data
+    semesterId: z.number(),
+  }),
+]);
 
 // Authentication helper
 function authenticateRequest(request: NextRequest): boolean {
@@ -177,24 +188,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { type, data, semesterId } = validationResult.data;
-
+    const payload = validationResult.data;
     let result: any;
 
-    switch (type) {
+    switch (payload.type) {
       case "semesters": {
-        // Validate semesters data
-        const semestersValidation = z.array(SemesterSchema).safeParse(data);
-        if (!semestersValidation.success) {
-          return NextResponse.json(
-            {
-              error: "Invalid semesters data",
-              details: semestersValidation.error.issues,
-            },
-            { status: 400 },
-          );
-        }
-        const semesters = await loadSemestersFromData(data);
+        const semesters = await loadSemestersFromData(payload.data);
         result = {
           success: true,
           message: `Loaded ${semesters.length} semesters`,
@@ -204,38 +203,19 @@ export async function POST(request: NextRequest) {
       }
 
       case "sections": {
-        if (!semesterId) {
-          return NextResponse.json(
-            { error: "semesterId is required for sections" },
-            { status: 400 },
-          );
-        }
-
         // Find the semester
         const semester = await prisma.semester.findUnique({
-          where: { id: semesterId },
+          where: { id: payload.semesterId },
         });
 
         if (!semester) {
           return NextResponse.json(
-            { error: `Semester with id ${semesterId} not found` },
+            { error: `Semester with id ${payload.semesterId} not found` },
             { status: 404 },
           );
         }
 
-        // Validate sections data
-        const sectionsValidation = z.array(SectionSchema).safeParse(data);
-        if (!sectionsValidation.success) {
-          return NextResponse.json(
-            {
-              error: "Invalid sections data",
-              details: sectionsValidation.error.issues,
-            },
-            { status: 400 },
-          );
-        }
-
-        const count = await loadSectionsFromData(data, semester);
+        const count = await loadSectionsFromData(payload.data, semester);
         result = {
           success: true,
           message: `Loaded ${count} sections for semester ${semester.name}`,
@@ -246,37 +226,19 @@ export async function POST(request: NextRequest) {
       }
 
       case "schedules": {
-        if (!semesterId) {
-          return NextResponse.json(
-            { error: "semesterId is required for schedules" },
-            { status: 400 },
-          );
-        }
-
         // Find the semester
         const semester = await prisma.semester.findUnique({
-          where: { id: semesterId },
+          where: { id: payload.semesterId },
         });
 
         if (!semester) {
           return NextResponse.json(
-            { error: `Semester with id ${semesterId} not found` },
+            { error: `Semester with id ${payload.semesterId} not found` },
             { status: 404 },
           );
         }
 
-        // Data should be a record mapping section jwId to schedule data
-        if (typeof data !== "object" || Array.isArray(data)) {
-          return NextResponse.json(
-            {
-              error:
-                "Invalid schedules data - must be an object mapping section jwId to schedule data",
-            },
-            { status: 400 },
-          );
-        }
-
-        const count = await loadSchedulesFromData(data, semester);
+        const count = await loadSchedulesFromData(payload.data, semester);
         result = {
           success: true,
           message: `Loaded schedules for ${count} sections in semester ${semester.name}`,
@@ -285,12 +247,6 @@ export async function POST(request: NextRequest) {
         };
         break;
       }
-
-      default:
-        return NextResponse.json(
-          { error: `Unknown data type: ${type}` },
-          { status: 400 },
-        );
     }
 
     return NextResponse.json(result, { status: 200 });
