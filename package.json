@@ -1,0 +1,44 @@
+{
+  "name": "life-ustc-server-nextjs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "USTC Life Server - Course and schedule management API using Next.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "check": "biome check",
+    "format": "biome format",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:reset": "prisma migrate reset",
+    "db:push": "prisma db push",
+    "db:seed": "bun run prisma/seed.ts",
+    "db:load": "bun run scripts/load-from-static.ts"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.1.0",
+    "@prisma/client": "^7.1.0",
+    "@types/pg": "^8.16.0",
+    "cli-progress": "^3.12.0",
+    "dotenv": "^17.2.3",
+    "next": "16.0.10",
+    "pg": "^8.16.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "zod": "4.1.13"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.8",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^25.0.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "babel-plugin-react-compiler": "1.0.0",
+    "prisma": "^7.1.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3"
+  }
+}

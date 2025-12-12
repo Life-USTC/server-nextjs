@@ -1,0 +1,11 @@
+services:
+  # Next.js Application
+  app:
+    container_name: life-ustc-nextjs
+    image: ghcr.io/life-ustc/server-nextjs:latest
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: production
+    restart: unless-stopped
