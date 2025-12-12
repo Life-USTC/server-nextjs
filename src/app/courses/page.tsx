@@ -7,6 +7,8 @@ import styles from "./page.module.scss";
 
 const { Title } = Typography;
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
@@ -97,7 +99,9 @@ export default async function CoursesPage({ searchParams }: PageProps) {
     <AppLayout>
       <div className={styles.header}>
         <Title level={2}>
-          <BookOutlined /> Courses
+          <span>
+            <BookOutlined /> Courses
+          </span>
         </Title>
       </div>
 

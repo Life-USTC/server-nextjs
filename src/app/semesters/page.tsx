@@ -7,6 +7,8 @@ import styles from "./page.module.scss";
 
 const { Title, Text } = Typography;
 
+export const dynamic = "force-dynamic";
+
 async function getSemesters() {
   try {
     const semesters = await db.semester.findMany({
@@ -34,7 +36,9 @@ export default async function SemestersPage() {
     <AppLayout>
       <div className={styles.header}>
         <Title level={2}>
-          <CalendarOutlined /> Semesters
+          <span>
+            <CalendarOutlined /> Semesters
+          </span>
         </Title>
       </div>
 

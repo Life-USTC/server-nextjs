@@ -12,6 +12,8 @@ import styles from "./page.module.scss";
 
 const { Title, Paragraph, Text } = Typography;
 
+export const dynamic = "force-dynamic";
+
 async function getStats() {
   try {
     const [coursesCount, semestersCount] = await Promise.all([

@@ -8,6 +8,8 @@ import styles from "./page.module.scss";
 
 const { Title } = Typography;
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }
@@ -67,7 +69,9 @@ export default async function CourseDetailPage({ params }: PageProps) {
         <div className={styles.header}>
           <div>
             <Title level={2} className={styles.title}>
-              <BookOutlined /> {course.nameCn}
+              <span>
+                <BookOutlined /> {course.nameCn}
+              </span>
             </Title>
             {course.nameEn && (
               <div className={styles.subtitle}>{course.nameEn}</div>

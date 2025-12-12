@@ -1,16 +1,19 @@
 import { TeamOutlined } from "@ant-design/icons";
 import { Alert, Card, Typography } from "antd";
 import AppLayout from "@/components/AppLayout";
-import styles from "./page.module.scss";
 
 const { Title } = Typography;
+
+export const dynamic = "force-dynamic";
 
 export default function TeachersPage() {
   return (
     <AppLayout>
-      <div className={styles.header}>
+      <div style={{ marginBottom: "24px" }}>
         <Title level={2}>
-          <TeamOutlined /> Teachers
+          <span>
+            <TeamOutlined /> Teachers
+          </span>
         </Title>
       </div>
 
