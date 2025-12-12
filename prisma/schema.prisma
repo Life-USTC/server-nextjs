@@ -1,0 +1,291 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AdminClass {
+  id       Int       @id @default(autoincrement())
+  nameCn   String    @unique @db.VarChar(100)
+  nameEn   String?   @db.VarChar(100)
+  sections Section[] @relation("SectionAdminClasses")
+
+  @@index([nameCn])
+}
+
+model Building {
+  id       Int     @id @default(autoincrement())
+  nameCn   String  @db.VarChar(100)
+  nameEn   String? @db.VarChar(100)
+  code     String  @db.VarChar(20)
+  campusId Int?
+  jwId     Int     @unique
+  campus   Campus? @relation(fields: [campusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  rooms    Room[]
+
+  @@index([campusId])
+}
+
+model Campus {
+  id        Int        @id @default(autoincrement())
+  nameCn    String     @unique @db.VarChar(100)
+  nameEn    String?    @db.VarChar(100)
+  jwId      Int?       @unique
+  buildings Building[]
+  sections  Section[]
+
+  @@index([nameCn])
+}
+
+model ClassType {
+  id      Int      @id @default(autoincrement())
+  nameCn  String   @unique @db.VarChar(100)
+  nameEn  String?  @db.VarChar(100)
+  courses Course[]
+
+  @@index([nameCn])
+}
+
+model Course {
+  id               Int              @id @default(autoincrement())
+  jwId             Int              @unique
+  code             String           @db.VarChar(20)
+  nameCn           String           @db.VarChar(100)
+  nameEn           String           @db.VarChar(100)
+  classTypeId      Int?
+  categoryId       Int?
+  classifyId       Int?
+  gradationId      Int?
+  typeId           Int?
+  educationLevelId Int?
+  category         CourseCategory?  @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  classType        ClassType?       @relation(fields: [classTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  classify         CourseClassify?  @relation(fields: [classifyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  educationLevel   EducationLevel?  @relation(fields: [educationLevelId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gradation        CourseGradation? @relation(fields: [gradationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  type             CourseType?      @relation(fields: [typeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sections         Section[]
+
+  @@index([categoryId])
+  @@index([classTypeId])
+  @@index([classifyId])
+  @@index([educationLevelId])
+  @@index([gradationId])
+  @@index([typeId])
+}
+
+model CourseCategory {
+  id      Int      @id @default(autoincrement())
+  nameCn  String   @unique @db.VarChar(100)
+  nameEn  String?  @db.VarChar(100)
+  courses Course[]
+
+  @@index([nameCn])
+}
+
+model CourseClassify {
+  id      Int      @id @default(autoincrement())
+  nameCn  String   @unique @db.VarChar(100)
+  nameEn  String?  @db.VarChar(100)
+  courses Course[]
+
+  @@index([nameCn])
+}
+
+model CourseGradation {
+  id      Int      @id @default(autoincrement())
+  nameCn  String   @unique @db.VarChar(100)
+  nameEn  String?  @db.VarChar(100)
+  courses Course[]
+
+  @@index([nameCn])
+}
+
+model CourseType {
+  id      Int      @id @default(autoincrement())
+  nameCn  String   @unique @db.VarChar(100)
+  nameEn  String?  @db.VarChar(100)
+  courses Course[]
+
+  @@index([nameCn])
+}
+
+model Department {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique @db.VarChar(20)
+  nameCn    String    @unique @db.VarChar(100)
+  nameEn    String?   @db.VarChar(100)
+  isCollege Boolean
+  sections  Section[]
+  teachers  Teacher[]
+
+  @@index([code])
+  @@index([nameCn])
+}
+
+model EducationLevel {
+  id      Int      @id @default(autoincrement())
+  nameCn  String   @unique @db.VarChar(50)
+  nameEn  String?  @db.VarChar(50)
+  courses Course[]
+
+  @@index([nameCn])
+}
+
+model ExamMode {
+  id       Int       @id @default(autoincrement())
+  nameCn   String    @unique @db.VarChar(200)
+  nameEn   String?   @db.VarChar(200)
+  sections Section[]
+
+  @@index([nameCn])
+}
+
+model Room {
+  id              Int        @id @default(autoincrement())
+  jwId            Int        @unique
+  nameCn          String     @db.VarChar(100)
+  nameEn          String?    @db.VarChar(100)
+  code            String     @db.VarChar(20)
+  floor           Int
+  virtual         Boolean
+  seatsForSection Int
+  remark          String?
+  seats           Int
+  buildingId      Int?
+  roomTypeId      Int?
+  building        Building?  @relation(fields: [buildingId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roomType        RoomType?  @relation(fields: [roomTypeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schedules       Schedule[]
+
+  @@index([buildingId])
+  @@index([roomTypeId])
+}
+
+model RoomType {
+  id     Int     @id @default(autoincrement())
+  nameCn String  @db.VarChar(100)
+  nameEn String? @db.VarChar(100)
+  code   String  @db.VarChar(20)
+  jwId   Int     @unique
+  rooms  Room[]
+}
+
+model Schedule {
+  id              Int           @id @default(autoincrement())
+  periods         Int
+  date            DateTime      @db.Date
+  weekday         Int
+  startTime       Int
+  endTime         Int
+  experiment      String?
+  customPlace     String?
+  lessonType      String?
+  weekIndex       Int
+  exerciseClass   Boolean
+  startUnit       Int
+  endUnit         Int
+  roomId          Int?
+  sectionId       Int
+  teacherId       Int?
+  scheduleGroupId Int
+  room            Room?         @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  scheduleGroup   ScheduleGroup @relation(fields: [scheduleGroupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  section         Section       @relation(fields: [sectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  teacher         Teacher?      @relation(fields: [teacherId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([roomId])
+  @@index([scheduleGroupId])
+  @@index([sectionId])
+  @@index([teacherId])
+}
+
+model ScheduleGroup {
+  id            Int        @id @default(autoincrement())
+  jwId          Int        @unique
+  no            Int
+  limitCount    Int
+  stdCount      Int
+  actualPeriods Int
+  isDefault     Boolean
+  sectionId     Int
+  schedules     Schedule[]
+  section       Section    @relation(fields: [sectionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sectionId])
+}
+
+model Section {
+  id                      Int             @id @default(autoincrement())
+  jwId                    Int             @unique
+  code                    String          @db.VarChar(20)
+  credits                 Float?
+  period                  Int?
+  periodsPerWeek          Int?
+  stdCount                Int?
+  limitCount              Int?
+  graduateAndPostgraduate Boolean?
+  dateTimePlaceText       String?
+  dateTimePlacePersonText Json?
+  courseId                Int
+  semesterId              Int?
+  campusId                Int?
+  examModeId              Int?
+  openDepartmentId        Int?
+  teachLanguageId         Int?
+  schedules               Schedule[]
+  scheduleGroups          ScheduleGroup[]
+  campus                  Campus?         @relation(fields: [campusId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  course                  Course          @relation(fields: [courseId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  examMode                ExamMode?       @relation(fields: [examModeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  openDepartment          Department?     @relation(fields: [openDepartmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  semester                Semester?       @relation(fields: [semesterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  teachLanguage           TeachLanguage?  @relation(fields: [teachLanguageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  adminClasses            AdminClass[]    @relation("SectionAdminClasses")
+  teachers                Teacher[]       @relation("SectionTeachers")
+
+  @@index([campusId])
+  @@index([courseId])
+  @@index([examModeId])
+  @@index([openDepartmentId])
+  @@index([semesterId])
+  @@index([teachLanguageId])
+}
+
+model Semester {
+  id        Int       @id @default(autoincrement())
+  jwId      Int       @unique
+  name      String    @unique @db.VarChar(20)
+  code      String    @unique @db.VarChar(10)
+  startDate DateTime? @db.Date
+  endDate   DateTime? @db.Date
+  sections  Section[]
+
+  @@index([code])
+  @@index([name])
+}
+
+model Teacher {
+  id           Int         @id @default(autoincrement())
+  nameCn       String      @db.VarChar(100)
+  nameEn       String?     @db.VarChar(100)
+  departmentId Int?
+  personId     Int?
+  teacherId    Int?
+  schedules    Schedule[]
+  sections     Section[]   @relation("SectionTeachers")
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([departmentId])
+}
+
+model TeachLanguage {
+  id       Int       @id @default(autoincrement())
+  nameCn   String    @unique @db.VarChar(50)
+  nameEn   String?   @db.VarChar(50)
+  sections Section[]
+
+  @@index([nameCn])
+}
