@@ -23,29 +23,8 @@ async function getStats() {
   }
 }
 
-async function getRecentSemesters() {
-  try {
-    const semesters = await db.semester.findMany({
-      orderBy: { startDate: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        name: true,
-        code: true,
-        startDate: true,
-        endDate: true,
-      },
-    });
-    return semesters;
-  } catch (error) {
-    console.error("Failed to fetch semesters:", error);
-    return [];
-  }
-}
-
 export default async function Home() {
   const stats = await getStats();
-  const recentSemesters = await getRecentSemesters();
 
-  return <HomePage stats={stats} recentSemesters={recentSemesters} />;
+  return <HomePage stats={stats} recentSemesters={[]} />;
 }

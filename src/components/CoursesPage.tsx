@@ -3,8 +3,8 @@
 import { BookOutlined, SearchOutlined } from "@ant-design/icons";
 import { Card, Form, Input, Space, Table, Tag, Typography } from "antd";
 import Link from "next/link";
-import AppLayout from "@/components/AppLayout";
 import styles from "@/app/courses/page.module.scss";
+import AppLayout from "@/components/AppLayout";
 
 const { Title } = Typography;
 

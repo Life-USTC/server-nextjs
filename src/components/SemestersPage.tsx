@@ -3,8 +3,8 @@
 import { CalendarOutlined } from "@ant-design/icons";
 import { Card, Space, Typography } from "antd";
 import Link from "next/link";
-import AppLayout from "@/components/AppLayout";
 import styles from "@/app/semesters/page.module.scss";
+import AppLayout from "@/components/AppLayout";
 
 const { Title, Text } = Typography;
 
@@ -48,7 +48,9 @@ export default function SemestersPage({ semesters }: SemestersPageProps) {
                       </Text>
                       {semester.startDate && semester.endDate && (
                         <div className={styles.semesterDates}>
-                          <CalendarOutlined /> {new Date(semester.startDate).toLocaleDateString()} - {new Date(semester.endDate).toLocaleDateString()}
+                          <CalendarOutlined />{" "}
+                          {new Date(semester.startDate).toLocaleDateString()} -{" "}
+                          {new Date(semester.endDate).toLocaleDateString()}
                         </div>
                       )}
                     </div>

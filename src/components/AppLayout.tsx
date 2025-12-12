@@ -3,17 +3,14 @@
 import {
   AppstoreOutlined,
   BookOutlined,
-  CalendarOutlined,
   HomeOutlined,
-  TeamOutlined,
 } from "@ant-design/icons";
-import { Layout, Menu, Space, Typography } from "antd";
+import { Layout, Menu } from "antd";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styles from "./AppLayout.module.scss";
 
 const { Header, Content, Footer } = Layout;
-const { Title } = Typography;
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -29,19 +26,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       label: <Link href="/">Home</Link>,
     },
     {
-      key: "/semesters",
-      icon: <CalendarOutlined />,
-      label: <Link href="/semesters">Semesters</Link>,
-    },
-    {
       key: "/courses",
       icon: <BookOutlined />,
       label: <Link href="/courses">Courses</Link>,
-    },
-    {
-      key: "/teachers",
-      icon: <TeamOutlined />,
-      label: <Link href="/teachers">Teachers</Link>,
     },
     {
       key: "/sections",
@@ -50,10 +37,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
     },
   ];
 
-  // Determine selected key based on pathname
+  // Determine selected key based on pathname - fix the logic
   const getSelectedKey = () => {
     if (pathname === "/") return "/";
-    const match = menuItems.find((item) => pathname.startsWith(item.key));
+
+    // Sort by key length descending to match more specific paths first
+    const sortedItems = [...menuItems].sort(
+      (a, b) => b.key.length - a.key.length,
+    );
+    const match = sortedItems.find(
+      (item) => item.key !== "/" && pathname.startsWith(item.key),
+    );
     return match ? match.key : "/";
   };
 
@@ -61,11 +55,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <Layout className={styles.layout}>
       <Header className={styles.header}>
         <div className={styles.headerContent}>
-          <Space align="center" size="large">
-            <Title level={3} className={styles.logo}>
-              Life@USTC
-            </Title>
-          </Space>
+          <Link href="/" className={styles.logo}>
+            USTC Course Manager
+          </Link>
           <Menu
             theme="dark"
             mode="horizontal"
@@ -80,11 +72,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </Content>
       <Footer className={styles.footer}>
         <div className={styles.footerContent}>
-          <span>
-            © {new Date().getFullYear()} Life@USTC - All Rights Reserved
-          </span>
+          <span>© {new Date().getFullYear()} USTC Course Manager</span>
           <Link href="/api/metadata" className={styles.footerLink}>
-            API Documentation
+            API Docs
           </Link>
         </div>
       </Footer>

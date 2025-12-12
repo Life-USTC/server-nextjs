@@ -1,6 +1,6 @@
+import { notFound } from "next/navigation";
 import CourseDetailPage from "@/components/CourseDetailPage";
 import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
