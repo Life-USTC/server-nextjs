@@ -1,11 +1,18 @@
-import { AntdRegistry } from "@ant-design/nextjs-registry";
 import type { Metadata } from "next";
-import "./globals.css";
+import { Space_Grotesk } from "next/font/google";
+import "antd/dist/reset.css";
+import "./globals.scss";
 
 export const metadata: Metadata = {
   title: "Life@USTC - Course & Schedule Management",
   description: "USTC course and schedule management system",
 };
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export default function RootLayout({
   children,
@@ -14,8 +21,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        <AntdRegistry>{children}</AntdRegistry>
+      <body className={`${spaceGrotesk.className} antialiased`}>
+        {children}
       </body>
     </html>
   );

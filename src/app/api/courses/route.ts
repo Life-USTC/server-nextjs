@@ -1,45 +1,37 @@
+import type { Prisma } from "@prisma/client";
 import type { NextRequest } from "next/server";
-import {
-  getPagination,
-  handleRouteError,
-  paginateResult,
-} from "@/lib/api-helpers";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getPagination, handleRouteError } from "@/lib/api-helpers";
+import { paginatedCourseQuery } from "@/lib/query-helpers";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const pagination = getPagination(searchParams);
   const search = searchParams.get("search")?.trim();
 
-  const whereClause = search
+  const where: Prisma.CourseWhereInput | undefined = search
     ? {
         OR: [
-          { nameCn: { contains: search, mode: "insensitive" as const } },
-          { nameEn: { contains: search, mode: "insensitive" as const } },
+          {
+            nameCn: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            nameEn: {
+              contains: search,
+              mode: "insensitive" as const,
+            },
+          },
           { code: { contains: search, mode: "insensitive" as const } },
         ],
       }
     : undefined;
 
   try {
-    const [courses, total] = await Promise.all([
-      prisma.course.findMany({
-        where: whereClause,
-        skip: pagination.skip,
-        take: pagination.limit,
-        include: {
-          educationLevel: true,
-          category: true,
-          classify: true,
-          classType: true,
-          gradation: true,
-          type: true,
-        },
-      }),
-      prisma.course.count({ where: whereClause }),
-    ]);
-
-    return paginateResult(courses, pagination, total);
+    const result = await paginatedCourseQuery(pagination.page, where);
+    return NextResponse.json(result);
   } catch (error) {
     return handleRouteError("Failed to fetch courses", error);
   }
