@@ -1,10 +1,8 @@
+import type { Prisma } from "@prisma/client";
 import type { NextRequest } from "next/server";
-import {
-  getPagination,
-  handleRouteError,
-  paginateResult,
-} from "@/lib/api-helpers";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getPagination, handleRouteError } from "@/lib/api-helpers";
+import { paginatedSectionQuery } from "@/lib/query-helpers";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -16,13 +14,13 @@ export async function GET(request: NextRequest) {
   const departmentId = searchParams.get("departmentId");
   const teacherId = searchParams.get("teacherId");
 
-  const whereClause: Record<string, unknown> = {};
-  if (courseId) whereClause.courseId = parseInt(courseId, 10);
-  if (semesterId) whereClause.semesterId = parseInt(semesterId, 10);
-  if (campusId) whereClause.campusId = parseInt(campusId, 10);
-  if (departmentId) whereClause.openDepartmentId = parseInt(departmentId, 10);
+  const where: Prisma.SectionWhereInput = {};
+  if (courseId) where.courseId = parseInt(courseId, 10);
+  if (semesterId) where.semesterId = parseInt(semesterId, 10);
+  if (campusId) where.campusId = parseInt(campusId, 10);
+  if (departmentId) where.openDepartmentId = parseInt(departmentId, 10);
   if (teacherId) {
-    whereClause.teachers = {
+    where.teachers = {
       some: {
         id: parseInt(teacherId, 10),
       },
@@ -30,35 +28,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [sections, total] = await Promise.all([
-      prisma.section.findMany({
-        where: whereClause,
-        skip: pagination.skip,
-        take: pagination.limit,
-        include: {
-          course: {
-            include: {
-              educationLevel: true,
-              category: true,
-              classify: true,
-              classType: true,
-              gradation: true,
-              type: true,
-            },
-          },
-          semester: true,
-          campus: true,
-          openDepartment: true,
-          examMode: true,
-          teachLanguage: true,
-          teachers: true,
-          adminClasses: true,
-        },
-      }),
-      prisma.section.count({ where: whereClause }),
-    ]);
-
-    return paginateResult(sections, pagination, total);
+    const result = await paginatedSectionQuery(pagination.page, where);
+    return NextResponse.json(result);
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);
   }

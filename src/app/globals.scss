@@ -1,0 +1,496 @@
+@use "tailwindcss";
+
+:root {
+    /* Color palette - coastal blue theme */
+    --color-primary: oklch(0.58 0.2 250);
+    --color-primary-light: oklch(0.7 0.18 250);
+    --color-primary-dark: oklch(0.48 0.2 250);
+    --color-primary-bg: oklch(0.58 0.2 250 / 0.08);
+    --color-accent: oklch(0.7 0.16 40);
+
+    /* Neutral colors */
+    --color-gray-50: oklch(0.98 0.01 250);
+    --color-gray-100: oklch(0.96 0.01 250);
+    --color-gray-200: oklch(0.92 0.01 250);
+    --color-gray-300: oklch(0.86 0.01 250);
+    --color-gray-400: oklch(0.68 0.02 250);
+    --color-gray-500: oklch(0.52 0.03 250);
+    --color-gray-600: oklch(0.4 0.03 250);
+    --color-gray-700: oklch(0.3 0.03 250);
+    --color-gray-800: oklch(0.2 0.02 250);
+    --color-gray-900: oklch(0.12 0.02 250);
+
+    /* Semantic colors */
+    --color-success: oklch(0.72 0.18 160);
+    --color-warning: oklch(0.68 0.18 50);
+    --color-error: oklch(0.62 0.22 25);
+    --color-info: oklch(0.62 0.18 240);
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px oklch(0.12 0.02 250 / 0.05);
+    --shadow-md: 0 8px 20px oklch(0.12 0.02 250 / 0.08);
+    --shadow-lg: 0 18px 45px oklch(0.12 0.02 250 / 0.12);
+
+    /* Border radius */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+
+    /* Spacing */
+    --spacing-xs: 8px;
+    --spacing-sm: 12px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+
+    /* Typography scale */
+    --font-size-display: clamp(2.5rem, 2.8vw + 1rem, 3rem);
+    --font-size-title: clamp(1.75rem, 1.6vw + 0.75rem, 2.25rem);
+    --font-size-title-2: clamp(1.375rem, 1.1vw + 0.75rem, 1.75rem);
+    --font-size-subtitle: 1.125rem;
+    --font-size-body: 1rem;
+    --font-size-small: 0.9375rem;
+    --font-size-tag: 0.8125rem;
+
+    /* Layout widths */
+    --layout-content-width: 72rem;
+    --layout-wide-width: 80rem;
+
+    --background: oklch(0.98 0.01 250);
+    --foreground: oklch(0.12 0.02 250);
+    --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+
+    @media (prefers-color-scheme: dark) {
+        --background: oklch(0.1 0.02 250);
+        --foreground: oklch(0.92 0.01 250);
+        --color-gray-50: oklch(0.12 0.02 250);
+        --color-gray-100: oklch(0.14 0.02 250);
+        --color-gray-200: oklch(0.2 0.02 250);
+        --color-gray-300: oklch(0.3 0.03 250);
+        --color-primary-bg: oklch(0.7 0.18 250 / 0.12);
+    }
+}
+
+body {
+    background: radial-gradient(
+            circle at 20% 20%,
+            oklch(0.7 0.18 250 / 0.08),
+            transparent 25%
+        ),
+        radial-gradient(
+            circle at 80% 0%,
+            oklch(0.7 0.16 40 / 0.12),
+            transparent 23%
+        ),
+        linear-gradient(
+            180deg,
+            oklch(0.99 0.01 250) 0%,
+            oklch(0.96 0.01 250) 100%
+        );
+    background-attachment: fixed;
+
+    @media (prefers-color-scheme: dark) {
+        background: radial-gradient(
+                circle at 20% 20%,
+                oklch(0.7 0.18 250 / 0.06),
+                transparent 25%
+            ),
+            radial-gradient(
+                circle at 80% 0%,
+                oklch(0.7 0.16 40 / 0.08),
+                transparent 23%
+            ),
+            linear-gradient(
+                180deg,
+                oklch(0.1 0.02 250) 0%,
+                oklch(0.12 0.02 250) 100%
+            );
+        background-attachment: fixed;
+    }
+
+    color: var(--foreground);
+    font-family: "Space Grotesk", "Segoe UI", -apple-system, BlinkMacSystemFont,
+        "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+}
+
+@layer base {
+    a,
+    a:visited {
+        text-decoration-line: underline;
+        text-decoration-style: dotted;
+        text-decoration-color: currentColor;
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 0.08em;
+        text-decoration-skip-ink: auto;
+    }
+}
+
+@layer components {
+    .layout-main {
+        max-width: var(--layout-content-width);
+        width: min(100%, var(--layout-content-width));
+        margin-inline: auto;
+    }
+
+    .page-main {
+        max-width: var(--layout-content-width);
+        width: min(100%, var(--layout-content-width));
+        margin-inline: auto;
+        min-height: 100vh;
+        padding: 2rem;
+        padding-bottom: 5rem;
+
+        @media (min-width: 640px) {
+            padding: 5rem;
+        }
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .text-display {
+        font-size: var(--font-size-display);
+        font-weight: 700;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+    }
+
+    .text-title {
+        font-size: var(--font-size-title);
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+    }
+
+    .text-title-2 {
+        font-size: var(--font-size-title-2);
+        font-weight: 600;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+    }
+
+    .text-subtitle {
+        font-size: var(--font-size-subtitle);
+        font-weight: 500;
+        line-height: 1.5;
+        color: var(--color-gray-600);
+        @media (prefers-color-scheme: dark) {
+            color: var(--color-gray-400);
+        }
+    }
+
+    .text-body {
+        font-size: var(--font-size-body);
+        line-height: 1.6;
+    }
+
+    .text-small {
+        font-size: var(--font-size-small);
+        line-height: 1.5;
+    }
+
+    .text-tag {
+        font-size: var(--font-size-tag);
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+    }
+
+    .text-muted {
+        color: var(--color-gray-600);
+        @media (prefers-color-scheme: dark) {
+            color: var(--color-gray-400);
+        }
+    }
+
+    .text-muted-strong {
+        color: var(--color-gray-700);
+        @media (prefers-color-scheme: dark) {
+            color: var(--color-gray-300);
+        }
+    }
+
+    .text-primary {
+        color: oklch(0.55 0.22 250);
+        @media (prefers-color-scheme: dark) {
+            color: oklch(0.7 0.18 250);
+        }
+    }
+
+    .text-secondary {
+        color: var(--color-gray-800);
+        @media (prefers-color-scheme: dark) {
+            color: var(--color-gray-200);
+        }
+    }
+
+    /* ===================================================================
+   * Semantic Utility Classes
+   * Use these classes instead of hardcoded colors in TSX files
+   * for automatic light/dark mode support and consistent theming
+   * =================================================================== */
+
+    /* Text Colors */
+    .text-base {
+        color: var(--foreground);
+    }
+
+    .text-emphasis {
+        color: var(--color-gray-900);
+        @media (prefers-color-scheme: dark) {
+            color: var(--color-gray-50);
+        }
+    }
+
+    /* Background Colors */
+    .bg-surface {
+        background-color: var(--color-gray-50);
+        @media (prefers-color-scheme: dark) {
+            background-color: var(--color-gray-800);
+        }
+    }
+
+    .bg-surface-elevated {
+        background-color: white;
+        @media (prefers-color-scheme: dark) {
+            background-color: var(--color-gray-800);
+        }
+    }
+
+    .bg-interactive {
+        background-color: var(--color-gray-200);
+        @media (prefers-color-scheme: dark) {
+            background-color: var(--color-gray-700);
+        }
+    }
+
+    .bg-interactive-hover {
+        background-color: var(--color-gray-300);
+        @media (prefers-color-scheme: dark) {
+            background-color: var(--color-gray-600);
+        }
+    }
+
+    .bg-primary {
+        background-color: var(--color-primary);
+    }
+
+    .bg-primary-hover {
+        background-color: var(--color-primary-dark);
+    }
+
+    .text-on-primary {
+        color: white;
+    }
+
+    /* Border Colors */
+    .border-base {
+        border-color: var(--color-gray-300);
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--color-gray-600);
+        }
+    }
+
+    .border-interactive-hover {
+        border-color: var(--color-primary-light);
+        @media (prefers-color-scheme: dark) {
+            border-color: var(--color-primary);
+        }
+    }
+
+    /* Interactive Elements */
+    .focus-ring {
+        &:focus-visible {
+            outline: none;
+            ring: 2px;
+            ring-color: var(--color-primary);
+        }
+    }
+
+    .spinner {
+        border-color: var(--color-primary);
+    }
+
+    /* ===================================================================
+   * Component-Specific Styles
+   * =================================================================== */
+
+    /* Tags & Badges */
+    .tag-base {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+    }
+
+    .tech-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        background-color: var(--color-gray-200);
+        border-radius: 9999px;
+        font-size: 0.875rem;
+
+        @media (prefers-color-scheme: dark) {
+            background-color: var(--color-gray-800);
+        }
+    }
+
+    .tag-semester {
+        background: oklch(0.92 0.1 155);
+        color: oklch(0.42 0.14 155);
+    }
+
+    .tag-section-code {
+        font-size: 0.75rem;
+        background: oklch(0.92 0.08 250);
+        color: oklch(0.55 0.22 250);
+    }
+
+    .tag-course-code {
+        background: oklch(0.92 0.01 250);
+        color: oklch(0.3 0.03 250);
+    }
+
+    .tag-education-level {
+        background: oklch(0.92 0.12 290);
+        color: oklch(0.5 0.2 290);
+    }
+
+    .tag-category {
+        background: oklch(0.92 0.08 50);
+        color: oklch(0.48 0.16 40);
+    }
+
+    .tag-class-type {
+        background: oklch(0.92 0.08 350);
+        color: oklch(0.52 0.2 350);
+    }
+
+    .tag-campus {
+        background: oklch(0.92 0.08 200);
+        color: oklch(0.42 0.12 200);
+    }
+
+    .tag-capacity {
+        background: oklch(0.9 0.1 270);
+        color: oklch(0.45 0.18 270);
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .tag-semester {
+            background: oklch(0.25 0.1 155);
+            color: oklch(0.72 0.18 160);
+        }
+
+        .tag-section-code {
+            background: oklch(0.25 0.12 250);
+            color: oklch(0.7 0.18 250);
+        }
+
+        .tag-course-code {
+            background: oklch(0.2 0.02 250);
+            color: oklch(0.86 0.01 250);
+        }
+
+        .tag-education-level {
+            background: oklch(0.22 0.14 290);
+            color: oklch(0.75 0.18 290);
+        }
+
+        .tag-category {
+            background: oklch(0.3 0.12 40);
+            color: oklch(0.75 0.14 50);
+        }
+
+        .tag-class-type {
+            background: oklch(0.28 0.14 350);
+            color: oklch(0.78 0.16 350);
+        }
+
+        .tag-campus {
+            background: oklch(0.28 0.1 200);
+            color: oklch(0.75 0.15 200);
+        }
+
+        .tag-capacity {
+            background: oklch(0.25 0.12 270);
+            color: oklch(0.8 0.14 270);
+        }
+    }
+
+    /* Cards */
+    .stat-card {
+        padding: 1rem;
+        background-color: oklch(0.96 0.01 250);
+        border-radius: 0.5rem;
+        transition-property: color, background-color, border-color,
+            text-decoration-color, fill, stroke;
+        transition-duration: 150ms;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+        @media (prefers-color-scheme: dark) {
+            background-color: oklch(0.2 0.02 250);
+        }
+    }
+
+    .stat-card-interactive {
+        text-decoration: none;
+
+        &:hover {
+            background-color: oklch(0.92 0.01 250);
+            text-decoration: none;
+
+            @media (prefers-color-scheme: dark) {
+                background-color: oklch(0.3 0.03 250);
+            }
+        }
+
+        &:focus-visible {
+            text-decoration: none;
+        }
+    }
+
+    .schedule-card {
+        padding: 1rem;
+        background-color: var(--color-gray-50);
+        border-radius: 0.5rem;
+        border: 1px solid var(--color-gray-200);
+
+        @media (prefers-color-scheme: dark) {
+            background-color: var(--color-gray-800);
+            border-color: var(--color-gray-700);
+        }
+    }
+}
+
+code {
+    background: var(--color-primary-bg);
+    color: var(--color-primary-dark);
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-gray-400);
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--color-gray-500);
+}
