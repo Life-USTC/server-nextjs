@@ -83,7 +83,6 @@ export default async function SectionPage({
   return (
     <main className="page-main">
       <Breadcrumb items={breadcrumbItems} />
-
       <h1 className="text-display mb-2">{section.course.nameCn}</h1>
       <p className="text-subtitle text-muted mb-4">{section.course.nameEn}</p>
       <div className="flex flex-wrap gap-2 mb-4">
@@ -95,12 +94,6 @@ export default async function SectionPage({
         <span className="text-tag tag-base tag-section-code">
           {section.code}
         </span>
-        <Link
-          href={`/courses/${section.course.id}`}
-          className="text-tag tag-base tag-course-code"
-        >
-          {section.course.code}
-        </Link>
         {section.campus && (
           <span className="text-tag tag-base tag-campus">
             {section.campus.nameCn}
