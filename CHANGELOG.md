@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/Life-USTC/server-nextjs/compare/v0.3.0...v0.3.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* use dynamic in homeview ([0925307](https://github.com/Life-USTC/server-nextjs/commit/0925307aa49f70f23b97f78ba824c95fea5a2dbc))
+
 # [0.3.0](https://github.com/Life-USTC/server-nextjs/compare/v0.2.0...v0.3.0) (2025-12-15)
 
 
