@@ -1,45 +1,66 @@
 import { NextResponse } from "next/server";
 
-export type PaginationParams = {
-  page: number;
-  limit: number;
-  skip: number;
+export type PaginatedResponse<T> = {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
-type PaginationDefaults = {
+export type PaginationInput = {
   page?: number;
-  limit?: number;
-  maxLimit?: number;
+  pageSize?: number;
+  maxPageSize?: number;
 };
 
-export function getPagination(
-  searchParams: URLSearchParams,
-  defaults: PaginationDefaults = {},
-): PaginationParams {
-  const page = Math.max(
-    parseInt(searchParams.get("page") || "", 10) || defaults.page || 1,
-    1,
+/**
+ * Normalize and validate pagination parameters
+ */
+export function normalizePagination(input: PaginationInput = {}) {
+  const page = Math.max(input.page ?? 1, 1);
+  const pageSize = Math.min(
+    Math.max(input.pageSize ?? 20, 1),
+    input.maxPageSize ?? 100,
   );
-  const requestedLimit =
-    parseInt(searchParams.get("limit") || "", 10) || defaults.limit || 30;
-  const limit = Math.min(Math.max(requestedLimit, 1), defaults.maxLimit || 100);
-  return { page, limit, skip: (page - 1) * limit };
+  return {
+    page,
+    pageSize,
+    skip: (page - 1) * pageSize,
+  };
 }
 
-export function paginateResult<T>(
-  data: T,
-  pagination: PaginationParams,
+/**
+ * Parse pagination from URL search params
+ */
+export function getPagination(searchParams: URLSearchParams) {
+  return normalizePagination({
+    page: parseInt(searchParams.get("page") || "", 10) || undefined,
+    pageSize: parseInt(searchParams.get("limit") || "", 10) || undefined,
+    maxPageSize: 100,
+  });
+}
+
+/**
+ * Build paginated response object
+ */
+export function buildPaginatedResponse<T>(
+  data: T[],
+  page: number,
+  pageSize: number,
   total: number,
-) {
-  return NextResponse.json({
+): PaginatedResponse<T> {
+  return {
     data,
     pagination: {
-      page: pagination.page,
-      limit: pagination.limit,
+      page,
+      pageSize,
       total,
-      pages: Math.ceil(total / pagination.limit),
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
     },
-  });
+  };
 }
 
 export function handleRouteError(
