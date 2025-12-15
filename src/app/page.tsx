@@ -3,6 +3,8 @@ import Breadcrumb from "@/components/breadcrumb";
 import { prisma } from "@/lib/prisma";
 import styles from "./page.module.scss";
 
+export const dynamic = 'force-dynamic'
+
 // Data configurations
 const FEATURES = [
   "Complete RESTful API for course management",
