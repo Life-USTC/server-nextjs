@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/Life-USTC/server-nextjs/compare/v0.2.0...v0.3.0) (2025-12-15)
+
+
+### Features
+
+* add webview with Ant Design ([#2](https://github.com/Life-USTC/server-nextjs/issues/2)) ([7d3b412](https://github.com/Life-USTC/server-nextjs/commit/7d3b412848a3d14f072c73f1177d2e3379470409))
+
 # [0.2.0](https://github.com/Life-USTC/server-nextjs/compare/v0.1.0...v0.2.0) (2025-12-12)
 
 
