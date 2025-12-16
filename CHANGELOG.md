@@ -1,3 +1,15 @@
+# [0.4.0](https://github.com/Life-USTC/server-nextjs/compare/v0.3.2...v0.4.0) (2025-12-16)
+
+
+### Bug Fixes
+
+* add hydration safety to theme toggle ([28c48e2](https://github.com/Life-USTC/server-nextjs/commit/28c48e271238f1c5809c6946c2e22408fe585355))
+
+
+### Features
+
+* add homepage assets ([76f8a2f](https://github.com/Life-USTC/server-nextjs/commit/76f8a2f531410087d5b15d65000311368509a2bb))
+
 ## [0.3.2](https://github.com/Life-USTC/server-nextjs/compare/v0.3.1...v0.3.2) (2025-12-16)
 
 
