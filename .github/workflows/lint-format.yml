@@ -32,7 +32,9 @@ jobs:
       - name: Run Biome check (no write)
         id: biome
         continue-on-error: true
-        run: bun run check 2>&1 | tee biome-check-output.txt
+        run: |
+          set -o pipefail
+          bun run check 2>&1 | tee biome-check-output.txt
 
       - name: Apply Biome fixes
         if: steps.biome.outcome == 'failure'
