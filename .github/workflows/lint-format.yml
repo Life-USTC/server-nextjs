@@ -32,9 +32,7 @@ jobs:
       - name: Run Biome check (no write)
         id: biome
         continue-on-error: true
-        run: |
-          set -o pipefail
-          bun run check 2>&1 | tee biome-check-output.txt
+        run: bun run check 2>&1
 
       - name: Apply Biome fixes
         if: steps.biome.outcome == 'failure'
@@ -52,19 +50,4 @@ jobs:
           file_pattern: '.'
 
       - name: Verify Biome check
-        run: bun run check 2>&1 | tee biome-check-output.txt
-
-      - name: Comment PR with lint results
-        if: github.event_name == 'pull_request' && failure()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const fs = require('fs');
-            const output = fs.readFileSync('biome-check-output.txt', 'utf8');
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '## Lint Check Failed\n```\n' + output.slice(0, 3000) + '\n```'
-            });
+        run: bun run check 2>&1
