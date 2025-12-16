@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
+import { Providers } from "@/components/providers";
+
 import "antd/dist/reset.css";
 import "./globals.scss";
-import { ThemeProvider } from "next-themes";
-import ThemeToggle from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
-  title: "Life@USTC - Course & Schedule Management",
+  title: "Life@USTC",
   description: "USTC course and schedule management system",
 };
 
@@ -24,15 +24,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${spaceGrotesk.className} antialiased`}>
-        <ThemeProvider
-          attribute="data-theme"
-          defaultTheme="system"
-          enableSystem
-          storageKey="life-ustc-theme"
-        >
-          {children}
-          <ThemeToggle />
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
