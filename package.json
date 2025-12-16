@@ -9,13 +9,11 @@
     "start": "next start",
     "check": "biome check",
     "format": "biome format",
+    "hooks:install": "git config core.hooksPath .githooks",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:reset": "prisma migrate reset",
-    "db:push": "prisma db push",
-    "db:seed": "bun run prisma/seed.ts",
-    "db:load": "bun run scripts/load-from-static.ts"
+    "prisma:reset": "prisma migrate reset"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.0",
