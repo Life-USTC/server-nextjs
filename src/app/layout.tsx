@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "antd/dist/reset.css";
 import "./globals.scss";
-import ThemeToggle from "@/components/theme-toggle";
 import { ThemeProvider } from "next-themes";
+import ThemeToggle from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Life@USTC - Course & Schedule Management",
