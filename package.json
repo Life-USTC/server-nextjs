@@ -18,20 +18,21 @@
     "db:load": "bun run scripts/load-from-static.ts"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.6.0",
     "@prisma/adapter-pg": "^7.1.0",
     "@prisma/client": "^7.1.0",
-    "@ant-design/icons": "^5.6.0",
     "@types/pg": "^8.16.0",
     "antd": "^5.23.1",
     "cli-progress": "^3.12.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.3",
     "next": "16.0.10",
+    "next-themes": "^0.4.6",
     "pg": "^8.16.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sass": "^1.96.0",
-    "zod": "4.1.13"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.8",
