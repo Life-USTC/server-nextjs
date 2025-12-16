@@ -1,5 +1,4 @@
 import dayjs from "dayjs";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import Breadcrumb from "@/components/breadcrumb";
 import { prisma } from "@/lib/prisma";
