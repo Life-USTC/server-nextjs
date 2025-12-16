@@ -43,12 +43,8 @@
 .gettingStarted {
     margin-top: 3rem;
     padding: 1.5rem;
-    background-color: oklch(0.96 0.04 250);
+    background-color: var(--color-primary-bg);
     border-radius: 0.5rem;
-
-    @media (prefers-color-scheme: dark) {
-        background-color: oklch(0.16 0.06 250);
-    }
 }
 
 .gettingStartedHeading {
@@ -60,8 +56,8 @@
 
 .codeBlock {
     display: block;
-    background-color: oklch(0.14 0.02 250);
-    color: oklch(0.72 0.18 160);
+    background-color: var(--code-bg);
+    color: var(--code-fg);
     padding: 1rem;
     border-radius: 0.5rem;
     font-family: var(--font-mono);
