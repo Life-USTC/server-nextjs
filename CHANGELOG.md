@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/Life-USTC/server-nextjs/compare/v0.3.1...v0.3.2) (2025-12-16)
+
+
+### Bug Fixes
+
+* color design ([#3](https://github.com/Life-USTC/server-nextjs/issues/3)) ([3662c6c](https://github.com/Life-USTC/server-nextjs/commit/3662c6c0548dc2f5374c5ff7e20d5dfe2648edaa))
+
 ## [0.3.1](https://github.com/Life-USTC/server-nextjs/compare/v0.3.0...v0.3.1) (2025-12-15)
 
 
