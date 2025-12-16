@@ -1,10 +1,9 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, Semester } from "@prisma/client";
 import Link from "next/link";
 import Breadcrumb from "@/components/breadcrumb";
 import Pagination from "@/components/pagination";
 import { prisma } from "@/lib/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
-import type { SerializedSemester } from "@/lib/types";
 
 async function fetchSections(
   page: number,
@@ -34,17 +33,13 @@ async function fetchSections(
   return paginatedSectionQuery(page, where);
 }
 
-async function fetchSemesters(): Promise<SerializedSemester[]> {
+async function fetchSemesters(): Promise<Semester[]> {
   const semesters = await prisma.semester.findMany({
     take: 100,
     orderBy: { name: "desc" },
   });
 
-  return semesters.map((semester) => ({
-    ...semester,
-    startDate: semester.startDate?.toISOString() ?? null,
-    endDate: semester.endDate?.toISOString() ?? null,
-  }));
+  return semesters;
 }
 
 export default async function SectionsPage({
