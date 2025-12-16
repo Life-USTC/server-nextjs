@@ -2,35 +2,24 @@
   body {
     background: radial-gradient(
         circle at 20% 20%,
-        oklch(0.7 0.18 250 / 0.08),
+        var(--body-bg-radial-1),
         transparent 25%
       ),
       radial-gradient(
         circle at 80% 0%,
-        oklch(0.7 0.16 40 / 0.12),
+        var(--body-bg-radial-2),
         transparent 23%
       ),
-      linear-gradient(180deg, oklch(0.99 0.01 250) 0%, oklch(0.96 0.01 250) 100%);
+      linear-gradient(
+        180deg,
+        var(--body-bg-linear-start) 0%,
+        var(--body-bg-linear-end) 100%
+      );
     background-attachment: fixed;
     color: var(--text-main);
     font-family: "Space Grotesk", "Segoe UI", -apple-system, BlinkMacSystemFont,
       "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
-  }
-
-  :root[data-theme="dark"] body {
-    background: radial-gradient(
-        circle at 20% 20%,
-        oklch(0.7 0.18 250 / 0.06),
-        transparent 25%
-      ),
-      radial-gradient(
-        circle at 80% 0%,
-        oklch(0.7 0.16 40 / 0.08),
-        transparent 23%
-      ),
-      linear-gradient(180deg, oklch(0.1 0.02 250) 0%, oklch(0.12 0.02 250) 100%);
-    background-attachment: fixed;
   }
 
   a,
@@ -218,6 +207,3 @@ code {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-gray-500);
 }
-
-
-
