@@ -27,14 +27,20 @@ export default function Homepage() {
             </p>
 
             <div className={styles.cta}>
-              <Image
-                src="/images/appstore.svg"
-                alt="Download Life@USTC on the App Store"
-                width={150}
-                height={44}
-                className={styles.appStoreBadge}
-                priority
-              />
+              <a
+                href="https://apps.apple.com/us/app/life-ustc/id1660437438"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Image
+                  src="/images/appstore.svg"
+                  alt="Download Life@USTC on the App Store"
+                  width={150}
+                  height={44}
+                  className={styles.appStoreBadge}
+                  priority
+                />
+              </a>
             </div>
           </div>
 
