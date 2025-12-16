@@ -1,0 +1,14 @@
+#!/bin/sh
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Bun is not installed. Please install Bun first." >&2
+  exit 1
+fi
+
+echo "Running: bun run check --write"
+if ! bun run check --write; then
+  echo "Biome check failed. Commit aborted." >&2
+  exit 1
+fi
+
+exit 0
