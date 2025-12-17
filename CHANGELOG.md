@@ -1,3 +1,14 @@
+# [0.5.0](https://github.com/Life-USTC/server-nextjs/compare/v0.4.0...v0.5.0) (2025-12-17)
+
+
+### Features
+
+* add English and Chinese translation files ([55fbafa](https://github.com/Life-USTC/server-nextjs/commit/55fbafa92b7a49625c916e2e8c6bae6dcbb8d985))
+* add i18n routing and middleware configuration ([1c29d2a](https://github.com/Life-USTC/server-nextjs/commit/1c29d2a558903e0dc22b70d3cdf62474c66a7b91))
+* add language switcher component ([7184d4a](https://github.com/Life-USTC/server-nextjs/commit/7184d4a1ccb050d6ff8ae5e95114ccad38e0afc5))
+* add next-intl for internationalization support ([a680f50](https://github.com/Life-USTC/server-nextjs/commit/a680f506e6b65e3efc4d003dc3951c1f9ca06617))
+* wrap App Store download image in a link for direct access ([47ece35](https://github.com/Life-USTC/server-nextjs/commit/47ece3528116f10a8c36d2457232eec3b47c1133))
+
 # [0.4.0](https://github.com/Life-USTC/server-nextjs/compare/v0.3.2...v0.4.0) (2025-12-16)
 
 
