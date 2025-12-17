@@ -1,3 +1,10 @@
+## [0.5.1](https://github.com/Life-USTC/server-nextjs/compare/v0.5.0...v0.5.1) (2025-12-17)
+
+
+### Bug Fixes
+
+* add back load-from-static ([9cd636a](https://github.com/Life-USTC/server-nextjs/commit/9cd636a8d76cc561cccd97f3e0a576377dbc8cd3))
+
 # [0.5.0](https://github.com/Life-USTC/server-nextjs/compare/v0.4.0...v0.5.0) (2025-12-17)
 
 
