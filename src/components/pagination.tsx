@@ -1,4 +1,7 @@
-import Link from "next/link";
+"use client";
+
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 
 export default function Pagination({
   currentPage,
@@ -11,6 +14,8 @@ export default function Pagination({
   baseUrl: string;
   searchParams?: Record<string, string>;
 }) {
+  const t = useTranslations("common");
+
   const buildUrl = (page: number) => {
     const params = new URLSearchParams(searchParams);
     params.set("page", page.toString());
@@ -54,7 +59,7 @@ export default function Pagination({
         aria-disabled={currentPage === 1}
         tabIndex={currentPage === 1 ? -1 : undefined}
       >
-        Previous
+        {t("previous")}
       </Link>
 
       <div className="flex gap-1">
@@ -84,7 +89,7 @@ export default function Pagination({
         aria-disabled={currentPage === totalPages}
         tabIndex={currentPage === totalPages ? -1 : undefined}
       >
-        Next
+        {t("next")}
       </Link>
     </div>
   );

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Fragment } from "react";
+import { Link } from "@/i18n/routing";
 
 export type BreadcrumbItem = {
   label: string;
