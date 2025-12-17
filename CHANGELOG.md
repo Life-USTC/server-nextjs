@@ -1,3 +1,11 @@
+## [0.5.2](https://github.com/Life-USTC/server-nextjs/compare/v0.5.1...v0.5.2) (2025-12-17)
+
+
+### Bug Fixes
+
+* deps issue in load-from-static ([4939b60](https://github.com/Life-USTC/server-nextjs/commit/4939b60a877ead0e63bc3153c93c1f02c2182ea4))
+* missing COPY in Dockerfile ([f93c9e6](https://github.com/Life-USTC/server-nextjs/commit/f93c9e668ec8b9d8a455969fe48860b19a1aec22))
+
 ## [0.5.1](https://github.com/Life-USTC/server-nextjs/compare/v0.5.0...v0.5.1) (2025-12-17)
 
 
