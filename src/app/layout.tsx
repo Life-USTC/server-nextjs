@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
-import { Providers } from "@/components/providers";
-
-import "antd/dist/reset.css";
 import "./globals.scss";
+import "antd/dist/reset.css";
 
 export const metadata: Metadata = {
   title: "Life@USTC",
@@ -16,15 +14,17 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
+// Root layout required by Next.js
+// The locale-specific layout is in [locale]/layout.tsx
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${spaceGrotesk.className} antialiased`}>
-        <Providers>{children}</Providers>
+        {children}
       </body>
     </html>
   );
