@@ -1,0 +1,107 @@
+{
+  "common": {
+    "home": "Home",
+    "courses": "Courses",
+    "sections": "Sections",
+    "search": "Search",
+    "clear": "Clear",
+    "previous": "Previous",
+    "next": "Next",
+    "backToHome": "Back to Home",
+    "allSemesters": "All Semesters",
+    "allEducationLevels": "All Education Levels",
+    "allCategories": "All Categories",
+    "allClassTypes": "All Class Types"
+  },
+  "homepage": {
+    "badge": "🎓 Your Campus Companion",
+    "title": {
+      "line1": "Life @",
+      "line2": "USTC"
+    },
+    "subtitle": "Your all-in-one app for course schedules, campus resources, and student life at USTC",
+    "downloadBadgeAlt": "Download Life@USTC on the App Store",
+    "appIconAlt": "Life@USTC app icon",
+    "features": {
+      "courseManagement": {
+        "icon": "📚",
+        "title": "Course Management",
+        "description": "Browse courses, check schedules, and plan your semester efficiently"
+      },
+      "smartScheduling": {
+        "icon": "📅",
+        "title": "Smart Scheduling",
+        "description": "Get real-time updates on class schedules and room assignments"
+      },
+      "stayUpdated": {
+        "icon": "🔔",
+        "title": "Stay Updated",
+        "description": "Never miss important announcements and campus events"
+      }
+    }
+  },
+  "courses": {
+    "title": "All Courses",
+    "subtitle": "Browse and search through all available courses",
+    "searchPlaceholder": "Search by course name or code...",
+    "showing": "Showing {count} of {total} courses",
+    "searchFor": "for \"{query}\"",
+    "noCoursesFound": "No courses found",
+    "filters": {
+      "educationLevel": "Education Level",
+      "category": "Category",
+      "classType": "Class Type"
+    }
+  },
+  "courseDetail": {
+    "availableSections": "Available Sections ({count})",
+    "noSections": "No sections available for this course",
+    "teachers": "Teachers",
+    "campus": "Campus",
+    "capacity": "Capacity",
+    "semesterSections": "{semester} ({count})"
+  },
+  "sections": {
+    "title": "All Sections",
+    "subtitle": "Browse and filter through all available course sections",
+    "searchPlaceholder": "Search by course name, code, or section code...",
+    "showing": "Showing {count} of {total} sections",
+    "searchFor": "for \"{query}\"",
+    "inSemester": "in {semester}",
+    "noSectionsFound": "No sections found",
+    "teachers": "Teachers",
+    "campus": "Campus",
+    "department": "Department",
+    "credits": "Credits",
+    "capacity": "Capacity"
+  },
+  "sectionDetail": {
+    "teachers": "Teachers",
+    "schedule": "Schedule ({count})",
+    "noSchedule": "No schedule information available for this section",
+    "time": "Time",
+    "units": "Units",
+    "week": "Week",
+    "location": "Location",
+    "teacher": "Teacher",
+    "weekdays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "subtitle": "Page Not Found",
+    "description": "The page you are looking for does not exist."
+  },
+  "language": {
+    "english": "English",
+    "chinese": "中文",
+    "switch": "Switch language"
+  }
+}

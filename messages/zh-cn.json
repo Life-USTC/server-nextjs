@@ -1,0 +1,107 @@
+{
+  "common": {
+    "home": "首页",
+    "courses": "课程",
+    "sections": "班级",
+    "search": "搜索",
+    "clear": "清除",
+    "previous": "上一页",
+    "next": "下一页",
+    "backToHome": "返回首页",
+    "allSemesters": "所有学期",
+    "allEducationLevels": "所有教育层次",
+    "allCategories": "所有类别",
+    "allClassTypes": "所有课程类型"
+  },
+  "homepage": {
+    "badge": "🎓 您的校园伙伴",
+    "title": {
+      "line1": "Life @",
+      "line2": "USTC"
+    },
+    "subtitle": "您的一站式应用，用于查看课程表、校园资源和中国科大的学生生活",
+    "downloadBadgeAlt": "在 App Store 下载 Life@USTC",
+    "appIconAlt": "Life@USTC 应用图标",
+    "features": {
+      "courseManagement": {
+        "icon": "📚",
+        "title": "课程管理",
+        "description": "浏览课程、查看课表，高效规划您的学期"
+      },
+      "smartScheduling": {
+        "icon": "📅",
+        "title": "智能排课",
+        "description": "获取课程安排和教室分配的实时更新"
+      },
+      "stayUpdated": {
+        "icon": "🔔",
+        "title": "保持更新",
+        "description": "不错过任何重要的通知和校园活动"
+      }
+    }
+  },
+  "courses": {
+    "title": "所有课程",
+    "subtitle": "浏览和搜索所有可用课程",
+    "searchPlaceholder": "按课程名称或代码搜索...",
+    "showing": "显示 {total} 门课程中的 {count} 门",
+    "searchFor": "关于 \"{query}\"",
+    "noCoursesFound": "未找到课程",
+    "filters": {
+      "educationLevel": "教育层次",
+      "category": "类别",
+      "classType": "课程类型"
+    }
+  },
+  "courseDetail": {
+    "availableSections": "可用班级 ({count})",
+    "noSections": "此课程暂无可用班级",
+    "teachers": "教师",
+    "campus": "校区",
+    "capacity": "容量",
+    "semesterSections": "{semester} ({count})"
+  },
+  "sections": {
+    "title": "所有班级",
+    "subtitle": "浏览和筛选所有可用的课程班级",
+    "searchPlaceholder": "按课程名称、代码或班级代码搜索...",
+    "showing": "显示 {total} 个班级中的 {count} 个",
+    "searchFor": "关于 \"{query}\"",
+    "inSemester": "在 {semester}",
+    "noSectionsFound": "未找到班级",
+    "teachers": "教师",
+    "campus": "校区",
+    "department": "院系",
+    "credits": "学分",
+    "capacity": "容量"
+  },
+  "sectionDetail": {
+    "teachers": "教师",
+    "schedule": "课程表 ({count})",
+    "noSchedule": "此班级暂无课程表信息",
+    "time": "时间",
+    "units": "节次",
+    "week": "周次",
+    "location": "地点",
+    "teacher": "教师",
+    "weekdays": {
+      "sunday": "星期日",
+      "monday": "星期一",
+      "tuesday": "星期二",
+      "wednesday": "星期三",
+      "thursday": "星期四",
+      "friday": "星期五",
+      "saturday": "星期六"
+    }
+  },
+  "notFound": {
+    "title": "404",
+    "subtitle": "页面未找到",
+    "description": "您访问的页面不存在。"
+  },
+  "language": {
+    "english": "English",
+    "chinese": "中文",
+    "switch": "切换语言"
+  }
+}
