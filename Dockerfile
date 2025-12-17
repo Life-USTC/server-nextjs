@@ -39,6 +39,8 @@ USER bun
 COPY --chown=bun:bun --from=prerelease /usr/src/app/node_modules node_modules
 COPY --chown=bun:bun --from=prerelease /usr/src/app/package.json package.json
 COPY --chown=bun:bun --from=prerelease /usr/src/app/.next .next
+COPY --chown=bun:bun --from=prerelease /usr/src/app/tools tools
+COPY --chown=bun:bun --from=prerelease /usr/src/app/public public
 COPY --chown=bun:bun --from=prerelease /usr/src/app/prisma prisma
 
 # Expose default Next.js port
