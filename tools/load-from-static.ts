@@ -2,8 +2,17 @@ import "dotenv/config";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { PrismaPg } from "@prisma/adapter-pg";
 import type { Semester } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+
+const connectionString = `${process.env.DATABASE_URL}`;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+const adapter = new PrismaPg({ connectionString });
+const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
 
 const logger = {
   info: (msg: string) => console.log(`[INFO] ${msg}`),
