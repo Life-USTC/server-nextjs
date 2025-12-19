@@ -1,4 +1,8 @@
 {
+  "metadata": {
+    "title": "Life@USTC - Course and Schedule Management",
+    "description": "USTC course and schedule management system"
+  },
   "common": {
     "home": "Home",
     "courses": "Courses",
@@ -95,9 +99,9 @@
     }
   },
   "notFound": {
-    "title": "404",
-    "subtitle": "Page Not Found",
-    "description": "The page you are looking for does not exist."
+    "title": "Page Not Found",
+    "description": "The page you are looking for does not exist.",
+    "backHome": "Back to Home"
   },
   "language": {
     "english": "English",
