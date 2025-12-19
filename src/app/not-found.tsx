@@ -1,21 +1,61 @@
-import Link from "next/link";
+import { headers } from "next/headers";
+import { NextIntlClientProvider } from "next-intl";
+import { getMessages } from "next-intl/server";
+import NotFoundContent from "@/components/not-found-content";
+import { routing } from "@/i18n/routing";
 
-export default function NotFound() {
+export default async function RootNotFound() {
+  // Try to detect locale from URL or headers
+  const headersList = await headers();
+  const referer = headersList.get("referer") || "";
+  const pathname = headersList.get("x-pathname") || "";
+  const nextIntlLocale = headersList.get("x-next-intl-locale") || "";
+  const cookies = headersList.get("cookie") || "";
+
+  // Try to extract locale from pathname or referer
+  let locale = routing.defaultLocale;
+
+  // Check pathname first (might be set by middleware)
+  for (const loc of routing.locales) {
+    if (pathname.startsWith(`/${loc}`)) {
+      locale = loc;
+      break;
+    }
+  }
+
+  // If not found, check the Next-intl locale header
+  if (locale === routing.defaultLocale && nextIntlLocale) {
+    if (routing.locales.includes(nextIntlLocale)) {
+      locale = nextIntlLocale;
+    }
+  }
+
+  // If not found, check the NEXT_LOCALE cookie
+  if (locale === routing.defaultLocale && cookies) {
+    const localeMatch = cookies.match(/NEXT_LOCALE=([^;]+)/);
+    if (localeMatch) {
+      const cookieLocale = localeMatch[1];
+      if (routing.locales.includes(cookieLocale)) {
+        locale = cookieLocale;
+      }
+    }
+  }
+
+  // If still not found, check referer
+  if (locale === routing.defaultLocale) {
+    for (const loc of routing.locales) {
+      if (referer.includes(`/${loc}/`) || referer.endsWith(`/${loc}`)) {
+        locale = loc;
+        break;
+      }
+    }
+  }
+
+  const messages = await getMessages({ locale });
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-8">
-      <div className="text-center">
-        <h1 className="text-6xl font-bold mb-4">404</h1>
-        <h2 className="text-2xl font-semibold mb-4">Page Not Found</h2>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
-          The page you are looking for does not exist.
-        </p>
-        <Link
-          href="/en-us"
-          className="inline-block px-6 py-3 bg-primary text-on-primary rounded-lg hover:bg-primary-hover transition-colors"
-        >
-          Back to Home
-        </Link>
-      </div>
-    </div>
+    <NextIntlClientProvider messages={messages} locale={locale}>
+      <NotFoundContent />
+    </NextIntlClientProvider>
   );
 }
