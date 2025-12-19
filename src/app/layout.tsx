@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.scss";
-import "antd/dist/reset.css";
 
 export const metadata: Metadata = {
   title: "Life@USTC",
