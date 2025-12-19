@@ -1,3 +1,19 @@
+# [0.6.0](https://github.com/Life-USTC/server-nextjs/compare/v0.5.2...v0.6.0) (2025-12-19)
+
+
+### Bug Fixes
+
+* make API endpoints dynamic ([ba9fb3e](https://github.com/Life-USTC/server-nextjs/commit/ba9fb3ecc511b678509ffd7c44463bb35a3b2ccd))
+* update 404 page translations ([f67db3d](https://github.com/Life-USTC/server-nextjs/commit/f67db3deaddbc89540085cec7d2421b5bb99841f))
+
+
+### Features
+
+* add loading and error pages for locales ([c1ad826](https://github.com/Life-USTC/server-nextjs/commit/c1ad826c954ac430b14643274205d67170622208))
+* add localized metadata support ([0debe55](https://github.com/Life-USTC/server-nextjs/commit/0debe550ea81c278bf8550847e8a3c67c633d2ec))
+* implement localized 404 pages ([405039c](https://github.com/Life-USTC/server-nextjs/commit/405039c45c337d842329ac47f19ecd0579f64e6f))
+* migrate Tailwind config to TypeScript ([221f787](https://github.com/Life-USTC/server-nextjs/commit/221f78728ff15d550d3f773a47ff9621f297ebdd))
+
 ## [0.5.2](https://github.com/Life-USTC/server-nextjs/compare/v0.5.1...v0.5.2) (2025-12-17)
 
 
