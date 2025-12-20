@@ -1,3 +1,12 @@
+## [0.6.1](https://github.com/Life-USTC/server-nextjs/compare/v0.6.0...v0.6.1) (2025-12-20)
+
+
+### Bug Fixes
+
+* root not-found page ([a2d0b81](https://github.com/Life-USTC/server-nextjs/commit/a2d0b8178bfc9046130d70b26833d79786111c17))
+* update iCal calendar name, description, and URL format ([ec8e750](https://github.com/Life-USTC/server-nextjs/commit/ec8e75085b764901f04bd6c6a91547b2466ad9a8))
+* update path for schedule data directory in loadSchedules function ([66191f3](https://github.com/Life-USTC/server-nextjs/commit/66191f35ed2dc2f7125371ceb3dc3d9fc883eb4e))
+
 # [0.6.0](https://github.com/Life-USTC/server-nextjs/compare/v0.5.2...v0.6.0) (2025-12-19)
 
 
