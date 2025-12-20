@@ -39,10 +39,10 @@ export function createSectionCalendar(
   scheduleGroupId?: number,
 ): ICalCalendar {
   const calendar = new ICalCalendar({
-    name: `${section.course.nameCn} - ${section.code}`,
-    description: `Course calendar for ${section.course.nameCn} (${section.code})`,
+    name: `${section.course.nameCn} (${section.code})`,
+    description: `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
     timezone: "Asia/Shanghai",
-    url: `${process.env.NEXT_PUBLIC_APP_URL || "https://life.ustc.edu.cn"}/courses/${section.courseId}`,
+    url: `${process.env.NEXT_PUBLIC_APP_URL || "https://life-ustc.tiankaima.dev"}/sections/${section.id}`,
     scale: "GREGORIAN",
   });
 
@@ -104,7 +104,7 @@ function createScheduleEvent(
     .toDate();
 
   const location = schedule.room?.building?.campus
-    ? `${schedule.room.building.campus.nameCn} - ${schedule.room.building.nameCn} ${schedule.room.nameCn}`
+    ? `${schedule.room.nameCn} (${schedule.room.building.campus.nameCn}-${schedule.room.building.nameCn})`
     : schedule.customPlace || "Location TBD";
 
   const teacherNames = schedule.teacher
@@ -113,21 +113,23 @@ function createScheduleEvent(
         .join(" / ")
     : "";
 
-  // Build event summary
-  const summaryParts = [section.course.code, schedule.lessonType || "课堂"];
-  const summary = summaryParts.join(" ");
-
-  // Build description
-  const descriptionParts = [
+  const summary = `${section.course.nameCn}`;
+  const description = [
     section.course.nameCn,
     teacherNames && `教师: ${teacherNames}`,
     schedule.experiment && `实验: ${schedule.experiment}`,
     schedule.scheduleGroup.isDefault === false &&
       `教学班: ${schedule.scheduleGroup.no}`,
-  ].filter(Boolean);
-  const description = descriptionParts.join("\\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
-  const categories = ["课程", section.course.nameCn]
+  const categories = [
+    "课程",
+    section.course.nameCn,
+    section.code,
+    section.course.code,
+  ]
     .filter((category) => category && category.trim() !== "")
     .map((category) => new ICalCategory({ name: category }));
 
@@ -137,7 +139,7 @@ function createScheduleEvent(
     summary,
     description,
     location,
-    id: `schedule-${schedule.id}@life-ustc`,
+    id: `life-ustc.tiankaima.dev/schedule/${schedule.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.BUSY,
     categories,
