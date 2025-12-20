@@ -569,7 +569,8 @@ async function loadSchedules(
     return;
   }
 
-  const datumDir = path.join(cacheRoot, "jw", "api", "schedule-table", "datum");
+  // cache/jw/ws/schedule-table/datum/
+  const datumDir = path.join(cacheRoot, "jw", "ws", "schedule-table", "datum");
 
   for (const { id, jwId } of sections) {
     const filePath = path.join(datumDir, `${jwId}.json`);
