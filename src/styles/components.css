@@ -1,5 +1,4 @@
 @layer components {
-
   /* Tag & badge primitives */
   .tag-base {
     display: inline-flex;
@@ -110,8 +109,8 @@
     padding: 1rem;
     background-color: var(--bg-surface-elevated);
     border-radius: 0.5rem;
-    transition-property: color, background-color, border-color, text-decoration-color,
-      fill, stroke;
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill, stroke;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
