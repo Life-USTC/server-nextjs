@@ -36,15 +36,17 @@ export default function Navbar() {
       <div className="mx-auto flex h-14 max-w-[var(--layout-content-width)] items-center justify-end gap-3 px-4">
         {/* Language Switcher */}
         <Menu>
-          <MenuTrigger render={
-            <button
-              type="button"
-              className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
-              aria-label="Language selector"
-            >
-              <Globe className="h-5 w-5" />
-            </button>
-          } />
+          <MenuTrigger
+            render={
+              <button
+                type="button"
+                className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
+                aria-label="Language selector"
+              >
+                <Globe className="h-5 w-5" />
+              </button>
+            }
+          />
           <MenuPopup>
             <MenuRadioGroup value={locale} onValueChange={handleLanguageChange}>
               <MenuRadioItem value="en-us">English</MenuRadioItem>
