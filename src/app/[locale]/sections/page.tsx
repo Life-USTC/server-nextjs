@@ -1,10 +1,26 @@
 import type { Prisma, Semester } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
-import Breadcrumb from "@/components/breadcrumb";
-import Pagination from "@/components/pagination";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
+import { SectionsFilter } from "./sections-filter";
 
 async function fetchSections(
   page: number,
@@ -75,57 +91,67 @@ export default async function SectionsPage({
   const t = await getTranslations("sections");
   const tCommon = await getTranslations("common");
 
-  const breadcrumbItems = [
-    { label: tCommon("home"), href: "/" },
-    { label: tCommon("sections") },
-  ];
+  const buildUrl = (page: number) => {
+    const params = new URLSearchParams({
+      ...(semesterId && { semesterId }),
+      ...(search && { search }),
+      page: page.toString(),
+    });
+    return `/sections?${params.toString()}`;
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, currentPage + 2);
+
+      if (start > 1) {
+        pages.push(1);
+        if (start > 2) pages.push("ellipsis");
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages) {
+        if (end < totalPages - 1) pages.push("ellipsis");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <main className="page-main">
-      <Breadcrumb items={breadcrumbItems} />
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{tCommon("sections")}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <div className="mb-8">
         <h1 className="text-display mb-2">{t("title")}</h1>
         <p className="text-subtitle">{t("subtitle")}</p>
       </div>
 
-      <form method="get" className="mb-8">
-        <div className="flex flex-wrap gap-2">
-          <select
-            name="semesterId"
-            defaultValue={semesterId || ""}
-            className="px-4 py-2 bg-surface-elevated border border-base rounded-lg hover:bg-surface transition-colors font-medium cursor-pointer"
-          >
-            <option value="">{tCommon("allSemesters")}</option>
-            {semesters.map((semester) => (
-              <option key={semester.id} value={semester.id}>
-                {semester.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            name="search"
-            defaultValue={search}
-            placeholder={t("searchPlaceholder")}
-            className="flex-1 min-w-[300px] px-4 py-2 bg-surface-elevated border border-base rounded-lg focus:outline-none focus:ring-2 ring-primary"
-          />
-          <button
-            type="submit"
-            className="px-6 py-2 bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors"
-          >
-            {tCommon("search")}
-          </button>
-          {(search || semesterId) && (
-            <Link
-              href="/sections"
-              className="px-4 py-2 bg-interactive hover:bg-interactive-hover text-muted-strong rounded-lg transition-colors no-underline flex items-center"
-            >
-              {tCommon("clear")}
-            </Link>
-          )}
-        </div>
-      </form>
+      <SectionsFilter
+        semesters={semesters}
+        defaultValues={{ search, semesterId }}
+      />
 
       <div className="mb-6 flex items-center justify-between">
         <p className="text-muted">
@@ -222,15 +248,32 @@ export default async function SectionsPage({
       )}
 
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          baseUrl="/sections"
-          searchParams={{
-            ...(semesterId && { semesterId }),
-            ...(search && { search }),
-          }}
-        />
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious href={buildUrl(currentPage - 1)} />
+            </PaginationItem>
+            {getPageNumbers().map((pageNum) => (
+              <PaginationItem
+                key={pageNum === "ellipsis" ? "ellipsis" : pageNum}
+              >
+                {pageNum === "ellipsis" ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <PaginationLink
+                    href={buildUrl(pageNum)}
+                    isActive={currentPage === pageNum}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext href={buildUrl(currentPage + 1)} />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </main>
   );
