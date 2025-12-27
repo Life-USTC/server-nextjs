@@ -32,6 +32,6 @@ bun run prisma:reset
 # Open Prisma Studio
 bun run prisma:studio
 
-# Load data from static repository (legacy method)
-bun run db:load
+# Load data from https://github.com/Life-USTC/static.git
+bun run tools/load-from-static.ts
 ```
