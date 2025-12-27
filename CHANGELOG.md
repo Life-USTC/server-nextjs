@@ -1,3 +1,18 @@
+# [0.8.0](https://github.com/Life-USTC/server-nextjs/compare/v0.7.0...v0.8.0) (2025-12-27)
+
+
+### Bug Fixes
+
+* use teacher: for search ([b2f76d0](https://github.com/Life-USTC/server-nextjs/commit/b2f76d03f4396d46281322e68999e3263eca3b5e))
+
+
+### Features
+
+* add advanced search syntax for sections ([d53a592](https://github.com/Life-USTC/server-nextjs/commit/d53a592e1640ccd927ed25632598e55fc9653ab3))
+* migrate to Coss UI components and standardize styling ([13cef33](https://github.com/Life-USTC/server-nextjs/commit/13cef3378672cfc03a3a80550cfbb2d0c2edcb30))
+* replace language selector with menu component ([4bdb99a](https://github.com/Life-USTC/server-nextjs/commit/4bdb99aa1913a1bcbb19545b6c07e8ad1831f7ea))
+* use cossui ([b57f5c7](https://github.com/Life-USTC/server-nextjs/commit/b57f5c77816b30fc8c8c9d6cd93a0d089a5e324f))
+
 # [0.7.0](https://github.com/Life-USTC/server-nextjs/compare/v0.6.1...v0.7.0) (2025-12-27)
 
 
