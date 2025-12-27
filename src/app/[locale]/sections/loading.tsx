@@ -2,27 +2,27 @@ export default function Loading() {
   return (
     <main className="page-main">
       <div className="animate-pulse">
-        <div className="h-8 bg-surface-elevated rounded w-48 mb-4" />
-        <div className="h-6 bg-surface-elevated rounded w-96 mb-8" />
+        <div className="h-8 bg-card rounded w-48 mb-4" />
+        <div className="h-6 bg-card rounded w-96 mb-8" />
 
         <div className="flex flex-wrap gap-2 mb-8">
-          <div className="h-10 bg-surface-elevated rounded w-40" />
-          <div className="h-10 bg-surface-elevated rounded flex-1 min-w-[250px]" />
-          <div className="h-10 bg-surface-elevated rounded w-24" />
+          <div className="h-10 bg-card rounded w-40" />
+          <div className="h-10 bg-card rounded flex-1 min-w-[250px]" />
+          <div className="h-10 bg-card rounded w-24" />
         </div>
 
         <div className="space-y-4">
           {Array.from({ length: 8 }, () => (
             <div
               key={`skeleton-${crypto.randomUUID()}`}
-              className="p-6 bg-surface-elevated rounded-lg"
+              className="p-6 bg-card rounded-lg"
             >
-              <div className="h-6 bg-surface rounded w-3/4 mb-2" />
-              <div className="h-4 bg-surface rounded w-1/2 mb-4" />
+              <div className="h-6 bg-muted rounded w-3/4 mb-2" />
+              <div className="h-4 bg-muted rounded w-1/2 mb-4" />
               <div className="flex gap-2">
-                <div className="h-6 bg-surface rounded w-20" />
-                <div className="h-6 bg-surface rounded w-24" />
-                <div className="h-6 bg-surface rounded w-32" />
+                <div className="h-6 bg-muted rounded w-20" />
+                <div className="h-6 bg-muted rounded w-24" />
+                <div className="h-6 bg-muted rounded w-32" />
               </div>
             </div>
           ))}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/routing";
 
 export default function ErrorPage({
@@ -18,21 +19,14 @@ export default function ErrorPage({
     <div className="flex items-center justify-center min-h-[400px] p-8">
       <div className="text-center max-w-md">
         <h2 className="text-2xl font-bold mb-4">Something went wrong!</h2>
-        <p className="text-muted mb-6">{error.message}</p>
+        <p className="text-muted-foreground mb-6">{error.message}</p>
         <div className="flex gap-4 justify-center">
-          <button
-            type="button"
-            onClick={reset}
-            className="px-6 py-3 bg-primary text-on-primary rounded-lg hover:bg-primary-hover transition-colors"
-          >
+          <Button onClick={reset} variant="default">
             Try again
-          </button>
-          <Link
-            href="/"
-            className="px-6 py-3 bg-surface-elevated text-emphasis rounded-lg hover:bg-surface transition-colors no-underline"
-          >
+          </Button>
+          <Button render={<Link href="/" />} variant="outline">
             Go home
-          </Link>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import type { Prisma, Semester } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,6 +9,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardPanel,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -143,9 +157,9 @@ export default async function SectionsPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-8">
+      <div className="mb-8 mt-8">
         <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle">{t("subtitle")}</p>
+        <p className="text-subtitle text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       <SectionsFilter
@@ -154,7 +168,7 @@ export default async function SectionsPage({
       />
 
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-muted">
+        <p className="text-muted-foreground">
           {t("showing", { count: sections.length, total })}
           {search && (
             <span className="ml-2">{t("searchFor", { query: search })}</span>
@@ -173,78 +187,93 @@ export default async function SectionsPage({
             <Link
               key={section.id}
               href={`/sections/${section.id}`}
-              className="block p-6 bg-surface-elevated rounded-lg border border-base hover:border-interactive-hover transition-colors no-underline hover:no-underline focus-visible:no-underline"
+              className="no-underline"
             >
-              <div className="mb-3">
-                <h3 className="text-subtitle text-emphasis mb-2">
-                  {isEnglish && section.course.nameEn
-                    ? section.course.nameEn
-                    : section.course.nameCn}
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {section.semester && (
-                    <span className="text-tag tag-base tag-semester">
-                      {section.semester.name}
-                    </span>
-                  )}
-                  <span className="text-tag tag-base tag-section-code">
-                    {section.code}
-                  </span>
-                </div>
-              </div>
+              <Card className="h-full overflow-hidden">
+                <CardHeader>
+                  <CardTitle>
+                    {isEnglish && section.course.nameEn
+                      ? section.course.nameEn
+                      : section.course.nameCn}
+                  </CardTitle>
+                  <CardDescription>
+                    <div className="flex flex-wrap gap-2">
+                      {section.semester && (
+                        <Badge variant="outline">{section.semester.name}</Badge>
+                      )}
+                      <Badge variant="outline" className="font-mono">
+                        {section.code}
+                      </Badge>
+                    </div>
+                  </CardDescription>
+                </CardHeader>
 
-              <div className="space-y-2 text-body text-muted-strong mb-3">
-                {section.teachers && section.teachers.length > 0 && (
-                  <p>
-                    <strong className="text-emphasis">{t("teachers")}:</strong>{" "}
-                    {section.teachers
-                      .map((teacher) => teacher.nameCn)
-                      .join(", ")}
-                  </p>
-                )}
-                {section.campus && (
-                  <p>
-                    <strong className="text-emphasis">{t("campus")}:</strong>{" "}
-                    {section.campus.nameCn}
-                  </p>
-                )}
-                {section.openDepartment && (
-                  <p>
-                    <strong className="text-emphasis">
-                      {t("department")}:
-                    </strong>{" "}
-                    {section.openDepartment.nameCn}
-                  </p>
-                )}
-                {section.credits !== null && (
-                  <p>
-                    <strong className="text-emphasis">{t("credits")}:</strong>{" "}
-                    {section.credits}
-                  </p>
-                )}
-                <p>
-                  <strong className="text-emphasis">{t("capacity")}:</strong>{" "}
-                  <span className="text-tag tag-base tag-capacity">
-                    {section.stdCount ?? 0} / {section.limitCount ?? "—"}
-                  </span>
-                </p>
-              </div>
+                <CardPanel>
+                  <div className="flex flex-col gap-3">
+                    {section.teachers && section.teachers.length > 0 && (
+                      <p className="text-body text-foreground">
+                        <strong className="text-foreground font-semibold">
+                          {t("teachers")}:
+                        </strong>{" "}
+                        {section.teachers
+                          .map((teacher) => teacher.nameCn)
+                          .join(", ")}
+                      </p>
+                    )}
+                    {section.campus && (
+                      <p className="text-body text-foreground">
+                        <strong className="text-foreground font-semibold">
+                          {t("campus")}:
+                        </strong>{" "}
+                        {section.campus.nameCn}
+                      </p>
+                    )}
+                    {section.openDepartment && (
+                      <p className="text-body text-foreground">
+                        <strong className="text-foreground font-semibold">
+                          {t("department")}:
+                        </strong>{" "}
+                        {section.openDepartment.nameCn}
+                      </p>
+                    )}
+                    {section.credits !== null && (
+                      <p className="text-body text-foreground">
+                        <strong className="text-foreground font-semibold">
+                          {t("credits")}:
+                        </strong>{" "}
+                        {section.credits}
+                      </p>
+                    )}
+                    <p className="text-body text-foreground">
+                      <strong className="text-foreground font-semibold">
+                        {t("capacity")}:
+                      </strong>{" "}
+                      <Badge variant="outline">
+                        {section.stdCount ?? 0} / {section.limitCount ?? "—"}
+                      </Badge>
+                    </p>
+                  </div>
+                </CardPanel>
+              </Card>
             </Link>
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <p className="text-muted">
-            {t("noSectionsFound")}
-            {search && <span> {t("searchFor", { query: search })}</span>}
-            {selectedSemester && (
-              <span>
-                {" "}
-                {t("inSemester", { semester: selectedSemester.name })}
-              </span>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>{t("noSectionsFound")}</EmptyTitle>
+            {search && (
+              <EmptyDescription>
+                {t("searchFor", { query: search })}
+              </EmptyDescription>
             )}
-          </p>
-        </div>
+            {selectedSemester && (
+              <EmptyDescription>
+                {t("inSemester", { semester: selectedSemester.name })}
+              </EmptyDescription>
+            )}
+          </EmptyHeader>
+        </Empty>
       )}
 
       {totalPages > 1 && (
