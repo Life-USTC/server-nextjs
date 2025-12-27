@@ -1,7 +1,15 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import Breadcrumb from "@/components/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
 export default async function SectionPage({
@@ -64,15 +72,27 @@ export default async function SectionPage({
     return weekdays[weekday] || `Day ${weekday}`;
   };
 
-  const breadcrumbItems = [
-    { label: tCommon("home"), href: "/" },
-    { label: tCommon("sections"), href: "/sections" },
-    { label: section.code },
-  ];
-
   return (
     <main className="page-main">
-      <Breadcrumb items={breadcrumbItems} />
+      <Breadcrumb className="mb-6">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/" />}>
+              {tCommon("home")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/sections" />}>
+              {tCommon("sections")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{section.code}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       <h1 className="text-display mb-2">
         {isEnglish && section.course.nameEn
           ? section.course.nameEn

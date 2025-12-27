@@ -1,10 +1,26 @@
 import type { Prisma } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
-import Breadcrumb from "@/components/breadcrumb";
-import Pagination from "@/components/pagination";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
+import { CoursesFilter } from "./courses-filter";
 
 async function fetchCourses(
   page: number,
@@ -49,9 +65,9 @@ async function fetchCourses(
 
 async function fetchFilterOptions() {
   const [educationLevels, categories, classTypes] = await Promise.all([
-    prisma.educationLevel.findMany({ orderBy: { nameCn: "asc" } }),
-    prisma.courseCategory.findMany({ orderBy: { nameCn: "asc" } }),
-    prisma.classType.findMany({ orderBy: { nameCn: "asc" } }),
+    prisma.educationLevel.findMany(),
+    prisma.courseCategory.findMany(),
+    prisma.classType.findMany(),
   ]);
   return { educationLevels, categories, classTypes };
 }
@@ -89,79 +105,75 @@ export default async function CoursesPage({
   const t = await getTranslations("courses");
   const tCommon = await getTranslations("common");
 
-  const breadcrumbItems = [
-    { label: tCommon("home"), href: "/" },
-    { label: tCommon("courses") },
-  ];
+  const buildUrl = (page: number) => {
+    const params = new URLSearchParams({
+      ...(search && { search }),
+      ...(educationLevelId && { educationLevelId }),
+      ...(categoryId && { categoryId }),
+      ...(classTypeId && { classTypeId }),
+      page: page.toString(),
+    });
+    return `/courses?${params.toString()}`;
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const start = Math.max(1, currentPage - 2);
+      const end = Math.min(totalPages, currentPage + 2);
+
+      if (start > 1) {
+        pages.push(1);
+        if (start > 2) pages.push("ellipsis");
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages) {
+        if (end < totalPages - 1) pages.push("ellipsis");
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <main className="page-main">
-      <Breadcrumb items={breadcrumbItems} />
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{tCommon("courses")}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <h1 className="text-display mb-4">{t("title")}</h1>
       <p className="text-subtitle mb-8">{t("subtitle")}</p>
 
-      <form method="get" className="mb-8">
-        <div className="flex flex-wrap gap-2">
-          <select
-            name="educationLevelId"
-            defaultValue={educationLevelId || ""}
-            className="px-4 py-2 bg-surface-elevated border border-base rounded-lg hover:bg-surface transition-colors cursor-pointer"
-          >
-            <option value="">{tCommon("allEducationLevels")}</option>
-            {educationLevels.map((level) => (
-              <option key={level.id} value={level.id}>
-                {level.nameCn}
-              </option>
-            ))}
-          </select>
-          <select
-            name="categoryId"
-            defaultValue={categoryId || ""}
-            className="px-4 py-2 bg-surface-elevated border border-base rounded-lg hover:bg-surface transition-colors cursor-pointer"
-          >
-            <option value="">{tCommon("allCategories")}</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.nameCn}
-              </option>
-            ))}
-          </select>
-          <select
-            name="classTypeId"
-            defaultValue={classTypeId || ""}
-            className="px-4 py-2 bg-surface-elevated border border-base rounded-lg hover:bg-surface transition-colors cursor-pointer"
-          >
-            <option value="">{tCommon("allClassTypes")}</option>
-            {classTypes.map((type) => (
-              <option key={type.id} value={type.id}>
-                {type.nameCn}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            name="search"
-            defaultValue={search}
-            placeholder={t("searchPlaceholder")}
-            className="flex-1 min-w-[250px] px-4 py-2 bg-surface-elevated border border-base rounded-lg focus:outline-none focus:ring-2 ring-primary"
-          />
-          <button
-            type="submit"
-            className="px-6 py-2 bg-primary hover:bg-primary-hover text-on-primary rounded-lg transition-colors"
-          >
-            {tCommon("search")}
-          </button>
-          {(search || educationLevelId || categoryId || classTypeId) && (
-            <Link
-              href="/courses"
-              className="px-4 py-2 bg-interactive hover:bg-interactive-hover text-muted-strong rounded-lg transition-colors no-underline flex items-center"
-            >
-              {tCommon("clear")}
-            </Link>
-          )}
-        </div>
-      </form>
+      <CoursesFilter
+        educationLevels={educationLevels}
+        categories={categories}
+        classTypes={classTypes}
+        defaultValues={{
+          search,
+          educationLevelId,
+          categoryId,
+          classTypeId,
+        }}
+        locale={locale}
+      />
 
       <div className="mb-6 flex items-center justify-between">
         <p className="text-muted">
@@ -226,17 +238,32 @@ export default async function CoursesPage({
       )}
 
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          baseUrl="/courses"
-          searchParams={{
-            ...(search && { search }),
-            ...(educationLevelId && { educationLevelId }),
-            ...(categoryId && { categoryId }),
-            ...(classTypeId && { classTypeId }),
-          }}
-        />
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious href={buildUrl(currentPage - 1)} />
+            </PaginationItem>
+            {getPageNumbers().map((pageNum) => (
+              <PaginationItem
+                key={pageNum === "ellipsis" ? "ellipsis" : pageNum}
+              >
+                {pageNum === "ellipsis" ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <PaginationLink
+                    href={buildUrl(pageNum)}
+                    isActive={currentPage === pageNum}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <PaginationNext href={buildUrl(currentPage + 1)} />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </main>
   );

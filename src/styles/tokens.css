@@ -83,7 +83,8 @@
     --code-fg: var(--color-primary-dark);
 
     /* Fonts */
-    --font-mono: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
+    --font-mono:
+      "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
       "Courier New", monospace;
 
     /* Body background gradients */

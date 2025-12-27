@@ -1,6 +1,13 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import Breadcrumb from "@/components/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
@@ -78,15 +85,25 @@ export default async function CoursePage({
   const tCommon = await getTranslations("common");
   const isEnglish = locale === "en-us";
 
-  const breadcrumbItems = [
-    { label: tCommon("home"), href: "/" },
-    { label: tCommon("courses"), href: "/courses" },
-    { label: course.code },
-  ];
-
   return (
     <main className="page-main">
-      <Breadcrumb items={breadcrumbItems} />
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/courses">
+              {tCommon("courses")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{course.code}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <h1 className="text-display mb-4">
         {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
