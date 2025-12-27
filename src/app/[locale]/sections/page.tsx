@@ -155,7 +155,7 @@ async function fetchSections(
 async function fetchSemesters(): Promise<Semester[]> {
   const semesters = await prisma.semester.findMany({
     take: 100,
-    orderBy: { name: "desc" },
+    orderBy: { jwId: "desc" },
   });
 
   return semesters;
@@ -263,7 +263,7 @@ export default async function SectionsPage({
           )}
           {selectedSemester && (
             <span className="ml-2">
-              {t("inSemester", { semester: selectedSemester.name })}
+              {t("inSemester", { semester: selectedSemester.nameCn })}
             </span>
           )}
         </p>
@@ -287,7 +287,9 @@ export default async function SectionsPage({
                   <CardDescription>
                     <div className="flex flex-wrap gap-2">
                       {section.semester && (
-                        <Badge variant="outline">{section.semester.name}</Badge>
+                        <Badge variant="outline">
+                          {section.semester.nameCn}
+                        </Badge>
                       )}
                       <Badge variant="outline" className="font-mono">
                         {section.code}
@@ -357,7 +359,7 @@ export default async function SectionsPage({
             )}
             {selectedSemester && (
               <EmptyDescription>
-                {t("inSemester", { semester: selectedSemester.name })}
+                {t("inSemester", { semester: selectedSemester.nameCn })}
               </EmptyDescription>
             )}
           </EmptyHeader>
