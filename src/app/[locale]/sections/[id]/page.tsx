@@ -4,7 +4,14 @@ import { getTranslations } from "next-intl/server";
 import Breadcrumb from "@/components/breadcrumb";
 import { prisma } from "@/lib/prisma";
 
-async function getSectionData(sectionId: number) {
+export default async function SectionPage({
+  params,
+}: {
+  params: Promise<{ id: string; locale: string }>;
+}) {
+  const { id, locale } = await params;
+  const sectionId = Number(id);
+
   const section = await prisma.section.findUnique({
     where: { id: sectionId },
     include: {
@@ -20,7 +27,7 @@ async function getSectionData(sectionId: number) {
   });
 
   if (!section) {
-    return null;
+    notFound();
   }
 
   const schedules = await prisma.schedule.findMany({
@@ -39,26 +46,6 @@ async function getSectionData(sectionId: number) {
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
   });
-
-  return {
-    section,
-    schedules,
-  };
-}
-
-export default async function SectionPage({
-  params,
-}: {
-  params: Promise<{ id: string; locale: string }>;
-}) {
-  const { id, locale } = await params;
-  const data = await getSectionData(Number(id));
-
-  if (!data) {
-    notFound();
-  }
-
-  const { section, schedules } = data;
 
   const t = await getTranslations("sectionDetail");
   const tCommon = await getTranslations("common");

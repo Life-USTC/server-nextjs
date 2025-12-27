@@ -5,15 +5,12 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  request: NextRequest,
+  _: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await context.params;
-    const { searchParams } = new URL(request.url);
-    const scheduleGroupId = searchParams.get("scheduleGroup");
 
-    // Fetch section with all necessary relations
     const section = await prisma.section.findUnique({
       where: { id: parseInt(id, 10) },
       include: {
@@ -27,17 +24,10 @@ export async function GET(
                     campus: true,
                   },
                 },
-                roomType: true,
               },
             },
-            teacher: {
-              include: {
-                department: true,
-              },
-            },
-            scheduleGroup: true,
+            teacher: true,
           },
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
         },
       },
     });
@@ -46,15 +36,9 @@ export async function GET(
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
-    // Create calendar
-    const calendar = createSectionCalendar(
-      section,
-      scheduleGroupId ? parseInt(scheduleGroupId, 10) : undefined,
-    );
-
+    const calendar = createSectionCalendar(section);
     const icsData = calendar.toString();
 
-    // Return as .ics file
     return new NextResponse(icsData, {
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
