@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,6 +9,19 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardPanel,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -159,8 +173,10 @@ export default async function CoursesPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="text-display mb-4">{t("title")}</h1>
-      <p className="text-subtitle mb-8">{t("subtitle")}</p>
+      <div className="mb-8 mt-8">
+        <h1 className="text-display mb-2">{t("title")}</h1>
+        <p className="text-subtitle text-muted-foreground">{t("subtitle")}</p>
+      </div>
 
       <CoursesFilter
         educationLevels={educationLevels}
@@ -176,7 +192,7 @@ export default async function CoursesPage({
       />
 
       <div className="mb-6 flex items-center justify-between">
-        <p className="text-muted">
+        <p className="text-muted-foreground">
           {t("showing", { count: courses.length, total })}
           {search && (
             <span className="ml-2">{t("searchFor", { query: search })}</span>
@@ -190,51 +206,55 @@ export default async function CoursesPage({
             <Link
               key={course.id}
               href={`/courses/${course.id}`}
-              className="block p-6 bg-surface-elevated rounded-lg border border-base hover:border-interactive-hover transition-colors no-underline hover:no-underline focus-visible:no-underline"
+              className="no-underline"
             >
-              <div className="mb-3">
-                <h3 className="text-subtitle text-emphasis mb-1">
-                  {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
-                </h3>
-                {isEnglish
-                  ? course.nameCn && (
-                      <p className="text-small text-muted">{course.nameCn}</p>
-                    )
-                  : course.nameEn && (
-                      <p className="text-small text-muted">{course.nameEn}</p>
-                    )}
-              </div>
+              <Card className="h-full overflow-hidden">
+                <CardHeader>
+                  <CardTitle>
+                    {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
+                  </CardTitle>
+                  {isEnglish
+                    ? course.nameCn && (
+                        <CardDescription>{course.nameCn}</CardDescription>
+                      )
+                    : course.nameEn && (
+                        <CardDescription>{course.nameEn}</CardDescription>
+                      )}
+                </CardHeader>
 
-              <div className="flex flex-wrap gap-2 mb-3">
-                <span className="text-tag tag-base tag-section-code font-mono">
-                  {course.code}
-                </span>
-                {course.educationLevel && (
-                  <span className="text-tag tag-base tag-education-level">
-                    {course.educationLevel.nameCn}
-                  </span>
-                )}
-                {course.category && (
-                  <span className="text-tag tag-base tag-category">
-                    {course.category.nameCn}
-                  </span>
-                )}
-                {course.classType && (
-                  <span className="text-tag tag-base tag-class-type">
-                    {course.classType.nameCn}
-                  </span>
-                )}
-              </div>
+                <CardPanel>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="font-mono">
+                      {course.code}
+                    </Badge>
+                    {course.educationLevel && (
+                      <Badge variant="outline">
+                        {course.educationLevel.nameCn}
+                      </Badge>
+                    )}
+                    {course.category && (
+                      <Badge variant="outline">{course.category.nameCn}</Badge>
+                    )}
+                    {course.classType && (
+                      <Badge variant="outline">{course.classType.nameCn}</Badge>
+                    )}
+                  </div>
+                </CardPanel>
+              </Card>
             </Link>
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <p className="text-muted">
-            {t("noCoursesFound")}
-            {search && <span> {t("searchFor", { query: search })}</span>}
-          </p>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>{t("noCoursesFound")}</EmptyTitle>
+            {search && (
+              <EmptyDescription>
+                {t("searchFor", { query: search })}
+              </EmptyDescription>
+            )}
+          </EmptyHeader>
+        </Empty>
       )}
 
       {totalPages > 1 && (
