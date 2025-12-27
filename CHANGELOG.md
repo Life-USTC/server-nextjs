@@ -1,3 +1,10 @@
+# [0.7.0](https://github.com/Life-USTC/server-nextjs/compare/v0.6.1...v0.7.0) (2025-12-27)
+
+
+### Features
+
+* implement section calendar generation and update section page logic ([78f5911](https://github.com/Life-USTC/server-nextjs/commit/78f5911bc27bb0b4ab5f851f4e03682400b223d7))
+
 ## [0.6.1](https://github.com/Life-USTC/server-nextjs/compare/v0.6.0...v0.6.1) (2025-12-20)
 
 
