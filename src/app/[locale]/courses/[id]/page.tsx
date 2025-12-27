@@ -42,8 +42,8 @@ async function getCourseData(courseId: number) {
   });
 
   const sortedSections = sections.sort((a, b) => {
-    const semesterA = a.semester?.name || "";
-    const semesterB = b.semester?.name || "";
+    const semesterA = a.semester?.nameCn || "";
+    const semesterB = b.semester?.nameCn || "";
     if (semesterA !== semesterB) {
       return semesterB.localeCompare(semesterA);
     }
@@ -73,7 +73,7 @@ export default async function CoursePage({
   // Group sections by semester
   const semesterMap = new Map<string, typeof sections>();
   sections.forEach((section) => {
-    const semesterName = section.semester?.name || "Unknown";
+    const semesterName = section.semester?.nameCn || "Unknown";
     if (!semesterMap.has(semesterName)) {
       semesterMap.set(semesterName, []);
     }

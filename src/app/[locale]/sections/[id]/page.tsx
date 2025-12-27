@@ -118,7 +118,7 @@ export default async function SectionPage({
 
       <div className="mb-8 flex flex-wrap gap-2">
         {section.semester && (
-          <Badge variant="outline">{section.semester.name}</Badge>
+          <Badge variant="outline">{section.semester.nameCn}</Badge>
         )}
         <Badge variant="outline" className="font-mono">
           {section.code}

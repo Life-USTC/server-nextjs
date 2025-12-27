@@ -1,5 +1,6 @@
 "use client";
 
+import type { Semester } from "@prisma/client";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
@@ -16,13 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Link } from "@/i18n/routing";
 
-interface SemesterOption {
-  id: number;
-  name: string;
-}
-
 interface SectionsFilterProps {
-  semesters: SemesterOption[];
+  semesters: Semester[];
   defaultValues: {
     search?: string;
     semesterId?: string;
@@ -63,11 +59,11 @@ export function SectionsFilter({
     updateFilters();
   };
 
-  const getSelectItems = (options: SemesterOption[], allLabel: string) => {
+  const getSelectItems = (options: Semester[], allLabel: string) => {
     return [
       { label: allLabel, value: "" },
       ...options.map((opt) => ({
-        label: opt.name,
+        label: opt.nameCn,
         value: opt.id.toString(),
       })),
     ];
