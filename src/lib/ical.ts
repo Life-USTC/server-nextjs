@@ -22,37 +22,24 @@ export function createSectionCalendar(
                   campus: true;
                 };
               };
-              roomType: true;
             };
           };
-          teacher: {
-            include: {
-              department: true;
-            };
-          };
-          scheduleGroup: true;
+          teacher: true;
         };
-        orderBy: [{ date: "asc" }, { startTime: "asc" }];
       };
     };
   }>,
-  scheduleGroupId?: number,
 ): ICalCalendar {
   const calendar = new ICalCalendar({
     name: `${section.course.nameCn} (${section.code})`,
     description: `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
     timezone: "Asia/Shanghai",
-    url: `${process.env.NEXT_PUBLIC_APP_URL || "https://life-ustc.tiankaima.dev"}/sections/${section.id}`,
+    url: `https://life-ustc.tiankaima.dev/sections/${section.id}`,
     scale: "GREGORIAN",
   });
 
-  // Filter schedules by schedule group if specified
-  const schedules = scheduleGroupId
-    ? section.schedules.filter((s) => s.scheduleGroupId === scheduleGroupId)
-    : section.schedules;
-
   // Create events for each schedule
-  for (const schedule of schedules) {
+  for (const schedule of section.schedules) {
     createScheduleEvent(schedule, section, calendar);
   }
   return calendar;
@@ -71,15 +58,9 @@ function createScheduleEvent(
               campus: true;
             };
           };
-          roomType: true;
         };
       };
-      teacher: {
-        include: {
-          department: true;
-        };
-      };
-      scheduleGroup: true;
+      teacher: true;
     };
   }>,
   section: Prisma.SectionGetPayload<{
@@ -116,10 +97,8 @@ function createScheduleEvent(
   const summary = `${section.course.nameCn}`;
   const description = [
     section.course.nameCn,
-    teacherNames && `教师: ${teacherNames}`,
-    schedule.experiment && `实验: ${schedule.experiment}`,
-    schedule.scheduleGroup.isDefault === false &&
-      `教学班: ${schedule.scheduleGroup.no}`,
+    teacherNames && `教师：${teacherNames}`,
+    schedule.experiment && `实验：${schedule.experiment}`,
   ]
     .filter(Boolean)
     .join("\n");

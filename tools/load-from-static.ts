@@ -7,12 +7,8 @@ import type { Semester } from "@prisma/client";
 import { PrismaClient } from "@prisma/client";
 
 const connectionString = `${process.env.DATABASE_URL}`;
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
 const adapter = new PrismaPg({ connectionString });
-const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
+const prisma = new PrismaClient({ adapter });
 
 const logger = {
   info: (msg: string) => console.log(`[INFO] ${msg}`),
@@ -385,9 +381,6 @@ async function loadSections(cacheRoot: string, semester: Semester) {
 
   const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
-  const _created = 0;
-  let _updated = 0;
-
   for (const sectionInfo of data) {
     const course = await updateOrCreateCourse(sectionInfo);
     const _section = await updateOrCreateSection(
@@ -396,9 +389,7 @@ async function loadSections(cacheRoot: string, semester: Semester) {
       course.id,
     );
     logger.debug(`Processed section: ${sectionInfo.id}`);
-    _updated++;
   }
-
   logger.info(`Sections loaded for semester ${semester.id}: ${data.length}`);
 }
 
