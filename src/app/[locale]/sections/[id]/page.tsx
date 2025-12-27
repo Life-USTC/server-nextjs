@@ -156,7 +156,7 @@ export default async function SectionPage({
                   )}
                   <span className="ml-2">
                     <Link
-                      href={`/sections?search=${encodeURIComponent(teacher.nameCn)}`}
+                      href={`/sections?search=teacher:${encodeURIComponent(teacher.nameCn)}`}
                       className="text-small text-primary hover:underline"
                     >
                       {t("viewTeacherCourses", { teacher: teacher.nameCn })} →
