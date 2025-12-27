@@ -15,6 +15,7 @@ model AdminClass {
 
   sections Section[] @relation("SectionAdminClasses")
 
+  @@index([jwId])
   @@index([nameCn])
 }
 
@@ -32,6 +33,7 @@ model Building {
 
   rooms Room[]
 
+  @@index([jwId])
   @@index([nameCn])
   @@index([nameEn])
   @@index([campusId])
@@ -46,6 +48,7 @@ model Campus {
   buildings Building[]
   sections  Section[]
 
+  @@index([jwId])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -86,6 +89,7 @@ model Course {
 
   sections Section[]
 
+  @@index([jwId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
@@ -207,6 +211,7 @@ model Room {
   schedules Schedule[]
 
   @@unique([buildingId, code])
+  @@index([jwId])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -221,6 +226,7 @@ model RoomType {
 
   rooms Room[]
 
+  @@index([jwId])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -273,6 +279,8 @@ model ScheduleGroup {
   section Section @relation(fields: [sectionId], references: [id])
 
   schedules Schedule[]
+
+  @@index([jwId])
 }
 
 model Section {
@@ -308,6 +316,7 @@ model Section {
   adminClasses   AdminClass[]    @relation("SectionAdminClasses")
   teachers       Teacher[]       @relation("SectionTeachers")
 
+  @@index([jwId])
   @@index([code])
   @@index([period])
   @@index([graduateAndPostgraduate])
@@ -328,6 +337,8 @@ model Semester {
   endDate   DateTime? @db.Date
 
   sections Section[]
+
+  @@index([jwId])
 }
 
 model Teacher {

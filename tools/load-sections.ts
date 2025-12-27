@@ -51,7 +51,7 @@ interface DepartmentInterface {
 }
 
 interface CampusInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
 }
 
@@ -252,7 +252,10 @@ async function loadOrCreateDepartmentByCode(
 async function loadCampus(
   data: CampusInterface,
   prisma: PrismaClient,
-): Promise<Campus> {
+): Promise<Campus | null> {
+  if (data.cn === null) {
+    return null;
+  }
   const campus = await prisma.campus.upsert({
     where: { nameCn: data.cn },
     update: {
@@ -477,7 +480,7 @@ export async function loadSections(
         dateTimePlacePersonText: sectionJson.dateTimePlacePersonText.cn,
         courseId: course.id,
         semesterId: semesterId,
-        campusId: campus.id,
+        campusId: campus?.id,
         examModeId: exam_mode.id,
         openDepartmentId: open_department.id,
         teachLanguageId: teach_language.id,
@@ -501,7 +504,7 @@ export async function loadSections(
         dateTimePlacePersonText: sectionJson.dateTimePlacePersonText.cn,
         courseId: course.id,
         semesterId: semesterId,
-        campusId: campus.id,
+        campusId: campus?.id,
         examModeId: exam_mode.id,
         openDepartmentId: open_department.id,
         teachLanguageId: teach_language.id,
