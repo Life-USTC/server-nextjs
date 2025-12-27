@@ -36,6 +36,40 @@ import { prisma } from "@/lib/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
 
+function parseSearchQuery(search: string): {
+  teacher?: string;
+  courseCode?: string;
+  lectureCode?: string;
+  general?: string;
+} {
+  const result: {
+    teacher?: string;
+    courseCode?: string;
+    lectureCode?: string;
+    general?: string;
+  } = {};
+
+  // Extract special syntax patterns
+  const teacherMatch = search.match(/teacher:(\S+)/i);
+  const courseCodeMatch = search.match(/coursecode:(\S+)/i);
+  const lectureCodeMatch = search.match(/(?:lecturecode|sectioncode):(\S+)/i);
+
+  if (teacherMatch) result.teacher = teacherMatch[1];
+  if (courseCodeMatch) result.courseCode = courseCodeMatch[1];
+  if (lectureCodeMatch) result.lectureCode = lectureCodeMatch[1];
+
+  // Remove special syntax from search string to get general search term
+  const generalSearch = search
+    .replace(/teacher:\S+/gi, "")
+    .replace(/coursecode:\S+/gi, "")
+    .replace(/(?:lecturecode|sectioncode):\S+/gi, "")
+    .trim();
+
+  if (generalSearch) result.general = generalSearch;
+
+  return result;
+}
+
 async function fetchSections(
   page: number,
   semesterId?: string,
@@ -49,16 +83,70 @@ async function fetchSections(
     }
   }
   if (search) {
-    where.OR = [
-      {
-        course: { nameCn: { contains: search, mode: "insensitive" as const } },
-      },
-      {
-        course: { nameEn: { contains: search, mode: "insensitive" as const } },
-      },
-      { course: { code: { contains: search, mode: "insensitive" as const } } },
-      { code: { contains: search, mode: "insensitive" as const } },
-    ];
+    const parsed = parseSearchQuery(search);
+    const conditions: Prisma.SectionWhereInput[] = [];
+
+    // Teacher search
+    if (parsed.teacher) {
+      conditions.push({
+        teachers: {
+          some: {
+            nameCn: { contains: parsed.teacher, mode: "insensitive" as const },
+          },
+        },
+      });
+    }
+
+    // Course code search
+    if (parsed.courseCode) {
+      conditions.push({
+        course: {
+          code: { contains: parsed.courseCode, mode: "insensitive" as const },
+        },
+      });
+    }
+
+    // Lecture/section code search
+    if (parsed.lectureCode) {
+      conditions.push({
+        code: { contains: parsed.lectureCode, mode: "insensitive" as const },
+      });
+    }
+
+    // General search (when no special syntax or remaining text)
+    if (parsed.general) {
+      conditions.push({
+        OR: [
+          {
+            course: {
+              nameCn: {
+                contains: parsed.general,
+                mode: "insensitive" as const,
+              },
+            },
+          },
+          {
+            course: {
+              nameEn: {
+                contains: parsed.general,
+                mode: "insensitive" as const,
+              },
+            },
+          },
+          {
+            course: {
+              code: { contains: parsed.general, mode: "insensitive" as const },
+            },
+          },
+          { code: { contains: parsed.general, mode: "insensitive" as const } },
+        ],
+      });
+    }
+
+    // If we have any conditions, combine them with AND
+    if (conditions.length > 0) {
+      where.AND = conditions;
+    }
   }
 
   return paginatedSectionQuery(page, where);
