@@ -1,6 +1,9 @@
-# Life USTC Server - Next.js
+# Life@USTC Server
 
-USTC Life Server - Course and schedule management API using Next.js
+> [!WARNING]
+> Not Production ready, yet.
+
+Next.js version of Life@USTC Server.
 
 ### Development
 
