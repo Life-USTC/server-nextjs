@@ -82,7 +82,9 @@ export function SectionsFilter({
           <Select
             name="semesterId"
             value={defaultValues.semesterId || ""}
-            onValueChange={(val) => updateFilters("semesterId", val)}
+            onValueChange={(val) =>
+              updateFilters("semesterId", val ?? undefined)
+            }
             items={semesterItems}
           >
             <SelectTrigger className="w-[200px]">
@@ -117,7 +119,7 @@ export function SectionsFilter({
             render={
               <Link
                 href="/sections"
-                className="px-4 py-2 bg-interactive hover:bg-interactive-hover text-muted-strong rounded-lg transition-colors no-underline flex items-center"
+                className="px-4 py-2 bg-accent hover:bg-accent/80 text-foreground rounded-lg transition-colors no-underline flex items-center"
               />
             }
           >

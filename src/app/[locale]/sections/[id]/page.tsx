@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,6 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
@@ -93,54 +96,73 @@ export default async function SectionPage({
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <h1 className="text-display mb-2">
-        {isEnglish && section.course.nameEn
-          ? section.course.nameEn
-          : section.course.nameCn}
-      </h1>
-      {isEnglish
-        ? section.course.nameCn && (
-            <p className="text-subtitle text-muted mb-4">
-              {section.course.nameCn}
-            </p>
-          )
-        : section.course.nameEn && (
-            <p className="text-subtitle text-muted mb-4">
-              {section.course.nameEn}
-            </p>
-          )}
-      <div className="flex flex-wrap gap-2 mb-4">
+
+      <div className="mb-8 mt-8">
+        <h1 className="text-display mb-2">
+          {isEnglish && section.course.nameEn
+            ? section.course.nameEn
+            : section.course.nameCn}
+        </h1>
+        {isEnglish
+          ? section.course.nameCn && (
+              <p className="text-subtitle text-muted-foreground">
+                {section.course.nameCn}
+              </p>
+            )
+          : section.course.nameEn && (
+              <p className="text-subtitle text-muted-foreground">
+                {section.course.nameEn}
+              </p>
+            )}
+      </div>
+
+      <div className="mb-8 flex flex-wrap gap-2">
         {section.semester && (
-          <span className="text-tag tag-base tag-semester">
-            {section.semester.name}
-          </span>
+          <Badge variant="outline">{section.semester.name}</Badge>
         )}
-        <span className="text-tag tag-base tag-section-code">
+        <Badge variant="outline" className="font-mono">
           {section.code}
-        </span>
+        </Badge>
         {section.campus && (
-          <span className="text-tag tag-base tag-campus">
-            {section.campus.nameCn}
-          </span>
+          <Badge variant="outline">{section.campus.nameCn}</Badge>
         )}
-        <span className="text-tag tag-base tag-capacity">
+        <Badge variant="outline">
           {section.stdCount ?? 0} / {section.limitCount ?? "—"}
-        </span>
+        </Badge>
+      </div>
+
+      <div className="mb-8">
+        <Link
+          href={`/courses/${section.course.id}`}
+          className="text-body text-primary hover:underline"
+        >
+          {t("viewAllSections")} →
+        </Link>
       </div>
 
       {section.teachers && section.teachers.length > 0 && (
         <div className="mb-8">
           <h2 className="text-title-2 mb-2">{t("teachers")}</h2>
-          <ul className="list-disc list-inside text-body text-muted-strong">
+          <ul className="list-disc list-inside text-body text-foreground space-y-2">
             {section.teachers.map((teacher) => (
               <li key={teacher.id}>
-                {teacher.nameCn}
-                {teacher.department && (
-                  <span className="text-muted">
-                    {" "}
-                    ({teacher.department.nameCn})
+                <div className="inline">
+                  {teacher.nameCn}
+                  {teacher.department && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      ({teacher.department.nameCn})
+                    </span>
+                  )}
+                  <span className="ml-2">
+                    <Link
+                      href={`/sections?search=${encodeURIComponent(teacher.nameCn)}`}
+                      className="text-small text-primary hover:underline"
+                    >
+                      {t("viewTeacherCourses", { teacher: teacher.nameCn })} →
+                    </Link>
                   </span>
-                )}
+                </div>
               </li>
             ))}
           </ul>
@@ -154,59 +176,67 @@ export default async function SectionPage({
         {schedules.length > 0 ? (
           <div className="space-y-4">
             {schedules.map((schedule) => (
-              <div key={schedule.id} className="schedule-card">
-                <div className="mb-2">
-                  <h3 className="text-subtitle font-semibold">
+              <Card key={schedule.id}>
+                <CardHeader>
+                  <CardTitle>
                     {dayjs(schedule.date).format("MMMM D, YYYY")}
-                  </h3>
-                  <p className="text-small text-muted">
+                  </CardTitle>
+                  <p className="text-small text-muted-foreground">
                     {formatWeekday(dayjs(schedule.date).day())}
                   </p>
-                </div>
-                <div className="space-y-1 text-body text-muted-strong">
-                  <p>
-                    <strong>{t("time")}:</strong> {schedule.startTime} -{" "}
-                    {schedule.endTime}
-                  </p>
-                  <p>
-                    <strong>{t("units")}:</strong> {schedule.startUnit} -{" "}
-                    {schedule.endUnit}
-                  </p>
-                  {schedule.weekIndex && (
-                    <p>
-                      <strong>{t("week")}:</strong> {schedule.weekIndex}
+                </CardHeader>
+                <CardPanel>
+                  <div className="flex flex-col gap-3">
+                    <p className="text-body text-foreground">
+                      <strong>{t("time")}:</strong> {schedule.startTime} -{" "}
+                      {schedule.endTime}
                     </p>
-                  )}
-                  {schedule.customPlace ? (
-                    <p>
-                      <strong>{t("location")}:</strong> {schedule.customPlace}
+                    <p className="text-body text-foreground">
+                      <strong>{t("units")}:</strong> {schedule.startUnit} -{" "}
+                      {schedule.endUnit}
                     </p>
-                  ) : (
-                    schedule.room && (
-                      <p>
-                        <strong>{t("location")}:</strong> {schedule.room.nameCn}
-                        {schedule.room.building && (
-                          <span className="text-muted">
-                            {" "}
-                            · {schedule.room.building.nameCn}
-                            {schedule.room.building.campus &&
-                              ` · ${schedule.room.building.campus.nameCn}`}
-                          </span>
-                        )}
+                    {schedule.weekIndex && (
+                      <p className="text-body text-foreground">
+                        <strong>{t("week")}:</strong> {schedule.weekIndex}
                       </p>
-                    )
-                  )}
-                  {schedule.teacher && (
-                    <p>
-                      <strong>{t("teacher")}:</strong> {schedule.teacher.nameCn}
-                    </p>
-                  )}
-                </div>
-              </div>
+                    )}
+                    {schedule.customPlace ? (
+                      <p className="text-body text-foreground">
+                        <strong>{t("location")}:</strong> {schedule.customPlace}
+                      </p>
+                    ) : (
+                      schedule.room && (
+                        <p className="text-body text-foreground">
+                          <strong>{t("location")}:</strong>{" "}
+                          {schedule.room.nameCn}
+                          {schedule.room.building && (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {schedule.room.building.nameCn}
+                              {schedule.room.building.campus &&
+                                ` · ${schedule.room.building.campus.nameCn}`}
+                            </span>
+                          )}
+                        </p>
+                      )
+                    )}
+                    {schedule.teacher && (
+                      <p className="text-body text-foreground">
+                        <strong>{t("teacher")}:</strong>{" "}
+                        {schedule.teacher.nameCn}
+                      </p>
+                    )}
+                  </div>
+                </CardPanel>
+              </Card>
             ))}
           </div>
         ) : (
-          <p className="text-muted">{t("noSchedule")}</p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t("noSchedule")}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </main>

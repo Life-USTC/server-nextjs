@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,6 +9,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
@@ -105,33 +108,33 @@ export default async function CoursePage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <h1 className="text-display mb-4">
-        {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
-      </h1>
-      {isEnglish
-        ? course.nameCn && <p className="text-subtitle mb-4">{course.nameCn}</p>
-        : course.nameEn && (
-            <p className="text-subtitle mb-4">{course.nameEn}</p>
-          )}
+      <div className="mb-8 mt-8">
+        <h1 className="text-display mb-2">
+          {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
+        </h1>
+        {isEnglish
+          ? course.nameCn && (
+              <p className="text-subtitle text-muted-foreground">
+                {course.nameCn}
+              </p>
+            )
+          : course.nameEn && (
+              <p className="text-subtitle text-muted-foreground">
+                {course.nameEn}
+              </p>
+            )}
+      </div>
 
-      <div className="flex flex-wrap gap-2 mb-8">
-        <span className="text-tag tag-base tag-section-code">
-          {course.code}
-        </span>
+      <div className="mb-8 flex flex-wrap gap-2">
+        <Badge variant="outline">{course.code}</Badge>
         {course.educationLevel && (
-          <span className="text-tag tag-base tag-education-level">
-            {course.educationLevel.nameCn}
-          </span>
+          <Badge variant="outline">{course.educationLevel.nameCn}</Badge>
         )}
         {course.category && (
-          <span className="text-tag tag-base tag-category">
-            {course.category.nameCn}
-          </span>
+          <Badge variant="outline">{course.category.nameCn}</Badge>
         )}
         {course.classType && (
-          <span className="text-tag tag-base tag-class-type">
-            {course.classType.nameCn}
-          </span>
+          <Badge variant="outline">{course.classType.nameCn}</Badge>
         )}
       </div>
 
@@ -152,41 +155,48 @@ export default async function CoursePage({
                 <Link
                   key={section.id}
                   href={`/sections/${section.id}`}
-                  className="block p-4 bg-surface rounded-lg border border-base hover:border-interactive-hover transition-colors no-underline"
+                  className="no-underline"
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex gap-2">
-                      <span className="text-tag tag-base tag-section-code">
-                        {section.code}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-body text-muted-strong">
-                    {section.teachers && section.teachers.length > 0 && (
-                      <p>
-                        <strong>{t("teachers")}:</strong>{" "}
-                        {section.teachers
-                          .map((teacher) => teacher.nameCn)
-                          .join(", ")}
-                      </p>
-                    )}
-                    {section.campus && (
-                      <p>
-                        <strong>{t("campus")}:</strong> {section.campus.nameCn}
-                      </p>
-                    )}
-                    <p>
-                      <strong>{t("capacity")}:</strong> {section.stdCount ?? 0}{" "}
-                      / {section.limitCount ?? "—"}
-                    </p>
-                  </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        <Badge variant="outline">{section.code}</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardPanel>
+                      <div className="flex flex-col gap-3">
+                        {section.teachers && section.teachers.length > 0 && (
+                          <p className="text-body text-foreground">
+                            <strong>{t("teachers")}:</strong>{" "}
+                            {section.teachers
+                              .map((teacher) => teacher.nameCn)
+                              .join(", ")}
+                          </p>
+                        )}
+                        {section.campus && (
+                          <p className="text-body text-foreground">
+                            <strong>{t("campus")}:</strong>{" "}
+                            {section.campus.nameCn}
+                          </p>
+                        )}
+                        <p className="text-body text-foreground">
+                          <strong>{t("capacity")}:</strong>{" "}
+                          {section.stdCount ?? 0} / {section.limitCount ?? "—"}
+                        </p>
+                      </div>
+                    </CardPanel>
+                  </Card>
                 </Link>
               ))}
             </div>
           </div>
         ))}
         {sections.length === 0 && (
-          <p className="text-muted">{t("noSections")}</p>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t("noSections")}</EmptyTitle>
+            </EmptyHeader>
+          </Empty>
         )}
       </div>
     </main>

@@ -26,7 +26,19 @@
     "subtitle": "您的一站式应用，用于查看课程表、校园资源和中国科大的学生生活",
     "downloadBadgeAlt": "在 App Store 下载 Life@USTC",
     "appIconAlt": "Life@USTC 应用图标",
+    "quickAccess": {
+      "title": "快速访问",
+      "browseCourses": {
+        "title": "浏览课程",
+        "description": "探索可用课程，为您的课表找到完美的课程"
+      },
+      "viewSections": {
+        "title": "查看班级",
+        "description": "查看班级时间表、教师和可用性"
+      }
+    },
     "features": {
+      "title": "功能特点",
       "courseManagement": {
         "icon": "📚",
         "title": "课程管理",
@@ -88,6 +100,8 @@
     "week": "周次",
     "location": "地点",
     "teacher": "教师",
+    "viewAllSections": "查看这门课全部开课班级",
+    "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
     "weekdays": {
       "sunday": "星期日",
       "monday": "星期一",

@@ -1,102 +1,152 @@
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
-import styles from "./page.module.scss";
+import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { Link } from "@/i18n/routing";
 
 export default async function Homepage() {
   const t = await getTranslations("homepage");
 
   return (
-    <main className={styles.main}>
-      <div className={styles.gradient} />
-
-      <div className={styles.container}>
-        {/* Hero Section */}
-        <section className={styles.hero}>
-          <div className={styles.heroContent}>
-            <div className={styles.badge}>
-              <span className={styles.badgeText}>{t("badge")}</span>
+    <main className="page-main">
+      {/* Hero Section */}
+      <section className="mb-12 animate-in fade-in slide-in-from-left-4 duration-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+          <div className="space-y-6">
+            <div className="inline-flex px-4 py-2 bg-primary/10 border border-primary/20 rounded-full">
+              <span className="text-sm font-medium text-primary">
+                {t("badge")}
+              </span>
             </div>
 
-            <h1 className={styles.title}>
-              <span className={styles.titleLine}>{t("title.line1")}</span>
-              <span className={`${styles.titleLine} ${styles.titleHighlight}`}>
+            <h1 className="text-display">
+              <span className="block">{t("title.line1")}</span>
+              <span className="block bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
                 {t("title.line2")}
               </span>
             </h1>
 
-            <p className={styles.subtitle}>{t("subtitle")}</p>
+            <p className="text-subtitle text-muted-foreground max-w-lg">
+              {t("subtitle")}
+            </p>
 
-            <div className={styles.cta}>
+            <div className="flex gap-4">
               <a
                 href="https://apps.apple.com/us/app/life-ustc/id1660437438"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="transition-transform hover:scale-105 no-underline"
               >
                 <Image
                   src="/images/appstore.svg"
                   alt={t("downloadBadgeAlt")}
                   width={150}
                   height={44}
-                  className={styles.appStoreBadge}
                   priority
                 />
               </a>
             </div>
           </div>
 
-          <div className={styles.heroImage}>
-            <div className={styles.iconWrapper}>
+          <div className="flex justify-center animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+            <div className="relative animate-float">
               <Image
                 src="/images/icon.png"
                 alt={t("appIconAlt")}
                 width={280}
                 height={280}
-                className={styles.icon}
+                className="rounded-[25%] shadow-2xl shadow-primary/30"
                 priority
               />
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Features Section */}
-        <section className={styles.features}>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              {t("features.courseManagement.icon")}
-            </div>
-            <h3 className={styles.featureTitle}>
-              {t("features.courseManagement.title")}
-            </h3>
-            <p className={styles.featureText}>
-              {t("features.courseManagement.description")}
-            </p>
-          </div>
+      {/* Quick Links */}
+      <section className="mb-12 animate-in fade-in duration-700 delay-300">
+        <h2 className="text-title-2 mb-6">{t("quickAccess.title")}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/courses" className="no-underline">
+            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">📚</span>
+                  <CardTitle>{t("quickAccess.browseCourses.title")}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardPanel>
+                <p className="text-body text-muted-foreground line-clamp-2">
+                  {t("quickAccess.browseCourses.description")}
+                </p>
+              </CardPanel>
+            </Card>
+          </Link>
 
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              {t("features.smartScheduling.icon")}
-            </div>
-            <h3 className={styles.featureTitle}>
-              {t("features.smartScheduling.title")}
-            </h3>
-            <p className={styles.featureText}>
-              {t("features.smartScheduling.description")}
-            </p>
-          </div>
+          <Link href="/sections" className="no-underline">
+            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <span className="text-3xl">🗓️</span>
+                  <CardTitle>{t("quickAccess.viewSections.title")}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardPanel>
+                <p className="text-body text-muted-foreground line-clamp-2">
+                  {t("quickAccess.viewSections.description")}
+                </p>
+              </CardPanel>
+            </Card>
+          </Link>
+        </div>
+      </section>
 
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon}>
-              {t("features.stayUpdated.icon")}
-            </div>
-            <h3 className={styles.featureTitle}>
-              {t("features.stayUpdated.title")}
-            </h3>
-            <p className={styles.featureText}>
-              {t("features.stayUpdated.description")}
-            </p>
-          </div>
-        </section>
-      </div>
+      {/* Features Section */}
+      <section className="animate-in fade-in duration-700 delay-500">
+        <h2 className="text-title-2 mb-6">{t("features.title")}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <Card className="h-full overflow-hidden">
+            <CardHeader>
+              <div className="text-4xl mb-2">
+                {t("features.courseManagement.icon")}
+              </div>
+              <CardTitle>{t("features.courseManagement.title")}</CardTitle>
+            </CardHeader>
+            <CardPanel>
+              <p className="text-body text-muted-foreground line-clamp-3">
+                {t("features.courseManagement.description")}
+              </p>
+            </CardPanel>
+          </Card>
+
+          <Card className="h-full overflow-hidden">
+            <CardHeader>
+              <div className="text-4xl mb-2">
+                {t("features.smartScheduling.icon")}
+              </div>
+              <CardTitle>{t("features.smartScheduling.title")}</CardTitle>
+            </CardHeader>
+            <CardPanel>
+              <p className="text-body text-muted-foreground line-clamp-3">
+                {t("features.smartScheduling.description")}
+              </p>
+            </CardPanel>
+          </Card>
+
+          <Card className="h-full overflow-hidden">
+            <CardHeader>
+              <div className="text-4xl mb-2">
+                {t("features.stayUpdated.icon")}
+              </div>
+              <CardTitle>{t("features.stayUpdated.title")}</CardTitle>
+            </CardHeader>
+            <CardPanel>
+              <p className="text-body text-muted-foreground line-clamp-3">
+                {t("features.stayUpdated.description")}
+              </p>
+            </CardPanel>
+          </Card>
+        </div>
+      </section>
     </main>
   );
 }

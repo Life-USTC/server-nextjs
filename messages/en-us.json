@@ -26,7 +26,19 @@
     "subtitle": "Your all-in-one app for course schedules, campus resources, and student life at USTC",
     "downloadBadgeAlt": "Download Life@USTC on the App Store",
     "appIconAlt": "Life@USTC app icon",
+    "quickAccess": {
+      "title": "Quick Access",
+      "browseCourses": {
+        "title": "Browse Courses",
+        "description": "Explore available courses and find the perfect classes for your schedule"
+      },
+      "viewSections": {
+        "title": "View Sections",
+        "description": "Check section schedules, instructors, and availability"
+      }
+    },
     "features": {
+      "title": "Features",
       "courseManagement": {
         "icon": "📚",
         "title": "Course Management",
@@ -88,6 +100,8 @@
     "week": "Week",
     "location": "Location",
     "teacher": "Teacher",
+    "viewAllSections": "View all sections for this course",
+    "viewTeacherCourses": "View other courses taught by {teacher}",
     "weekdays": {
       "sunday": "Sunday",
       "monday": "Monday",
