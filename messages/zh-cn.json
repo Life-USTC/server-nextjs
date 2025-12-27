@@ -80,7 +80,7 @@
   "sections": {
     "title": "所有班级",
     "subtitle": "浏览和筛选所有可用的课程班级",
-    "searchPlaceholder": "按课程名称、代码或班级代码搜索...",
+    "searchPlaceholder": "搜索课程或使用特殊语法：teacher:教师名 coursecode:课程代码 lecturecode:班级代码",
     "showing": "显示 {total} 个班级中的 {count} 个",
     "searchFor": "关于 \"{query}\"",
     "inSemester": "在 {semester}",
