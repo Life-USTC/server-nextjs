@@ -80,7 +80,7 @@
   "sections": {
     "title": "All Sections",
     "subtitle": "Browse and filter through all available course sections",
-    "searchPlaceholder": "Search by course name, code, or section code...",
+    "searchPlaceholder": "Search or use special syntax: teacher:name coursecode:code lecturecode:code",
     "showing": "Showing {count} of {total} sections",
     "searchFor": "for \"{query}\"",
     "inSemester": "in {semester}",
