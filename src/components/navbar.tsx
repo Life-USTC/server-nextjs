@@ -4,20 +4,20 @@ import { Globe } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "@/i18n/routing";
 import {
   Menu,
   MenuPopup,
   MenuRadioGroup,
   MenuRadioItem,
   MenuTrigger,
-} from "@/components/ui/menu";
-import { usePathname, useRouter } from "@/i18n/routing";
+} from "./ui/menu";
 
 export default function Navbar() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
-  const { theme, systemTheme, setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -27,9 +27,6 @@ export default function Navbar() {
   const handleLanguageChange = (newLocale: string) => {
     router.replace(pathname, { locale: newLocale });
   };
-
-  const resolvedTheme = theme === "system" ? systemTheme : theme;
-  const isDark = resolvedTheme === "dark";
 
   return (
     <nav className="border-b border-border bg-background">
@@ -55,16 +52,26 @@ export default function Navbar() {
           </MenuPopup>
         </Menu>
 
-        {/* Theme Toggle */}
+        {/* Theme Switcher */}
         {mounted && (
           <button
             type="button"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+            onClick={() => {
+              if (theme === "light") setTheme("dark");
+              else if (theme === "dark") setTheme("system");
+              else setTheme("light");
+            }}
+            aria-label={
+              theme === "light"
+                ? "Switch to dark mode"
+                : theme === "dark"
+                  ? "Use system preference"
+                  : "Switch to light mode"
+            }
             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
           >
             <span aria-hidden="true" className="text-lg">
-              {isDark ? "🌙" : "☀️"}
+              {theme === "light" ? "☀️" : theme === "dark" ? "🌙" : "🖥️"}
             </span>
           </button>
         )}
