@@ -13,15 +13,28 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
 export default async function SectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
+  const searchP = await searchParams;
+  const view = searchP.view || "table";
   const locale = await getLocale();
 
   const section = await prisma.section.findUnique({
@@ -49,6 +62,13 @@ export default async function SectionPage({
           teacher: true,
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      },
+      exams: {
+        include: {
+          examBatch: true,
+          examRooms: true,
+        },
+        orderBy: { examDate: "asc" },
       },
     },
   });
@@ -182,61 +202,48 @@ export default async function SectionPage({
         </div>
       )}
 
-      <div className="mb-8">
-        <h2 className="text-title-2 mb-4">
-          {t("schedule", { count: section.schedules.length })}
-        </h2>
-        {section.schedules.length > 0 ? (
+      {section.exams && section.exams.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-title-2 mb-4">
+            {t("exams", { count: section.exams.length })}
+          </h2>
           <div className="space-y-4">
-            {section.schedules.map((schedule) => (
-              <Card key={schedule.id}>
+            {section.exams.map((exam) => (
+              <Card key={exam.id}>
                 <CardHeader>
                   <CardTitle>
-                    {dayjs(schedule.date).format("MMMM D, YYYY")}
+                    {exam.examDate
+                      ? dayjs(exam.examDate).format("YYYY.MM.DD")
+                      : t("examDateTBD")}
                   </CardTitle>
-                  <p className="text-small text-muted-foreground">
-                    {formatWeekday(dayjs(schedule.date).day())}
-                  </p>
+                  {exam.examMode && (
+                    <p className="text-small text-muted-foreground">
+                      {exam.examMode}
+                    </p>
+                  )}
                 </CardHeader>
                 <CardPanel>
                   <div className="flex flex-col gap-3">
-                    <p className="text-body text-foreground">
-                      <strong>{t("time")}:</strong> {schedule.startTime} -{" "}
-                      {schedule.endTime}
-                    </p>
-                    <p className="text-body text-foreground">
-                      <strong>{t("units")}:</strong> {schedule.startUnit} -{" "}
-                      {schedule.endUnit}
-                    </p>
-                    {schedule.weekIndex && (
+                    {exam.startTime !== null && exam.endTime !== null && (
                       <p className="text-body text-foreground">
-                        <strong>{t("week")}:</strong> {schedule.weekIndex}
+                        <strong>{t("time")}:</strong>{" "}
+                        {String(exam.startTime).padStart(4, "0")} -{" "}
+                        {String(exam.endTime).padStart(4, "0")}
                       </p>
                     )}
-                    {schedule.customPlace ? (
+                    {exam.examRooms && exam.examRooms.length > 0 && (
                       <p className="text-body text-foreground">
-                        <strong>{t("location")}:</strong> {schedule.customPlace}
+                        <strong>{t("location")}:</strong>{" "}
+                        {exam.examRooms
+                          .map((er) => er.room)
+                          .filter(Boolean)
+                          .join(", ")}
                       </p>
-                    ) : (
-                      schedule.room && (
-                        <p className="text-body text-foreground">
-                          <strong>{t("location")}:</strong>{" "}
-                          {schedule.room.nameCn}
-                          {schedule.room.building && (
-                            <span className="text-muted-foreground">
-                              {" "}
-                              · {schedule.room.building.nameCn}
-                              {schedule.room.building.campus &&
-                                ` · ${schedule.room.building.campus.nameCn}`}
-                            </span>
-                          )}
-                        </p>
-                      )
                     )}
-                    {schedule.teacher && (
+                    {exam.examTakeCount !== null && (
                       <p className="text-body text-foreground">
-                        <strong>{t("teacher")}:</strong>{" "}
-                        {schedule.teacher.nameCn}
+                        <strong>{t("examTakeCount")}:</strong>{" "}
+                        {exam.examTakeCount}
                       </p>
                     )}
                   </div>
@@ -244,6 +251,129 @@ export default async function SectionPage({
               </Card>
             ))}
           </div>
+        </div>
+      )}
+
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-title-2">
+            {t("schedule", { count: section.schedules.length })}
+          </h2>
+          <ViewSwitcher />
+        </div>
+        {section.schedules.length > 0 ? (
+          view === "table" ? (
+            <div className="mb-8">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("date")}</TableHead>
+                    <TableHead>{t("time")}</TableHead>
+                    <TableHead>{t("units")}</TableHead>
+                    <TableHead>{t("week")}</TableHead>
+                    <TableHead>{t("location")}</TableHead>
+                    <TableHead>{t("teacher")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {section.schedules.map((schedule) => (
+                    <TableRow key={schedule.id}>
+                      <TableCell>
+                        {dayjs(schedule.date).format("YYYY.MM.DD")}
+                        <div className="text-muted-foreground text-xs">
+                          {formatWeekday(dayjs(schedule.date).day())}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {schedule.startTime} - {schedule.endTime}
+                      </TableCell>
+                      <TableCell>
+                        {schedule.startUnit} - {schedule.endUnit}
+                      </TableCell>
+                      <TableCell>{schedule.weekIndex || "—"}</TableCell>
+                      <TableCell>
+                        {schedule.customPlace
+                          ? schedule.customPlace
+                          : schedule.room
+                            ? `${schedule.room.nameCn}${
+                                schedule.room.building
+                                  ? ` · ${schedule.room.building.nameCn}`
+                                  : ""
+                              }${
+                                schedule.room.building?.campus
+                                  ? ` · ${schedule.room.building.campus.nameCn}`
+                                  : ""
+                              }`
+                            : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {schedule.teacher ? schedule.teacher.nameCn : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {section.schedules.map((schedule) => (
+                <Card key={schedule.id}>
+                  <CardHeader>
+                    <CardTitle>
+                      {dayjs(schedule.date).format("YYYY.MM.DD")}
+                    </CardTitle>
+                    <p className="text-small text-muted-foreground">
+                      {formatWeekday(dayjs(schedule.date).day())}
+                    </p>
+                  </CardHeader>
+                  <CardPanel>
+                    <div className="flex flex-col gap-3">
+                      <p className="text-body text-foreground">
+                        <strong>{t("time")}:</strong> {schedule.startTime} -{" "}
+                        {schedule.endTime}
+                      </p>
+                      <p className="text-body text-foreground">
+                        <strong>{t("units")}:</strong> {schedule.startUnit} -{" "}
+                        {schedule.endUnit}
+                      </p>
+                      {schedule.weekIndex && (
+                        <p className="text-body text-foreground">
+                          <strong>{t("week")}:</strong> {schedule.weekIndex}
+                        </p>
+                      )}
+                      {schedule.customPlace ? (
+                        <p className="text-body text-foreground">
+                          <strong>{t("location")}:</strong>{" "}
+                          {schedule.customPlace}
+                        </p>
+                      ) : (
+                        schedule.room && (
+                          <p className="text-body text-foreground">
+                            <strong>{t("location")}:</strong>{" "}
+                            {schedule.room.nameCn}
+                            {schedule.room.building && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · {schedule.room.building.nameCn}
+                                {schedule.room.building.campus &&
+                                  ` · ${schedule.room.building.campus.nameCn}`}
+                              </span>
+                            )}
+                          </p>
+                        )
+                      )}
+                      {schedule.teacher && (
+                        <p className="text-body text-foreground">
+                          <strong>{t("teacher")}:</strong>{" "}
+                          {schedule.teacher.nameCn}
+                        </p>
+                      )}
+                    </div>
+                  </CardPanel>
+                </Card>
+              ))}
+            </div>
+          )
         ) : (
           <Empty>
             <EmptyHeader>

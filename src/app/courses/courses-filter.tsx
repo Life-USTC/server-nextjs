@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type * as React from "react";
 import { useRef } from "react";
@@ -47,6 +47,8 @@ export function CoursesFilter({
   const tCommon = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get("view");
 
   const isEnglish = locale === "en-us";
 
@@ -74,6 +76,7 @@ export function CoursesFilter({
       params.set("categoryId", currentValues.categoryId);
     if (currentValues.classTypeId)
       params.set("classTypeId", currentValues.classTypeId);
+    if (currentView) params.set("view", currentView);
 
     router.push(`${pathname}?${params.toString()}`);
   };
