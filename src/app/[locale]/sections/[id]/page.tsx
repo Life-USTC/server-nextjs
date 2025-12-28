@@ -22,10 +22,9 @@ export default async function SectionPage({
   params: Promise<{ id: string; locale: string }>;
 }) {
   const { id, locale } = await params;
-  const sectionId = Number(id);
 
   const section = await prisma.section.findUnique({
-    where: { id: sectionId },
+    where: { jwId: parseInt(id, 10) },
     include: {
       course: true,
       semester: true,
@@ -35,29 +34,27 @@ export default async function SectionPage({
           department: true,
         },
       },
+      schedules: {
+        include: {
+          room: {
+            include: {
+              building: {
+                include: {
+                  campus: true,
+                },
+              },
+            },
+          },
+          teacher: true,
+        },
+        orderBy: [{ date: "asc" }, { startTime: "asc" }],
+      },
     },
   });
 
   if (!section) {
     notFound();
   }
-
-  const schedules = await prisma.schedule.findMany({
-    where: { sectionId },
-    include: {
-      room: {
-        include: {
-          building: {
-            include: {
-              campus: true,
-            },
-          },
-        },
-      },
-      teacher: true,
-    },
-    orderBy: [{ date: "asc" }, { startTime: "asc" }],
-  });
 
   const t = await getTranslations("sectionDetail");
   const tCommon = await getTranslations("common");
@@ -119,7 +116,7 @@ export default async function SectionPage({
                 )}
           </div>
           <CalendarButton
-            sectionId={section.id}
+            sectionId={section.jwId}
             addToCalendarLabel={t("addToCalendar")}
             sheetTitle={t("calendarSheetTitle")}
             sheetDescription={t("calendarSheetDescription")}
@@ -148,7 +145,7 @@ export default async function SectionPage({
 
       <div className="mb-8">
         <Link
-          href={`/courses/${section.course.id}`}
+          href={`/courses/${section.course.jwId}`}
           className="text-body text-primary hover:underline"
         >
           {t("viewAllSections")} →
@@ -186,11 +183,11 @@ export default async function SectionPage({
 
       <div className="mb-8">
         <h2 className="text-title-2 mb-4">
-          {t("schedule", { count: schedules.length })}
+          {t("schedule", { count: section.schedules.length })}
         </h2>
-        {schedules.length > 0 ? (
+        {section.schedules.length > 0 ? (
           <div className="space-y-4">
-            {schedules.map((schedule) => (
+            {section.schedules.map((schedule) => (
               <Card key={schedule.id}>
                 <CardHeader>
                   <CardTitle>

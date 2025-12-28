@@ -10,17 +10,17 @@ export async function GET(
   try {
     const { id } = await context.params;
 
-    const scheduleGroups = await prisma.scheduleGroup.findMany({
-      where: { sectionId: parseInt(id, 10) },
+    const section = await prisma.section.findUnique({
+      where: { jwId: parseInt(id, 10) },
       include: {
-        _count: {
+        scheduleGroups: {
           select: { schedules: true },
+          orderBy: [{ isDefault: "desc" }, { no: "asc" }],
         },
       },
-      orderBy: [{ isDefault: "desc" }, { no: "asc" }],
     });
 
-    return NextResponse.json({ data: scheduleGroups });
+    return NextResponse.json(section?.scheduleGroups);
   } catch (error) {
     console.error("Error fetching schedule groups:", error);
     return NextResponse.json(

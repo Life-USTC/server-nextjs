@@ -14,74 +14,51 @@ import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
-async function getCourseData(courseId: number) {
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-    include: {
-      educationLevel: true,
-      category: true,
-      classType: true,
-    },
-  });
-
-  if (!course) {
-    return null;
-  }
-
-  const sections = await prisma.section.findMany({
-    where: { courseId },
-    include: {
-      semester: true,
-      campus: true,
-      teachers: {
-        include: {
-          department: true,
-        },
-      },
-    },
-  });
-
-  const sortedSections = sections.sort((a, b) => {
-    const semesterA = a.semester?.nameCn || "";
-    const semesterB = b.semester?.nameCn || "";
-    if (semesterA !== semesterB) {
-      return semesterB.localeCompare(semesterA);
-    }
-    return a.code.localeCompare(b.code);
-  });
-
-  return {
-    course,
-    sections: sortedSections,
-  };
-}
-
 export default async function CoursePage({
   params,
 }: {
   params: Promise<{ id: string; locale: string }>;
 }) {
   const { id, locale } = await params;
-  const data = await getCourseData(Number(id));
+  const course = await prisma.course.findUnique({
+    where: { jwId: parseInt(id, 10) },
+    include: {
+      educationLevel: true,
+      category: true,
+      classType: true,
+      sections: {
+        include: {
+          semester: true,
+          campus: true,
+          teachers: {
+            include: {
+              department: true,
+            },
+          },
+        },
+        orderBy: {
+          semester: { jwId: "desc" },
+        },
+      },
+    },
+  });
 
-  if (!data) {
+  if (!course) {
     notFound();
   }
 
-  const { course, sections } = data;
-
-  // Group sections by semester
-  const semesterMap = new Map<string, typeof sections>();
-  sections.forEach((section) => {
-    const semesterName = section.semester?.nameCn || "Unknown";
-    if (!semesterMap.has(semesterName)) {
-      semesterMap.set(semesterName, []);
-    }
-    semesterMap.get(semesterName)?.push(section);
-  });
-
-  const sortedSemesters = Array.from(semesterMap.entries()).sort((a, b) =>
-    b[0].localeCompare(a[0]),
+  const semesterGroupedSections = course.sections.reduce(
+    (acc: [string, typeof course.sections][], section) => {
+      const semesterName = section.semester?.nameCn || "Unknown";
+      const existing = acc.find(([name]) => name === semesterName);
+      if (existing) {
+        existing[1].push(section);
+      } else {
+        acc.push([semesterName, [section]]);
+      }
+      return acc;
+    },
+    [],
   );
 
   const t = await getTranslations("courseDetail");
@@ -140,9 +117,9 @@ export default async function CoursePage({
 
       <div className="mb-8">
         <h2 className="text-title-2 mb-4">
-          {t("availableSections", { count: sections.length })}
+          {t("availableSections", { count: course.sections.length })}
         </h2>
-        {sortedSemesters.map(([semesterName, semesterSections]) => (
+        {semesterGroupedSections.map(([semesterName, semesterSections]) => (
           <div key={semesterName} className="mb-6">
             <h3 className="text-subtitle mb-3">
               {t("semesterSections", {
@@ -153,8 +130,8 @@ export default async function CoursePage({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {semesterSections.map((section) => (
                 <Link
-                  key={section.id}
-                  href={`/sections/${section.id}`}
+                  key={section.jwId}
+                  href={`/sections/${section.jwId}`}
                   className="no-underline"
                 >
                   <Card>
@@ -191,7 +168,7 @@ export default async function CoursePage({
             </div>
           </div>
         ))}
-        {sections.length === 0 && (
+        {course.sections.length === 0 && (
           <Empty>
             <EmptyHeader>
               <EmptyTitle>{t("noSections")}</EmptyTitle>

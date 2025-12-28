@@ -10,36 +10,47 @@ export async function GET(
   try {
     const { id } = await context.params;
     const section = await prisma.section.findUnique({
-      where: { id: parseInt(id, 10) },
+      where: { jwId: parseInt(id, 10) },
       include: {
         course: {
           include: {
-            educationLevel: true,
             category: true,
-            classify: true,
             classType: true,
+            classify: true,
+            educationLevel: true,
             gradation: true,
             type: true,
           },
         },
         semester: true,
         campus: true,
-        openDepartment: true,
         examMode: true,
+        openDepartment: true,
         teachLanguage: true,
+        roomType: true,
+        schedules: true,
+        scheduleGroups: true,
+        adminClasses: true,
         teachers: {
           include: {
             department: true,
+            teacherTitle: true,
           },
         },
-        adminClasses: true,
-        scheduleGroups: true,
+        teacherAssignments: {
+          include: {
+            teacher: true,
+            teacherLessonType: true,
+          },
+        },
+        exams: {
+          include: {
+            examBatch: true,
+            examRooms: true,
+          },
+        },
       },
     });
-
-    if (!section) {
-      return NextResponse.json({ error: "Section not found" }, { status: 404 });
-    }
 
     return NextResponse.json(section);
   } catch (error) {

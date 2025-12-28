@@ -273,8 +273,8 @@ export default async function SectionsPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {sections.map((section) => (
             <Link
-              key={section.id}
-              href={`/sections/${section.id}`}
+              key={section.jwId}
+              href={`/sections/${section.jwId}`}
               className="no-underline"
             >
               <Card className="h-full overflow-hidden">

@@ -9,30 +9,37 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params;
-    const schedules = await prisma.schedule.findMany({
-      where: { sectionId: parseInt(id, 10) },
+    const section = await prisma.section.findUnique({
+      where: { jwId: parseInt(id, 10) },
       include: {
-        room: {
+        schedules: {
           include: {
-            building: {
+            room: {
               include: {
-                campus: true,
+                building: {
+                  include: {
+                    campus: true,
+                  },
+                },
+                roomType: true,
               },
             },
-            roomType: true,
+            teacher: {
+              include: {
+                department: true,
+              },
+            },
+            scheduleGroup: true,
           },
+          orderBy: [{ date: "asc" }, { startTime: "asc" }],
         },
-        teacher: {
-          include: {
-            department: true,
-          },
+        scheduleGroups: {
+          orderBy: [{ isDefault: "desc" }, { no: "asc" }],
         },
-        scheduleGroup: true,
       },
-      orderBy: [{ date: "asc" }, { startTime: "asc" }],
     });
 
-    return NextResponse.json({ data: schedules });
+    return NextResponse.json(section?.schedules);
   } catch (error) {
     console.error("Error fetching section schedules:", error);
     return NextResponse.json(

@@ -34,7 +34,7 @@ export function createSectionCalendar(
     name: `${section.course.nameCn} (${section.code})`,
     description: `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
     timezone: "Asia/Shanghai",
-    url: `https://life-ustc.tiankaima.dev/sections/${section.id}`,
+    url: `https://life-ustc.tiankaima.dev/sections/${section.jwId}`,
     scale: "GREGORIAN",
   });
 

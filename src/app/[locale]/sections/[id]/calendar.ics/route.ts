@@ -12,7 +12,7 @@ export async function GET(
     const { id } = await context.params;
 
     const section = await prisma.section.findUnique({
-      where: { id: parseInt(id, 10) },
+      where: { jwId: parseInt(id, 10) },
       include: {
         course: true,
         schedules: {
