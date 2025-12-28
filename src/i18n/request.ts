@@ -1,12 +1,14 @@
+import { headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
 import { routing } from "./routing";
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  // This typically corresponds to the `[locale]` segment
-  let locale = await requestLocale;
+export default getRequestConfig(async () => {
+  // Read locale from the header set by middleware
+  const headersList = await headers();
+  let locale = headersList.get("x-locale") || routing.defaultLocale;
 
   // Ensure that a valid locale is used
-  if (!locale || !routing.locales.includes(locale as any)) {
+  if (!routing.locales.includes(locale as any)) {
     locale = routing.defaultLocale;
   }
 
