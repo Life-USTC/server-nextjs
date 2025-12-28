@@ -1,3 +1,10 @@
+# [0.15.0](https://github.com/Life-USTC/server-nextjs/compare/v0.14.0...v0.15.0) (2025-12-28)
+
+
+### Features
+
+* add exam events to section iCalendar export ([2670e0c](https://github.com/Life-USTC/server-nextjs/commit/2670e0cc196203935da96f1ef90ad07b5c625e35))
+
 # [0.14.0](https://github.com/Life-USTC/server-nextjs/compare/v0.13.0...v0.14.0) (2025-12-28)
 
 
