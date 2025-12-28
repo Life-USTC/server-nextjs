@@ -1,3 +1,10 @@
+# [0.12.0](https://github.com/Life-USTC/server-nextjs/compare/v0.11.0...v0.12.0) (2025-12-28)
+
+
+### Features
+
+* add table view, advanced search, and UI enhancements ([5e31855](https://github.com/Life-USTC/server-nextjs/commit/5e31855897946c27a842eb1845f99bb6ad8a99c7))
+
 # [0.11.0](https://github.com/Life-USTC/server-nextjs/compare/v0.10.0...v0.11.0) (2025-12-28)
 
 
