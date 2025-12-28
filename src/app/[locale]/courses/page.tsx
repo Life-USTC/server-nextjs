@@ -204,8 +204,8 @@ export default async function CoursesPage({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {courses.map((course) => (
             <Link
-              key={course.id}
-              href={`/courses/${course.id}`}
+              key={course.jwId}
+              href={`/courses/${course.jwId}`}
               className="no-underline"
             >
               <Card className="h-full overflow-hidden">
