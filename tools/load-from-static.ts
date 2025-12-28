@@ -6,6 +6,7 @@ import * as path from "node:path";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+import { loadExams } from "./load-exams";
 import { loadSchedules } from "./load-schedules";
 import { loadSections } from "./load-sections";
 import { loadSemesters } from "./load-semesters";
@@ -86,7 +87,9 @@ async function main() {
       "list.json",
     );
     const semesterData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    const semesters = await loadSemesters(semesterData, prisma);
+    const semesters = await loadSemesters(semesterData, prisma).then(
+      (semesters) => semesters.sort((a, b) => b.jwId - a.jwId),
+    );
 
     if (semesters.length === 0) {
       logger.error("No semesters loaded. Aborting.");
@@ -115,6 +118,32 @@ async function main() {
 
       const sectionData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
       const sections = await loadSections(sectionData, prisma, semester.id);
+
+      // Load exams for this semester
+      logger.info(
+        `Loading exams for semester: ${semester.nameCn} (${semester.code})`,
+      );
+      const examFilePath = path.join(
+        cacheRoot,
+        "catalog",
+        "api",
+        "teach",
+        "exam",
+        "list",
+        `${semester.jwId}.json`,
+      );
+
+      if (fs.existsSync(examFilePath)) {
+        const examData = JSON.parse(fs.readFileSync(examFilePath, "utf-8"));
+        const exams = await loadExams(examData, prisma);
+        logger.info(
+          `Loaded ${exams.length} exams for semester ${semester.nameCn}`,
+        );
+      } else {
+        logger.warning(
+          `Exam data not found for semester ${semester.id} in ${examFilePath}`,
+        );
+      }
 
       for (const section of sections) {
         logger.info(

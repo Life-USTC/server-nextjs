@@ -238,6 +238,7 @@ async function loadOrCreateDepartmentByCode(
         code: code,
         nameCn: `未知系别 ${code}`,
         nameEn: `Unknown Department ${code}`,
+        isCollege: false,
       },
     });
   } catch (e: any) {
