@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -87,10 +87,8 @@ async function fetchFilterOptions() {
 }
 
 export default async function CoursesPage({
-  params,
   searchParams,
 }: {
-  params: Promise<{ locale: string }>;
   searchParams: Promise<{
     page?: string;
     search?: string;
@@ -99,7 +97,7 @@ export default async function CoursesPage({
     classTypeId?: string;
   }>;
 }) {
-  const { locale } = await params;
+  const locale = await getLocale();
   const searchP = await searchParams;
   const page = parseInt(searchP.page || "1", 10);
   const search = searchP.search;
@@ -164,7 +162,7 @@ export default async function CoursesPage({
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

@@ -4,7 +4,7 @@ import { Globe } from "lucide-react";
 import { useLocale } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "@/i18n/routing";
+import { useRouter } from "@/i18n/routing";
 import {
   Menu,
   MenuPopup,
@@ -16,7 +16,6 @@ import {
 export default function Navbar() {
   const locale = useLocale();
   const router = useRouter();
-  const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -24,8 +23,20 @@ export default function Navbar() {
     setMounted(true);
   }, []);
 
-  const handleLanguageChange = (newLocale: string) => {
-    router.replace(pathname, { locale: newLocale });
+  const handleLanguageChange = async (newLocale: string) => {
+    try {
+      // Set the locale cookie via API
+      await fetch("/api/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: newLocale }),
+      });
+
+      // Refresh the page to apply the new locale
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to change language:", error);
+    }
   };
 
   return (

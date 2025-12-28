@@ -1,5 +1,5 @@
 import type { Prisma, Semester } from "@prisma/client";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -162,17 +162,15 @@ async function fetchSemesters(): Promise<Semester[]> {
 }
 
 export default async function SectionsPage({
-  params,
   searchParams,
 }: {
-  params: Promise<{ locale: string }>;
   searchParams: Promise<{
     page?: string;
     semesterId?: string;
     search?: string;
   }>;
 }) {
-  const { locale } = await params;
+  const locale = await getLocale();
   const searchP = await searchParams;
   const page = parseInt(searchP.page || "1", 10);
   const semesterId = searchP.semesterId;
@@ -236,7 +234,7 @@ export default async function SectionsPage({
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">Home</BreadcrumbLink>
+            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

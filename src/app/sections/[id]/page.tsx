@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { CalendarButton } from "@/components/calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -19,9 +19,10 @@ import { prisma } from "@/lib/prisma";
 export default async function SectionPage({
   params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { id, locale } = await params;
+  const { id } = await params;
+  const locale = await getLocale();
 
   const section = await prisma.section.findUnique({
     where: { jwId: parseInt(id, 10) },
