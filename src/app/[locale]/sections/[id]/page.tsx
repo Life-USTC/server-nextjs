@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { CalendarButton } from "@/components/calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -98,22 +99,36 @@ export default async function SectionPage({
       </Breadcrumb>
 
       <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">
-          {isEnglish && section.course.nameEn
-            ? section.course.nameEn
-            : section.course.nameCn}
-        </h1>
-        {isEnglish
-          ? section.course.nameCn && (
-              <p className="text-subtitle text-muted-foreground">
-                {section.course.nameCn}
-              </p>
-            )
-          : section.course.nameEn && (
-              <p className="text-subtitle text-muted-foreground">
-                {section.course.nameEn}
-              </p>
-            )}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h1 className="text-display mb-2">
+              {isEnglish && section.course.nameEn
+                ? section.course.nameEn
+                : section.course.nameCn}
+            </h1>
+            {isEnglish
+              ? section.course.nameCn && (
+                  <p className="text-subtitle text-muted-foreground">
+                    {section.course.nameCn}
+                  </p>
+                )
+              : section.course.nameEn && (
+                  <p className="text-subtitle text-muted-foreground">
+                    {section.course.nameEn}
+                  </p>
+                )}
+          </div>
+          <CalendarButton
+            sectionId={section.id}
+            addToCalendarLabel={t("addToCalendar")}
+            sheetTitle={t("calendarSheetTitle")}
+            sheetDescription={t("calendarSheetDescription")}
+            calendarUrlLabel={t("calendarUrlLabel")}
+            copyLabel={t("copyToClipboard")}
+            closeLabel={t("close")}
+            learnMoreLabel={t("learnMoreAboutICalendar")}
+          />
+        </div>
       </div>
 
       <div className="mb-8 flex flex-wrap gap-2">
