@@ -348,6 +348,7 @@ model Section {
   adminClasses       AdminClass[]        @relation("SectionAdminClasses")
   teachers           Teacher[]           @relation("SectionTeachers")
   teacherAssignments TeacherAssignment[]
+  exams              Exam[]
 
   @@index([jwId])
   @@index([code])
@@ -360,6 +361,55 @@ model Section {
   @@index([campusId])
   @@index([openDepartmentId])
   @@index([roomTypeId])
+}
+
+model Exam {
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
+
+  examType      Int?
+  startTime     Int?
+  endTime       Int?
+  examDate      DateTime? @db.Date
+  examTakeCount Int?
+  examMode      String?
+
+  examBatchId Int?
+  sectionId   Int
+  examBatch   ExamBatch? @relation(fields: [examBatchId], references: [id], onDelete: Cascade)
+  section     Section    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  examRooms ExamRoom[]
+
+  @@index([jwId])
+  @@index([examType])
+  @@index([examDate])
+  @@index([examBatchId])
+  @@index([sectionId])
+}
+
+model ExamBatch {
+  id Int @id @default(autoincrement())
+
+  nameCn String  @unique
+  nameEn String?
+
+  exams Exam[]
+
+  @@index([nameCn])
+}
+
+model ExamRoom {
+  id Int @id @default(autoincrement())
+
+  room  String
+  count Int
+
+  examId Int
+  exam   Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
+  @@index([room])
 }
 
 model Semester {
