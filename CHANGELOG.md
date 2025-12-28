@@ -1,3 +1,10 @@
+# [0.13.0](https://github.com/Life-USTC/server-nextjs/compare/v0.12.0...v0.13.0) (2025-12-28)
+
+
+### Features
+
+* improve time formatting and UI layout ([23a673d](https://github.com/Life-USTC/server-nextjs/commit/23a673d0d0f7b2a0c3e9cc0518071cea60395544))
+
 # [0.12.0](https://github.com/Life-USTC/server-nextjs/compare/v0.11.0...v0.12.0) (2025-12-28)
 
 
