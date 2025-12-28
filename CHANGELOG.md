@@ -1,3 +1,10 @@
+# [0.11.0](https://github.com/Life-USTC/server-nextjs/compare/v0.10.0...v0.11.0) (2025-12-28)
+
+
+### Features
+
+* use cookies instead of [locale] for i18n ([a1068b6](https://github.com/Life-USTC/server-nextjs/commit/a1068b69033ba08ec400d0c9ec2f44825cee2780))
+
 # [0.10.0](https://github.com/Life-USTC/server-nextjs/compare/v0.9.0...v0.10.0) (2025-12-28)
 
 
