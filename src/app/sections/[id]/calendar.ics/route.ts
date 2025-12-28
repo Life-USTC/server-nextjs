@@ -29,6 +29,11 @@ export async function GET(
             teacher: true,
           },
         },
+        exams: {
+          include: {
+            examRooms: true,
+          },
+        },
       },
     });
 
