@@ -24,6 +24,7 @@ import {
 import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
+import { formatTime } from "@/lib/time-utils";
 
 export default async function SectionPage({
   params,
@@ -207,7 +208,7 @@ export default async function SectionPage({
           <h2 className="text-title-2 mb-4">
             {t("exams", { count: section.exams.length })}
           </h2>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {section.exams.map((exam) => (
               <Card key={exam.id}>
                 <CardHeader>
@@ -216,19 +217,24 @@ export default async function SectionPage({
                       ? dayjs(exam.examDate).format("YYYY.MM.DD")
                       : t("examDateTBD")}
                   </CardTitle>
-                  {exam.examMode && (
+                  {exam.examBatch && (
                     <p className="text-small text-muted-foreground">
-                      {exam.examMode}
+                      {exam.examBatch.nameCn}
                     </p>
                   )}
                 </CardHeader>
                 <CardPanel>
                   <div className="flex flex-col gap-3">
+                    {exam.examMode && (
+                      <p className="text-body text-foreground">
+                        <strong>{t("examMode")}:</strong> {exam.examMode}
+                      </p>
+                    )}
                     {exam.startTime !== null && exam.endTime !== null && (
                       <p className="text-body text-foreground">
                         <strong>{t("time")}:</strong>{" "}
-                        {String(exam.startTime).padStart(4, "0")} -{" "}
-                        {String(exam.endTime).padStart(4, "0")}
+                        {formatTime(exam.startTime)} -{" "}
+                        {formatTime(exam.endTime)}
                       </p>
                     )}
                     {exam.examRooms && exam.examRooms.length > 0 && (
@@ -242,8 +248,7 @@ export default async function SectionPage({
                     )}
                     {exam.examTakeCount !== null && (
                       <p className="text-body text-foreground">
-                        <strong>{t("examTakeCount")}:</strong>{" "}
-                        {exam.examTakeCount}
+                        <strong>{t("examCount")}:</strong> {exam.examTakeCount}
                       </p>
                     )}
                   </div>
@@ -268,6 +273,7 @@ export default async function SectionPage({
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t("date")}</TableHead>
+                    <TableHead>{t("weekday")}</TableHead>
                     <TableHead>{t("time")}</TableHead>
                     <TableHead>{t("units")}</TableHead>
                     <TableHead>{t("week")}</TableHead>
@@ -280,12 +286,13 @@ export default async function SectionPage({
                     <TableRow key={schedule.id}>
                       <TableCell>
                         {dayjs(schedule.date).format("YYYY.MM.DD")}
-                        <div className="text-muted-foreground text-xs">
-                          {formatWeekday(dayjs(schedule.date).day())}
-                        </div>
                       </TableCell>
                       <TableCell>
-                        {schedule.startTime} - {schedule.endTime}
+                        {formatWeekday(dayjs(schedule.date).day())}
+                      </TableCell>
+                      <TableCell>
+                        {formatTime(schedule.startTime)} -{" "}
+                        {formatTime(schedule.endTime)}
                       </TableCell>
                       <TableCell>
                         {schedule.startUnit} - {schedule.endUnit}
@@ -315,7 +322,7 @@ export default async function SectionPage({
               </Table>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {section.schedules.map((schedule) => (
                 <Card key={schedule.id}>
                   <CardHeader>
@@ -329,8 +336,9 @@ export default async function SectionPage({
                   <CardPanel>
                     <div className="flex flex-col gap-3">
                       <p className="text-body text-foreground">
-                        <strong>{t("time")}:</strong> {schedule.startTime} -{" "}
-                        {schedule.endTime}
+                        <strong>{t("time")}:</strong>{" "}
+                        {formatTime(schedule.startTime)} -{" "}
+                        {formatTime(schedule.endTime)}
                       </p>
                       <p className="text-body text-foreground">
                         <strong>{t("units")}:</strong> {schedule.startUnit} -{" "}

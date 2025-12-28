@@ -178,6 +178,7 @@
     "schedule": "课程表 ({count})",
     "noSchedule": "此班级暂无课程表信息",
     "date": "日期",
+    "weekday": "星期",
     "time": "时间",
     "units": "节次",
     "week": "周次",
@@ -185,7 +186,8 @@
     "teacher": "教师",
     "exams": "考试 ({count})",
     "examDateTBD": "考试日期待定",
-    "examTakeCount": "考试次数",
+    "examMode": "考试方式",
+    "examCount": "考试人数",
     "viewAllSections": "查看这门课全部开课班级",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
     "weekdays": {

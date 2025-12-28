@@ -167,4 +167,10 @@
   [data-slot="pagination-link"] {
     @apply no-underline;
   }
+  [data-slot="card"] {
+    @apply transition-all duration-200;
+  }
+  [data-slot="card"]:hover {
+    @apply shadow-lg -translate-y-0.5;
+  }
 }

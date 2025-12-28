@@ -178,6 +178,7 @@
     "schedule": "Schedule ({count})",
     "noSchedule": "No schedule information available for this section",
     "date": "Date",
+    "weekday": "Weekday",
     "time": "Time",
     "units": "Units",
     "week": "Week",
@@ -185,7 +186,8 @@
     "teacher": "Teacher",
     "exams": "Exams ({count})",
     "examDateTBD": "Exam Date TBD",
-    "examTakeCount": "Exam Take Count",
+    "examMode": "Exam Mode",
+    "examCount": "Number of Examinees",
     "viewAllSections": "View all sections for this course",
     "viewTeacherCourses": "View other courses taught by {teacher}",
     "weekdays": {
