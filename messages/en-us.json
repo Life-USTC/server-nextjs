@@ -93,6 +93,13 @@
   },
   "sectionDetail": {
     "teachers": "Teachers",
+    "addToCalendar": "Add to Calendar",
+    "calendarSheetTitle": "Add to Calendar",
+    "calendarSheetDescription": "Copy the link below and subscribe to this calendar in your calendar app",
+    "calendarUrlLabel": "Calendar Subscription URL",
+    "copyToClipboard": "Copy",
+    "close": "Close",
+    "learnMoreAboutICalendar": "Learn more about iCalendar format",
     "schedule": "Schedule ({count})",
     "noSchedule": "No schedule information available for this section",
     "time": "Time",
