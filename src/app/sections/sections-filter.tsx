@@ -87,7 +87,7 @@ export function SectionsFilter({
             }
             items={semesterItems}
           >
-            <SelectTrigger className="w-[200px]">
+            <SelectTrigger className="w-50">
               <SelectValue />
             </SelectTrigger>
             <SelectPopup>
@@ -100,7 +100,7 @@ export function SectionsFilter({
           </Select>
         </Field>
 
-        <Field className="flex-1 min-w-[300px]">
+        <Field className="flex-1 min-w-75">
           <Input
             ref={searchInputRef}
             type="text"

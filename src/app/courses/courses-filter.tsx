@@ -115,7 +115,7 @@ export function CoursesFilter({
             }
             items={educationLevelItems}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-45">
               <SelectValue />
             </SelectTrigger>
             <SelectPopup>
@@ -137,7 +137,7 @@ export function CoursesFilter({
             }
             items={categoryItems}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-45">
               <SelectValue />
             </SelectTrigger>
             <SelectPopup>
@@ -159,7 +159,7 @@ export function CoursesFilter({
             }
             items={classTypeItems}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-45">
               <SelectValue />
             </SelectTrigger>
             <SelectPopup>
@@ -172,7 +172,7 @@ export function CoursesFilter({
           </Select>
         </Field>
 
-        <Field className="flex-1 min-w-[250px]">
+        <Field className="flex-1 min-w-62.5">
           <Input
             ref={searchInputRef}
             type="text"
