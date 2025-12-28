@@ -52,18 +52,17 @@
     max-width: var(--layout-content-width);
     width: min(100%, var(--layout-content-width));
     margin-inline: auto;
-    min-height: 100vh;
     padding: 2rem 1.5rem;
-    padding-bottom: 5rem;
+    padding-bottom: 2rem;
 
     @media (min-width: 640px) {
       padding: 3rem 2rem;
-      padding-bottom: 5rem;
+      padding-bottom: 2rem;
     }
 
     @media (min-width: 1024px) {
       padding: 4rem 3rem;
-      padding-bottom: 6rem;
+      padding-bottom: 3rem;
     }
   }
 
