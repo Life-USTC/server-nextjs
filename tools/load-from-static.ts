@@ -118,7 +118,7 @@ async function main() {
 
       for (const section of sections) {
         logger.info(
-          `  Loading schedules for section: ${section.jwId} (${section.code})`,
+          `Loading schedules for section: ${section.jwId} (${section.code})`,
         );
         const scheduleFilePath = path.join(
           cacheRoot,
@@ -139,7 +139,7 @@ async function main() {
         const scheduleData = JSON.parse(
           fs.readFileSync(scheduleFilePath, "utf-8"),
         );
-        await loadSchedules(scheduleData, section.id, prisma);
+        await loadSchedules(scheduleData, section, prisma);
       }
     }
 

@@ -56,33 +56,33 @@ interface CampusInterface {
 }
 
 interface ExamModeInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
 }
 
 interface TeachLanguageInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
 }
 
 interface EducationInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
 }
 
 interface ClassTypeInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
 }
 
 interface TeacherInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
   departmentCode: string;
 }
 
 interface AdminClassInterface {
-  cn: string;
+  cn: string | null;
   en: string | null;
 }
 
@@ -273,7 +273,10 @@ async function loadCampus(
 async function loadExamMode(
   data: ExamModeInterface,
   prisma: PrismaClient,
-): Promise<ExamMode> {
+): Promise<ExamMode | null> {
+  if (data.cn === null) {
+    return null;
+  }
   const examMode = await prisma.examMode.upsert({
     where: { nameCn: data.cn },
     update: {
@@ -291,7 +294,10 @@ async function loadExamMode(
 async function loadTeachLanguage(
   data: TeachLanguageInterface,
   prisma: PrismaClient,
-): Promise<TeachLanguage> {
+): Promise<TeachLanguage | null> {
+  if (data.cn === null) {
+    return null;
+  }
   const teachLanguage = await prisma.teachLanguage.upsert({
     where: { nameCn: data.cn },
     update: {
@@ -309,7 +315,10 @@ async function loadTeachLanguage(
 async function loadEducationLevel(
   data: EducationInterface,
   prisma: PrismaClient,
-): Promise<EducationLevel> {
+): Promise<EducationLevel | null> {
+  if (data.cn === null) {
+    return null;
+  }
   const educationLevel = await prisma.educationLevel.upsert({
     where: { nameCn: data.cn },
     update: {
@@ -369,7 +378,7 @@ async function loadCourse(
       categoryId: course_category?.id,
       classTypeId: class_type?.id,
       classifyId: course_classify?.id,
-      educationLevelId: education_level.id,
+      educationLevelId: education_level?.id,
       gradationId: course_gradation?.id,
       typeId: course_type?.id,
     },
@@ -381,7 +390,7 @@ async function loadCourse(
       categoryId: course_category?.id,
       classTypeId: class_type?.id,
       classifyId: course_classify?.id,
-      educationLevelId: education_level.id,
+      educationLevelId: education_level?.id,
       gradationId: course_gradation?.id,
       typeId: course_type?.id,
     },
@@ -392,7 +401,10 @@ async function loadCourse(
 async function loadTeacher(
   data: TeacherInterface,
   prisma: PrismaClient,
-): Promise<Teacher> {
+): Promise<Teacher | null> {
+  if (data.cn === null) {
+    return null;
+  }
   const department = await loadOrCreateDepartmentByCode(
     data.departmentCode,
     prisma,
@@ -419,7 +431,10 @@ async function loadTeacher(
 async function loadAdminClass(
   data: AdminClassInterface,
   prisma: PrismaClient,
-): Promise<AdminClass> {
+): Promise<AdminClass | null> {
+  if (data.cn === null) {
+    return null;
+  }
   const adminClass = await prisma.adminClass.upsert({
     where: { nameCn: data.cn },
     update: {
@@ -481,14 +496,14 @@ export async function loadSections(
         courseId: course.id,
         semesterId: semesterId,
         campusId: campus?.id,
-        examModeId: exam_mode.id,
+        examModeId: exam_mode?.id,
         openDepartmentId: open_department.id,
-        teachLanguageId: teach_language.id,
+        teachLanguageId: teach_language?.id,
         teachers: {
-          set: teachers.map((t) => ({ id: t.id })),
+          set: teachers.map((t) => ({ id: t?.id })),
         },
         adminClasses: {
-          set: adminClasses.map((ac) => ({ id: ac.id })),
+          set: adminClasses.map((ac) => ({ id: ac?.id })),
         },
       },
       create: {
@@ -505,14 +520,14 @@ export async function loadSections(
         courseId: course.id,
         semesterId: semesterId,
         campusId: campus?.id,
-        examModeId: exam_mode.id,
+        examModeId: exam_mode?.id,
         openDepartmentId: open_department.id,
-        teachLanguageId: teach_language.id,
+        teachLanguageId: teach_language?.id,
         teachers: {
-          connect: teachers.map((t) => ({ id: t.id })),
+          connect: teachers.map((t) => ({ id: t?.id })),
         },
         adminClasses: {
-          connect: adminClasses.map((ac) => ({ id: ac.id })),
+          connect: adminClasses.map((ac) => ({ id: ac?.id })),
         },
       },
     });

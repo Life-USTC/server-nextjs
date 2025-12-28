@@ -1,10 +1,123 @@
 import type {
+  AdminClass,
+  Building,
+  Campus,
   PrismaClient,
   Room,
+  RoomType,
   ScheduleGroup,
+  Section,
   Teacher,
+  TeacherLessonType,
+  TeacherTitle,
 } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+
+interface ContactInfoInterface {
+  email: string | null;
+  telephone: string | null;
+  mobile: string | null;
+  address: string | null;
+  postcode: string | null;
+  qq: string | null;
+  wechat: string | null;
+}
+
+interface TeacherTitleInterface {
+  nameZh: string;
+  nameEn: string | null;
+  id: number;
+  code: string;
+  enabled: boolean;
+}
+
+interface TeacherLessonTypeInterface {
+  id: number;
+  nameZh: string;
+  nameEn: string | null;
+  code: string;
+  role: string;
+  enabled: boolean;
+}
+
+interface TeacherAssignmentInterface {
+  role: string;
+  code: string;
+  teacherId: number;
+  personId: number;
+  name: string;
+  age: number;
+  titleName: string;
+  title: TeacherTitleInterface;
+  period: number;
+  teacherLessonType: TeacherLessonTypeInterface;
+  contactInfo: ContactInfoInterface;
+  weekIndices: number[];
+  weekIndicesMsg: string | null;
+}
+
+interface AdminClassInterface {
+  id: number;
+  nameZh: string;
+  nameEn: string | null;
+  code: string;
+  grade: string;
+  stdCount: number;
+  planCount: number;
+  enabled: boolean;
+  abbrZh: string;
+  abbrEn: string;
+}
+
+interface RequiredPeriodInfoInterface {
+  total: number;
+  weeks: number;
+  theory: number;
+  theoryUnit: number | null;
+  requireTheory: number | null;
+  practice: number;
+  practiceUnit: number | null;
+  requirePractice: number | null;
+  test: number | null;
+  testUnit: number | null;
+  requireTest: number | null;
+  experiment: number;
+  experimentUnit: number | null;
+  requireExperiment: number | null;
+  machine: number | null;
+  machineUnit: number | null;
+  requireMachine: number | null;
+  design: number | null;
+  designUnit: number | null;
+  requireDesign: number | null;
+  periodsPerWeek: number;
+  timesPerWeek: number;
+}
+
+interface LessonInterface {
+  id: number;
+  code: string;
+  name: string;
+  courseId: number;
+  bizTypeId: number;
+  courseName: string;
+  courseTypeName: string;
+  teacherAssignmentList: TeacherAssignmentInterface[];
+  requiredPeriodInfo: RequiredPeriodInfoInterface;
+  actualPeriods: number;
+  scheduleState: string;
+  limitCount: number;
+  stdCount: number;
+  suggestScheduleWeeks: number[];
+  suggestScheduleWeekInfo: string;
+  campusId: number;
+  roomTypeId: number | null;
+  adminclassIds: number[];
+  remark: string | null;
+  scheduleRemark: string | null;
+  adminclasses: AdminClassInterface[];
+  scheduleJsonParams: any[];
+  selectedStdCount: number;
+}
 
 interface CampusInterface {
   id: number;
@@ -75,9 +188,83 @@ interface ScheduleGroupInterface {
 
 export interface ScheduleDataInterface {
   result: {
+    lessonList: LessonInterface[];
     scheduleList: ScheduleInterface[];
     scheduleGroupList: ScheduleGroupInterface[];
   };
+}
+
+async function loadCampus(
+  data: CampusInterface,
+  prisma: PrismaClient,
+): Promise<Campus | null> {
+  if (!data) {
+    return null;
+  }
+  return await prisma.campus.upsert({
+    where: { nameCn: data.nameZh },
+    update: {
+      jwId: data.id,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      code: data.code,
+    },
+    create: {
+      jwId: data.id,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      code: data.code,
+    },
+  });
+}
+
+async function loadBuilding(
+  data: BuildingInterface,
+  campusId: number,
+  prisma: PrismaClient,
+): Promise<Building | null> {
+  if (!data) {
+    return null;
+  }
+  return await prisma.building.upsert({
+    where: { jwId: data.id },
+    update: {
+      code: data.code,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      campusId: campusId,
+    },
+    create: {
+      jwId: data.id,
+      code: data.code,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      campusId: campusId,
+    },
+  });
+}
+
+async function loadRoomType(
+  data: RoomTypeInterface,
+  prisma: PrismaClient,
+): Promise<RoomType | null> {
+  if (!data) {
+    return null;
+  }
+  return await prisma.roomType.upsert({
+    where: { jwId: data.id },
+    update: {
+      code: data.code,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+    },
+    create: {
+      jwId: data.id,
+      code: data.code,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+    },
+  });
 }
 
 async function loadRoom(
@@ -88,52 +275,14 @@ async function loadRoom(
     return null;
   }
 
-  const campus = await prisma.campus.upsert({
-    where: { nameCn: data.building.campus.nameZh },
-    update: {
-      nameCn: data.building.campus.nameZh,
-      nameEn: data.building.campus.nameEn,
-    },
-    create: {
-      jwId: data.building.campus.id,
-      nameCn: data.building.campus.nameZh,
-      nameEn: data.building.campus.nameEn,
-    },
-  });
+  const campus = await loadCampus(data.building.campus, prisma);
+  if (!campus) {
+    return null;
+  }
+  const building = await loadBuilding(data.building, campus.id, prisma);
+  const roomType = await loadRoomType(data.roomType, prisma);
 
-  const building = await prisma.building.upsert({
-    where: { jwId: data.building.id },
-    update: {
-      code: data.building.code,
-      nameCn: data.building.nameZh,
-      nameEn: data.building.nameEn,
-      campusId: campus.id,
-    },
-    create: {
-      jwId: data.building.id,
-      code: data.building.code,
-      nameCn: data.building.nameZh,
-      nameEn: data.building.nameEn,
-      campusId: campus.id,
-    },
-  });
-
-  const roomType = await prisma.roomType.upsert({
-    where: { jwId: data.roomType.id },
-    update: {
-      code: data.roomType.code,
-      nameCn: data.roomType.nameZh,
-      nameEn: data.roomType.nameEn,
-    },
-    create: {
-      jwId: data.roomType.id,
-      code: data.roomType.code,
-      nameCn: data.roomType.nameZh,
-      nameEn: data.roomType.nameEn,
-    },
-  });
-
-  const room = await prisma.room.upsert({
+  return await prisma.room.upsert({
     where: { jwId: data.id },
     update: {
       code: data.code,
@@ -144,8 +293,8 @@ async function loadRoom(
       seatsForSection: data.seatsForLesson,
       remark: data.remark,
       seats: data.seats,
-      buildingId: building.id,
-      roomTypeId: roomType.id,
+      buildingId: building?.id,
+      roomTypeId: roomType?.id,
     },
     create: {
       jwId: data.id,
@@ -157,12 +306,63 @@ async function loadRoom(
       seatsForSection: data.seatsForLesson,
       remark: data.remark,
       seats: data.seats,
-      buildingId: building.id,
-      roomTypeId: roomType.id,
+      buildingId: building?.id,
+      roomTypeId: roomType?.id,
     },
   });
+}
 
-  return room;
+async function loadTeacherTitle(
+  data: TeacherTitleInterface,
+  prisma: PrismaClient,
+): Promise<TeacherTitle | null> {
+  if (!data) {
+    return null;
+  }
+
+  return await prisma.teacherTitle.upsert({
+    where: { jwId: data.id },
+    update: {
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      code: data.code,
+      enabled: data.enabled,
+    },
+    create: {
+      jwId: data.id,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      code: data.code,
+      enabled: data.enabled,
+    },
+  });
+}
+
+async function loadTeacherLessonType(
+  data: TeacherLessonTypeInterface,
+  prisma: PrismaClient,
+): Promise<TeacherLessonType | null> {
+  if (!data) {
+    return null;
+  }
+  return await prisma.teacherLessonType.upsert({
+    where: { jwId: data.id },
+    update: {
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      code: data.code,
+      role: data.role,
+      enabled: data.enabled,
+    },
+    create: {
+      jwId: data.id,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      code: data.code,
+      role: data.role,
+      enabled: data.enabled,
+    },
+  });
 }
 
 async function loadTeacher(
@@ -220,11 +420,95 @@ async function loadTeacher(
   return teacher;
 }
 
+async function loadTeacherFromAssignment(
+  data: TeacherAssignmentInterface,
+  prisma: PrismaClient,
+): Promise<Teacher | null> {
+  if (!data) {
+    return null;
+  }
+  const title = await loadTeacherTitle(data.title, prisma);
+
+  const teacher = await prisma.teacher.upsert({
+    where: { personId: data.personId },
+    update: {
+      teacherId: data.teacherId,
+      code: data.code,
+      nameCn: data.name,
+      age: data.age,
+      email: data.contactInfo.email,
+      telephone: data.contactInfo.telephone,
+      mobile: data.contactInfo.mobile,
+      address: data.contactInfo.address,
+      postcode: data.contactInfo.postcode,
+      qq: data.contactInfo.qq,
+      wechat: data.contactInfo.wechat,
+      teacherTitleId: title?.id,
+    },
+    create: {
+      personId: data.personId,
+      teacherId: data.teacherId,
+      code: data.code,
+      nameCn: data.name,
+      age: data.age,
+      email: data.contactInfo.email,
+      telephone: data.contactInfo.telephone,
+      mobile: data.contactInfo.mobile,
+      address: data.contactInfo.address,
+      postcode: data.contactInfo.postcode,
+      qq: data.contactInfo.qq,
+      wechat: data.contactInfo.wechat,
+      teacherTitleId: title?.id,
+    },
+  });
+
+  return teacher;
+}
+
+async function loadAdminClass(
+  data: AdminClassInterface,
+  prisma: PrismaClient,
+): Promise<AdminClass | null> {
+  if (!data) {
+    return null;
+  }
+  return await prisma.adminClass.upsert({
+    where: { nameCn: data.nameZh },
+    update: {
+      jwId: data.id,
+      code: data.code,
+      grade: data.grade,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      stdCount: data.stdCount,
+      planCount: data.planCount,
+      enabled: data.enabled,
+      abbrZh: data.abbrZh,
+      abbrEn: data.abbrEn,
+    },
+    create: {
+      jwId: data.id,
+      code: data.code,
+      grade: data.grade,
+      nameCn: data.nameZh,
+      nameEn: data.nameEn,
+      stdCount: data.stdCount,
+      planCount: data.planCount,
+      enabled: data.enabled,
+      abbrZh: data.abbrZh,
+      abbrEn: data.abbrEn,
+    },
+  });
+}
+
 async function loadScheduleGroup(
   data: ScheduleGroupInterface,
   sectionId: number,
   prisma: PrismaClient,
-): Promise<ScheduleGroup> {
+): Promise<ScheduleGroup | null> {
+  if (!data) {
+    return null;
+  }
   const scheduleGroup = await prisma.scheduleGroup.upsert({
     where: { jwId: data.id },
     update: {
@@ -248,7 +532,11 @@ async function loadScheduleGroup(
   return scheduleGroup;
 }
 
-async function loadSchedule(data: ScheduleInterface, sectionId: number) {
+async function loadSchedule(
+  data: ScheduleInterface,
+  sectionId: number,
+  prisma: PrismaClient,
+) {
   const room = await loadRoom(data.room, prisma);
 
   const teacher = await loadTeacher(
@@ -288,19 +576,112 @@ async function loadSchedule(data: ScheduleInterface, sectionId: number) {
   });
 }
 
-export async function loadSchedules(
-  data: ScheduleDataInterface,
+async function createTeacherAssignment(
+  teacherAssignment: TeacherAssignmentInterface,
   sectionId: number,
   prisma: PrismaClient,
 ) {
+  const teacher = await loadTeacherFromAssignment(teacherAssignment, prisma);
+  if (!teacher) {
+    return;
+  }
+  const lessonType = await loadTeacherLessonType(
+    teacherAssignment.teacherLessonType,
+    prisma,
+  );
+
+  await prisma.teacherAssignment.upsert({
+    where: {
+      teacherId_sectionId: {
+        teacherId: teacher.id,
+        sectionId: sectionId,
+      },
+    },
+    update: {
+      role: teacherAssignment.role,
+      period: teacherAssignment.period,
+      weekIndices: teacherAssignment.weekIndices,
+      weekIndicesMsg: teacherAssignment.weekIndicesMsg,
+      teacherLessonTypeId: lessonType?.id,
+    },
+    create: {
+      teacherId: teacher.id,
+      sectionId: sectionId,
+      role: teacherAssignment.role,
+      period: teacherAssignment.period,
+      weekIndices: teacherAssignment.weekIndices,
+      weekIndicesMsg: teacherAssignment.weekIndicesMsg,
+      teacherLessonTypeId: lessonType?.id,
+    },
+  });
+}
+
+async function updateSectionFromLesson(
+  lesson: LessonInterface,
+  sectionId: number,
+  prisma: PrismaClient,
+) {
+  const adminClasses = [];
+  for (const ac of lesson.adminclasses) {
+    const adminClass = await loadAdminClass(ac, prisma);
+    adminClasses.push(adminClass);
+  }
+
+  const roomType = await prisma.roomType.findFirst({
+    where: { jwId: lesson.roomTypeId || -1 },
+  });
+
+  await prisma.section.update({
+    where: { id: sectionId },
+    data: {
+      bizTypeId: lesson.bizTypeId,
+      actualPeriods: lesson.actualPeriods,
+      theoryPeriods: lesson.requiredPeriodInfo.theory,
+      practicePeriods: lesson.requiredPeriodInfo.practice,
+      experimentPeriods: lesson.requiredPeriodInfo.experiment,
+      machinePeriods: lesson.requiredPeriodInfo.machine,
+      designPeriods: lesson.requiredPeriodInfo.design,
+      testPeriods: lesson.requiredPeriodInfo.test,
+      timesPerWeek: lesson.requiredPeriodInfo.timesPerWeek,
+      scheduleState: lesson.scheduleState,
+      suggestScheduleWeeks: lesson.suggestScheduleWeeks,
+      suggestScheduleWeekInfo: lesson.suggestScheduleWeekInfo,
+      scheduleJsonParams: lesson.scheduleJsonParams,
+      selectedStdCount: lesson.selectedStdCount,
+      remark: lesson.remark,
+      scheduleRemark: lesson.scheduleRemark,
+      roomTypeId: roomType?.id,
+      adminClasses: {
+        set: adminClasses.map((ac) => ({ id: ac?.id })),
+      },
+    },
+  });
+
+  for (const teacherAssignment of lesson.teacherAssignmentList) {
+    await createTeacherAssignment(teacherAssignment, sectionId, prisma);
+  }
+}
+
+export async function loadSchedules(
+  data: ScheduleDataInterface,
+  section: Section,
+  prisma: PrismaClient,
+) {
   const result = data.result;
-  await prisma.schedule.deleteMany({ where: { sectionId } });
+  await prisma.schedule.deleteMany({ where: { sectionId: section.id } });
 
   for (const groupData of result.scheduleGroupList || []) {
-    await loadScheduleGroup(groupData, sectionId, prisma);
+    await loadScheduleGroup(groupData, section.id, prisma);
   }
 
   for (const scheduleData of result.scheduleList || []) {
-    await loadSchedule(scheduleData, sectionId);
+    await loadSchedule(scheduleData, section.id, prisma);
+  }
+
+  if (result.lessonList && result.lessonList.length > 0) {
+    const lesson = result.lessonList.find((l) => l.id === section.jwId);
+    if (lesson) {
+      await updateSectionFromLesson(lesson, section.id, prisma);
+    }
   }
 }
