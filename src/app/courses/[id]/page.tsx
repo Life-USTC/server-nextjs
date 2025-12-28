@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -17,9 +17,10 @@ import { prisma } from "@/lib/prisma";
 export default async function CoursePage({
   params,
 }: {
-  params: Promise<{ id: string; locale: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { id, locale } = await params;
+  const { id } = await params;
+  const locale = await getLocale();
   const course = await prisma.course.findUnique({
     where: { jwId: parseInt(id, 10) },
     include: {
