@@ -1,9 +1,10 @@
 "use client";
 
 import type { Semester } from "@prisma/client";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
+import { SearchHelpSheet } from "@/components/search-help-sheet";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
@@ -33,6 +34,8 @@ export function SectionsFilter({
   const tCommon = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentView = searchParams.get("view");
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
   const updateFilters = (name?: string, value?: string) => {
@@ -50,6 +53,7 @@ export function SectionsFilter({
     if (currentValues.search) params.set("search", currentValues.search);
     if (currentValues.semesterId)
       params.set("semesterId", currentValues.semesterId);
+    if (currentView) params.set("view", currentView);
 
     router.push(`${pathname}?${params.toString()}`);
   };
@@ -106,6 +110,13 @@ export function SectionsFilter({
             className="w-full"
           />
         </Field>
+
+        <SearchHelpSheet
+          trigger={t("searchHelp")}
+          title={t("searchHelpTitle")}
+          description={t("searchHelpDescription")}
+          examples={t.raw("searchHelpExamples")}
+        />
 
         <Button type="submit">{tCommon("search")}</Button>
 

@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { getLocale, getTranslations } from "next-intl/server";
+import { ClickableTableRow } from "@/components/clickable-table-row";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -31,6 +32,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
@@ -95,6 +105,7 @@ export default async function CoursesPage({
     educationLevelId?: string;
     categoryId?: string;
     classTypeId?: string;
+    view?: string;
   }>;
 }) {
   const locale = await getLocale();
@@ -104,6 +115,7 @@ export default async function CoursesPage({
   const educationLevelId = searchP.educationLevelId;
   const categoryId = searchP.categoryId;
   const classTypeId = searchP.classTypeId;
+  const view = searchP.view || "table";
   const isEnglish = locale === "en-us";
 
   const [data, filterOptions] = await Promise.all([
@@ -123,6 +135,7 @@ export default async function CoursesPage({
       ...(educationLevelId && { educationLevelId }),
       ...(categoryId && { categoryId }),
       ...(classTypeId && { classTypeId }),
+      ...(view !== "table" && { view }),
       page: page.toString(),
     });
     return `/courses?${params.toString()}`;
@@ -196,52 +209,126 @@ export default async function CoursesPage({
             <span className="ml-2">{t("searchFor", { query: search })}</span>
           )}
         </p>
+        <ViewSwitcher />
       </div>
 
       {courses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {courses.map((course) => (
-            <Link
-              key={course.jwId}
-              href={`/courses/${course.jwId}`}
-              className="no-underline"
-            >
-              <Card className="h-full overflow-hidden">
-                <CardHeader>
-                  <CardTitle>
-                    {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
-                  </CardTitle>
-                  {isEnglish
-                    ? course.nameCn && (
-                        <CardDescription>{course.nameCn}</CardDescription>
-                      )
-                    : course.nameEn && (
-                        <CardDescription>{course.nameEn}</CardDescription>
-                      )}
-                </CardHeader>
-
-                <CardPanel>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="font-mono">
-                      {course.code}
-                    </Badge>
-                    {course.educationLevel && (
-                      <Badge variant="outline">
-                        {course.educationLevel.nameCn}
+        view === "table" ? (
+          <div className="mb-8">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("courseName")}</TableHead>
+                  <TableHead>{t("courseCode")}</TableHead>
+                  <TableHead>{t("educationLevel")}</TableHead>
+                  <TableHead>{t("category")}</TableHead>
+                  <TableHead>{t("classType")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {courses.map((course) => (
+                  <ClickableTableRow
+                    key={course.jwId}
+                    href={`/courses/${course.jwId}`}
+                  >
+                    <TableCell>
+                      {isEnglish && course.nameEn
+                        ? course.nameEn
+                        : course.nameCn}
+                      {isEnglish
+                        ? course.nameCn && (
+                            <div className="text-muted-foreground text-xs">
+                              {course.nameCn}
+                            </div>
+                          )
+                        : course.nameEn && (
+                            <div className="text-muted-foreground text-xs">
+                              {course.nameEn}
+                            </div>
+                          )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        {course.code}
                       </Badge>
-                    )}
-                    {course.category && (
-                      <Badge variant="outline">{course.category.nameCn}</Badge>
-                    )}
-                    {course.classType && (
-                      <Badge variant="outline">{course.classType.nameCn}</Badge>
-                    )}
-                  </div>
-                </CardPanel>
-              </Card>
-            </Link>
-          ))}
-        </div>
+                    </TableCell>
+                    <TableCell>
+                      {course.educationLevel && (
+                        <Badge variant="outline">
+                          {course.educationLevel.nameCn}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {course.category && (
+                        <Badge variant="outline">
+                          {course.category.nameCn}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {course.classType && (
+                        <Badge variant="outline">
+                          {course.classType.nameCn}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </ClickableTableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {courses.map((course) => (
+              <Link
+                key={course.jwId}
+                href={`/courses/${course.jwId}`}
+                className="no-underline"
+              >
+                <Card className="h-full overflow-hidden">
+                  <CardHeader>
+                    <CardTitle>
+                      {isEnglish && course.nameEn
+                        ? course.nameEn
+                        : course.nameCn}
+                    </CardTitle>
+                    {isEnglish
+                      ? course.nameCn && (
+                          <CardDescription>{course.nameCn}</CardDescription>
+                        )
+                      : course.nameEn && (
+                          <CardDescription>{course.nameEn}</CardDescription>
+                        )}
+                  </CardHeader>
+
+                  <CardPanel>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="font-mono">
+                        {course.code}
+                      </Badge>
+                      {course.educationLevel && (
+                        <Badge variant="outline">
+                          {course.educationLevel.nameCn}
+                        </Badge>
+                      )}
+                      {course.category && (
+                        <Badge variant="outline">
+                          {course.category.nameCn}
+                        </Badge>
+                      )}
+                      {course.classType && (
+                        <Badge variant="outline">
+                          {course.classType.nameCn}
+                        </Badge>
+                      )}
+                    </div>
+                  </CardPanel>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )
       ) : (
         <Empty>
           <EmptyHeader>
@@ -258,12 +345,14 @@ export default async function CoursesPage({
       {totalPages > 1 && (
         <Pagination>
           <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href={buildUrl(currentPage - 1)} />
-            </PaginationItem>
-            {getPageNumbers().map((pageNum) => (
+            {currentPage > 1 && (
+              <PaginationItem>
+                <PaginationPrevious href={buildUrl(currentPage - 1)} />
+              </PaginationItem>
+            )}
+            {getPageNumbers().map((pageNum, index) => (
               <PaginationItem
-                key={pageNum === "ellipsis" ? "ellipsis" : pageNum}
+                key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
               >
                 {pageNum === "ellipsis" ? (
                   <PaginationEllipsis />
@@ -277,9 +366,11 @@ export default async function CoursesPage({
                 )}
               </PaginationItem>
             ))}
-            <PaginationItem>
-              <PaginationNext href={buildUrl(currentPage + 1)} />
-            </PaginationItem>
+            {currentPage < totalPages && (
+              <PaginationItem>
+                <PaginationNext href={buildUrl(currentPage + 1)} />
+              </PaginationItem>
+            )}
           </PaginationContent>
         </Pagination>
       )}

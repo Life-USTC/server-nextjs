@@ -63,6 +63,11 @@
     "showing": "Showing {count} of {total} courses",
     "searchFor": "for \"{query}\"",
     "noCoursesFound": "No courses found",
+    "courseName": "Course Name",
+    "courseCode": "Course Code",
+    "educationLevel": "Education Level",
+    "category": "Category",
+    "classType": "Class Type",
     "filters": {
       "educationLevel": "Education Level",
       "category": "Category",
@@ -72,6 +77,8 @@
   "courseDetail": {
     "availableSections": "Available Sections ({count})",
     "noSections": "No sections available for this course",
+    "semester": "Semester",
+    "sectionCode": "Section Code",
     "teachers": "Teachers",
     "campus": "Campus",
     "capacity": "Capacity",
@@ -80,11 +87,79 @@
   "sections": {
     "title": "All Sections",
     "subtitle": "Browse and filter through all available course sections",
-    "searchPlaceholder": "Search or use special syntax: teacher:name coursecode:code lecturecode:code",
+    "searchPlaceholder": "Search or use advanced syntax (click ? for help)",
+    "searchHelp": "?",
+    "searchHelpTitle": "Advanced Search Syntax",
+    "searchHelpDescription": "Use special syntax to search for specific attributes. You can combine multiple filters.",
+    "searchHelpExamples": [
+      {
+        "syntax": "teacher:name",
+        "description": "Search by teacher name",
+        "example": "teacher:张三"
+      },
+      {
+        "syntax": "coursecode:code",
+        "description": "Search by course code",
+        "example": "coursecode:CS101"
+      },
+      {
+        "syntax": "sectioncode:code",
+        "description": "Search by section code (alias: lecturecode:code)",
+        "example": "sectioncode:01"
+      },
+      {
+        "syntax": "campus:name",
+        "description": "Search by campus name",
+        "example": "campus:东区"
+      },
+      {
+        "syntax": "credits:number",
+        "description": "Search by exact credit value (alias: credit:number)",
+        "example": "credits:3"
+      },
+      {
+        "syntax": "department:name",
+        "description": "Search by department name (alias: dept:name)",
+        "example": "department:计算机"
+      },
+      {
+        "syntax": "semester:name",
+        "description": "Search by semester name",
+        "example": "semester:2024春"
+      },
+      {
+        "syntax": "category:name",
+        "description": "Search by course category",
+        "example": "category:专业核心"
+      },
+      {
+        "syntax": "level:name",
+        "description": "Search by education level (alias: edulevel:name)",
+        "example": "level:本科"
+      },
+      {
+        "syntax": "type:name",
+        "description": "Search by class type (alias: classtype:name)",
+        "example": "type:必修"
+      },
+      {
+        "syntax": "sort:field",
+        "description": "Sort results by field (alias: sortby:field). Valid fields: credits, capacity, semester, course, code, teacher, campus",
+        "example": "sort:credits"
+      },
+      {
+        "syntax": "order:direction",
+        "description": "Set sort order: asc (ascending) or desc (descending). Default is asc",
+        "example": "order:desc"
+      }
+    ],
     "showing": "Showing {count} of {total} sections",
     "searchFor": "for \"{query}\"",
     "inSemester": "in {semester}",
     "noSectionsFound": "No sections found",
+    "courseName": "Course Name",
+    "sectionCode": "Section Code",
+    "semester": "Semester",
     "teachers": "Teachers",
     "campus": "Campus",
     "department": "Department",
@@ -102,11 +177,15 @@
     "learnMoreAboutICalendar": "Learn more about iCalendar format",
     "schedule": "Schedule ({count})",
     "noSchedule": "No schedule information available for this section",
+    "date": "Date",
     "time": "Time",
     "units": "Units",
     "week": "Week",
     "location": "Location",
     "teacher": "Teacher",
+    "exams": "Exams ({count})",
+    "examDateTBD": "Exam Date TBD",
+    "examTakeCount": "Exam Take Count",
     "viewAllSections": "View all sections for this course",
     "viewTeacherCourses": "View other courses taught by {teacher}",
     "weekdays": {
