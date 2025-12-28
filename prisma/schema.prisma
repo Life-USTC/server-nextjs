@@ -8,14 +8,22 @@ datasource db {
 
 model AdminClass {
   id   Int  @id @default(autoincrement())
-  jwId Int?
+  jwId Int? @unique
 
-  nameCn String  @unique
-  nameEn String?
+  code      String?
+  grade     String?
+  nameCn    String   @unique
+  nameEn    String?
+  stdCount  Int?
+  planCount Int?
+  enabled   Boolean?
+  abbrZh    String?
+  abbrEn    String?
 
   sections Section[] @relation("SectionAdminClasses")
 
   @@index([jwId])
+  @@index([code])
   @@index([nameCn])
 }
 
@@ -41,14 +49,17 @@ model Building {
 
 model Campus {
   id   Int  @id @default(autoincrement())
-  jwId Int?
+  jwId Int? @unique
 
-  nameCn    String     @unique
-  nameEn    String?
+  nameCn String  @unique
+  nameEn String?
+  code   String?
+
   buildings Building[]
   sections  Section[]
 
   @@index([jwId])
+  @@index([code])
   @@index([nameCn])
   @@index([nameEn])
 }
@@ -69,7 +80,7 @@ model Course {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  code   String  @unique
+  code   String
   nameCn String
   nameEn String?
 
@@ -224,7 +235,8 @@ model RoomType {
   nameEn String?
   code   String
 
-  rooms Room[]
+  rooms    Room[]
+  sections Section[]
 
   @@index([jwId])
   @@index([nameCn])
@@ -288,14 +300,32 @@ model Section {
   jwId Int @unique
 
   code                    String
+  bizTypeId               Int?
   credits                 Float?
   period                  Int?
   periodsPerWeek          Int?
+  timesPerWeek            Int?
   stdCount                Int?
   limitCount              Int?
   graduateAndPostgraduate Boolean?
   dateTimePlaceText       String?
   dateTimePlacePersonText Json?
+
+  actualPeriods     Int?
+  theoryPeriods     Float?
+  practicePeriods   Float?
+  experimentPeriods Float?
+  machinePeriods    Float?
+  designPeriods     Float?
+  testPeriods       Float?
+
+  scheduleState           String?
+  suggestScheduleWeeks    Json?
+  suggestScheduleWeekInfo String?
+  scheduleJsonParams      Json?
+  selectedStdCount        Int?
+  remark                  String?
+  scheduleRemark          String?
 
   courseId         Int
   semesterId       Int?
@@ -303,6 +333,7 @@ model Section {
   examModeId       Int?
   openDepartmentId Int?
   teachLanguageId  Int?
+  roomTypeId       Int?
 
   course         Course         @relation(fields: [courseId], references: [id])
   semester       Semester?      @relation(fields: [semesterId], references: [id])
@@ -310,14 +341,17 @@ model Section {
   examMode       ExamMode?      @relation(fields: [examModeId], references: [id])
   openDepartment Department?    @relation(fields: [openDepartmentId], references: [id])
   teachLanguage  TeachLanguage? @relation(fields: [teachLanguageId], references: [id])
+  roomType       RoomType?      @relation(fields: [roomTypeId], references: [id])
 
-  schedules      Schedule[]
-  scheduleGroups ScheduleGroup[]
-  adminClasses   AdminClass[]    @relation("SectionAdminClasses")
-  teachers       Teacher[]       @relation("SectionTeachers")
+  schedules          Schedule[]
+  scheduleGroups     ScheduleGroup[]
+  adminClasses       AdminClass[]        @relation("SectionAdminClasses")
+  teachers           Teacher[]           @relation("SectionTeachers")
+  teacherAssignments TeacherAssignment[]
 
   @@index([jwId])
   @@index([code])
+  @@index([bizTypeId])
   @@index([period])
   @@index([graduateAndPostgraduate])
   @@index([courseId])
@@ -325,14 +359,15 @@ model Section {
   @@index([examModeId])
   @@index([campusId])
   @@index([openDepartmentId])
+  @@index([roomTypeId])
 }
 
 model Semester {
   id   Int @id @default(autoincrement())
   jwId Int @unique
 
-  nameCn    String    @unique
-  code      String    @unique
+  nameCn    String
+  code      String
   startDate DateTime? @db.Date
   endDate   DateTime? @db.Date
 
@@ -346,19 +381,34 @@ model Teacher {
 
   personId  Int?    @unique
   teacherId Int?    @unique
+  code      String? @unique
   nameCn    String
   nameEn    String?
+  age       Int?
+
+  email     String?
+  telephone String?
+  mobile    String?
+  address   String?
+  postcode  String?
+  qq        String?
+  wechat    String?
 
   departmentId   Int?
   teacherTitleId Int?
-  department     Department? @relation(fields: [departmentId], references: [id])
 
-  sections  Section[]  @relation("SectionTeachers")
-  schedules Schedule[]
+  department   Department?   @relation(fields: [departmentId], references: [id])
+  teacherTitle TeacherTitle? @relation(fields: [teacherTitleId], references: [id])
+
+  sections           Section[]           @relation("SectionTeachers")
+  teacherAssignments TeacherAssignment[]
+  schedules          Schedule[]
 
   @@unique([nameCn, departmentId])
+  @@index([code])
   @@index([nameCn])
   @@index([nameEn])
+  @@index([teacherTitleId])
 }
 
 model TeachLanguage {
@@ -371,4 +421,58 @@ model TeachLanguage {
 
   @@index([nameCn])
   @@index([nameEn])
+}
+
+model TeacherTitle {
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
+
+  nameCn  String   @unique
+  nameEn  String?
+  code    String
+  enabled Boolean?
+
+  teachers Teacher[]
+
+  @@index([jwId])
+  @@index([nameCn])
+}
+
+model TeacherLessonType {
+  id   Int @id @default(autoincrement())
+  jwId Int @unique
+
+  nameCn  String
+  nameEn  String?
+  code    String
+  role    String?
+  enabled Boolean?
+
+  teacherAssignments TeacherAssignment[]
+
+  @@index([jwId])
+  @@index([nameCn])
+}
+
+model TeacherAssignment {
+  id Int @id @default(autoincrement())
+
+  teacherId Int
+  sectionId Int
+
+  role           String?
+  period         Int?
+  weekIndices    Json?
+  weekIndicesMsg String?
+
+  teacherLessonTypeId Int?
+
+  teacher           Teacher            @relation(fields: [teacherId], references: [id])
+  section           Section            @relation(fields: [sectionId], references: [id])
+  teacherLessonType TeacherLessonType? @relation(fields: [teacherLessonTypeId], references: [id])
+
+  @@unique([teacherId, sectionId])
+  @@index([teacherId])
+  @@index([sectionId])
+  @@index([teacherLessonTypeId])
 }
