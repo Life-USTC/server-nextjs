@@ -93,6 +93,13 @@
   },
   "sectionDetail": {
     "teachers": "教师",
+    "addToCalendar": "添加到日历",
+    "calendarSheetTitle": "添加到日历",
+    "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中订阅此日历",
+    "calendarUrlLabel": "日历订阅链接",
+    "copyToClipboard": "复制",
+    "close": "关闭",
+    "learnMoreAboutICalendar": "了解更多关于 iCalendar 格式",
     "schedule": "课程表 ({count})",
     "noSchedule": "此班级暂无课程表信息",
     "time": "时间",
