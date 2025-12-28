@@ -1,3 +1,16 @@
+# [0.9.0](https://github.com/Life-USTC/server-nextjs/compare/v0.8.0...v0.9.0) (2025-12-28)
+
+
+### Features
+
+* add calendar button to section detail page ([584b721](https://github.com/Life-USTC/server-nextjs/commit/584b7212b8fa1aacdb8b5c321e6c06f16a5b050f)), closes [#123](https://github.com/Life-USTC/server-nextjs/issues/123)
+* extend schema with teacher assignments and enhanced section metadata ([aef5fb6](https://github.com/Life-USTC/server-nextjs/commit/aef5fb62425b4c6718f1aa9c76ed6bdc521aa4dc))
+
+
+### Performance Improvements
+
+* add jwId indexes and handle null campus data ([b9b12b9](https://github.com/Life-USTC/server-nextjs/commit/b9b12b964dbd428c6d036ab5ab0d8cde34c8fee9))
+
 # [0.8.0](https://github.com/Life-USTC/server-nextjs/compare/v0.7.0...v0.8.0) (2025-12-27)
 
 
