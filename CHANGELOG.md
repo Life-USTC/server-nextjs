@@ -1,3 +1,10 @@
+# [0.14.0](https://github.com/Life-USTC/server-nextjs/compare/v0.13.0...v0.14.0) (2025-12-28)
+
+
+### Features
+
+* move navigation to bottom bar with sticky footer layout ([2690d0a](https://github.com/Life-USTC/server-nextjs/commit/2690d0aeea2d958ecbaef2424d6f94098c027998))
+
 # [0.13.0](https://github.com/Life-USTC/server-nextjs/compare/v0.12.0...v0.13.0) (2025-12-28)
 
 
