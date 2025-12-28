@@ -1,3 +1,10 @@
+# [0.10.0](https://github.com/Life-USTC/server-nextjs/compare/v0.9.0...v0.10.0) (2025-12-28)
+
+
+### Features
+
+* add exam management functionality ([f6e2537](https://github.com/Life-USTC/server-nextjs/commit/f6e25373104ea4da256c1c06d1e10d7c35362473))
+
 # [0.9.0](https://github.com/Life-USTC/server-nextjs/compare/v0.8.0...v0.9.0) (2025-12-28)
 
 
