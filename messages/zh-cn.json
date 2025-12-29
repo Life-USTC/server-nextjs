@@ -7,6 +7,10 @@
     "home": "首页",
     "courses": "课程",
     "sections": "班级",
+    "subscriptions": "我的订阅",
+    "me": "我的",
+    "sectionSubscriptions": "课程订阅",
+    "viewAll": "查看全部",
     "search": "搜索",
     "clear": "清除",
     "previous": "上一页",
@@ -35,6 +39,10 @@
       "viewSections": {
         "title": "查看班级",
         "description": "查看班级时间表、教师和可用性"
+      },
+      "mySubscriptions": {
+        "title": "我的订阅",
+        "description": "管理您订阅的课程并获取日历链接"
       }
     },
     "features": {
@@ -171,7 +179,11 @@
     "addToCalendar": "添加到日历",
     "calendarSheetTitle": "添加到日历",
     "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中订阅此日历",
-    "calendarUrlLabel": "日历订阅链接",
+    "calendarUrlLabel": "单个班级日历订阅链接",
+    "subscriptionUrlLabel": "所有订阅班级日历链接",
+    "subscriptionHintLabel": "此链接包含您订阅的所有班级，会自动同步更新",
+    "subscribeLabel": "订阅此班级",
+    "unsubscribeLabel": "取消订阅",
     "copyToClipboard": "复制",
     "close": "关闭",
     "learnMoreAboutICalendar": "了解更多关于 iCalendar 格式",
@@ -189,6 +201,7 @@
     "examMode": "考试方式",
     "examCount": "考试人数",
     "viewAllSections": "查看这门课全部开课班级",
+    "viewMySubscriptions": "查看我的所有订阅",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
     "weekdays": {
       "sunday": "星期日",

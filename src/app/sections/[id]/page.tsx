@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { CalendarButton } from "@/components/calendar-button";
+import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -137,12 +137,16 @@ export default async function SectionPage({
                   </p>
                 )}
           </div>
-          <CalendarButton
-            sectionId={section.jwId}
+          <SubscriptionCalendarButton
+            sectionDatabaseId={section.id}
             addToCalendarLabel={t("addToCalendar")}
             sheetTitle={t("calendarSheetTitle")}
             sheetDescription={t("calendarSheetDescription")}
             calendarUrlLabel={t("calendarUrlLabel")}
+            subscriptionUrlLabel={t("subscriptionUrlLabel")}
+            subscriptionHintLabel={t("subscriptionHintLabel")}
+            subscribeLabel={t("subscribeLabel")}
+            unsubscribeLabel={t("unsubscribeLabel")}
             copyLabel={t("copyToClipboard")}
             closeLabel={t("close")}
             learnMoreLabel={t("learnMoreAboutICalendar")}

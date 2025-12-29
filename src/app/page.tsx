@@ -1,3 +1,4 @@
+import { Bell, BookOpen, Calendar } from "lucide-react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
@@ -9,15 +10,22 @@ export default async function Homepage() {
   return (
     <main className="page-main">
       {/* Hero Section */}
-      <section className="mb-12 animate-in fade-in slide-in-from-left-4 duration-700">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-          <div className="space-y-6">
-            <div className="inline-flex px-4 py-2 bg-primary/10 border border-primary/20 rounded-full">
-              <span className="text-sm font-medium text-primary">
-                {t("badge")}
-              </span>
+      <section className="mb-12 md:mb-12 -mx-6 px-6 md:mx-0 md:px-0 min-h-[100dvh] md:min-h-0 flex items-center justify-center animate-in fade-in slide-in-from-left-4 duration-700">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center w-full py-12">
+          <div className="flex justify-center mb-8 md:mb-0 md:order-2 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+            <div className="relative animate-float">
+              <Image
+                src="/images/icon.png"
+                alt={t("appIconAlt")}
+                width={280}
+                height={280}
+                className="rounded-[25%] shadow-2xl shadow-primary/30"
+                priority
+              />
             </div>
+          </div>
 
+          <div className="space-y-6 md:order-1">
             <h1 className="text-display">
               <span className="block">{t("title.line1")}</span>
               <span className="block bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
@@ -46,31 +54,18 @@ export default async function Homepage() {
               </a>
             </div>
           </div>
-
-          <div className="flex justify-center animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
-            <div className="relative animate-float">
-              <Image
-                src="/images/icon.png"
-                alt={t("appIconAlt")}
-                width={280}
-                height={280}
-                className="rounded-[25%] shadow-2xl shadow-primary/30"
-                priority
-              />
-            </div>
-          </div>
         </div>
       </section>
 
       {/* Quick Links */}
       <section className="mb-12 animate-in fade-in duration-700 delay-300">
         <h2 className="text-title-2 mb-6">{t("quickAccess.title")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Link href="/courses" className="no-underline">
             <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">📚</span>
+                  <BookOpen className="h-5 w-5 text-primary" />
                   <CardTitle>{t("quickAccess.browseCourses.title")}</CardTitle>
                 </div>
               </CardHeader>
@@ -86,7 +81,7 @@ export default async function Homepage() {
             <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <span className="text-3xl">🗓️</span>
+                  <Calendar className="h-5 w-5 text-primary" />
                   <CardTitle>{t("quickAccess.viewSections.title")}</CardTitle>
                 </div>
               </CardHeader>
@@ -97,54 +92,24 @@ export default async function Homepage() {
               </CardPanel>
             </Card>
           </Link>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="animate-in fade-in duration-700 delay-500">
-        <h2 className="text-title-2 mb-6">{t("features.title")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="h-full overflow-hidden">
-            <CardHeader>
-              <div className="text-4xl mb-2">
-                {t("features.courseManagement.icon")}
-              </div>
-              <CardTitle>{t("features.courseManagement.title")}</CardTitle>
-            </CardHeader>
-            <CardPanel>
-              <p className="text-body text-muted-foreground line-clamp-3">
-                {t("features.courseManagement.description")}
-              </p>
-            </CardPanel>
-          </Card>
-
-          <Card className="h-full overflow-hidden">
-            <CardHeader>
-              <div className="text-4xl mb-2">
-                {t("features.smartScheduling.icon")}
-              </div>
-              <CardTitle>{t("features.smartScheduling.title")}</CardTitle>
-            </CardHeader>
-            <CardPanel>
-              <p className="text-body text-muted-foreground line-clamp-3">
-                {t("features.smartScheduling.description")}
-              </p>
-            </CardPanel>
-          </Card>
-
-          <Card className="h-full overflow-hidden">
-            <CardHeader>
-              <div className="text-4xl mb-2">
-                {t("features.stayUpdated.icon")}
-              </div>
-              <CardTitle>{t("features.stayUpdated.title")}</CardTitle>
-            </CardHeader>
-            <CardPanel>
-              <p className="text-body text-muted-foreground line-clamp-3">
-                {t("features.stayUpdated.description")}
-              </p>
-            </CardPanel>
-          </Card>
+          <Link href="/me/subscriptions/sections/" className="no-underline">
+            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Bell className="h-5 w-5 text-primary" />
+                  <CardTitle>
+                    {t("quickAccess.mySubscriptions.title")}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardPanel>
+                <p className="text-body text-muted-foreground line-clamp-2">
+                  {t("quickAccess.mySubscriptions.description")}
+                </p>
+              </CardPanel>
+            </Card>
+          </Link>
         </div>
       </section>
     </main>

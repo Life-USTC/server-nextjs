@@ -7,6 +7,10 @@
     "home": "Home",
     "courses": "Courses",
     "sections": "Sections",
+    "subscriptions": "My Subscriptions",
+    "me": "Me",
+    "sectionSubscriptions": "Section Subscriptions",
+    "viewAll": "View All",
     "search": "Search",
     "clear": "Clear",
     "previous": "Previous",
@@ -35,6 +39,10 @@
       "viewSections": {
         "title": "View Sections",
         "description": "Check section schedules, instructors, and availability"
+      },
+      "mySubscriptions": {
+        "title": "My Subscriptions",
+        "description": "Manage your subscribed sections and get calendar links"
       }
     },
     "features": {
@@ -171,7 +179,11 @@
     "addToCalendar": "Add to Calendar",
     "calendarSheetTitle": "Add to Calendar",
     "calendarSheetDescription": "Copy the link below and subscribe to this calendar in your calendar app",
-    "calendarUrlLabel": "Calendar Subscription URL",
+    "calendarUrlLabel": "Single Section Calendar URL",
+    "subscriptionUrlLabel": "All Subscribed Sections Calendar URL",
+    "subscriptionHintLabel": "This URL includes all your subscribed sections and auto-syncs",
+    "subscribeLabel": "Subscribe to this section",
+    "unsubscribeLabel": "Unsubscribe",
     "copyToClipboard": "Copy",
     "close": "Close",
     "learnMoreAboutICalendar": "Learn more about iCalendar format",
@@ -189,6 +201,7 @@
     "examMode": "Exam Mode",
     "examCount": "Number of Examinees",
     "viewAllSections": "View all sections for this course",
+    "viewMySubscriptions": "View my subscriptions",
     "viewTeacherCourses": "View other courses taught by {teacher}",
     "weekdays": {
       "sunday": "Sunday",

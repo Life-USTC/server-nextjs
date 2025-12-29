@@ -57,6 +57,62 @@ export function createSectionCalendar(
 }
 
 /**
+ * Creates an iCal calendar for multiple sections
+ */
+export function createMultiSectionCalendar(
+  sections: Array<
+    Prisma.SectionGetPayload<{
+      include: {
+        course: true;
+        schedules: {
+          include: {
+            room: {
+              include: {
+                building: {
+                  include: {
+                    campus: true;
+                  };
+                };
+              };
+            };
+            teacher: true;
+          };
+        };
+        exams: {
+          include: {
+            examRooms: true;
+          };
+        };
+      };
+    }>
+  >,
+): ICalCalendar {
+  const calendar = new ICalCalendar({
+    name: "Life @ USTC",
+    description:
+      "Calendar for subscribed courses, brought to you by Life@USTC <https://life-ustc.tiankaima.dev/>",
+    timezone: "Asia/Shanghai",
+    url: "https://life-ustc.tiankaima.dev",
+    scale: "GREGORIAN",
+  });
+
+  // Create events for each section
+  for (const section of sections) {
+    // Create schedule events
+    for (const schedule of section.schedules) {
+      createScheduleEvent(schedule, section, calendar);
+    }
+
+    // Create exam events
+    for (const exam of section.exams) {
+      createExamEvent(exam, section, calendar);
+    }
+  }
+
+  return calendar;
+}
+
+/**
  * Creates an iCal event from a schedule
  */
 function createScheduleEvent(
