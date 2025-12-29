@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import BottomBar from "@/components/bottom-bar";
 import { Providers } from "@/components/providers";
+import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -34,10 +35,14 @@ export default async function RootLayout({
       <body className={`${spaceGrotesk.className} antialiased`}>
         <Providers>
           <NextIntlClientProvider messages={messages}>
-            <div className="flex flex-col min-h-screen">
-              <div className="flex-1">{children}</div>
-              <BottomBar />
-            </div>
+            <ToastProvider>
+              <AnchoredToastProvider>
+                <div className="flex flex-col min-h-screen">
+                  <div className="flex-1">{children}</div>
+                  <BottomBar />
+                </div>
+              </AnchoredToastProvider>
+            </ToastProvider>
           </NextIntlClientProvider>
         </Providers>
       </body>
