@@ -1,3 +1,10 @@
+# [0.17.0](https://github.com/Life-USTC/server-nextjs/compare/v0.16.0...v0.17.0) (2025-12-29)
+
+
+### Features
+
+* add jose library for JWT handling ([8eef4d3](https://github.com/Life-USTC/server-nextjs/commit/8eef4d3a28fd09591c78ae247e0aedd81eccacd2))
+
 # [0.16.0](https://github.com/Life-USTC/server-nextjs/compare/v0.15.0...v0.16.0) (2025-12-29)
 
 
