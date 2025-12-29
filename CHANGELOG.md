@@ -1,3 +1,10 @@
+# [0.16.0](https://github.com/Life-USTC/server-nextjs/compare/v0.15.0...v0.16.0) (2025-12-29)
+
+
+### Features
+
+* add anonymous calendar subscription system with JWT authentication ([0b30a20](https://github.com/Life-USTC/server-nextjs/commit/0b30a202fbb3ed9252889b4e29d9d5bd62a0d789))
+
 # [0.15.0](https://github.com/Life-USTC/server-nextjs/compare/v0.14.0...v0.15.0) (2025-12-28)
 
 
