@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
   const campusId = searchParams.get("campusId");
   const departmentId = searchParams.get("departmentId");
   const teacherId = searchParams.get("teacherId");
+  const idsParam = searchParams.get("ids");
 
   const where: Prisma.SectionWhereInput = {};
   if (courseId) where.courseId = parseInt(courseId, 10);
@@ -27,6 +28,15 @@ export async function GET(request: NextRequest) {
         id: parseInt(teacherId, 10),
       },
     };
+  }
+  if (idsParam) {
+    const ids = idsParam
+      .split(",")
+      .map((id) => parseInt(id.trim(), 10))
+      .filter((id) => !Number.isNaN(id));
+    if (ids.length > 0) {
+      where.id = { in: ids };
+    }
   }
 
   try {

@@ -343,12 +343,13 @@ model Section {
   teachLanguage  TeachLanguage? @relation(fields: [teachLanguageId], references: [id])
   roomType       RoomType?      @relation(fields: [roomTypeId], references: [id])
 
-  schedules          Schedule[]
-  scheduleGroups     ScheduleGroup[]
-  adminClasses       AdminClass[]        @relation("SectionAdminClasses")
-  teachers           Teacher[]           @relation("SectionTeachers")
-  teacherAssignments TeacherAssignment[]
-  exams              Exam[]
+  schedules             Schedule[]
+  scheduleGroups        ScheduleGroup[]
+  adminClasses          AdminClass[]           @relation("SectionAdminClasses")
+  teachers              Teacher[]              @relation("SectionTeachers")
+  teacherAssignments    TeacherAssignment[]
+  exams                 Exam[]
+  calendarSubscriptions CalendarSubscription[] @relation("SectionCalendarSubscriptions")
 
   @@index([jwId])
   @@index([code])
@@ -525,4 +526,10 @@ model TeacherAssignment {
   @@index([teacherId])
   @@index([sectionId])
   @@index([teacherLessonTypeId])
+}
+
+model CalendarSubscription {
+  id Int @id @default(autoincrement())
+
+  sections Section[] @relation("SectionCalendarSubscriptions")
 }
