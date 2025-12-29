@@ -15,6 +15,7 @@
         "dayjs": "^1.11.13",
         "dotenv": "^17.2.3",
         "ical-generator": "^10.0.0",
+        "jose": "^6.1.3",
         "lucide-react": "^0.562.0",
         "next": "16.0.10",
         "next-intl": "^4.6.0",
@@ -418,6 +419,8 @@
     "isexe": ["isexe@2.0.0", "", {}, "sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw=="],
 
     "jiti": ["jiti@2.6.1", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ=="],
+
+    "jose": ["jose@6.1.3", "", {}, "sha512-0TpaTfihd4QMNwrz/ob2Bp7X04yuxJkjRGi4aKmOqwhov54i6u79oCv7T+C7lo70MKH6BesI3vscD1yb/yzKXQ=="],
 
     "lightningcss": ["lightningcss@1.30.2", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.30.2", "lightningcss-darwin-arm64": "1.30.2", "lightningcss-darwin-x64": "1.30.2", "lightningcss-freebsd-x64": "1.30.2", "lightningcss-linux-arm-gnueabihf": "1.30.2", "lightningcss-linux-arm64-gnu": "1.30.2", "lightningcss-linux-arm64-musl": "1.30.2", "lightningcss-linux-x64-gnu": "1.30.2", "lightningcss-linux-x64-musl": "1.30.2", "lightningcss-win32-arm64-msvc": "1.30.2", "lightningcss-win32-x64-msvc": "1.30.2" } }, "sha512-utfs7Pr5uJyyvDETitgsaqSyjCb2qNRAtuqUeWIAKztsOYdcACf2KtARYXg2pSvhkt+9NfoaNY7fxjl6nuMjIQ=="],
 
