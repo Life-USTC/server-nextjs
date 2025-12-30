@@ -1,3 +1,10 @@
+## [0.17.1](https://github.com/Life-USTC/server-nextjs/compare/v0.17.0...v0.17.1) (2025-12-30)
+
+
+### Bug Fixes
+
+* nextjs host issue ([954e254](https://github.com/Life-USTC/server-nextjs/commit/954e2542180acbc7e61eea985acbe236ab6a936a))
+
 # [0.17.0](https://github.com/Life-USTC/server-nextjs/compare/v0.16.0...v0.17.0) (2025-12-29)
 
 
