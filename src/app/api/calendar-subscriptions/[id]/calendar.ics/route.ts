@@ -69,8 +69,8 @@ export async function GET(
     // Build section IDs comma-separated string
     const sectionIds = subscription.sections.map((s) => s.id).join(",");
 
-    // Redirect to batch calendar endpoint
-    const redirectUrl = new URL("/api/sections/calendar.ics", request.url);
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/api/sections/calendar.ics";
     redirectUrl.searchParams.set("sectionIds", sectionIds);
 
     return NextResponse.redirect(redirectUrl, { status: 307 });
