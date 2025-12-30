@@ -69,8 +69,14 @@ export async function GET(
     // Build section IDs comma-separated string
     const sectionIds = subscription.sections.map((s) => s.id).join(",");
 
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/api/sections/calendar.ics";
+    const baseUrl = process.env.NEXT_PUBLIC_URL;
+    if (!baseUrl) {
+      throw new Error(
+        "NEXT_PUBLIC_URL is not defined in environment variables",
+      );
+    }
+
+    const redirectUrl = new URL("/api/sections/calendar.ics", baseUrl);
     redirectUrl.searchParams.set("sectionIds", sectionIds);
 
     return NextResponse.redirect(redirectUrl, { status: 307 });
