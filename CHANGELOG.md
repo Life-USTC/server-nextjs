@@ -1,3 +1,10 @@
+# [0.19.0](https://github.com/Life-USTC/server-nextjs/compare/v0.18.1...v0.19.0) (2025-12-31)
+
+
+### Features
+
+* add commander dependency and update Dockerfile for git installation; enhance load-from-static script with semester code filtering; add cron job for periodic execution ([6d822ca](https://github.com/Life-USTC/server-nextjs/commit/6d822ca57cf0d7b4e1c56803663724603e4ae5b0))
+
 ## [0.18.1](https://github.com/Life-USTC/server-nextjs/compare/v0.18.0...v0.18.1) (2025-12-31)
 
 
