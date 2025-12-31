@@ -32,6 +32,8 @@ RUN bun run build
 FROM base AS release
 WORKDIR /usr/src/app
 
+RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
+
 # Use non-root user provided by Bun image
 USER bun
 
