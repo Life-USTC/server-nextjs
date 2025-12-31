@@ -1,11 +1,12 @@
 services:
-  # Next.js Application
   app:
     container_name: life-ustc-nextjs
     image: ghcr.io/life-ustc/server-nextjs:latest
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       DATABASE_URL: ${DATABASE_URL}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
       NODE_ENV: production
     restart: unless-stopped
