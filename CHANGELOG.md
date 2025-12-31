@@ -1,3 +1,10 @@
+## [0.18.1](https://github.com/Life-USTC/server-nextjs/compare/v0.18.0...v0.18.1) (2025-12-31)
+
+
+### Bug Fixes
+
+* use redirect ([45a0911](https://github.com/Life-USTC/server-nextjs/commit/45a09115e7c889f4acbb9872e43448fedafe429d))
+
 # [0.18.0](https://github.com/Life-USTC/server-nextjs/compare/v0.17.1...v0.18.0) (2025-12-30)
 
 
