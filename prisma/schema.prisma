@@ -261,18 +261,16 @@ model Schedule {
 
   roomId          Int?
   sectionId       Int
-  teacherId       Int?
   scheduleGroupId Int
 
   room          Room?         @relation(fields: [roomId], references: [id])
   section       Section       @relation(fields: [sectionId], references: [id])
-  teacher       Teacher?      @relation(fields: [teacherId], references: [id])
   scheduleGroup ScheduleGroup @relation(fields: [scheduleGroupId], references: [id])
+  teachers      Teacher[]     @relation("ScheduleTeachers")
 
   @@index([date])
   @@index([roomId])
   @@index([sectionId])
-  @@index([teacherId])
   @@index([scheduleGroupId])
 }
 
@@ -453,7 +451,7 @@ model Teacher {
 
   sections           Section[]           @relation("SectionTeachers")
   teacherAssignments TeacherAssignment[]
-  schedules          Schedule[]
+  schedules          Schedule[]          @relation("ScheduleTeachers")
 
   @@unique([nameCn, departmentId])
   @@index([code])

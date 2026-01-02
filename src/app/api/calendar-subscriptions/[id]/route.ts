@@ -68,7 +68,7 @@ export async function GET(
                     building: true,
                   },
                 },
-                teacher: true,
+                teachers: true,
               },
             },
           },
