@@ -72,10 +72,10 @@ async function downloadStaticCache(targetDir: string): Promise<string> {
 
 async function main() {
   const cacheDir = process.argv[2] || "./.cache/life-ustc/static";
-  const minSemesterCode = Number.parseInt(process.argv[3] || "401", 10);
+  const minSemesterJwId = Number.parseInt(process.argv[3] || "401", 10);
 
   try {
-    logger.info(`Starting data load (min semester code: ${minSemesterCode})`);
+    logger.info(`Starting data load (min semester code: ${minSemesterJwId})`);
     logger.info("Downloading static cache...");
     const cacheRoot = await downloadStaticCache(cacheDir);
     logger.info(`Static cache at: ${cacheRoot}`);
@@ -91,12 +91,10 @@ async function main() {
     const semesterData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
     const semesters = await loadSemesters(semesterData, prisma)
       .then((semesters) => semesters.sort((a, b) => b.jwId - a.jwId))
-      .then((semesters) =>
-        semesters.filter((s) => Number.parseInt(s.code, 10) >= minSemesterCode),
-      );
+      .then((semesters) => semesters.filter((s) => s.jwId >= minSemesterJwId));
 
     logger.info(
-      `Filtered to ${semesters.length} semesters (code >= ${minSemesterCode})`,
+      `Filtered to ${semesters.length} semesters (code >= ${minSemesterJwId})`,
     );
 
     if (semesters.length === 0) {

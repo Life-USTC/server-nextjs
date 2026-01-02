@@ -98,6 +98,11 @@ export async function loadExams(
       },
     });
 
+    // Clear existing exam rooms
+    await prisma.examRoom.deleteMany({
+      where: { examId: exam.id },
+    });
+
     // Create exam rooms
     await Promise.all(
       examJson.examRooms.map((roomJson) =>
