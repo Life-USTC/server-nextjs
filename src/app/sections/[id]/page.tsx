@@ -60,7 +60,7 @@ export default async function SectionPage({
               },
             },
           },
-          teacher: true,
+          teachers: true,
         },
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
       },
@@ -318,7 +318,9 @@ export default async function SectionPage({
                             : "—"}
                       </TableCell>
                       <TableCell>
-                        {schedule.teacher ? schedule.teacher.nameCn : "—"}
+                        {schedule.teachers && schedule.teachers.length > 0
+                          ? schedule.teachers.map((t) => t.nameCn).join(", ")
+                          : "—"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -374,10 +376,10 @@ export default async function SectionPage({
                           </p>
                         )
                       )}
-                      {schedule.teacher && (
+                      {schedule.teachers && schedule.teachers.length > 0 && (
                         <p className="text-body text-foreground">
                           <strong>{t("teacher")}:</strong>{" "}
-                          {schedule.teacher.nameCn}
+                          {schedule.teachers.map((t) => t.nameCn).join(", ")}
                         </p>
                       )}
                     </div>

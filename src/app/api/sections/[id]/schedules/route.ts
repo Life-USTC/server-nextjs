@@ -24,7 +24,7 @@ export async function GET(
                 roomType: true,
               },
             },
-            teacher: {
+            teachers: {
               include: {
                 department: true,
               },

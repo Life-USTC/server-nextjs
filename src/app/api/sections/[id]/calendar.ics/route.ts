@@ -38,7 +38,7 @@ export async function GET(
                 },
               },
             },
-            teacher: true,
+            teachers: true,
           },
         },
         exams: {
