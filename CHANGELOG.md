@@ -1,3 +1,10 @@
+# [0.22.0](https://github.com/Life-USTC/server-nextjs/compare/v0.21.0...v0.22.0) (2026-01-02)
+
+
+### Features
+
+* clear existing exam rooms before creating new ones ([624cdbe](https://github.com/Life-USTC/server-nextjs/commit/624cdbe57a37bf907d6b39c8c96936a8840ee547))
+
 # [0.21.0](https://github.com/Life-USTC/server-nextjs/compare/v0.20.0...v0.21.0) (2026-01-02)
 
 
