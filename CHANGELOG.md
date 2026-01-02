@@ -1,3 +1,10 @@
+# [0.20.0](https://github.com/Life-USTC/server-nextjs/compare/v0.19.0...v0.20.0) (2026-01-02)
+
+
+### Features
+
+* refactor Schedule model to support multiple teachers; update related queries and migration ([dbf29d0](https://github.com/Life-USTC/server-nextjs/commit/dbf29d09b984de4ef890ccb669d15f3327cd72e3))
+
 # [0.19.0](https://github.com/Life-USTC/server-nextjs/compare/v0.18.1...v0.19.0) (2025-12-31)
 
 
