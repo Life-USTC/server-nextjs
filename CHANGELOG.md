@@ -1,3 +1,10 @@
+# [0.21.0](https://github.com/Life-USTC/server-nextjs/compare/v0.20.0...v0.21.0) (2026-01-02)
+
+
+### Features
+
+* add bulk section import with current semester matching and toast notifications ([5434b8b](https://github.com/Life-USTC/server-nextjs/commit/5434b8bb7b27a11e4d7922000d8ead55bde957d1))
+
 # [0.20.0](https://github.com/Life-USTC/server-nextjs/compare/v0.19.0...v0.20.0) (2026-01-02)
 
 
