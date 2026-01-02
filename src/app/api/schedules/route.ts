@@ -19,7 +19,13 @@ export async function GET(request: NextRequest) {
 
     const whereClause: any = {};
     if (sectionId) whereClause.sectionId = parseInt(sectionId, 10);
-    if (teacherId) whereClause.teacherId = parseInt(teacherId, 10);
+    if (teacherId) {
+      whereClause.teachers = {
+        some: {
+          id: parseInt(teacherId, 10),
+        },
+      };
+    }
     if (roomId) whereClause.roomId = parseInt(roomId, 10);
     if (dateFrom)
       whereClause.date = { ...whereClause.date, gte: new Date(dateFrom) };
@@ -44,7 +50,7 @@ export async function GET(request: NextRequest) {
               roomType: true,
             },
           },
-          teacher: {
+          teachers: {
             include: {
               department: true,
             },

@@ -534,17 +534,25 @@ async function loadScheduleGroup(
 
 async function loadSchedule(
   data: ScheduleInterface,
+  teachers: Array<{
+    teacherId: number | null;
+    personId: number | null;
+    personName: string;
+  }>,
   sectionId: number,
   prisma: PrismaClient,
 ) {
   const room = await loadRoom(data.room, prisma);
 
-  const teacher = await loadTeacher(
-    data.teacherId || null,
-    data.personId || null,
-    data.personName || "未知教师",
-    prisma,
+  // Load all teachers for this schedule
+  const teacherRecords = await Promise.all(
+    teachers.map((t) =>
+      loadTeacher(t.teacherId, t.personId, t.personName, prisma),
+    ),
   );
+
+  // Filter out null teachers
+  const validTeachers = teacherRecords.filter((t) => t !== null);
 
   const scheduleGroup = await prisma.scheduleGroup.findFirst({
     where: { jwId: data.scheduleGroupId },
@@ -554,14 +562,22 @@ async function loadSchedule(
     return;
   }
 
+  const scheduleDate = new Date(data.date);
+
+  // Create schedule with all teachers at once
   return prisma.schedule.create({
     data: {
       sectionId,
       scheduleGroupId: scheduleGroup.id,
       roomId: room?.id || null,
-      teacherId: teacher?.id || null,
+      teachers:
+        validTeachers.length > 0
+          ? {
+              connect: validTeachers.map((t) => ({ id: t.id })),
+            }
+          : undefined,
       periods: data.periods,
-      date: new Date(data.date),
+      date: scheduleDate,
       weekday: data.weekday,
       startTime: data.startTime,
       endTime: data.endTime,
@@ -674,8 +690,46 @@ export async function loadSchedules(
     await loadScheduleGroup(groupData, section.id, prisma);
   }
 
+  // Group schedules by unique time slot (scheduleGroupId, date, startTime, endTime)
+  const scheduleMap = new Map<
+    string,
+    {
+      data: ScheduleInterface;
+      teachers: Array<{
+        teacherId: number | null;
+        personId: number | null;
+        personName: string;
+      }>;
+    }
+  >();
+
   for (const scheduleData of result.scheduleList || []) {
-    await loadSchedule(scheduleData, section.id, prisma);
+    const key = `${scheduleData.scheduleGroupId}-${scheduleData.date}-${scheduleData.startTime}-${scheduleData.endTime}`;
+
+    const entry = scheduleMap.get(key);
+    if (entry) {
+      entry.teachers.push({
+        teacherId: scheduleData.teacherId || null,
+        personId: scheduleData.personId || null,
+        personName: scheduleData.personName || "未知教师",
+      });
+    } else {
+      scheduleMap.set(key, {
+        data: scheduleData,
+        teachers: [
+          {
+            teacherId: scheduleData.teacherId || null,
+            personId: scheduleData.personId || null,
+            personName: scheduleData.personName || "未知教师",
+          },
+        ],
+      });
+    }
+  }
+
+  // Load each unique schedule with all its teachers
+  for (const entry of scheduleMap.values()) {
+    await loadSchedule(entry.data, entry.teachers, section.id, prisma);
   }
 
   if (result.lessonList && result.lessonList.length > 0) {

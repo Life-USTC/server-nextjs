@@ -24,7 +24,7 @@ export function createSectionCalendar(
               };
             };
           };
-          teacher: true;
+          teachers: true;
         };
       };
       exams: {
@@ -75,7 +75,7 @@ export function createMultiSectionCalendar(
                 };
               };
             };
-            teacher: true;
+            teachers: true;
           };
         };
         exams: {
@@ -127,7 +127,7 @@ function createScheduleEvent(
           };
         };
       };
-      teacher: true;
+      teachers: true;
     };
   }>,
   section: Prisma.SectionGetPayload<{
@@ -155,11 +155,12 @@ function createScheduleEvent(
     ? `${schedule.room.nameCn} (${schedule.room.building.campus.nameCn}-${schedule.room.building.nameCn})`
     : schedule.customPlace || "Location TBD";
 
-  const teacherNames = schedule.teacher
-    ? [schedule.teacher.nameCn, schedule.teacher.nameEn]
-        .filter(Boolean)
-        .join(" / ")
-    : "";
+  const teacherNames =
+    schedule.teachers && schedule.teachers.length > 0
+      ? schedule.teachers
+          .map((t) => [t.nameCn, t.nameEn].filter(Boolean).join(" / "))
+          .join(", ")
+      : "";
 
   const summary = `${section.course.nameCn}`;
   const description = [
