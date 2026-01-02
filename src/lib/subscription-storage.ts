@@ -127,6 +127,56 @@ export async function addSectionToSubscription(
 }
 
 /**
+ * Add multiple sections to the current subscription
+ */
+export async function addSectionsToSubscription(
+  sectionIds: number[],
+): Promise<SubscriptionState> {
+  const currentState = getSubscriptionState();
+
+  // Filter out already subscribed sections
+  const newSectionIds = [
+    ...currentState.subscribedSections,
+    ...sectionIds.filter((id) => !currentState.subscribedSections.includes(id)),
+  ];
+
+  // If no new sections to add, return current state
+  if (newSectionIds.length === currentState.subscribedSections.length) {
+    return currentState;
+  }
+
+  // If no subscription exists, create one
+  if (!currentState.subscriptionId || !currentState.subscriptionToken) {
+    return await createSubscription(newSectionIds);
+  }
+
+  // Update existing subscription
+  const response = await fetch(
+    `/api/calendar-subscriptions/${currentState.subscriptionId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${currentState.subscriptionToken}`,
+      },
+      body: JSON.stringify({ sectionIds: newSectionIds }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to update subscription");
+  }
+
+  const newState: SubscriptionState = {
+    ...currentState,
+    subscribedSections: newSectionIds,
+  };
+
+  saveSubscriptionState(newState);
+  return newState;
+}
+
+/**
  * Remove a section from the current subscription
  */
 export async function removeSectionFromSubscription(
