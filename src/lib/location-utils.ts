@@ -69,10 +69,10 @@ export async function getLocationGeo(
     (loc) => loc.name.toLowerCase() === locationName.toLowerCase(),
   );
 
-  // Try partial match if exact match not found
+  // Try starts with match if exact match not found
   if (!location) {
     location = geoData.locations.find((loc) =>
-      locationName.toLowerCase().includes(loc.name.toLowerCase()),
+      locationName.toLowerCase().startsWith(loc.name.toLowerCase()),
     );
   }
 

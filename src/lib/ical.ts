@@ -196,6 +196,8 @@ async function createScheduleEvent(
     description,
     location: {
       title: location,
+      address: location,
+      radius: 10,
       geo: geoData
         ? {
             lat: geoData.latitude,
@@ -293,6 +295,8 @@ async function createExamEvent(
     description,
     location: {
       title: location,
+      address: location,
+      radius: 10,
       geo: geoData
         ? {
             lat: geoData.latitude,
