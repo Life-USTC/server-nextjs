@@ -53,7 +53,7 @@ export async function GET(
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
-    const calendar = createSectionCalendar(section);
+    const calendar = await createSectionCalendar(section);
     const icsData = calendar.toString();
 
     return new NextResponse(icsData, {

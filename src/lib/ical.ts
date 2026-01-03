@@ -5,11 +5,12 @@ import {
   ICalCategory,
   ICalEventBusyStatus,
 } from "ical-generator";
+import { getBuildingImagePath, getLocationGeo } from "@/lib/location-utils";
 
 /**
  * Creates an iCal calendar for a specific section
  */
-export function createSectionCalendar(
+export async function createSectionCalendar(
   section: Prisma.SectionGetPayload<{
     include: {
       course: true;
@@ -34,7 +35,7 @@ export function createSectionCalendar(
       };
     };
   }>,
-): ICalCalendar {
+): Promise<ICalCalendar> {
   const calendar = new ICalCalendar({
     name: `${section.course.nameCn} (${section.code})`,
     description: `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
@@ -45,12 +46,12 @@ export function createSectionCalendar(
 
   // Create events for each schedule
   for (const schedule of section.schedules) {
-    createScheduleEvent(schedule, section, calendar);
+    await createScheduleEvent(schedule, section, calendar);
   }
 
   // Create events for each exam
   for (const exam of section.exams) {
-    createExamEvent(exam, section, calendar);
+    await createExamEvent(exam, section, calendar);
   }
 
   return calendar;
@@ -59,7 +60,7 @@ export function createSectionCalendar(
 /**
  * Creates an iCal calendar for multiple sections
  */
-export function createMultiSectionCalendar(
+export async function createMultiSectionCalendar(
   sections: Array<
     Prisma.SectionGetPayload<{
       include: {
@@ -86,7 +87,7 @@ export function createMultiSectionCalendar(
       };
     }>
   >,
-): ICalCalendar {
+): Promise<ICalCalendar> {
   const calendar = new ICalCalendar({
     name: "Life @ USTC",
     description:
@@ -100,12 +101,12 @@ export function createMultiSectionCalendar(
   for (const section of sections) {
     // Create schedule events
     for (const schedule of section.schedules) {
-      createScheduleEvent(schedule, section, calendar);
+      await createScheduleEvent(schedule, section, calendar);
     }
 
     // Create exam events
     for (const exam of section.exams) {
-      createExamEvent(exam, section, calendar);
+      await createExamEvent(exam, section, calendar);
     }
   }
 
@@ -115,7 +116,7 @@ export function createMultiSectionCalendar(
 /**
  * Creates an iCal event from a schedule
  */
-function createScheduleEvent(
+async function createScheduleEvent(
   schedule: Prisma.ScheduleGetPayload<{
     include: {
       room: {
@@ -136,8 +137,8 @@ function createScheduleEvent(
     };
   }>,
   calendar: ICalCalendar,
-) {
-  if (!schedule.date) return null;
+): Promise<void> {
+  if (!schedule.date) return;
 
   const startDate = dayjs(schedule.date)
     .hour(Math.floor(schedule.startTime / 100))
@@ -180,23 +181,42 @@ function createScheduleEvent(
     .filter((category) => category && category.trim() !== "")
     .map((category) => new ICalCategory({ name: category }));
 
-  calendar.createEvent({
+  // Get geo coordinates if available
+  const geoData = await getLocationGeo(location);
+
+  // Get building image if room code is available
+  const buildingImageUrl = schedule.room?.code
+    ? await getBuildingImagePath(schedule.room.code)
+    : null;
+
+  const eventData: Parameters<typeof calendar.createEvent>[0] = {
     start: startDate,
     end: endDate,
     summary,
     description,
-    location,
+    location: {
+      title: location,
+      geo: geoData
+        ? {
+            lat: geoData.latitude,
+            lon: geoData.longitude,
+          }
+        : undefined,
+    },
     id: `life-ustc.tiankaima.dev/schedule/${schedule.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.BUSY,
     categories,
-  });
+    attachments: buildingImageUrl ? [buildingImageUrl] : undefined,
+  };
+
+  calendar.createEvent(eventData);
 }
 
 /**
  * Creates an iCal event from an exam
  */
-function createExamEvent(
+async function createExamEvent(
   exam: Prisma.ExamGetPayload<{
     include: {
       examRooms: true;
@@ -208,8 +228,8 @@ function createExamEvent(
     };
   }>,
   calendar: ICalCalendar,
-) {
-  if (!exam.examDate) return null;
+): Promise<void> {
+  if (!exam.examDate) return;
 
   const startDate = dayjs(exam.examDate)
     .hour(Math.floor((exam.startTime || 0) / 100))
@@ -258,15 +278,34 @@ function createExamEvent(
     .filter((category) => category && category.trim() !== "")
     .map((category) => new ICalCategory({ name: category }));
 
-  calendar.createEvent({
+  const geoData = await getLocationGeo(location);
+
+  // Get building image if room code is available
+  const buildingImageUrl =
+    exam.examRooms.length > 0
+      ? await getBuildingImagePath(exam.examRooms[0].room)
+      : null;
+
+  const eventData: Parameters<typeof calendar.createEvent>[0] = {
     start: startDate,
     end: endDate,
     summary,
     description,
-    location,
+    location: {
+      title: location,
+      geo: geoData
+        ? {
+            lat: geoData.latitude,
+            lon: geoData.longitude,
+          }
+        : undefined,
+    },
     id: `life-ustc.tiankaima.dev/exam/${exam.id}`,
     sequence: 0,
     busystatus: ICalEventBusyStatus.BUSY,
     categories,
-  });
+    attachments: buildingImageUrl ? [buildingImageUrl] : undefined,
+  };
+
+  calendar.createEvent(eventData);
 }

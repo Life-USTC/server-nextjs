@@ -1,0 +1,162 @@
+[
+  {
+    "regex": "11\\d{2}",
+    "path": "./imgs/一教_01.png"
+  },
+  {
+    "regex": "12\\d{2}",
+    "path": "./imgs/一教_02.png"
+  },
+  {
+    "regex": "13\\d{2}",
+    "path": "./imgs/一教_03.png"
+  },
+  {
+    "regex": "21\\d{2}",
+    "path": "./imgs/二教_01.png"
+  },
+  {
+    "regex": "22\\d{2}",
+    "path": "./imgs/二教_02.png"
+  },
+  {
+    "regex": "23\\d{2}",
+    "path": "./imgs/二教_03.png"
+  },
+  {
+    "regex": "24\\d{2}",
+    "path": "./imgs/二教_04.png"
+  },
+  {
+    "regex": "25\\d{2}",
+    "path": "./imgs/二教_05.png"
+  },
+  {
+    "regex": "26\\d{2}",
+    "path": "./imgs/二教_06.png"
+  },
+  {
+    "regex": "27\\d{2}",
+    "path": "./imgs/二教_07.png"
+  },
+  {
+    "regex": "28\\d{2}",
+    "path": "./imgs/二教_08.png"
+  },
+  {
+    "regex": "3[AB]1\\d{2}",
+    "path": "./imgs/三教主_01.png"
+  },
+  {
+    "regex": "3[AB]2\\d{2}",
+    "path": "./imgs/三教主_02.png"
+  },
+  {
+    "regex": "3[AB]3\\d{2}",
+    "path": "./imgs/三教主_03.png"
+  },
+  {
+    "regex": "3[AB]4\\d{2}",
+    "path": "./imgs/三教主_04.png"
+  },
+  {
+    "regex": "3[AB]5\\d{2}",
+    "path": "./imgs/三教主_05.png"
+  },
+  {
+    "regex": "3C1\\d{2}",
+    "path": "./imgs/三教副_01.png"
+  },
+  {
+    "regex": "3C2\\d{2}",
+    "path": "./imgs/三教副_02.png"
+  },
+  {
+    "regex": "3C3\\d{2}",
+    "path": "./imgs/三教副_03.png"
+  },
+  {
+    "regex": "51\\d{2}",
+    "path": "./imgs/五教_01.png"
+  },
+  {
+    "regex": "52\\d{2}",
+    "path": "./imgs/五教_02.png"
+  },
+  {
+    "regex": "53\\d{2}",
+    "path": "./imgs/五教_03.png"
+  },
+  {
+    "regex": "54\\d{2}",
+    "path": "./imgs/五教_04.png"
+  },
+  {
+    "regex": "55\\d{2}",
+    "path": "./imgs/五教_05.png"
+  },
+  {
+    "regex": "GT-A4\\d{2}",
+    "path": "./imgs/图书教育中心A-4.png"
+  },
+  {
+    "regex": "GT-B1\\d{2}",
+    "path": "./imgs/图书教育中心B-1.png"
+  },
+  {
+    "regex": "GT-B2\\d{2}",
+    "path": "./imgs/图书教育中心B-2.png"
+  },
+  {
+    "regex": "GT-C1\\d{2}",
+    "path": "./imgs/图书教育中心C-1.png"
+  },
+  {
+    "regex": "GH-1\\d{2}",
+    "path": "./imgs/师生活动中心-高新区_01.png"
+  },
+  {
+    "regex": "GH-2\\d{2}",
+    "path": "./imgs/师生活动中心-高新区_02.png"
+  },
+  {
+    "regex": "GH-3\\d{2}",
+    "path": "./imgs/师生活动中心-高新区_03.png"
+  },
+  {
+    "regex": "GH-4\\d{2}",
+    "path": "./imgs/师生活动中心-高新区_04.png"
+  },
+  {
+    "regex": "G2-B3\\d{2}",
+    "path": "./imgs/2号学科楼_03.png"
+  },
+  {
+    "regex": "G2-B4\\d{2}",
+    "path": "./imgs/2号学科楼_04.png"
+  },
+  {
+    "regex": "G2-B5\\d{2}",
+    "path": "./imgs/2号学科楼_05.png"
+  },
+  {
+    "regex": "G3-.*",
+    "path": "./imgs/3号学科楼_01.png"
+  },
+  {
+    "regex": "GX-.*",
+    "path": "./imgs/信智楼-高新区.png"
+  },
+  {
+    "regex": "Z.*",
+    "path": "./imgs/中校区-综合体育馆.png"
+  },
+  {
+    "regex": "ARTS3\\d{2}",
+    "path": "./imgs/中校区-艺术教学中心_03.png"
+  },
+  {
+    "regex": "ARTS4\\d{2}",
+    "path": "./imgs/中校区-艺术教学中心_04.png"
+  }
+]
