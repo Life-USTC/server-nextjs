@@ -1,3 +1,10 @@
+## [0.23.2](https://github.com/Life-USTC/server-nextjs/compare/v0.23.1...v0.23.2) (2026-01-03)
+
+
+### Bug Fixes
+
+* try remove address for Apple Calendar ([4502fdf](https://github.com/Life-USTC/server-nextjs/commit/4502fdf61b34007a22e8e0d0d942ebb703fc4b23))
+
 ## [0.23.1](https://github.com/Life-USTC/server-nextjs/compare/v0.23.0...v0.23.1) (2026-01-03)
 
 
