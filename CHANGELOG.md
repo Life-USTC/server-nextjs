@@ -1,3 +1,10 @@
+## [0.23.1](https://github.com/Life-USTC/server-nextjs/compare/v0.23.0...v0.23.1) (2026-01-03)
+
+
+### Bug Fixes
+
+* event location things ([47ba8d5](https://github.com/Life-USTC/server-nextjs/commit/47ba8d54a59728a79357f8454e8a1fc296be727e))
+
 # [0.23.0](https://github.com/Life-USTC/server-nextjs/compare/v0.22.0...v0.23.0) (2026-01-03)
 
 
