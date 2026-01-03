@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Create calendar from all sections
-    const calendar = createMultiSectionCalendar(sections);
+    const calendar = await createMultiSectionCalendar(sections);
     const icsData = calendar.toString();
 
     return new NextResponse(icsData, {
