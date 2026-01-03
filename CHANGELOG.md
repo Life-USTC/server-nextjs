@@ -1,3 +1,10 @@
+# [0.23.0](https://github.com/Life-USTC/server-nextjs/compare/v0.22.0...v0.23.0) (2026-01-03)
+
+
+### Features
+
+* update calendar generation functions to support async operations and add location-based image retrieval ([e9ada7d](https://github.com/Life-USTC/server-nextjs/commit/e9ada7d85b432cd61260abc717494a07eb06ebca))
+
 # [0.22.0](https://github.com/Life-USTC/server-nextjs/compare/v0.21.0...v0.22.0) (2026-01-02)
 
 
