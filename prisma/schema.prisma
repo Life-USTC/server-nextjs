@@ -530,4 +530,26 @@ model CalendarSubscription {
   id Int @id @default(autoincrement())
 
   sections Section[] @relation("SectionCalendarSubscriptions")
+  userId   Int?
+  user     User?     @relation(fields: [userId], references: [id])
+}
+
+// User and Authentication Models
+model User {
+  id        Int      @id @default(autoincrement())
+  studentId String   @unique // CAS login (e.g. SA25010035)
+  gid       String?  @unique // CAS gid (e.g. 2202110894)
+  name      String?
+  email     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  calendarSubscriptions CalendarSubscription[]
+
+  @@index([studentId])
+  @@index([gid])
+  @@index([createdAt])
+  @@index([updatedAt])
 }

@@ -1,15 +1,8 @@
 import type { Prisma, Semester } from "@prisma/client";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Card,
   CardDescription,
@@ -42,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
+import { addLocalizedNames, type Localized } from "@/lib/localization-helpers";
 import { prisma } from "@/lib/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
@@ -337,7 +331,6 @@ export default async function SectionsPage({
   const semesterId = searchP.semesterId;
   const search = searchP.search;
   const view = searchP.view || "table";
-  const isEnglish = locale === "en-us";
 
   const [data, semesters] = await Promise.all([
     fetchSections(page, semesterId, search),
@@ -349,6 +342,35 @@ export default async function SectionsPage({
   const selectedSemester = semesters.find(
     (s) => s.id.toString() === semesterId,
   );
+
+  // Add localized names to sections and semesters
+  const localizedSections = sections.map((section) => {
+    addLocalizedNames(section.course, locale);
+    if (section.semester) addLocalizedNames(section.semester, locale);
+    if (section.campus) addLocalizedNames(section.campus, locale);
+    if (section.openDepartment)
+      addLocalizedNames(section.openDepartment, locale);
+    section.teachers.forEach((teacher) => {
+      addLocalizedNames(teacher, locale);
+    });
+    return section as any as {
+      course: Localized<typeof section.course>;
+      semester: typeof section.semester extends null
+        ? null
+        : Localized<typeof section.semester>;
+      campus: typeof section.campus extends null
+        ? null
+        : Localized<typeof section.campus>;
+      openDepartment: typeof section.openDepartment extends null
+        ? null
+        : Localized<typeof section.openDepartment>;
+      teachers: Localized<(typeof section.teachers)[number]>[];
+    } & typeof section;
+  });
+
+  const localizedSelectedSemester = selectedSemester
+    ? addLocalizedNames(selectedSemester, locale)
+    : null;
 
   const t = await getTranslations("sections");
   const tCommon = await getTranslations("common");
@@ -392,24 +414,19 @@ export default async function SectionsPage({
     return pages;
   };
 
+  const breadcrumbs = [
+    { label: tCommon("home"), href: "/" },
+    { label: tCommon("sections") },
+  ];
+
   return (
     <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tCommon("sections")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        breadcrumbs={breadcrumbs}
+        actions={[<ViewSwitcher key="view-switcher" />]}
+      />
 
       <SectionsFilter
         semesters={semesters}
@@ -422,13 +439,15 @@ export default async function SectionsPage({
           {search && (
             <span className="ml-2">{t("searchFor", { query: search })}</span>
           )}
-          {selectedSemester && (
+          {localizedSelectedSemester && (
             <span className="ml-2">
-              {t("inSemester", { semester: selectedSemester.nameCn })}
+              {t("inSemester", {
+                semester: localizedSelectedSemester.namePrimary,
+              })}
             </span>
           )}
         </p>
-        <ViewSwitcher />
+        {/* ViewSwitcher is now in actions prop */}
       </div>
 
       {sections.length > 0 ? (
@@ -447,7 +466,7 @@ export default async function SectionsPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sections.map((section) => (
+                {localizedSections.map((section) => (
                   <ClickableTableRow
                     key={section.jwId}
                     href={`/sections/${section.jwId}`}
@@ -455,14 +474,21 @@ export default async function SectionsPage({
                     <TableCell>
                       {section.semester && (
                         <Badge variant="outline">
-                          {section.semester.nameCn}
+                          {
+                            (
+                              section.semester as Localized<
+                                typeof section.semester
+                              >
+                            ).namePrimary
+                          }
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      {isEnglish && section.course.nameEn
-                        ? section.course.nameEn
-                        : section.course.nameCn}
+                      {
+                        (section.course as Localized<typeof section.course>)
+                          .namePrimary
+                      }
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-mono">
@@ -475,14 +501,22 @@ export default async function SectionsPage({
                         title={
                           section.teachers && section.teachers.length > 0
                             ? section.teachers
-                                .map((teacher) => teacher.nameCn)
+                                .map(
+                                  (teacher) =>
+                                    (teacher as Localized<typeof teacher>)
+                                      .namePrimary,
+                                )
                                 .join(", ")
                             : undefined
                         }
                       >
                         {section.teachers && section.teachers.length > 0
                           ? section.teachers
-                              .map((teacher) => teacher.nameCn)
+                              .map(
+                                (teacher) =>
+                                  (teacher as Localized<typeof teacher>)
+                                    .namePrimary,
+                              )
                               .join(", ")
                           : "—"}
                       </div>
@@ -496,7 +530,10 @@ export default async function SectionsPage({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {section.campus ? section.campus.nameCn : "—"}
+                      {section.campus
+                        ? (section.campus as Localized<typeof section.campus>)
+                            .namePrimary
+                        : "—"}
                     </TableCell>
                   </ClickableTableRow>
                 ))}
@@ -505,7 +542,7 @@ export default async function SectionsPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {sections.map((section) => (
+            {localizedSections.map((section) => (
               <Link
                 key={section.jwId}
                 href={`/sections/${section.jwId}`}
@@ -514,15 +551,22 @@ export default async function SectionsPage({
                 <Card className="h-full overflow-hidden">
                   <CardHeader>
                     <CardTitle>
-                      {isEnglish && section.course.nameEn
-                        ? section.course.nameEn
-                        : section.course.nameCn}
+                      {
+                        (section.course as Localized<typeof section.course>)
+                          .namePrimary
+                      }
                     </CardTitle>
                     <CardDescription>
                       <div className="flex flex-wrap gap-2">
                         {section.semester && (
                           <Badge variant="outline">
-                            {section.semester.nameCn}
+                            {
+                              (
+                                section.semester as Localized<
+                                  typeof section.semester
+                                >
+                              ).namePrimary
+                            }
                           </Badge>
                         )}
                         <Badge variant="outline" className="font-mono">
@@ -542,11 +586,19 @@ export default async function SectionsPage({
                           <span
                             className="inline-block max-w-[20ch] truncate align-bottom"
                             title={section.teachers
-                              .map((teacher) => teacher.nameCn)
+                              .map(
+                                (teacher) =>
+                                  (teacher as Localized<typeof teacher>)
+                                    .namePrimary,
+                              )
                               .join(", ")}
                           >
                             {section.teachers
-                              .map((teacher) => teacher.nameCn)
+                              .map(
+                                (teacher) =>
+                                  (teacher as Localized<typeof teacher>)
+                                    .namePrimary,
+                              )
                               .join(", ")}
                           </span>
                         </p>
@@ -556,7 +608,10 @@ export default async function SectionsPage({
                           <strong className="text-foreground font-semibold">
                             {t("campus")}:
                           </strong>{" "}
-                          {section.campus.nameCn}
+                          {
+                            (section.campus as Localized<typeof section.campus>)
+                              .namePrimary
+                          }
                         </p>
                       )}
                       {section.openDepartment && (
@@ -564,7 +619,13 @@ export default async function SectionsPage({
                           <strong className="text-foreground font-semibold">
                             {t("department")}:
                           </strong>{" "}
-                          {section.openDepartment.nameCn}
+                          {
+                            (
+                              section.openDepartment as Localized<
+                                typeof section.openDepartment
+                              >
+                            ).namePrimary
+                          }
                         </p>
                       )}
                       {section.credits !== null && (

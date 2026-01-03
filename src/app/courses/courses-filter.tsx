@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Link } from "@/i18n/routing";
+import { addLocalizedNames } from "@/lib/localization-helpers";
 
 interface FilterOption {
   id: number;
@@ -50,10 +51,16 @@ export function CoursesFilter({
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view");
 
-  const isEnglish = locale === "en-us";
-
-  const getLabel = (opt: FilterOption) =>
-    isEnglish && opt.nameEn ? opt.nameEn : opt.nameCn;
+  // Add localized names to filter options
+  const localizedEducationLevels = educationLevels.map((opt) =>
+    addLocalizedNames(opt, locale),
+  );
+  const localizedCategories = categories.map((opt) =>
+    addLocalizedNames(opt, locale),
+  );
+  const localizedClassTypes = classTypes.map((opt) =>
+    addLocalizedNames(opt, locale),
+  );
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,22 +93,31 @@ export function CoursesFilter({
     updateFilters();
   };
 
-  const getSelectItems = (options: FilterOption[], allLabel: string) => {
+  const getSelectItems = (
+    options: typeof localizedEducationLevels,
+    allLabel: string,
+  ) => {
     return [
       { label: allLabel, value: "" },
       ...options.map((opt) => ({
-        label: getLabel(opt) || "",
+        label: opt.namePrimary || "",
         value: opt.id.toString(),
       })),
     ];
   };
 
   const educationLevelItems = getSelectItems(
-    educationLevels,
+    localizedEducationLevels,
     tCommon("allEducationLevels"),
   );
-  const categoryItems = getSelectItems(categories, tCommon("allCategories"));
-  const classTypeItems = getSelectItems(classTypes, tCommon("allClassTypes"));
+  const categoryItems = getSelectItems(
+    localizedCategories,
+    tCommon("allCategories"),
+  );
+  const classTypeItems = getSelectItems(
+    localizedClassTypes,
+    tCommon("allClassTypes"),
+  );
 
   return (
     <Form className="mb-8" onSubmit={onSubmit}>

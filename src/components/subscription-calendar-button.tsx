@@ -58,7 +58,8 @@ export function SubscriptionCalendarButton({
   unsubscribeLabel,
   subscriptionHintLabel,
 }: SubscriptionCalendarButtonProps) {
-  const t = useTranslations("common");
+  const _t = useTranslations("common");
+  const tSectionDetail = useTranslations("sectionDetail");
   const router = useRouter();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,7 +79,7 @@ export function SubscriptionCalendarButton({
             data: { tooltipStyle: true },
             positionerProps: { anchor: singleCopyButtonRef.current },
             timeout: toastTimeout,
-            title: "已复制!",
+            title: tSectionDetail("subscription.copied"),
           });
         }
       },
@@ -93,7 +94,7 @@ export function SubscriptionCalendarButton({
             data: { tooltipStyle: true },
             positionerProps: { anchor: subscriptionCopyButtonRef.current },
             timeout: toastTimeout,
-            title: "已复制!",
+            title: tSectionDetail("subscription.copied"),
           });
         }
       },
@@ -135,20 +136,24 @@ export function SubscriptionCalendarButton({
 
     toastManager.promise(promise, {
       loading: {
-        title: isSubscribed ? "取消订阅中..." : "订阅中...",
-        description: "请稍候",
+        title: isSubscribed
+          ? tSectionDetail("subscription.unsubscribing")
+          : tSectionDetail("subscription.subscribing"),
+        description: tSectionDetail("subscription.loading"),
       },
       success: () => {
         setIsSubscribed(!isSubscribed);
         setSubscriptionIcsUrl(getSubscriptionIcsUrl());
         setIsLoading(false);
         return {
-          title: isSubscribed ? "已取消订阅" : "订阅成功",
+          title: isSubscribed
+            ? tSectionDetail("subscription.unsubscribeSuccess")
+            : tSectionDetail("subscription.success"),
           description: isSubscribed
-            ? "该课程已从您的订阅中移除"
-            : "该课程已添加到您的订阅",
+            ? tSectionDetail("subscription.unsubscribeDescription")
+            : tSectionDetail("subscription.successDescription"),
           actionProps: {
-            children: t("viewAll"),
+            children: tSectionDetail("subscription.viewAllSubscriptions"),
             onClick: () => {
               router.push("/me/subscriptions/sections/");
             },
@@ -158,8 +163,8 @@ export function SubscriptionCalendarButton({
       error: (error) => {
         setIsLoading(false);
         return {
-          title: "操作失败",
-          description: error instanceof Error ? error.message : "请重试",
+          title: tSectionDetail("subscription.error"),
+          description: error instanceof Error ? error.message : "",
         };
       },
     });
@@ -222,7 +227,7 @@ export function SubscriptionCalendarButton({
                       href="/me/subscriptions/sections/"
                       className="text-primary hover:underline"
                     >
-                      查看所有订阅 →
+                      {tSectionDetail("subscription.viewAllSubscriptions")} →
                     </Link>
                   </p>
                   <div className="flex gap-2 items-center">

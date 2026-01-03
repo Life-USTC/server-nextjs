@@ -8,8 +8,9 @@ import {
   Download,
   Trash2,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import { PageHeader } from "@/components/page-header";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -21,14 +22,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -45,6 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toastManager } from "@/components/ui/toast";
 import { Link } from "@/i18n/routing";
+import { addLocalizedNames, type Localized } from "@/lib/localization-helpers";
 import {
   addSectionsToSubscription,
   getSubscriptionIcsUrl,
@@ -74,10 +68,23 @@ interface SectionData {
 
 export default function SubscriptionsPage() {
   const t = useTranslations("common");
+  const tSubscriptions = useTranslations("subscriptions");
+  const locale = useLocale();
   const [sections, setSections] = useState<SectionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [subscriptionUrl, setSubscriptionUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Localize sections for display inline
+  const localizeSection = (section: SectionData) => {
+    addLocalizedNames(section.course, locale);
+    if (section.semester) addLocalizedNames(section.semester, locale);
+    if (section.campus) addLocalizedNames(section.campus, locale);
+    section.teachers.forEach((t) => {
+      addLocalizedNames(t, locale);
+    });
+    return section;
+  };
 
   // Bulk import state
   const [importText, setImportText] = useState("");
@@ -157,8 +164,8 @@ export default function SubscriptionsPage() {
       if (extractedCodes.length === 0) {
         toastManager.add({
           type: "warning",
-          title: "未找到有效的班级代码",
-          description: "请检查输入的文本格式",
+          title: tSubscriptions("bulkImport.noValidCodes"),
+          description: tSubscriptions("bulkImport.checkFormat"),
         });
         setImporting(false);
         return;
@@ -193,8 +200,8 @@ export default function SubscriptionsPage() {
       console.error("Failed to fetch sections:", error);
       toastManager.add({
         type: "error",
-        title: "获取课程信息失败",
-        description: "请稍后重试",
+        title: tSubscriptions("bulkImport.fetchFailed"),
+        description: tSubscriptions("bulkImport.tryLater"),
       });
     } finally {
       setImporting(false);
@@ -221,15 +228,16 @@ export default function SubscriptionsPage() {
 
       toastManager.add({
         type: "success",
-        title: "订阅成功",
-        description: `已成功订阅 ${idsToAdd.length} 个班级`,
+        title: tSubscriptions("bulkImport.subscribeSuccess", {
+          count: idsToAdd.length,
+        }),
       });
     } catch (error) {
       console.error("Failed to import sections:", error);
       toastManager.add({
         type: "error",
-        title: "订阅失败",
-        description: "请稍后重试",
+        title: tSubscriptions("bulkImport.fetchFailed"),
+        description: tSubscriptions("bulkImport.tryLater"),
       });
     }
   };
@@ -249,49 +257,30 @@ export default function SubscriptionsPage() {
   if (loading) {
     return (
       <main className="page-main">
-        <p className="text-body text-muted-foreground">加载中...</p>
+        <p className="text-body text-muted-foreground">Loading...</p>
       </main>
     );
   }
 
   return (
     <main className="page-main">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>
-              {t("home")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/me" />}>
-              {t("me")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t("sectionSubscriptions")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mb-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-display mb-2">我的课程订阅</h1>
-            <p className="text-subtitle text-muted-foreground">
-              管理您订阅的所有课程班级
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+      <PageHeader
+        title={tSubscriptions("title")}
+        subtitle={tSubscriptions("subtitle")}
+        breadcrumbs={[
+          { label: t("home"), href: "/" },
+          { label: t("me"), href: "/me" },
+          { label: t("sectionSubscriptions") },
+        ]}
+        actions={[
+          <div key="stats" className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-primary" />
             <span className="text-body font-medium">
-              {sections.length} 个班级
+              {tSubscriptions("stats", { count: sections.length })}
             </span>
-          </div>
-        </div>
-      </div>
+          </div>,
+        ]}
+      />
 
       {/* Subscription Calendar URL */}
       {subscriptionUrl && (
@@ -299,12 +288,12 @@ export default function SubscriptionsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              日历订阅链接
+              {tSubscriptions("calendarLink")}
             </CardTitle>
           </CardHeader>
           <div className="p-6 pt-0">
             <p className="text-small text-muted-foreground mb-4">
-              复制此链接，在您的日历应用中订阅以自动同步所有课程
+              {tSubscriptions("calendarLinkDescription")}
             </p>
             <div className="flex gap-2 items-center">
               <Input
@@ -313,7 +302,11 @@ export default function SubscriptionsPage() {
                 placeholder={subscriptionUrl}
                 type="url"
               />
-              <Button onClick={handleCopy} variant="outline" aria-label="复制">
+              <Button
+                onClick={handleCopy}
+                variant="outline"
+                aria-label={tSubscriptions("buttons.copy")}
+              >
                 {copied ? (
                   <CheckIcon className="h-6 w-6" />
                 ) : (
@@ -330,15 +323,15 @@ export default function SubscriptionsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
-            批量导入班级
+            {tSubscriptions("bulkImportTitle")}
           </CardTitle>
         </CardHeader>
         <div className="p-6 pt-0">
           <p className="text-small text-muted-foreground mb-4">
-            粘贴包含班级代码的文本（如课表截图文字、选课清单等），系统会自动识别并匹配当前学期的课程
+            {tSubscriptions("bulkImportDescription")}
           </p>
           <Textarea
-            placeholder="粘贴任意包含班级代码的文本，例如：001013.01, COMP3001.01 等"
+            placeholder={tSubscriptions("placeholder")}
             value={importText}
             onChange={(e) => setImportText(e.target.value)}
             rows={4}
@@ -349,7 +342,9 @@ export default function SubscriptionsPage() {
             disabled={!importText.trim() || importing}
             className="w-full"
           >
-            {importing ? "正在匹配..." : "识别并匹配课程"}
+            {importing
+              ? tSubscriptions("matching")
+              : tSubscriptions("matchButton")}
           </Button>
         </div>
       </Card>
@@ -359,14 +354,17 @@ export default function SubscriptionsPage() {
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              确认订阅 {matchedSections.length} 个班级
+              {tSubscriptions("confirmTitle", {
+                count: matchedSections.length,
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {matchedSections.length > 0 && (
                 <>
                   <p className="mb-4">
-                    找到 {matchedSections.length}{" "}
-                    个匹配的班级，请选择要订阅的课程：
+                    {tSubscriptions("foundMatched", {
+                      count: matchedSections.length,
+                    })}
                   </p>
                   <div className="max-h-96 overflow-y-auto space-y-2 mb-4">
                     {matchedSections.map((section) => (
@@ -384,13 +382,34 @@ export default function SubscriptionsPage() {
                         />
                         <div className="flex-1">
                           <div className="font-medium">
-                            {section.course.nameCn}
+                            {(() => {
+                              localizeSection(section);
+                              return (
+                                section.course as Localized<
+                                  typeof section.course
+                                >
+                              ).namePrimary;
+                            })()}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {section.code} · {section.semester?.nameCn} ·{" "}
-                            {section.campus?.nameCn}
+                            {section.code} ·{" "}
+                            {
+                              (
+                                section.semester as
+                                  | Localized<typeof section.semester>
+                                  | undefined
+                              )?.namePrimary
+                            }{" "}
+                            ·{" "}
+                            {
+                              (
+                                section.campus as
+                                  | Localized<typeof section.campus>
+                                  | undefined
+                              )?.namePrimary
+                            }
                             {section.teachers.length > 0 &&
-                              ` · ${section.teachers.map((t) => t.nameCn).join(", ")}`}
+                              ` · ${section.teachers.map((t) => (t as Localized<typeof t>).namePrimary).join(", ")}`}
                           </div>
                         </div>
                       </button>
@@ -400,18 +419,22 @@ export default function SubscriptionsPage() {
               )}
               {unmatchedCodes.length > 0 && (
                 <p className="text-sm text-muted-foreground">
-                  未匹配到的代码 ({unmatchedCodes.length}):{" "}
-                  {unmatchedCodes.join(", ")}
+                  {tSubscriptions("unmatched", {
+                    count: unmatchedCodes.length,
+                    codes: unmatchedCodes.join(", "),
+                  })}
                 </p>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="ghost" />}>
-              取消
+              {tSubscriptions("buttons.cancel")}
             </AlertDialogClose>
             <Button onClick={handleConfirmImport}>
-              订阅选中的 {selectedSectionIds.size} 个班级
+              {tSubscriptions("subscribeButton", {
+                count: selectedSectionIds.size,
+              })}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -423,95 +446,122 @@ export default function SubscriptionsPage() {
           <EmptyHeader>
             <Bell className="h-12 w-12" />
           </EmptyHeader>
-          <EmptyTitle>暂无订阅</EmptyTitle>
+          <EmptyTitle>{tSubscriptions("noSubscriptions")}</EmptyTitle>
           <p className="text-body text-muted-foreground mb-4">
-            浏览课程并点击铃铛图标开始订阅
+            {tSubscriptions("browseHint")}
           </p>
-          <Button render={<Link href="/sections" />}>浏览课程</Button>
+          <Button render={<Link href="/sections" />}>
+            {tSubscriptions("buttons.browseCourses")}
+          </Button>
         </Empty>
       ) : (
         <div className="mb-8">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>课程名称</TableHead>
-                <TableHead>班级代码</TableHead>
-                <TableHead>学期</TableHead>
-                <TableHead>校区</TableHead>
-                <TableHead>教师</TableHead>
-                <TableHead>操作</TableHead>
+                <TableHead>{tSubscriptions("table.courseName")}</TableHead>
+                <TableHead>{tSubscriptions("table.sectionCode")}</TableHead>
+                <TableHead>{tSubscriptions("table.semester")}</TableHead>
+                <TableHead>{tSubscriptions("table.campus")}</TableHead>
+                <TableHead>{tSubscriptions("table.teachers")}</TableHead>
+                <TableHead>{tSubscriptions("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sections.map((section) => (
-                <TableRow key={section.id}>
-                  <TableCell>
-                    <Link
-                      href={`/sections/${section.jwId}`}
-                      className="text-primary hover:underline"
-                    >
-                      {section.course.nameCn}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {section.code}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {section.semester ? section.semester.nameCn : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {section.campus ? section.campus.nameCn : "—"}
-                  </TableCell>
-                  <TableCell>
-                    {section.teachers.length > 0
-                      ? section.teachers.map((t) => t.nameCn).join(", ")
-                      : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger
-                        render={
-                          <Button
-                            variant="ghost"
-                            aria-label="取消订阅"
-                            size="sm"
-                          />
-                        }
+              {sections.map((section) => {
+                localizeSection(section);
+                return (
+                  <TableRow key={section.id}>
+                    <TableCell>
+                      <Link
+                        href={`/sections/${section.jwId}`}
+                        className="text-primary hover:underline"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </AlertDialogTrigger>
-                      <AlertDialogPopup>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>确认取消订阅？</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            您确定要取消订阅
-                            <strong> {section.course.nameCn} </strong>(
-                            {section.code})
-                            吗？此操作将从您的日历订阅中移除该课程。
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogClose render={<Button variant="ghost" />}>
-                            取消
-                          </AlertDialogClose>
-                          <AlertDialogClose
-                            render={
-                              <Button
-                                variant="destructive"
-                                onClick={() => handleUnsubscribe(section.id)}
-                              />
-                            }
-                          >
-                            取消订阅
-                          </AlertDialogClose>
-                        </AlertDialogFooter>
-                      </AlertDialogPopup>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        {
+                          (section.course as Localized<typeof section.course>)
+                            .namePrimary
+                        }
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono">
+                        {section.code}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {section.semester
+                        ? (
+                            section.semester as Localized<
+                              typeof section.semester
+                            >
+                          ).namePrimary
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {section.campus
+                        ? (section.campus as Localized<typeof section.campus>)
+                            .namePrimary
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {section.teachers.length > 0
+                        ? section.teachers
+                            .map((t) => (t as Localized<typeof t>).namePrimary)
+                            .join(", ")
+                        : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <AlertDialog>
+                        <AlertDialogTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              aria-label={tSubscriptions("unsubscribeLabel")}
+                              size="sm"
+                            />
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </AlertDialogTrigger>
+                        <AlertDialogPopup>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {tSubscriptions("unsubscribeConfirm")}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {tSubscriptions("unsubscribeDescription", {
+                                course: (
+                                  section.course as Localized<
+                                    typeof section.course
+                                  >
+                                ).namePrimary,
+                                code: section.code,
+                              })}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogClose
+                              render={<Button variant="ghost" />}
+                            >
+                              {tSubscriptions("buttons.cancel")}
+                            </AlertDialogClose>
+                            <AlertDialogClose
+                              render={
+                                <Button
+                                  variant="destructive"
+                                  onClick={() => handleUnsubscribe(section.id)}
+                                />
+                              }
+                            >
+                              {tSubscriptions("unsubscribeButton")}
+                            </AlertDialogClose>
+                          </AlertDialogFooter>
+                        </AlertDialogPopup>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

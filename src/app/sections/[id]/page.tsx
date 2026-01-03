@@ -1,16 +1,9 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/page-header";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -23,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
+import { addLocalizedNames, type Localized } from "@/lib/localization-helpers";
 import { prisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 
@@ -80,7 +74,30 @@ export default async function SectionPage({
 
   const t = await getTranslations("sectionDetail");
   const tCommon = await getTranslations("common");
-  const isEnglish = locale === "en-us";
+
+  addLocalizedNames(section.course, locale);
+  if (section.campus) addLocalizedNames(section.campus, locale);
+  section.teachers.forEach((teacher) => {
+    addLocalizedNames(teacher, locale);
+    if (teacher.department) addLocalizedNames(teacher.department, locale);
+  });
+  section.exams.forEach((exam) => {
+    if (exam.examBatch) addLocalizedNames(exam.examBatch, locale);
+  });
+  section.schedules.forEach((schedule) => {
+    if (schedule.room) {
+      addLocalizedNames(schedule.room, locale);
+      if (schedule.room.building) {
+        addLocalizedNames(schedule.room.building, locale);
+        if (schedule.room.building.campus) {
+          addLocalizedNames(schedule.room.building.campus, locale);
+        }
+      }
+    }
+    schedule.teachers.forEach((t) => {
+      addLocalizedNames(t, locale);
+    });
+  });
 
   const formatWeekday = (weekday: number) => {
     const weekdays = [
@@ -95,49 +112,26 @@ export default async function SectionPage({
     return weekdays[weekday] || `Day ${weekday}`;
   };
 
+  const courseName = (section.course as Localized<typeof section.course>)
+    .namePrimary;
+  const courseSubtitle = (section.course as Localized<typeof section.course>)
+    .nameSecondary;
+
+  const breadcrumbs = [
+    { label: tCommon("home"), href: "/" },
+    { label: tCommon("sections"), href: "/sections" },
+    { label: section.code },
+  ];
+
   return (
     <main className="page-main">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>
-              {tCommon("home")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/sections" />}>
-              {tCommon("sections")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{section.code}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mb-8 mt-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-display mb-2">
-              {isEnglish && section.course.nameEn
-                ? section.course.nameEn
-                : section.course.nameCn}
-            </h1>
-            {isEnglish
-              ? section.course.nameCn && (
-                  <p className="text-subtitle text-muted-foreground">
-                    {section.course.nameCn}
-                  </p>
-                )
-              : section.course.nameEn && (
-                  <p className="text-subtitle text-muted-foreground">
-                    {section.course.nameEn}
-                  </p>
-                )}
-          </div>
+      <PageHeader
+        title={courseName}
+        subtitle={courseSubtitle || undefined}
+        breadcrumbs={breadcrumbs}
+        actions={[
           <SubscriptionCalendarButton
+            key="calendar-button"
             sectionDatabaseId={section.id}
             addToCalendarLabel={t("addToCalendar")}
             sheetTitle={t("calendarSheetTitle")}
@@ -150,9 +144,9 @@ export default async function SectionPage({
             copyLabel={t("copyToClipboard")}
             closeLabel={t("close")}
             learnMoreLabel={t("learnMoreAboutICalendar")}
-          />
-        </div>
-      </div>
+          />,
+        ]}
+      />
 
       <div className="mb-8 flex flex-wrap gap-2">
         {section.semester && (
@@ -162,7 +156,9 @@ export default async function SectionPage({
           {section.code}
         </Badge>
         {section.campus && (
-          <Badge variant="outline">{section.campus.nameCn}</Badge>
+          <Badge variant="outline">
+            {(section.campus as Localized<typeof section.campus>).namePrimary}
+          </Badge>
         )}
         <Badge variant="outline">
           {section.stdCount ?? 0} / {section.limitCount ?? "—"}
@@ -185,11 +181,19 @@ export default async function SectionPage({
             {section.teachers.map((teacher) => (
               <li key={teacher.id}>
                 <div className="inline">
-                  {teacher.nameCn}
+                  {(teacher as Localized<typeof teacher>).namePrimary}
                   {teacher.department && (
                     <span className="text-muted-foreground">
                       {" "}
-                      ({teacher.department.nameCn})
+                      (
+                      {
+                        (
+                          teacher.department as Localized<
+                            typeof teacher.department
+                          >
+                        ).namePrimary
+                      }
+                      )
                     </span>
                   )}
                   <span className="ml-2">
@@ -197,7 +201,11 @@ export default async function SectionPage({
                       href={`/sections?search=teacher:${encodeURIComponent(teacher.nameCn)}`}
                       className="text-small text-primary hover:underline"
                     >
-                      {t("viewTeacherCourses", { teacher: teacher.nameCn })} →
+                      {t("viewTeacherCourses", {
+                        teacher: (teacher as Localized<typeof teacher>)
+                          .namePrimary,
+                      })}{" "}
+                      →
                     </Link>
                   </span>
                 </div>
@@ -223,7 +231,10 @@ export default async function SectionPage({
                   </CardTitle>
                   {exam.examBatch && (
                     <p className="text-small text-muted-foreground">
-                      {exam.examBatch.nameCn}
+                      {
+                        (exam.examBatch as Localized<typeof exam.examBatch>)
+                          .namePrimary
+                      }
                     </p>
                   )}
                 </CardHeader>
@@ -306,20 +317,24 @@ export default async function SectionPage({
                         {schedule.customPlace
                           ? schedule.customPlace
                           : schedule.room
-                            ? `${schedule.room.nameCn}${
+                            ? `${(schedule.room as Localized<typeof schedule.room>).namePrimary}${
                                 schedule.room.building
-                                  ? ` · ${schedule.room.building.nameCn}`
+                                  ? ` · ${(schedule.room.building as Localized<typeof schedule.room.building>).namePrimary}`
                                   : ""
                               }${
                                 schedule.room.building?.campus
-                                  ? ` · ${schedule.room.building.campus.nameCn}`
+                                  ? ` · ${(schedule.room.building.campus as Localized<typeof schedule.room.building.campus>).namePrimary}`
                                   : ""
                               }`
                             : "—"}
                       </TableCell>
                       <TableCell>
                         {schedule.teachers && schedule.teachers.length > 0
-                          ? schedule.teachers.map((t) => t.nameCn).join(", ")
+                          ? schedule.teachers
+                              .map(
+                                (t) => (t as Localized<typeof t>).namePrimary,
+                              )
+                              .join(", ")
                           : "—"}
                       </TableCell>
                     </TableRow>
@@ -364,13 +379,23 @@ export default async function SectionPage({
                         schedule.room && (
                           <p className="text-body text-foreground">
                             <strong>{t("location")}:</strong>{" "}
-                            {schedule.room.nameCn}
+                            {
+                              (schedule.room as Localized<typeof schedule.room>)
+                                .namePrimary
+                            }
                             {schedule.room.building && (
                               <span className="text-muted-foreground">
                                 {" "}
-                                · {schedule.room.building.nameCn}
+                                ·{" "}
+                                {
+                                  (
+                                    schedule.room.building as Localized<
+                                      typeof schedule.room.building
+                                    >
+                                  ).namePrimary
+                                }
                                 {schedule.room.building.campus &&
-                                  ` · ${schedule.room.building.campus.nameCn}`}
+                                  ` · ${(schedule.room.building.campus as Localized<typeof schedule.room.building.campus>).namePrimary}`}
                               </span>
                             )}
                           </p>
@@ -379,7 +404,9 @@ export default async function SectionPage({
                       {schedule.teachers && schedule.teachers.length > 0 && (
                         <p className="text-body text-foreground">
                           <strong>{t("teacher")}:</strong>{" "}
-                          {schedule.teachers.map((t) => t.nameCn).join(", ")}
+                          {schedule.teachers
+                            .map((t) => (t as Localized<typeof t>).namePrimary)
+                            .join(", ")}
                         </p>
                       )}
                     </div>
