@@ -203,6 +203,18 @@
     "viewAllSections": "View all sections for this course",
     "viewMySubscriptions": "View my subscriptions",
     "viewTeacherCourses": "View other courses taught by {teacher}",
+    "subscription": {
+      "loading": "Loading...",
+      "subscribing": "Subscribing...",
+      "unsubscribing": "Unsubscribing...",
+      "success": "Subscription successful",
+      "successDescription": "This course has been added to your subscriptions",
+      "unsubscribeSuccess": "Unsubscribed",
+      "unsubscribeDescription": "This course has been removed from your subscriptions",
+      "error": "Operation failed",
+      "viewAllSubscriptions": "View all subscriptions",
+      "copied": "Copied!"
+    },
     "weekdays": {
       "sunday": "Sunday",
       "monday": "Monday",
@@ -222,5 +234,105 @@
     "english": "English",
     "chinese": "中文",
     "switch": "Switch language"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "loading": "Loading...",
+    "profile": "Profile",
+    "mySubscriptions": "My Subscriptions"
+  },
+  "breadcrumbs": {
+    "home": "Home",
+    "courses": "Courses",
+    "sections": "Sections",
+    "courseDetail": "Course Detail",
+    "sectionDetail": "Section Detail",
+    "profile": "Profile",
+    "mySubscriptions": "My Subscriptions",
+    "subscriptions": "Subscriptions"
+  },
+  "me": {
+    "notSignedIn": {
+      "title": "Please Sign In",
+      "message": "You need to sign in to view your profile and manage your subscriptions."
+    },
+    "pageSubtitle": "Manage your account and subscriptions",
+    "profileCard": {
+      "title": "Profile Information",
+      "status": "USTC Student"
+    },
+    "quickActions": {
+      "mySubscriptions": {
+        "title": "My Subscriptions",
+        "description": "Manage your course calendar subscriptions",
+        "button": "View Subscriptions"
+      },
+      "browseCourses": {
+        "title": "Browse Courses",
+        "description": "Find and subscribe to courses",
+        "button": "Browse Courses"
+      },
+      "calendarIntegration": {
+        "title": "Calendar Integration",
+        "description": "Get calendar subscription links",
+        "button": "Get Calendar Link"
+      }
+    },
+    "accountInformation": {
+      "title": "Account Information",
+      "fields": {
+        "name": "Name",
+        "email": "Email",
+        "language": "Language",
+        "accountType": "Account Type",
+        "cas": "CAS 3.0"
+      },
+      "casDescription": "Your account is connected via USTC's CAS 3.0 authentication system. You can use this account to access course information and manage your subscriptions."
+    }
+  },
+  "subscriptions": {
+    "title": "My Section Subscriptions",
+    "subtitle": "Manage all the sections you have subscribed to",
+    "stats": "{count} Sections",
+    "calendarLink": "Calendar Subscription Link",
+    "calendarLinkDescription": "Copy this link and subscribe in your calendar app to automatically sync all courses",
+    "bulkImportTitle": "Bulk Import Sections",
+    "bulkImportDescription": "Paste text containing section codes (e.g., from schedule screenshots or lists), the system will automatically recognize and match sections from the current semester",
+    "placeholder": "Paste any text containing section codes, e.g.: 001013.01, COMP3001.01 etc.",
+    "matchButton": "Recognize and Match Courses",
+    "matching": "Matching...",
+    "confirmTitle": "Confirm Subscribing to {count} Sections",
+    "foundMatched": "Found {count} matched sections, please select courses to subscribe:",
+    "unmatched": "Unmatched codes ({count}): {codes}",
+    "subscribeButton": "Subscribe to {count} Selected Sections",
+    "noSubscriptions": "No Subscriptions",
+    "browseHint": "Browse courses and click the bell icon to start subscribing",
+    "table": {
+      "courseName": "Course Name",
+      "sectionCode": "Section Code",
+      "semester": "Semester",
+      "campus": "Campus",
+      "teachers": "Teachers",
+      "actions": "Actions"
+    },
+    "unsubscribeConfirm": "Confirm Unsubscribe?",
+    "unsubscribeDescription": "Are you sure you want to unsubscribe from {course} ({code})? This will remove the course from your calendar subscription.",
+    "unsubscribeLabel": "Unsubscribe",
+    "unsubscribeButton": "Unsubscribe",
+    "bulkImport": {
+      "noValidCodes": "No valid section codes found",
+      "checkFormat": "Please check the text format",
+      "fetchFailed": "Failed to fetch section information",
+      "tryLater": "Please try again later",
+      "subscribeSuccess": "Successfully subscribed to {count} sections",
+      "confirmSubscribe": "Confirm subscribe to {count} sections",
+      "found": "Found {count}"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "browseCourses": "Browse Courses",
+      "copy": "Copy"
+    }
   }
 }

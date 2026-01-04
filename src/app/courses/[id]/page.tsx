@@ -1,15 +1,8 @@
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
@@ -22,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
+import { addLocalizedNames, type Localized } from "@/lib/localization-helpers";
 import { prisma } from "@/lib/prisma";
 
 export default async function CoursePage({
@@ -64,7 +58,9 @@ export default async function CoursePage({
 
   const semesterGroupedSections = course.sections.reduce(
     (acc: [string, typeof course.sections][], section) => {
-      const semesterName = section.semester?.nameCn || "Unknown";
+      const semesterName = section.semester
+        ? addLocalizedNames(section.semester, locale).namePrimary
+        : "Unknown";
       const existing = acc.find(([name]) => name === semesterName);
       if (existing) {
         existing[1].push(section);
@@ -78,55 +74,62 @@ export default async function CoursePage({
 
   const t = await getTranslations("courseDetail");
   const tCommon = await getTranslations("common");
-  const isEnglish = locale === "en-us";
+
+  const localizedCourse = addLocalizedNames(course, locale);
+  const localizedEducationLevel = course.educationLevel
+    ? addLocalizedNames(course.educationLevel, locale)
+    : null;
+  const localizedCategory = course.category
+    ? addLocalizedNames(course.category, locale)
+    : null;
+  const localizedClassType = course.classType
+    ? addLocalizedNames(course.classType, locale)
+    : null;
+
+  // Create a map of section.id -> localized semester for easy lookup in table
+  const semesterNameMap = new Map(
+    course.sections.map((section) => {
+      if (section.semester) {
+        addLocalizedNames(section.semester, locale);
+        return [section.jwId, (section.semester as any).namePrimary];
+      }
+      return [section.jwId, "Unknown"];
+    }),
+  );
+
+  // Localize sections with teachers and campus
+  const localizedSections = course.sections.map((section) => {
+    section.teachers.forEach((teacher) => {
+      addLocalizedNames(teacher, locale);
+    });
+    if (section.campus) addLocalizedNames(section.campus, locale);
+    return section;
+  });
+
+  const breadcrumbs = [
+    { label: tCommon("home"), href: "/" },
+    { label: tCommon("courses"), href: "/courses" },
+    { label: course.code },
+  ];
 
   return (
     <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/courses">
-              {tCommon("courses")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{course.code}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">
-          {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
-        </h1>
-        {isEnglish
-          ? course.nameCn && (
-              <p className="text-subtitle text-muted-foreground">
-                {course.nameCn}
-              </p>
-            )
-          : course.nameEn && (
-              <p className="text-subtitle text-muted-foreground">
-                {course.nameEn}
-              </p>
-            )}
-      </div>
+      <PageHeader
+        title={localizedCourse.namePrimary}
+        subtitle={localizedCourse.nameSecondary || undefined}
+        breadcrumbs={breadcrumbs}
+      />
 
       <div className="mb-8 flex flex-wrap gap-2">
         <Badge variant="outline">{course.code}</Badge>
-        {course.educationLevel && (
-          <Badge variant="outline">{course.educationLevel.nameCn}</Badge>
+        {localizedEducationLevel && (
+          <Badge variant="outline">{localizedEducationLevel.namePrimary}</Badge>
         )}
-        {course.category && (
-          <Badge variant="outline">{course.category.nameCn}</Badge>
+        {localizedCategory && (
+          <Badge variant="outline">{localizedCategory.namePrimary}</Badge>
         )}
-        {course.classType && (
-          <Badge variant="outline">{course.classType.nameCn}</Badge>
+        {localizedClassType && (
+          <Badge variant="outline">{localizedClassType.namePrimary}</Badge>
         )}
       </div>
 
@@ -149,13 +152,13 @@ export default async function CoursePage({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {course.sections.map((section) => (
+              {localizedSections.map((section) => (
                 <ClickableTableRow
                   key={section.jwId}
                   href={`/sections/${section.jwId}`}
                 >
                   <TableCell>
-                    {section.semester ? section.semester.nameCn : "—"}
+                    {semesterNameMap.get(section.jwId) || "—"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{section.code}</Badge>
@@ -166,20 +169,31 @@ export default async function CoursePage({
                       title={
                         section.teachers && section.teachers.length > 0
                           ? section.teachers
-                              .map((teacher) => teacher.nameCn)
+                              .map(
+                                (teacher) =>
+                                  (teacher as Localized<typeof teacher>)
+                                    .namePrimary,
+                              )
                               .join(", ")
                           : undefined
                       }
                     >
                       {section.teachers && section.teachers.length > 0
                         ? section.teachers
-                            .map((teacher) => teacher.nameCn)
+                            .map(
+                              (teacher) =>
+                                (teacher as Localized<typeof teacher>)
+                                  .namePrimary,
+                            )
                             .join(", ")
                         : "—"}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {section.campus ? section.campus.nameCn : "—"}
+                    {section.campus
+                      ? (section.campus as Localized<typeof section.campus>)
+                          .namePrimary
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">
@@ -220,11 +234,19 @@ export default async function CoursePage({
                               <span
                                 className="inline-block max-w-[20ch] truncate align-bottom"
                                 title={section.teachers
-                                  .map((teacher) => teacher.nameCn)
+                                  .map(
+                                    (teacher) =>
+                                      (teacher as Localized<typeof teacher>)
+                                        .namePrimary,
+                                  )
                                   .join(", ")}
                               >
                                 {section.teachers
-                                  .map((teacher) => teacher.nameCn)
+                                  .map(
+                                    (teacher) =>
+                                      (teacher as Localized<typeof teacher>)
+                                        .namePrimary,
+                                  )
                                   .join(", ")}
                               </span>
                             </p>
@@ -232,7 +254,13 @@ export default async function CoursePage({
                           {section.campus && (
                             <p className="text-body text-foreground">
                               <strong>{t("campus")}:</strong>{" "}
-                              {section.campus.nameCn}
+                              {
+                                (
+                                  section.campus as Localized<
+                                    typeof section.campus
+                                  >
+                                ).namePrimary
+                              }
                             </p>
                           )}
                           <p className="text-body text-foreground">

@@ -1,8 +1,12 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getSession } from "./lib/auth";
 
 const locales = ["en-us", "zh-cn"];
 const defaultLocale = "zh-cn";
 const LOCALE_COOKIE = "NEXT_LOCALE";
+
+// Define protected routes that require authentication
+const protectedRoutes = ["/me", "/api/me"];
 
 function getLocale(request: NextRequest): string {
   // 1. Check cookie first
@@ -44,12 +48,27 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export default function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const locale = getLocale(request);
-
-  // Set locale in request header for next-intl
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-locale", locale);
+
+  // Check if this is a protected route
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    request.nextUrl.pathname.startsWith(route),
+  );
+
+  if (isProtectedRoute) {
+    // Check authentication for protected routes
+    const user = await getSession();
+
+    if (!user) {
+      // Redirect to login page
+      const loginUrl = new URL("/api/auth/signin", request.url);
+      loginUrl.searchParams.set("callbackUrl", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
 
   const response = NextResponse.next({
     request: {
@@ -57,7 +76,7 @@ export default function proxy(request: NextRequest) {
     },
   });
 
-  // Set cookie if not already set or different
+  // Set locale cookie if not already set or different
   const currentCookie = request.cookies.get(LOCALE_COOKIE)?.value;
   if (currentCookie !== locale) {
     response.cookies.set(LOCALE_COOKIE, locale, {

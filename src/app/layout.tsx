@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
+import { AuthProviderWrapper } from "@/components/auth-provider";
 import BottomBar from "@/components/bottom-bar";
 import { Providers } from "@/components/providers";
 import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
@@ -37,10 +38,12 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages}>
             <ToastProvider>
               <AnchoredToastProvider>
-                <div className="flex flex-col min-h-screen">
-                  <div className="flex-1">{children}</div>
-                  <BottomBar />
-                </div>
+                <AuthProviderWrapper>
+                  <div className="flex flex-col min-h-screen">
+                    <div className="flex-1">{children}</div>
+                    <BottomBar />
+                  </div>
+                </AuthProviderWrapper>
               </AnchoredToastProvider>
             </ToastProvider>
           </NextIntlClientProvider>

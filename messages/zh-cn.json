@@ -203,6 +203,18 @@
     "viewAllSections": "查看这门课全部开课班级",
     "viewMySubscriptions": "查看我的所有订阅",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
+    "subscription": {
+      "loading": "加载中...",
+      "subscribing": "订阅中...",
+      "unsubscribing": "取消订阅中...",
+      "success": "订阅成功",
+      "successDescription": "该课程已添加到您的订阅",
+      "unsubscribeSuccess": "已取消订阅",
+      "unsubscribeDescription": "该课程已从您的订阅中移除",
+      "error": "操作失败",
+      "viewAllSubscriptions": "查看所有订阅",
+      "copied": "已复制!"
+    },
     "weekdays": {
       "sunday": "星期日",
       "monday": "星期一",
@@ -222,5 +234,105 @@
     "english": "English",
     "chinese": "中文",
     "switch": "切换语言"
+  },
+  "auth": {
+    "signIn": "登录",
+    "signOut": "退出登录",
+    "loading": "加载中...",
+    "profile": "个人资料",
+    "mySubscriptions": "我的订阅"
+  },
+  "breadcrumbs": {
+    "home": "首页",
+    "courses": "课程",
+    "sections": "班级",
+    "courseDetail": "课程详情",
+    "sectionDetail": "班级详情",
+    "profile": "个人资料",
+    "mySubscriptions": "我的订阅",
+    "subscriptions": "订阅"
+  },
+  "me": {
+    "notSignedIn": {
+      "title": "请登录",
+      "message": "您需要登录才能查看个人资料和管理订阅。"
+    },
+    "pageSubtitle": "管理您的账户和订阅",
+    "profileCard": {
+      "title": "个人信息",
+      "status": "中国科大学生"
+    },
+    "quickActions": {
+      "mySubscriptions": {
+        "title": "我的订阅",
+        "description": "管理您的课程日历订阅",
+        "button": "查看订阅"
+      },
+      "browseCourses": {
+        "title": "浏览课程",
+        "description": "查找和订阅课程",
+        "button": "浏览课程"
+      },
+      "calendarIntegration": {
+        "title": "日历集成",
+        "description": "获取日历订阅链接",
+        "button": "获取日历链接"
+      }
+    },
+    "accountInformation": {
+      "title": "账户信息",
+      "fields": {
+        "name": "姓名",
+        "email": "邮箱",
+        "language": "语言",
+        "accountType": "账户类型",
+        "cas": "CAS 3.0"
+      },
+      "casDescription": "您的账户通过中国科大 CAS 3.0 认证系统连接。您可以使用此账户访问课程信息并管理订阅。"
+    }
+  },
+  "subscriptions": {
+    "title": "我的课程订阅",
+    "subtitle": "管理您订阅的所有课程班级",
+    "stats": "{count} 个班级",
+    "calendarLink": "日历订阅链接",
+    "calendarLinkDescription": "复制此链接，在您的日历应用中订阅以自动同步所有课程",
+    "bulkImportTitle": "批量导入班级",
+    "bulkImportDescription": "粘贴包含班级代码的文本（如课表截图文字、选课清单等），系统会自动识别并匹配当前学期的课程",
+    "placeholder": "粘贴任意包含班级代码的文本，例如：001013.01, COMP3001.01 等",
+    "matchButton": "识别并匹配课程",
+    "matching": "正在匹配...",
+    "confirmTitle": "确认订阅 {count} 个班级",
+    "foundMatched": "找到 {count} 个匹配的班级，请选择要订阅的课程：",
+    "unmatched": "未匹配到的代码 ({count}): {codes}",
+    "subscribeButton": "订阅选中的 {count} 个班级",
+    "noSubscriptions": "暂无订阅",
+    "browseHint": "浏览课程并点击铃铛图标开始订阅",
+    "table": {
+      "courseName": "课程名称",
+      "sectionCode": "班级代码",
+      "semester": "学期",
+      "campus": "校区",
+      "teachers": "教师",
+      "actions": "操作"
+    },
+    "unsubscribeConfirm": "确认取消订阅？",
+    "unsubscribeDescription": "您确定要取消订阅 {course} ({code}) 吗？此操作将从您的日历订阅中移除该课程。",
+    "unsubscribeLabel": "取消订阅",
+    "unsubscribeButton": "取消订阅",
+    "bulkImport": {
+      "noValidCodes": "未找到有效的班级代码",
+      "checkFormat": "请检查输入的文本格式",
+      "fetchFailed": "获取课程信息失败",
+      "tryLater": "请稍后重试",
+      "subscribeSuccess": "已成功订阅 {count} 个班级",
+      "confirmSubscribe": "确认订阅 {count} 个班级",
+      "found": "找到 {count}"
+    },
+    "buttons": {
+      "cancel": "取消",
+      "browseCourses": "浏览课程",
+      "copy": "复制"
+    }
   }
 }

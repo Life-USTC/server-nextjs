@@ -1,15 +1,8 @@
 import type { Prisma } from "@prisma/client";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import {
   Card,
   CardDescription,
@@ -42,6 +35,10 @@ import {
 } from "@/components/ui/table";
 import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
+import {
+  addLocalizedNames,
+  addLocalizedNamesToArray,
+} from "@/lib/localization-helpers";
 import { prisma } from "@/lib/prisma";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 import { CoursesFilter } from "./courses-filter";
@@ -116,7 +113,6 @@ export default async function CoursesPage({
   const categoryId = searchP.categoryId;
   const classTypeId = searchP.classTypeId;
   const view = searchP.view || "table";
-  const isEnglish = locale === "en-us";
 
   const [data, filterOptions] = await Promise.all([
     fetchCourses(page, search, educationLevelId, categoryId, classTypeId),
@@ -128,6 +124,22 @@ export default async function CoursesPage({
 
   const t = await getTranslations("courses");
   const tCommon = await getTranslations("common");
+
+  // Add localized names to all courses and their nested objects
+  const localizedCourses = addLocalizedNamesToArray(courses, locale).map(
+    (course) => ({
+      ...course,
+      educationLevel: course.educationLevel
+        ? addLocalizedNames(course.educationLevel, locale)
+        : null,
+      category: course.category
+        ? addLocalizedNames(course.category, locale)
+        : null,
+      classType: course.classType
+        ? addLocalizedNames(course.classType, locale)
+        : null,
+    }),
+  );
 
   const buildUrl = (page: number) => {
     const params = new URLSearchParams({
@@ -170,24 +182,19 @@ export default async function CoursesPage({
     return pages;
   };
 
+  const breadcrumbs = [
+    { label: tCommon("home"), href: "/" },
+    { label: tCommon("courses") },
+  ];
+
   return (
     <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tCommon("courses")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">{t("subtitle")}</p>
-      </div>
+      <PageHeader
+        title={t("title")}
+        subtitle={t("subtitle")}
+        breadcrumbs={breadcrumbs}
+        actions={[<ViewSwitcher key="view-switcher" />]}
+      />
 
       <CoursesFilter
         educationLevels={educationLevels}
@@ -209,7 +216,6 @@ export default async function CoursesPage({
             <span className="ml-2">{t("searchFor", { query: search })}</span>
           )}
         </p>
-        <ViewSwitcher />
       </div>
 
       {courses.length > 0 ? (
@@ -226,26 +232,18 @@ export default async function CoursesPage({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {courses.map((course) => (
+                {localizedCourses.map((course) => (
                   <ClickableTableRow
                     key={course.jwId}
                     href={`/courses/${course.jwId}`}
                   >
                     <TableCell>
-                      {isEnglish && course.nameEn
-                        ? course.nameEn
-                        : course.nameCn}
-                      {isEnglish
-                        ? course.nameCn && (
-                            <div className="text-muted-foreground text-xs">
-                              {course.nameCn}
-                            </div>
-                          )
-                        : course.nameEn && (
-                            <div className="text-muted-foreground text-xs">
-                              {course.nameEn}
-                            </div>
-                          )}
+                      {course.namePrimary}
+                      {course.nameSecondary && (
+                        <div className="text-muted-foreground text-xs">
+                          {course.nameSecondary}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="font-mono">
@@ -255,21 +253,21 @@ export default async function CoursesPage({
                     <TableCell>
                       {course.educationLevel && (
                         <Badge variant="outline">
-                          {course.educationLevel.nameCn}
+                          {course.educationLevel.namePrimary}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
                       {course.category && (
                         <Badge variant="outline">
-                          {course.category.nameCn}
+                          {course.category.namePrimary}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
                       {course.classType && (
                         <Badge variant="outline">
-                          {course.classType.nameCn}
+                          {course.classType.namePrimary}
                         </Badge>
                       )}
                     </TableCell>
@@ -280,7 +278,7 @@ export default async function CoursesPage({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {courses.map((course) => (
+            {localizedCourses.map((course) => (
               <Link
                 key={course.jwId}
                 href={`/courses/${course.jwId}`}
@@ -288,18 +286,10 @@ export default async function CoursesPage({
               >
                 <Card className="h-full overflow-hidden">
                   <CardHeader>
-                    <CardTitle>
-                      {isEnglish && course.nameEn
-                        ? course.nameEn
-                        : course.nameCn}
-                    </CardTitle>
-                    {isEnglish
-                      ? course.nameCn && (
-                          <CardDescription>{course.nameCn}</CardDescription>
-                        )
-                      : course.nameEn && (
-                          <CardDescription>{course.nameEn}</CardDescription>
-                        )}
+                    <CardTitle>{course.namePrimary}</CardTitle>
+                    {course.nameSecondary && (
+                      <CardDescription>{course.nameSecondary}</CardDescription>
+                    )}
                   </CardHeader>
 
                   <CardPanel>
@@ -309,17 +299,17 @@ export default async function CoursesPage({
                       </Badge>
                       {course.educationLevel && (
                         <Badge variant="outline">
-                          {course.educationLevel.nameCn}
+                          {course.educationLevel.namePrimary}
                         </Badge>
                       )}
                       {course.category && (
                         <Badge variant="outline">
-                          {course.category.nameCn}
+                          {course.category.namePrimary}
                         </Badge>
                       )}
                       {course.classType && (
                         <Badge variant="outline">
-                          {course.classType.nameCn}
+                          {course.classType.namePrimary}
                         </Badge>
                       )}
                     </div>
