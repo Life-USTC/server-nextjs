@@ -1,3 +1,5 @@
+import { getSession } from "next-auth/react";
+
 /**
  * LocalStorage utility for managing calendar subscription state
  */
@@ -15,6 +17,36 @@ const defaultState: SubscriptionState = {
   subscriptionToken: null,
   subscribedSections: [],
 };
+
+/**
+ * Get current subscription state from localStorage or sync with server
+ */
+export async function getSubscriptionStateAsync(): Promise<SubscriptionState> {
+  // First try to get from server if logged in
+  try {
+    const session = await getSession();
+    if (session?.user) {
+      // If user is logged in, fetch their subscription
+      const response = await fetch("/api/calendar-subscriptions/current");
+      if (response.ok) {
+        const data = await response.json();
+        // Return server state, merging with local if needed or just using server
+        // For now let's prioritize server state
+        return {
+          subscriptionId: data.subscription?.id || null,
+          subscriptionToken: data.token || null,
+          subscribedSections:
+            data.subscription?.sections?.map((s: any) => s.id) || [],
+        };
+      }
+    }
+  } catch (e) {
+    console.error("Failed to sync subscription", e);
+  }
+
+  // Fallback to local storage
+  return getSubscriptionState();
+}
 
 /**
  * Get current subscription state from localStorage
