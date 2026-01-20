@@ -94,6 +94,7 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                         src={pic}
                         alt={a11yT("avatarOption")}
                         fill
+                        unoptimized
                         className="object-cover"
                       />
                     </button>
