@@ -1,59 +1,69 @@
 /**
- * LocalStorage utility for managing calendar subscription state
+ * Calendar subscription state management
+ *
+ * This module is client-side only. All subscriptions are server-managed
+ * and require user authentication.
  */
-
-const STORAGE_KEY = "calendarSubscription";
 
 export interface SubscriptionState {
   subscriptionId: number | null;
   subscriptionToken: string | null;
   subscribedSections: number[];
+  isAuthenticated: boolean;
 }
 
 const defaultState: SubscriptionState = {
   subscriptionId: null,
   subscriptionToken: null,
   subscribedSections: [],
+  isAuthenticated: false,
 };
 
 /**
- * Get current subscription state from localStorage
+ * Get current subscription state from server
+ * Returns default state with isAuthenticated=false if user is not logged in
  */
-export function getSubscriptionState(): SubscriptionState {
+export async function getSubscriptionState(): Promise<SubscriptionState> {
   if (typeof window === "undefined") return defaultState;
 
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return defaultState;
+    const response = await fetch("/api/calendar-subscriptions/current");
 
-    const parsed = JSON.parse(stored) as SubscriptionState;
-    return {
-      subscriptionId: parsed.subscriptionId ?? null,
-      subscriptionToken: parsed.subscriptionToken ?? null,
-      subscribedSections: Array.isArray(parsed.subscribedSections)
-        ? parsed.subscribedSections
-        : [],
-    };
-  } catch {
-    return defaultState;
-  }
-}
+    if (response.status === 401) {
+      // User is not logged in
+      return { ...defaultState, isAuthenticated: false };
+    }
 
-/**
- * Save subscription state to localStorage
- */
-function saveSubscriptionState(state: SubscriptionState): void {
-  if (typeof window === "undefined") return;
+    if (response.ok) {
+      const data = await response.json();
+      if (data.subscription) {
+        return {
+          subscriptionId: data.subscription.id,
+          subscriptionToken: data.token || null,
+          subscribedSections:
+            data.subscription.sections?.map((s: { id: number }) => s.id) || [],
+          isAuthenticated: true,
+        };
+      }
+      // User is logged in but has no subscription yet
+      return { ...defaultState, isAuthenticated: true };
+    }
 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (error) {
-    console.error("Failed to save subscription state:", error);
+    // Server error (5xx, 4xx other than 401) - throw to distinguish from unauthenticated
+    console.error(
+      `Unexpected response status ${response.status} from subscription API`,
+    );
+    throw new Error(`Server error: ${response.status}`);
+  } catch (e) {
+    console.error("Failed to fetch subscription from server:", e);
+    // Re-throw to allow callers to handle the error appropriately
+    throw e;
   }
 }
 
 /**
  * Create a new subscription with initial sections
+ * Requires authentication
  */
 export async function createSubscription(
   sectionIds: number[],
@@ -64,29 +74,36 @@ export async function createSubscription(
     body: JSON.stringify({ sectionIds }),
   });
 
+  if (response.status === 401) {
+    throw new Error("Authentication required");
+  }
+
   if (!response.ok) {
     throw new Error("Failed to create subscription");
   }
 
   const data = await response.json();
 
-  const newState: SubscriptionState = {
+  return {
     subscriptionId: data.subscription.id,
     subscriptionToken: data.token,
     subscribedSections: sectionIds,
+    isAuthenticated: true,
   };
-
-  saveSubscriptionState(newState);
-  return newState;
 }
 
 /**
  * Add a section to the current subscription
+ * Requires authentication
  */
 export async function addSectionToSubscription(
   sectionId: number,
 ): Promise<SubscriptionState> {
-  const currentState = getSubscriptionState();
+  const currentState = await getSubscriptionState();
+
+  if (!currentState.isAuthenticated) {
+    throw new Error("Authentication required");
+  }
 
   // If section already subscribed, return current state
   if (currentState.subscribedSections.includes(sectionId)) {
@@ -113,26 +130,33 @@ export async function addSectionToSubscription(
     },
   );
 
+  if (response.status === 404) {
+    // Subscription not found, create a new one
+    return await createSubscription(newSectionIds);
+  }
+
   if (!response.ok) {
     throw new Error("Failed to update subscription");
   }
 
-  const newState: SubscriptionState = {
+  return {
     ...currentState,
     subscribedSections: newSectionIds,
   };
-
-  saveSubscriptionState(newState);
-  return newState;
 }
 
 /**
  * Add multiple sections to the current subscription
+ * Requires authentication
  */
 export async function addSectionsToSubscription(
   sectionIds: number[],
 ): Promise<SubscriptionState> {
-  const currentState = getSubscriptionState();
+  const currentState = await getSubscriptionState();
+
+  if (!currentState.isAuthenticated) {
+    throw new Error("Authentication required");
+  }
 
   // Filter out already subscribed sections
   const newSectionIds = [
@@ -163,26 +187,32 @@ export async function addSectionsToSubscription(
     },
   );
 
+  if (response.status === 404) {
+    return await createSubscription(newSectionIds);
+  }
+
   if (!response.ok) {
     throw new Error("Failed to update subscription");
   }
 
-  const newState: SubscriptionState = {
+  return {
     ...currentState,
     subscribedSections: newSectionIds,
   };
-
-  saveSubscriptionState(newState);
-  return newState;
 }
 
 /**
  * Remove a section from the current subscription
+ * Requires authentication
  */
 export async function removeSectionFromSubscription(
   sectionId: number,
 ): Promise<SubscriptionState> {
-  const currentState = getSubscriptionState();
+  const currentState = await getSubscriptionState();
+
+  if (!currentState.isAuthenticated) {
+    throw new Error("Authentication required");
+  }
 
   // If section not subscribed, return current state
   if (!currentState.subscribedSections.includes(sectionId)) {
@@ -211,44 +241,27 @@ export async function removeSectionFromSubscription(
     },
   );
 
+  if (response.status === 404) {
+    return { ...defaultState, isAuthenticated: true };
+  }
+
   if (!response.ok) {
     throw new Error("Failed to update subscription");
   }
 
-  const newState: SubscriptionState = {
+  return {
     ...currentState,
     subscribedSections: newSectionIds,
   };
-
-  saveSubscriptionState(newState);
-  return newState;
 }
 
 /**
- * Check if a section is currently subscribed
+ * Get the subscription ICS URL from state
  */
-export function isSectionSubscribed(sectionId: number): boolean {
-  const state = getSubscriptionState();
-  return state.subscribedSections.includes(sectionId);
-}
-
-/**
- * Get the subscription ICS URL
- */
-export function getSubscriptionIcsUrl(): string | null {
-  const state = getSubscriptionState();
-
+export function getSubscriptionIcsUrl(state: SubscriptionState): string | null {
   if (!state.subscriptionId || !state.subscriptionToken) {
     return null;
   }
 
   return `/api/calendar-subscriptions/${state.subscriptionId}/calendar.ics?token=${state.subscriptionToken}`;
-}
-
-/**
- * Clear subscription state (logout/reset)
- */
-export function clearSubscriptionState(): void {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(STORAGE_KEY);
 }
