@@ -8,26 +8,29 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/calendar-subscriptions
- * Create a new calendar subscription (anonymous or tied to user)
+ * Create a new calendar subscription (requires authentication)
  * Body: { sectionIds?: number[] }
  */
 export async function POST(request: Request) {
   try {
     const session = await auth();
+
+    if (!session?.user?.id) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const body = await request.json();
     const sectionIds = (body.sectionIds || []) as number[];
 
-    // Create the subscription
+    // Create the subscription tied to the user
     const subscription = await prisma.calendarSubscription.create({
       data: {
         sections: {
           connect: sectionIds.map((id) => ({ id })),
         },
-        user: session?.user?.id
-          ? {
-              connect: { id: session.user.id },
-            }
-          : undefined,
+        user: {
+          connect: { id: session.user.id },
+        },
       },
       include: {
         sections: true,
