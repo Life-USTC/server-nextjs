@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 const locales = ["en-us", "zh-cn"];
 const defaultLocale = "zh-cn";
@@ -44,7 +45,13 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export default function proxy(request: NextRequest) {
+export default auth((request) => {
+  if (!request.nextUrl) {
+    // This handles requests that are not NextRequest (e.g., in some edge cases or tests)
+    // But typically with auth wrapper, request is NextAuthRequest which extends NextRequest
+    return NextResponse.next();
+  }
+
   const locale = getLocale(request);
 
   // Set locale in request header for next-intl
@@ -68,7 +75,7 @@ export default function proxy(request: NextRequest) {
   }
 
   return response;
-}
+});
 
 export const config = {
   // Match all pathnames except for

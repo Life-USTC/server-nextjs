@@ -1,23 +1,40 @@
 "use client";
 
-import { Github, Globe, Monitor, Moon, Sun } from "lucide-react";
-import { useLocale } from "next-intl";
+import {
+  Github,
+  Globe,
+  Monitor,
+  Moon,
+  Sun,
+  User as UserIcon,
+} from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Link, useRouter } from "@/i18n/routing";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   Menu,
+  MenuItem,
   MenuPopup,
   MenuRadioGroup,
   MenuRadioItem,
+  MenuSeparator,
   MenuTrigger,
 } from "./ui/menu";
 
 export default function BottomBar() {
+  const t = useTranslations("profile");
+  const commonT = useTranslations("common");
+  const langT = useTranslations("language");
+  const themeT = useTranslations("theme");
+  const a11yT = useTranslations("accessibility");
   const locale = useLocale();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { data: session } = useSession();
 
   useEffect(() => {
     setMounted(true);
@@ -47,9 +64,9 @@ export default function BottomBar() {
   };
 
   const getThemeLabel = () => {
-    if (theme === "light") return "Switch to dark mode";
-    if (theme === "dark") return "Use system preference";
-    return "Switch to light mode";
+    if (theme === "light") return themeT("switchToDark");
+    if (theme === "dark") return themeT("useSystem");
+    return themeT("switchToLight");
   };
 
   return (
@@ -71,10 +88,57 @@ export default function BottomBar() {
             target="_blank"
             rel="noopener noreferrer"
             className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
-            aria-label="View source on GitHub"
+            aria-label={a11yT("viewSourceOnGithub")}
           >
             <Github className="h-5 w-5" />
           </a>
+
+          {/* User Menu */}
+          <Menu>
+            <MenuTrigger
+              render={
+                <button
+                  type="button"
+                  className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
+                  aria-label={session ? "User menu" : "Sign in"}
+                >
+                  {session?.user?.image ? (
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage
+                        src={session.user.image}
+                        alt={session.user.name || "User"}
+                      />
+                      <AvatarFallback>
+                        {session.user.name?.charAt(0) || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <UserIcon className="h-5 w-5" />
+                  )}
+                </button>
+              }
+            />
+            <MenuPopup>
+              {session ? (
+                <>
+                  <MenuItem className="font-medium" disabled>
+                    {session.user?.name || "User"}
+                  </MenuItem>
+                  <MenuSeparator />
+                  <MenuItem onClick={() => router.push("/me")}>
+                    {t("title")}
+                  </MenuItem>
+                  <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+                    {t("signOut")}
+                  </MenuItem>
+                </>
+              ) : (
+                <MenuItem onClick={() => signIn()}>
+                  {commonT("signIn")}
+                </MenuItem>
+              )}
+            </MenuPopup>
+          </Menu>
 
           {/* Language Switcher */}
           <Menu>
@@ -83,7 +147,7 @@ export default function BottomBar() {
                 <button
                   type="button"
                   className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
-                  aria-label="Language selector"
+                  aria-label={langT("selector")}
                 >
                   <Globe className="h-5 w-5" />
                 </button>

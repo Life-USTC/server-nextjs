@@ -115,6 +115,7 @@ export function SectionsFilter({
           trigger={t("searchHelp")}
           title={t("searchHelpTitle")}
           description={t("searchHelpDescription")}
+          exampleLabel={t("searchHelpExample")}
           examples={t.raw("searchHelpExamples")}
         />
 

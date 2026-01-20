@@ -121,12 +121,35 @@ export async function PATCH(
       );
     }
 
-    // Update subscription
+    // First check if subscription exists
+    const existingSubscription = await prisma.calendarSubscription.findUnique({
+      where: { id: subscriptionId },
+    });
+
+    if (!existingSubscription) {
+      return NextResponse.json(
+        { error: "Subscription not found" },
+        { status: 404 },
+      );
+    }
+
+    // Verify all section IDs exist
+    const existingSections = await prisma.section.findMany({
+      where: { id: { in: sectionIds } },
+      select: { id: true },
+    });
+
+    const existingSectionIds = existingSections.map((s) => s.id);
+    const validSectionIds = sectionIds.filter((id) =>
+      existingSectionIds.includes(id),
+    );
+
+    // Update subscription with only valid section IDs
     const subscription = await prisma.calendarSubscription.update({
       where: { id: subscriptionId },
       data: {
         sections: {
-          set: sectionIds.map((id) => ({ id })),
+          set: validSectionIds.map((id) => ({ id })),
         },
       },
       include: {

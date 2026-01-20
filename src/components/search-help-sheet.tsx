@@ -16,6 +16,7 @@ interface SearchHelpSheetProps {
   trigger: string;
   title: string;
   description: string;
+  exampleLabel: string;
   examples: Array<{
     syntax: string;
     description: string;
@@ -27,6 +28,7 @@ export function SearchHelpSheet({
   trigger,
   title,
   description,
+  exampleLabel,
   examples,
 }: SearchHelpSheetProps) {
   const [open, setOpen] = useState(false);
@@ -56,7 +58,7 @@ export function SearchHelpSheet({
                   </p>
                   {item.example && (
                     <p className="text-small text-foreground">
-                      <strong>Example:</strong>{" "}
+                      <strong>{exampleLabel}</strong>{" "}
                       <code className="font-mono bg-muted px-1 rounded">
                         {item.example}
                       </code>
