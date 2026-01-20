@@ -14,7 +14,6 @@ import {
 } from "./ui/card";
 import {
   Dialog,
-  DialogBackdrop,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -95,7 +94,6 @@ export function AccountDeletionSection() {
           >
             {t("deleteAccount")}
           </DialogTrigger>
-          <DialogBackdrop />
           <DialogPopup>
             <DialogHeader>
               <DialogTitle>{t("deleteAccountConfirmTitle")}</DialogTitle>

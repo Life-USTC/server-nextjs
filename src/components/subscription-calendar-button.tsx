@@ -19,7 +19,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogBackdrop,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -272,7 +271,6 @@ export function SubscriptionCalendarButton({
           >
             <Bell className="h-5 w-5" />
           </DialogTrigger>
-          <DialogBackdrop />
           <DialogPopup>
             <DialogHeader>
               <DialogTitle>{loginRequiredLabel}</DialogTitle>
@@ -302,7 +300,6 @@ export function SubscriptionCalendarButton({
         >
           <Calendar className="h-5 w-5" />
         </DialogTrigger>
-        <DialogBackdrop />
         <DialogPopup>
           <DialogHeader>
             <DialogTitle>{sheetTitle}</DialogTitle>

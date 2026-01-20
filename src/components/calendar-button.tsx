@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogBackdrop,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -63,7 +62,6 @@ export function CalendarButton({
       >
         <Calendar className="h-5 w-5" />
       </DialogTrigger>
-      <DialogBackdrop />
       <DialogPopup>
         <DialogHeader>
           <DialogTitle>{sheetTitle}</DialogTitle>
