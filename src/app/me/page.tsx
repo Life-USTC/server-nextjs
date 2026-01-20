@@ -28,19 +28,21 @@ export default async function ProfilePage() {
     redirect("/signin");
   }
 
+  const t = await getTranslations("profile");
+  const tCommon = await getTranslations("common");
+  const tSubs = await getTranslations("subscriptions");
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: { verifiedEmails: true, accounts: true },
   });
 
   if (!user) {
-    return <div>User not found</div>;
+    console.error("Authenticated user not found in database", {
+      userId: session.user.id,
+    });
+    return <div>{tCommon("userNotFound")}</div>;
   }
-
-  const t = await getTranslations("profile");
-  const tCommon = await getTranslations("common");
-  const tSubs = await getTranslations("subscriptions");
-
   return (
     <main className="page-main">
       <Breadcrumb>
