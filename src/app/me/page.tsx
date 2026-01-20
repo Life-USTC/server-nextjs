@@ -2,6 +2,7 @@ import { Calendar, ChevronRight } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { AccountDeletionSection } from "@/components/account-deletion-section";
 import { AccountLinkingSection } from "@/components/account-linking-section";
 import { ProfileEditForm } from "@/components/profile-edit-form";
 import {
@@ -16,7 +17,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
@@ -25,7 +25,7 @@ import { prisma } from "@/lib/prisma";
 export default async function ProfilePage() {
   const session = await auth();
   if (!session?.user) {
-    redirect("/api/auth/signin");
+    redirect("/signin");
   }
 
   const user = await prisma.user.findUnique({
@@ -66,6 +66,7 @@ export default async function ProfilePage() {
         <div className="space-y-8">
           <ProfileEditForm user={user} />
           <AccountLinkingSection user={user} />
+          <AccountDeletionSection />
         </div>
 
         <div className="space-y-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { updateProfile } from "@/app/actions/user";
@@ -45,14 +46,15 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
 
     if (result.error) {
       toast({
-        title: "Error",
+        title: t("updateError"),
         description: result.error,
         variant: "destructive",
       });
     } else {
       toast({
-        title: "Success",
-        description: "Profile updated successfully",
+        title: t("updateSuccess"),
+        description: t("updateSuccessDescription"),
+        variant: "success",
       });
     }
   }
@@ -87,10 +89,11 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                           : "border-transparent hover:border-border"
                       }`}
                     >
-                      <img
+                      <Image
                         src={pic}
                         alt="Avatar option"
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </button>
                   ))}
