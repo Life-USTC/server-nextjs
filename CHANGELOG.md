@@ -1,3 +1,16 @@
+# [0.25.0](https://github.com/Life-USTC/server-nextjs/compare/v0.24.0...v0.25.0) (2026-01-20)
+
+
+### Bug Fixes
+
+* **auth:** impl getUserByAccount ([5861baf](https://github.com/Life-USTC/server-nextjs/commit/5861bafb64be97cc0447d61da7fc545a9a0878fe))
+* **image:** use unoptimized, fix ustc logo ([87457eb](https://github.com/Life-USTC/server-nextjs/commit/87457eb8cf01cf1a2cd50a9a5a295cc36bfcd6c7))
+
+
+### Features
+
+* **subscriptions:** add bulk import and migrate to server actions ([b142537](https://github.com/Life-USTC/server-nextjs/commit/b142537fc96b08608563220b35879df146932279))
+
 ## [0.24.1](https://github.com/Life-USTC/server-nextjs/compare/v0.24.0...v0.24.1) (2026-01-20)
 
 
