@@ -14,7 +14,6 @@ import {
 } from "./ui/card";
 import {
   Dialog,
-  DialogBackdrop,
   DialogClose,
   DialogDescription,
   DialogFooter,
@@ -130,7 +129,6 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
                         ? t("disconnecting")
                         : t("disconnect")}
                     </DialogTrigger>
-                    <DialogBackdrop />
                     <DialogPopup>
                       <DialogHeader>
                         <DialogTitle>{t("disconnectConfirmTitle")}</DialogTitle>
