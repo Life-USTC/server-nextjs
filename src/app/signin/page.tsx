@@ -35,7 +35,6 @@ export default async function SignInPage({
           alt="USTC"
           width={20}
           height={20}
-          className="dark:brightness-0 dark:invert"
         />
       ),
     },
