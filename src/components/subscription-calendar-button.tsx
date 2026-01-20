@@ -63,6 +63,8 @@ interface SubscriptionCalendarButtonProps {
   loginRequiredLabel: string;
   loginRequiredDescriptionLabel: string;
   loginToSubscribeLabel: string;
+  subscriptionCalendarUrlAriaLabel: string;
+  singleSectionCalendarUrlAriaLabel: string;
 }
 
 export function SubscriptionCalendarButton({
@@ -92,6 +94,8 @@ export function SubscriptionCalendarButton({
   loginRequiredLabel,
   loginRequiredDescriptionLabel,
   loginToSubscribeLabel,
+  subscriptionCalendarUrlAriaLabel,
+  singleSectionCalendarUrlAriaLabel,
 }: SubscriptionCalendarButtonProps) {
   const router = useRouter();
   const [subscriptionState, setSubscriptionState] =
@@ -329,7 +333,7 @@ export function SubscriptionCalendarButton({
                   <div className="flex gap-2 items-center">
                     <Input
                       id="subscription-url"
-                      aria-label="Subscription calendar URL"
+                      aria-label={subscriptionCalendarUrlAriaLabel}
                       disabled
                       placeholder={fullSubscriptionUrl}
                       type="url"
@@ -372,7 +376,7 @@ export function SubscriptionCalendarButton({
                 <div className="flex gap-2 items-center">
                   <Input
                     id="calendar-url"
-                    aria-label="Single section calendar URL"
+                    aria-label={singleSectionCalendarUrlAriaLabel}
                     disabled
                     placeholder={singleCalendarUrl}
                     type="url"

@@ -62,9 +62,13 @@ export default async function CoursePage({
     notFound();
   }
 
+  const t = await getTranslations("courseDetail");
+  const tCommon = await getTranslations("common");
+  const isEnglish = locale === "en-us";
+
   const semesterGroupedSections = course.sections.reduce(
     (acc: [string, typeof course.sections][], section) => {
-      const semesterName = section.semester?.nameCn || "Unknown";
+      const semesterName = section.semester?.nameCn || tCommon("unknown");
       const existing = acc.find(([name]) => name === semesterName);
       if (existing) {
         existing[1].push(section);
@@ -75,10 +79,6 @@ export default async function CoursePage({
     },
     [],
   );
-
-  const t = await getTranslations("courseDetail");
-  const tCommon = await getTranslations("common");
-  const isEnglish = locale === "en-us";
 
   return (
     <main className="page-main">

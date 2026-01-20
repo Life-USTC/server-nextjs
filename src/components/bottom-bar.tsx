@@ -27,6 +27,9 @@ import {
 export default function BottomBar() {
   const t = useTranslations("profile");
   const commonT = useTranslations("common");
+  const langT = useTranslations("language");
+  const themeT = useTranslations("theme");
+  const a11yT = useTranslations("accessibility");
   const locale = useLocale();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -61,9 +64,9 @@ export default function BottomBar() {
   };
 
   const getThemeLabel = () => {
-    if (theme === "light") return "Switch to dark mode";
-    if (theme === "dark") return "Use system preference";
-    return "Switch to light mode";
+    if (theme === "light") return themeT("switchToDark");
+    if (theme === "dark") return themeT("useSystem");
+    return themeT("switchToLight");
   };
 
   return (
@@ -85,7 +88,7 @@ export default function BottomBar() {
             target="_blank"
             rel="noopener noreferrer"
             className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
-            aria-label="View source on GitHub"
+            aria-label={a11yT("viewSourceOnGithub")}
           >
             <Github className="h-5 w-5" />
           </a>
@@ -144,7 +147,7 @@ export default function BottomBar() {
                 <button
                   type="button"
                   className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
-                  aria-label="Language selector"
+                  aria-label={langT("selector")}
                 >
                   <Globe className="h-5 w-5" />
                 </button>

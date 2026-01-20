@@ -30,6 +30,7 @@ interface ProfileEditFormProps {
 
 export function ProfileEditForm({ user }: ProfileEditFormProps) {
   const t = useTranslations("profile");
+  const a11yT = useTranslations("accessibility");
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(user.image || "");
@@ -91,7 +92,7 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                     >
                       <Image
                         src={pic}
-                        alt="Avatar option"
+                        alt={a11yT("avatarOption")}
                         fill
                         className="object-cover"
                       />
@@ -120,7 +121,7 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                 defaultValue={user.username || ""}
                 placeholder={t("usernamePlaceholder")}
                 pattern="[a-z0-9]{1,20}"
-                title="Lowercase letters and numbers only, max 20 chars"
+                title={t("usernameValidation")}
               />
               <p className="text-xs text-muted-foreground">
                 {t("usernameHint")}

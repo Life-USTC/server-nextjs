@@ -31,7 +31,9 @@
     "clearFilters": "清除筛选",
     "loading": "加载中...",
     "error": "发生错误",
-    "back": "返回"
+    "back": "返回",
+    "userNotFound": "未找到用户",
+    "unknown": "未知"
   },
   "subscriptions": {
     "title": "我的订阅",
@@ -127,6 +129,7 @@
     "searchHelp": "?",
     "searchHelpTitle": "高级搜索语法",
     "searchHelpDescription": "使用特殊语法搜索特定属性。您可以组合多个过滤器。",
+    "searchHelpExample": "示例：",
     "searchHelpExamples": [
       {
         "syntax": "teacher:教师名",
@@ -263,7 +266,19 @@
   "language": {
     "english": "English",
     "chinese": "中文",
-    "switch": "切换语言"
+    "switch": "切换语言",
+    "selector": "语言选择"
+  },
+  "theme": {
+    "switchToLight": "切换到浅色模式",
+    "switchToDark": "切换到深色模式",
+    "useSystem": "使用系统偏好"
+  },
+  "accessibility": {
+    "viewSourceOnGithub": "在 GitHub 上查看源码",
+    "avatarOption": "头像选项",
+    "subscriptionCalendarUrl": "订阅日历链接",
+    "singleSectionCalendarUrl": "单个班级日历链接"
   },
   "profile": {
     "title": "个人资料",
@@ -276,6 +291,7 @@
     "username": "用户名",
     "usernamePlaceholder": "用户名",
     "usernameHint": "这是您的公开显示名称。",
+    "usernameValidation": "仅限小写字母和数字，最多20个字符",
     "save": "保存更改",
     "saving": "保存中...",
     "updateSuccess": "成功",

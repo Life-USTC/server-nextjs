@@ -31,7 +31,9 @@
     "clearFilters": "Clear Filters",
     "loading": "Loading...",
     "error": "An error occurred",
-    "back": "Back"
+    "back": "Back",
+    "userNotFound": "User not found",
+    "unknown": "Unknown"
   },
   "subscriptions": {
     "title": "My Subscriptions",
@@ -127,6 +129,7 @@
     "searchHelp": "?",
     "searchHelpTitle": "Advanced Search Syntax",
     "searchHelpDescription": "Use special syntax to search for specific attributes. You can combine multiple filters.",
+    "searchHelpExample": "Example:",
     "searchHelpExamples": [
       {
         "syntax": "teacher:name",
@@ -263,7 +266,19 @@
   "language": {
     "english": "English",
     "chinese": "中文",
-    "switch": "Switch language"
+    "switch": "Switch language",
+    "selector": "Language selector"
+  },
+  "theme": {
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode",
+    "useSystem": "Use system preference"
+  },
+  "accessibility": {
+    "viewSourceOnGithub": "View source on GitHub",
+    "avatarOption": "Avatar option",
+    "subscriptionCalendarUrl": "Subscription calendar URL",
+    "singleSectionCalendarUrl": "Single section calendar URL"
   },
   "profile": {
     "title": "Profile",
@@ -276,6 +291,7 @@
     "username": "Username",
     "usernamePlaceholder": "username",
     "usernameHint": "This is your public display name.",
+    "usernameValidation": "Lowercase letters and numbers only, max 20 chars",
     "save": "Save changes",
     "saving": "Saving...",
     "updateSuccess": "Success",

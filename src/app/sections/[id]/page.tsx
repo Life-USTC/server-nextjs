@@ -80,6 +80,7 @@ export default async function SectionPage({
 
   const t = await getTranslations("sectionDetail");
   const tCommon = await getTranslations("common");
+  const tA11y = await getTranslations("accessibility");
   const isEnglish = locale === "en-us";
 
   const formatWeekday = (weekday: number) => {
@@ -166,6 +167,10 @@ export default async function SectionPage({
             loginRequiredLabel={t("loginRequired")}
             loginRequiredDescriptionLabel={t("loginRequiredDescription")}
             loginToSubscribeLabel={t("loginToSubscribe")}
+            subscriptionCalendarUrlAriaLabel={tA11y("subscriptionCalendarUrl")}
+            singleSectionCalendarUrlAriaLabel={tA11y(
+              "singleSectionCalendarUrl",
+            )}
           />
         </div>
       </div>
