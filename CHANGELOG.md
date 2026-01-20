@@ -1,3 +1,10 @@
+# [0.24.0](https://github.com/Life-USTC/server-nextjs/compare/v0.23.2...v0.24.0) (2026-01-20)
+
+
+### Features
+
+* **auth:** Implement User model, OAuth2, and Profile page ([#8](https://github.com/Life-USTC/server-nextjs/issues/8)) ([2e94322](https://github.com/Life-USTC/server-nextjs/commit/2e94322dcec26b2136d8f800e6d344ec99eaa3d9))
+
 ## [0.23.2](https://github.com/Life-USTC/server-nextjs/compare/v0.23.1...v0.23.2) (2026-01-03)
 
 
