@@ -49,7 +49,26 @@
     "courseCode": "Course Code",
     "courseName": "Course Name",
     "section": "Section",
-    "credits": "Credits"
+    "credits": "Credits",
+    "bulkImport": {
+      "title": "Bulk Import Sections",
+      "description": "Paste text containing section codes (e.g., schedule screenshots, course selection lists). The system will automatically identify and match courses from the current semester.",
+      "placeholder": "Paste any text containing section codes, e.g.: 001013.01, COMP3001.01, etc.",
+      "matchButton": "Match Sections",
+      "matching": "Matching...",
+      "noValidCodes": "No valid section codes found",
+      "checkFormat": "Please check the input text format",
+      "fetchFailed": "Failed to fetch course information",
+      "pleaseRetry": "Please try again later",
+      "confirmTitle": "Confirm subscription to {count} sections",
+      "foundSections": "Found {count} matching sections. Select the courses to subscribe:",
+      "unmatchedCodes": "Unmatched codes ({count})",
+      "cancel": "Cancel",
+      "subscribeSelected": "Subscribe to {count} selected sections",
+      "success": "Subscribed successfully",
+      "successDescription": "Successfully subscribed to {count} sections",
+      "importFailed": "Subscription failed"
+    }
   },
   "homepage": {
     "badge": "🎓 Your Campus Companion",

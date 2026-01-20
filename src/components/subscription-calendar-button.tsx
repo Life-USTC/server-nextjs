@@ -10,6 +10,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  addSectionToSubscription,
+  getSubscriptionState,
+  removeSectionFromSubscription,
+  type SubscriptionState,
+} from "@/app/actions/subscription";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,13 +34,16 @@ import { anchoredToastManager, toastManager } from "@/components/ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { Link } from "@/i18n/routing";
-import {
-  addSectionToSubscription,
-  getSubscriptionIcsUrl,
-  getSubscriptionState,
-  removeSectionFromSubscription,
-  type SubscriptionState,
-} from "@/lib/subscription-storage";
+
+/**
+ * Get the subscription ICS URL from state (pure function)
+ */
+function getSubscriptionIcsUrl(state: SubscriptionState): string | null {
+  if (!state.subscriptionId || !state.subscriptionToken) {
+    return null;
+  }
+  return `/api/calendar-subscriptions/${state.subscriptionId}/calendar.ics?token=${state.subscriptionToken}`;
+}
 
 interface SubscriptionCalendarButtonProps {
   sectionDatabaseId: number;
