@@ -119,7 +119,7 @@ export default function BottomBar() {
               {session ? (
                 <>
                   <MenuItem className="font-medium" disabled>
-                    {session.user?.name || session.user?.email}
+                    {session.user?.name || "User"}
                   </MenuItem>
                   <MenuSeparator />
                   <MenuItem onClick={() => router.push("/me")}>
