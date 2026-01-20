@@ -5,28 +5,34 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 
-// Create a custom adapter that handles our User model without email field
-// Since we use VerifiedEmail model instead of email on User, and
-// allowDangerousEmailAccountLinking is false, we don't need email-based lookup
-const baseAdapter = PrismaAdapter(prisma);
 const adapter: Adapter = {
-  ...baseAdapter,
-  // Return null to skip email-based account linking
-  getUserByEmail: async () => null,
-  // Override createUser to strip email field (our User model doesn't have it)
-  createUser: async (data) => {
-    const { email, emailVerified, ...userData } = data;
+  ...PrismaAdapter(prisma),
+  createUser: async (adapterUser: AdapterUser) => {
+    const { email, emailVerified, ...userData } = adapterUser;
     const user = await prisma.user.create({ data: userData });
-    // Return with email/emailVerified to satisfy AdapterUser type
     return {
       ...user,
       email: email ?? "",
       emailVerified: emailVerified ?? null,
     } as AdapterUser;
   },
-  // Override getUser to add email fields for AdapterUser compatibility
   getUser: async (id: string) => {
     const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return null;
+    return { ...user, email: "", emailVerified: null } as AdapterUser;
+  },
+  getUserByEmail: async (_: string) => null,
+  getUserByAccount: async (account) => {
+    const user = await prisma.user.findFirst({
+      where: {
+        accounts: {
+          some: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        },
+      },
+    });
     if (!user) return null;
     return { ...user, email: "", emailVerified: null } as AdapterUser;
   },
