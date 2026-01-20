@@ -1,3 +1,10 @@
+## [0.24.1](https://github.com/Life-USTC/server-nextjs/compare/v0.24.0...v0.24.1) (2026-01-20)
+
+
+### Bug Fixes
+
+* **auth:** ipl getUserByAccount ([eb73693](https://github.com/Life-USTC/server-nextjs/commit/eb736930f891287412840e3c918feba596c8ca55))
+
 # [0.24.0](https://github.com/Life-USTC/server-nextjs/compare/v0.23.2...v0.24.0) (2026-01-20)
 
 
