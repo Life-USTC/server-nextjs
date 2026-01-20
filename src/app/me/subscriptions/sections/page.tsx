@@ -1,7 +1,8 @@
-import { Calendar } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { ClickableTableRow } from "@/components/clickable-table-row";
+import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,16 +28,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
+import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
 
 export default async function SubscriptionsPage() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/api/auth/signin");
+    redirect("/signin");
   }
 
   const t = await getTranslations("subscriptions");
   const tCommon = await getTranslations("common");
+  const tProfile = await getTranslations("profile");
 
   const subscriptions = await prisma.calendarSubscription.findMany({
     where: {
@@ -54,6 +57,14 @@ export default async function SubscriptionsPage() {
     },
   });
 
+  // Generate tokens for each subscription
+  const subscriptionsWithTokens = await Promise.all(
+    subscriptions.map(async (sub) => ({
+      ...sub,
+      token: await generateCalendarSubscriptionJWT(sub.id),
+    })),
+  );
+
   return (
     <main className="page-main">
       <Breadcrumb className="mb-6">
@@ -66,7 +77,7 @@ export default async function SubscriptionsPage() {
           <BreadcrumbSeparator />
           <BreadcrumbItem>
             <BreadcrumbLink render={<Link href="/me" />}>
-              {tCommon("me")}
+              {tProfile("title")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -84,7 +95,7 @@ export default async function SubscriptionsPage() {
       </div>
 
       <div className="grid gap-6">
-        {subscriptions.length === 0 ? (
+        {subscriptionsWithTokens.length === 0 ? (
           <Card>
             <CardHeader>
               <CardTitle>{t("noSubscriptions")}</CardTitle>
@@ -99,35 +110,25 @@ export default async function SubscriptionsPage() {
             </CardContent>
           </Card>
         ) : (
-          subscriptions.map((sub) => (
+          subscriptionsWithTokens.map((sub) => (
             <Card key={sub.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-base font-medium">
-                      Subscription #{sub.id}
+                      {t("subscriptionTitle", { id: sub.id })}
                     </CardTitle>
                     <CardDescription>
-                      {sub.sections.length} sections included
+                      {t("sectionsIncluded", { count: sub.sections.length })}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      render={
-                        <a
-                          href={`/api/calendar-subscriptions/${sub.id}/calendar.ics`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <span className="sr-only">Download iCal</span>
-                        </a>
-                      }
-                    >
-                      <Calendar className="mr-2 h-4 w-4" />
-                      iCal Link
-                    </Button>
+                    <CopyCalendarLinkButton
+                      url={`/api/calendar-subscriptions/${sub.id}/calendar.ics?token=${sub.token}`}
+                      label={t("iCalLink")}
+                      copiedMessage={t("linkCopied")}
+                      copiedDescription={t("linkCopiedDescription")}
+                    />
                   </div>
                 </div>
               </CardHeader>
@@ -136,22 +137,25 @@ export default async function SubscriptionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Course Code</TableHead>
-                        <TableHead>Course Name</TableHead>
-                        <TableHead>Section</TableHead>
-                        <TableHead>Credits</TableHead>
+                        <TableHead>{t("courseCode")}</TableHead>
+                        <TableHead>{t("courseName")}</TableHead>
+                        <TableHead>{t("section")}</TableHead>
+                        <TableHead>{t("credits")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sub.sections.map((section: any) => (
-                        <TableRow key={section.id}>
+                      {sub.sections.map((section) => (
+                        <ClickableTableRow
+                          key={section.jwId}
+                          href={`/sections/${section.jwId}`}
+                        >
                           <TableCell className="font-medium">
                             {section.course.code}
                           </TableCell>
                           <TableCell>{section.course.nameCn}</TableCell>
                           <TableCell>{section.code}</TableCell>
                           <TableCell>{section.credits}</TableCell>
-                        </TableRow>
+                        </ClickableTableRow>
                       ))}
                     </TableBody>
                   </Table>

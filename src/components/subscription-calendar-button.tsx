@@ -1,9 +1,15 @@
 "use client";
 
-import { Bell, BellOff, Calendar, CheckIcon, CopyIcon } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Calendar,
+  CheckIcon,
+  CopyIcon,
+  LogIn,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,8 +31,9 @@ import { Link } from "@/i18n/routing";
 import {
   addSectionToSubscription,
   getSubscriptionIcsUrl,
-  isSectionSubscribed,
+  getSubscriptionState,
   removeSectionFromSubscription,
+  type SubscriptionState,
 } from "@/lib/subscription-storage";
 
 interface SubscriptionCalendarButtonProps {
@@ -42,6 +49,20 @@ interface SubscriptionCalendarButtonProps {
   subscribeLabel: string;
   unsubscribeLabel: string;
   subscriptionHintLabel: string;
+  copiedLabel: string;
+  subscribingLabel: string;
+  unsubscribingLabel: string;
+  pleaseWaitLabel: string;
+  subscribeSuccessLabel: string;
+  unsubscribeSuccessLabel: string;
+  subscribeSuccessDescriptionLabel: string;
+  unsubscribeSuccessDescriptionLabel: string;
+  operationFailedLabel: string;
+  pleaseRetryLabel: string;
+  viewAllSubscriptionsLabel: string;
+  loginRequiredLabel: string;
+  loginRequiredDescriptionLabel: string;
+  loginToSubscribeLabel: string;
 }
 
 export function SubscriptionCalendarButton({
@@ -57,14 +78,26 @@ export function SubscriptionCalendarButton({
   subscribeLabel,
   unsubscribeLabel,
   subscriptionHintLabel,
+  copiedLabel,
+  subscribingLabel,
+  unsubscribingLabel,
+  pleaseWaitLabel,
+  subscribeSuccessLabel,
+  unsubscribeSuccessLabel,
+  subscribeSuccessDescriptionLabel,
+  unsubscribeSuccessDescriptionLabel,
+  operationFailedLabel,
+  pleaseRetryLabel,
+  viewAllSubscriptionsLabel,
+  loginRequiredLabel,
+  loginRequiredDescriptionLabel,
+  loginToSubscribeLabel,
 }: SubscriptionCalendarButtonProps) {
-  const t = useTranslations("common");
   const router = useRouter();
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [subscriptionIcsUrl, setSubscriptionIcsUrl] = useState<string | null>(
-    null,
-  );
+  const [subscriptionState, setSubscriptionState] =
+    useState<SubscriptionState | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isOperating, setIsOperating] = useState(false);
 
   const singleCopyButtonRef = useRef<HTMLButtonElement>(null);
   const subscriptionCopyButtonRef = useRef<HTMLButtonElement>(null);
@@ -78,7 +111,7 @@ export function SubscriptionCalendarButton({
             data: { tooltipStyle: true },
             positionerProps: { anchor: singleCopyButtonRef.current },
             timeout: toastTimeout,
-            title: "已复制!",
+            title: copiedLabel,
           });
         }
       },
@@ -93,18 +126,37 @@ export function SubscriptionCalendarButton({
             data: { tooltipStyle: true },
             positionerProps: { anchor: subscriptionCopyButtonRef.current },
             timeout: toastTimeout,
-            title: "已复制!",
+            title: copiedLabel,
           });
         }
       },
       timeout: toastTimeout,
     });
 
-  // Check subscription status on mount and when it changes
+  // Fetch subscription state on mount
+  const fetchState = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const state = await getSubscriptionState();
+      setSubscriptionState(state);
+    } catch (e) {
+      console.error("Failed to fetch subscription state:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    setIsSubscribed(isSectionSubscribed(sectionDatabaseId));
-    setSubscriptionIcsUrl(getSubscriptionIcsUrl());
-  }, [sectionDatabaseId]);
+    fetchState();
+  }, [fetchState]);
+
+  // Derived state
+  const isAuthenticated = subscriptionState?.isAuthenticated ?? false;
+  const isSubscribed =
+    subscriptionState?.subscribedSections.includes(sectionDatabaseId) ?? false;
+  const subscriptionIcsUrl = subscriptionState
+    ? getSubscriptionIcsUrl(subscriptionState)
+    : null;
 
   // Single section calendar URL
   const singleCalendarUrl =
@@ -127,7 +179,12 @@ export function SubscriptionCalendarButton({
   };
 
   const handleSubscribeToggle = async () => {
-    setIsLoading(true);
+    if (!isAuthenticated) {
+      // This shouldn't happen as the button is replaced with login prompt
+      return;
+    }
+
+    setIsOperating(true);
 
     const promise = isSubscribed
       ? removeSectionFromSubscription(sectionDatabaseId)
@@ -135,20 +192,19 @@ export function SubscriptionCalendarButton({
 
     toastManager.promise(promise, {
       loading: {
-        title: isSubscribed ? "取消订阅中..." : "订阅中...",
-        description: "请稍候",
+        title: isSubscribed ? unsubscribingLabel : subscribingLabel,
+        description: pleaseWaitLabel,
       },
-      success: () => {
-        setIsSubscribed(!isSubscribed);
-        setSubscriptionIcsUrl(getSubscriptionIcsUrl());
-        setIsLoading(false);
+      success: (newState) => {
+        setSubscriptionState(newState);
+        setIsOperating(false);
         return {
-          title: isSubscribed ? "已取消订阅" : "订阅成功",
+          title: isSubscribed ? unsubscribeSuccessLabel : subscribeSuccessLabel,
           description: isSubscribed
-            ? "该课程已从您的订阅中移除"
-            : "该课程已添加到您的订阅",
+            ? unsubscribeSuccessDescriptionLabel
+            : subscribeSuccessDescriptionLabel,
           actionProps: {
-            children: t("viewAll"),
+            children: viewAllSubscriptionsLabel,
             onClick: () => {
               router.push("/me/subscriptions/sections/");
             },
@@ -156,30 +212,75 @@ export function SubscriptionCalendarButton({
         };
       },
       error: (error) => {
-        setIsLoading(false);
+        setIsOperating(false);
         return {
-          title: "操作失败",
-          description: error instanceof Error ? error.message : "请重试",
+          title: operationFailedLabel,
+          description:
+            error instanceof Error ? error.message : pleaseRetryLabel,
         };
       },
     });
   };
 
+  // Show skeleton while loading
+  if (isLoading) {
+    return (
+      <div className="flex gap-2">
+        <Button variant="outline" disabled>
+          <Bell className="h-5 w-5" />
+        </Button>
+        <Button variant="outline" disabled>
+          <Calendar className="h-5 w-5" />
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2">
-      {/* Subscribe/Unsubscribe Button */}
-      <Button
-        onClick={handleSubscribeToggle}
-        disabled={isLoading}
-        variant={isSubscribed ? "default" : "outline"}
-        aria-label={isSubscribed ? unsubscribeLabel : subscribeLabel}
-      >
-        {isSubscribed ? (
-          <BellOff className="h-5 w-5" />
-        ) : (
-          <Bell className="h-5 w-5" />
-        )}
-      </Button>
+      {/* Subscribe/Unsubscribe Button or Login Prompt */}
+      {isAuthenticated ? (
+        <Button
+          onClick={handleSubscribeToggle}
+          disabled={isOperating}
+          variant={isSubscribed ? "default" : "outline"}
+          aria-label={isSubscribed ? unsubscribeLabel : subscribeLabel}
+        >
+          {isSubscribed ? (
+            <BellOff className="h-5 w-5" />
+          ) : (
+            <Bell className="h-5 w-5" />
+          )}
+        </Button>
+      ) : (
+        <Dialog>
+          <DialogTrigger
+            render={<Button variant="outline" aria-label={subscribeLabel} />}
+          >
+            <Bell className="h-5 w-5" />
+          </DialogTrigger>
+          <DialogBackdrop />
+          <DialogPopup>
+            <DialogHeader>
+              <DialogTitle>{loginRequiredLabel}</DialogTitle>
+              <DialogDescription>
+                {loginRequiredDescriptionLabel}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>
+                {closeLabel}
+              </DialogClose>
+              <Link href="/signin">
+                <Button>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  {loginToSubscribeLabel}
+                </Button>
+              </Link>
+            </DialogFooter>
+          </DialogPopup>
+        </Dialog>
+      )}
 
       {/* Calendar Dialog */}
       <Dialog>
@@ -207,8 +308,8 @@ export function SubscriptionCalendarButton({
 
           <DialogPanel>
             <div className="space-y-6">
-              {/* Subscription Calendar (if exists) */}
-              {subscriptionIcsUrl && (
+              {/* Subscription Calendar (if exists and authenticated) */}
+              {isAuthenticated && subscriptionIcsUrl && (
                 <div className="space-y-3">
                   <label
                     htmlFor="subscription-url"
@@ -222,7 +323,7 @@ export function SubscriptionCalendarButton({
                       href="/me/subscriptions/sections/"
                       className="text-primary hover:underline"
                     >
-                      查看所有订阅 →
+                      {viewAllSubscriptionsLabel} →
                     </Link>
                   </p>
                   <div className="flex gap-2 items-center">

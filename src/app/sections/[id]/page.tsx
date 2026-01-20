@@ -150,6 +150,22 @@ export default async function SectionPage({
             copyLabel={t("copyToClipboard")}
             closeLabel={t("close")}
             learnMoreLabel={t("learnMoreAboutICalendar")}
+            copiedLabel={t("copied")}
+            subscribingLabel={t("subscribing")}
+            unsubscribingLabel={t("unsubscribing")}
+            pleaseWaitLabel={t("pleaseWait")}
+            subscribeSuccessLabel={t("subscribeSuccess")}
+            unsubscribeSuccessLabel={t("unsubscribeSuccess")}
+            subscribeSuccessDescriptionLabel={t("subscribeSuccessDescription")}
+            unsubscribeSuccessDescriptionLabel={t(
+              "unsubscribeSuccessDescription",
+            )}
+            operationFailedLabel={t("operationFailed")}
+            pleaseRetryLabel={t("pleaseRetry")}
+            viewAllSubscriptionsLabel={t("viewAllSubscriptions")}
+            loginRequiredLabel={t("loginRequired")}
+            loginRequiredDescriptionLabel={t("loginRequiredDescription")}
+            loginToSubscribeLabel={t("loginToSubscribe")}
           />
         </div>
       </div>
