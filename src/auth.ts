@@ -89,8 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       // Extract email from profile
-      const email =
-        account.provider === "oidc" ? (profile as any)?.email : profile?.email;
+      const email = profile?.email;
 
       if (email) {
         try {
@@ -131,7 +130,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async linkAccount({ user, account, profile }) {
       // This event fires after the account is linked and user exists in DB
-      const email = (profile as any)?.email;
+      const email = profile?.email;
 
       if (email && user.id) {
         try {
