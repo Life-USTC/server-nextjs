@@ -32,6 +32,18 @@ export async function updateProfile(formData: FormData) {
     }
   }
 
+  // Validate image - must be from user's profilePictures array
+  if (image) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { profilePictures: true },
+    });
+
+    if (!user?.profilePictures.includes(image)) {
+      return { error: "Invalid profile picture selection" };
+    }
+  }
+
   try {
     const data: any = {};
     if (name) data.name = name;
