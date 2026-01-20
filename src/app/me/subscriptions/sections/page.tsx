@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { BulkImportSections } from "@/components/bulk-import-sections";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
 import {
@@ -93,6 +94,8 @@ export default async function SubscriptionsPage() {
           {t("description")}
         </p>
       </div>
+
+      <BulkImportSections />
 
       <div className="grid gap-6">
         {subscriptionsWithTokens.length === 0 ? (
