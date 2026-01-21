@@ -1,4 +1,4 @@
-import { Bell, BookOpen, Calendar } from "lucide-react";
+import { Calendar, User, Users } from "lucide-react";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
@@ -61,22 +61,6 @@ export default async function Homepage() {
       <section className="mb-12 animate-in fade-in duration-700 delay-300">
         <h2 className="text-title-2 mb-6">{t("quickAccess.title")}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link href="/courses" className="no-underline">
-            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  <CardTitle>{t("quickAccess.browseCourses.title")}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardPanel>
-                <p className="text-body text-muted-foreground line-clamp-2">
-                  {t("quickAccess.browseCourses.description")}
-                </p>
-              </CardPanel>
-            </Card>
-          </Link>
-
           <Link href="/sections" className="no-underline">
             <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
               <CardHeader>
@@ -93,19 +77,33 @@ export default async function Homepage() {
             </Card>
           </Link>
 
-          <Link href="/me/subscriptions/sections/" className="no-underline">
+          <Link href="/teachers" className="no-underline">
             <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <Bell className="h-5 w-5 text-primary" />
-                  <CardTitle>
-                    {t("quickAccess.mySubscriptions.title")}
-                  </CardTitle>
+                  <Users className="h-5 w-5 text-primary" />
+                  <CardTitle>{t("quickAccess.browseTeachers.title")}</CardTitle>
                 </div>
               </CardHeader>
               <CardPanel>
                 <p className="text-body text-muted-foreground line-clamp-2">
-                  {t("quickAccess.mySubscriptions.description")}
+                  {t("quickAccess.browseTeachers.description")}
+                </p>
+              </CardPanel>
+            </Card>
+          </Link>
+
+          <Link href="/me" className="no-underline">
+            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-primary" />
+                  <CardTitle>{t("quickAccess.myProfile.title")}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardPanel>
+                <p className="text-body text-muted-foreground line-clamp-2">
+                  {t("quickAccess.myProfile.description")}
                 </p>
               </CardPanel>
             </Card>
