@@ -1,3 +1,10 @@
+# [0.26.0](https://github.com/Life-USTC/server-nextjs/compare/v0.25.1...v0.26.0) (2026-01-21)
+
+
+### Features
+
+* **teachers:** add teachers browse page and API endpoint ([aad6b8c](https://github.com/Life-USTC/server-nextjs/commit/aad6b8ca0d1988588a1a9319aa533f2a5a146a97))
+
 ## [0.25.1](https://github.com/Life-USTC/server-nextjs/compare/v0.25.0...v0.25.1) (2026-01-20)
 
 
