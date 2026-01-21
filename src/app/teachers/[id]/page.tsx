@@ -26,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
@@ -200,101 +199,48 @@ export default async function TeacherPage({
         <h2 className="text-headline">
           {t("teachingSections", { count: teacher.sections.length })}
         </h2>
-        <ViewSwitcher />
       </div>
 
       {teacher.sections.length > 0 ? (
-        view === "table" ? (
-          <div className="mb-8">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("semester")}</TableHead>
-                  <TableHead>{t("courseName")}</TableHead>
-                  <TableHead>{t("sectionCode")}</TableHead>
-                  <TableHead>{t("credits")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teacher.sections.map((section) => (
-                  <ClickableTableRow
-                    key={section.id}
-                    href={`/sections/${section.jwId}`}
-                  >
-                    <TableCell>
-                      {section.semester && (
-                        <Badge variant="outline">
-                          {section.semester.nameCn}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {isEnglish && section.course.nameEn
-                        ? section.course.nameEn
-                        : section.course.nameCn}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono">
-                        {section.code}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {section.credits !== null ? section.credits : "—"}
-                    </TableCell>
-                  </ClickableTableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="space-y-6 mb-8">
-            {Object.entries(sectionsBySemester).map(
-              ([semesterName, sections]) => (
-                <div key={semesterName}>
-                  <h3 className="text-lg font-semibold mb-3">{semesterName}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {sections.map((section) => (
-                      <Link
-                        key={section.id}
-                        href={`/sections/${section.jwId}`}
-                        className="no-underline"
-                      >
-                        <Card className="h-full overflow-hidden">
-                          <CardHeader>
-                            <CardTitle className="text-base">
-                              {isEnglish && section.course.nameEn
-                                ? section.course.nameEn
-                                : section.course.nameCn}
-                            </CardTitle>
-                            <CardDescription>
-                              <Badge variant="outline" className="font-mono">
-                                {section.code}
-                              </Badge>
-                            </CardDescription>
-                          </CardHeader>
-                          <CardPanel>
-                            <div className="flex flex-wrap gap-2">
-                              {section.credits !== null && (
-                                <Badge variant="secondary">
-                                  {section.credits} {t("credits")}
-                                </Badge>
-                              )}
-                              {section.campus && (
-                                <Badge variant="outline">
-                                  {section.campus.nameCn}
-                                </Badge>
-                              )}
-                            </div>
-                          </CardPanel>
-                        </Card>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-        )
+        <div className="mb-8">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("semester")}</TableHead>
+                <TableHead>{t("courseName")}</TableHead>
+                <TableHead>{t("sectionCode")}</TableHead>
+                <TableHead>{t("credits")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teacher.sections.map((section) => (
+                <ClickableTableRow
+                  key={section.id}
+                  href={`/sections/${section.jwId}`}
+                >
+                  <TableCell>
+                    {section.semester && (
+                      <Badge variant="outline">{section.semester.nameCn}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEnglish && section.course.nameEn
+                      ? section.course.nameEn
+                      : section.course.nameCn}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">
+                      {section.code}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {section.credits !== null ? section.credits : "—"}
+                  </TableCell>
+                </ClickableTableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <Empty>
           <EmptyHeader>

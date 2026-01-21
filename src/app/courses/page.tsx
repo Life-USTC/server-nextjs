@@ -40,7 +40,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
@@ -209,126 +208,67 @@ export default async function CoursesPage({
             <span className="ml-2">{t("searchFor", { query: search })}</span>
           )}
         </p>
-        <ViewSwitcher />
       </div>
 
       {courses.length > 0 ? (
-        view === "table" ? (
-          <div className="mb-8">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("courseName")}</TableHead>
-                  <TableHead>{t("courseCode")}</TableHead>
-                  <TableHead>{t("educationLevel")}</TableHead>
-                  <TableHead>{t("category")}</TableHead>
-                  <TableHead>{t("classType")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {courses.map((course) => (
-                  <ClickableTableRow
-                    key={course.jwId}
-                    href={`/courses/${course.jwId}`}
-                  >
-                    <TableCell>
-                      {isEnglish && course.nameEn
-                        ? course.nameEn
-                        : course.nameCn}
-                      {isEnglish
-                        ? course.nameCn && (
-                            <div className="text-muted-foreground text-xs">
-                              {course.nameCn}
-                            </div>
-                          )
-                        : course.nameEn && (
-                            <div className="text-muted-foreground text-xs">
-                              {course.nameEn}
-                            </div>
-                          )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono">
-                        {course.code}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {course.educationLevel && (
-                        <Badge variant="outline">
-                          {course.educationLevel.nameCn}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {course.category && (
-                        <Badge variant="outline">
-                          {course.category.nameCn}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {course.classType && (
-                        <Badge variant="outline">
-                          {course.classType.nameCn}
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </ClickableTableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {courses.map((course) => (
-              <Link
-                key={course.jwId}
-                href={`/courses/${course.jwId}`}
-                className="no-underline"
-              >
-                <Card className="h-full overflow-hidden">
-                  <CardHeader>
-                    <CardTitle>
-                      {isEnglish && course.nameEn
-                        ? course.nameEn
-                        : course.nameCn}
-                    </CardTitle>
+        <div className="mb-8">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("courseName")}</TableHead>
+                <TableHead>{t("courseCode")}</TableHead>
+                <TableHead>{t("educationLevel")}</TableHead>
+                <TableHead>{t("category")}</TableHead>
+                <TableHead>{t("classType")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {courses.map((course) => (
+                <ClickableTableRow
+                  key={course.jwId}
+                  href={`/courses/${course.jwId}`}
+                >
+                  <TableCell>
+                    {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
                     {isEnglish
                       ? course.nameCn && (
-                          <CardDescription>{course.nameCn}</CardDescription>
+                          <div className="text-muted-foreground text-xs">
+                            {course.nameCn}
+                          </div>
                         )
                       : course.nameEn && (
-                          <CardDescription>{course.nameEn}</CardDescription>
+                          <div className="text-muted-foreground text-xs">
+                            {course.nameEn}
+                          </div>
                         )}
-                  </CardHeader>
-
-                  <CardPanel>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="font-mono">
-                        {course.code}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-mono">
+                      {course.code}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {course.educationLevel && (
+                      <Badge variant="outline">
+                        {course.educationLevel.nameCn}
                       </Badge>
-                      {course.educationLevel && (
-                        <Badge variant="outline">
-                          {course.educationLevel.nameCn}
-                        </Badge>
-                      )}
-                      {course.category && (
-                        <Badge variant="outline">
-                          {course.category.nameCn}
-                        </Badge>
-                      )}
-                      {course.classType && (
-                        <Badge variant="outline">
-                          {course.classType.nameCn}
-                        </Badge>
-                      )}
-                    </div>
-                  </CardPanel>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {course.category && (
+                      <Badge variant="outline">{course.category.nameCn}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {course.classType && (
+                      <Badge variant="outline">{course.classType.nameCn}</Badge>
+                    )}
+                  </TableCell>
+                </ClickableTableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <Empty>
           <EmptyHeader>

@@ -26,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
@@ -647,126 +646,63 @@ export default async function SectionPage({
           <h2 className="text-title-2">
             {t("schedule", { count: section.schedules.length })}
           </h2>
-          <ViewSwitcher />
         </div>
         {section.schedules.length > 0 ? (
-          view === "table" ? (
-            <div className="mb-8">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("date")}</TableHead>
-                    <TableHead>{t("weekday")}</TableHead>
-                    <TableHead>{t("time")}</TableHead>
-                    <TableHead>{t("units")}</TableHead>
-                    <TableHead>{t("week")}</TableHead>
-                    <TableHead>{t("location")}</TableHead>
-                    <TableHead>{t("teacher")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {section.schedules.map((schedule) => (
-                    <TableRow key={schedule.id}>
-                      <TableCell>
-                        {dayjs(schedule.date).format("YYYY.MM.DD")}
-                      </TableCell>
-                      <TableCell>
-                        {formatWeekday(dayjs(schedule.date).day())}
-                      </TableCell>
-                      <TableCell>
-                        {formatTime(schedule.startTime)} -{" "}
-                        {formatTime(schedule.endTime)}
-                      </TableCell>
-                      <TableCell>
-                        {schedule.startUnit} - {schedule.endUnit}
-                      </TableCell>
-                      <TableCell>{schedule.weekIndex || "—"}</TableCell>
-                      <TableCell>
-                        {schedule.customPlace
-                          ? schedule.customPlace
-                          : schedule.room
-                            ? `${schedule.room.nameCn}${
-                                schedule.room.building
-                                  ? ` · ${schedule.room.building.nameCn}`
-                                  : ""
-                              }${
-                                schedule.room.building?.campus
-                                  ? ` · ${schedule.room.building.campus.nameCn}`
-                                  : ""
-                              }`
-                            : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {schedule.teachers && schedule.teachers.length > 0
-                          ? schedule.teachers.map((t) => t.nameCn).join(", ")
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {section.schedules.map((schedule) => (
-                <Card key={schedule.id}>
-                  <CardHeader>
-                    <CardTitle>
+          <div className="mb-8">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("date")}</TableHead>
+                  <TableHead>{t("weekday")}</TableHead>
+                  <TableHead>{t("time")}</TableHead>
+                  <TableHead>{t("units")}</TableHead>
+                  <TableHead>{t("week")}</TableHead>
+                  <TableHead>{t("location")}</TableHead>
+                  <TableHead>{t("teacher")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {section.schedules.map((schedule) => (
+                  <TableRow key={schedule.id}>
+                    <TableCell>
                       {dayjs(schedule.date).format("YYYY.MM.DD")}
-                    </CardTitle>
-                    <p className="text-small text-muted-foreground">
+                    </TableCell>
+                    <TableCell>
                       {formatWeekday(dayjs(schedule.date).day())}
-                    </p>
-                  </CardHeader>
-                  <CardPanel>
-                    <div className="flex flex-col gap-3">
-                      <p className="text-body text-foreground">
-                        <strong>{t("time")}:</strong>{" "}
-                        {formatTime(schedule.startTime)} -{" "}
-                        {formatTime(schedule.endTime)}
-                      </p>
-                      <p className="text-body text-foreground">
-                        <strong>{t("units")}:</strong> {schedule.startUnit} -{" "}
-                        {schedule.endUnit}
-                      </p>
-                      {schedule.weekIndex && (
-                        <p className="text-body text-foreground">
-                          <strong>{t("week")}:</strong> {schedule.weekIndex}
-                        </p>
-                      )}
-                      {schedule.customPlace ? (
-                        <p className="text-body text-foreground">
-                          <strong>{t("location")}:</strong>{" "}
-                          {schedule.customPlace}
-                        </p>
-                      ) : (
-                        schedule.room && (
-                          <p className="text-body text-foreground">
-                            <strong>{t("location")}:</strong>{" "}
-                            {schedule.room.nameCn}
-                            {schedule.room.building && (
-                              <span className="text-muted-foreground">
-                                {" "}
-                                · {schedule.room.building.nameCn}
-                                {schedule.room.building.campus &&
-                                  ` · ${schedule.room.building.campus.nameCn}`}
-                              </span>
-                            )}
-                          </p>
-                        )
-                      )}
-                      {schedule.teachers && schedule.teachers.length > 0 && (
-                        <p className="text-body text-foreground">
-                          <strong>{t("teacher")}:</strong>{" "}
-                          {schedule.teachers.map((t) => t.nameCn).join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </CardPanel>
-                </Card>
-              ))}
-            </div>
-          )
+                    </TableCell>
+                    <TableCell>
+                      {formatTime(schedule.startTime)} -{" "}
+                      {formatTime(schedule.endTime)}
+                    </TableCell>
+                    <TableCell>
+                      {schedule.startUnit} - {schedule.endUnit}
+                    </TableCell>
+                    <TableCell>{schedule.weekIndex || "—"}</TableCell>
+                    <TableCell>
+                      {schedule.customPlace
+                        ? schedule.customPlace
+                        : schedule.room
+                          ? `${schedule.room.nameCn}${
+                              schedule.room.building
+                                ? ` · ${schedule.room.building.nameCn}`
+                                : ""
+                            }${
+                              schedule.room.building?.campus
+                                ? ` · ${schedule.room.building.campus.nameCn}`
+                                : ""
+                            }`
+                          : "—"}
+                    </TableCell>
+                    <TableCell>
+                      {schedule.teachers && schedule.teachers.length > 0
+                        ? schedule.teachers.map((t) => t.nameCn).join(", ")
+                        : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         ) : (
           <Empty>
             <EmptyHeader>

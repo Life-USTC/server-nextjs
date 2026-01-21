@@ -20,7 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
@@ -168,120 +167,60 @@ export default async function CoursePage({
           <h2 className="text-title-2">
             {t("availableSections", { count: course.sections.length })}
           </h2>
-          <ViewSwitcher />
         </div>
-        {view === "table" ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("semester")}</TableHead>
-                <TableHead>{t("sectionCode")}</TableHead>
-                <TableHead>{t("teachers")}</TableHead>
-                <TableHead>{t("campus")}</TableHead>
-                <TableHead>{t("capacity")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {course.sections.map((section) => (
-                <ClickableTableRow
-                  key={section.jwId}
-                  href={`/sections/${section.jwId}`}
-                >
-                  <TableCell>
-                    {section.semester ? section.semester.nameCn : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{section.code}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className="max-w-[12ch] truncate"
-                      title={
-                        section.teachers && section.teachers.length > 0
-                          ? section.teachers
-                              .map((teacher) => teacher.nameCn)
-                              .join(", ")
-                          : undefined
-                      }
-                    >
-                      {section.teachers && section.teachers.length > 0
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t("semester")}</TableHead>
+              <TableHead>{t("sectionCode")}</TableHead>
+              <TableHead>{t("teachers")}</TableHead>
+              <TableHead>{t("campus")}</TableHead>
+              <TableHead>{t("capacity")}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {course.sections.map((section) => (
+              <ClickableTableRow
+                key={section.jwId}
+                href={`/sections/${section.jwId}`}
+              >
+                <TableCell>
+                  {section.semester ? section.semester.nameCn : "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{section.code}</Badge>
+                </TableCell>
+                <TableCell>
+                  <div
+                    className="max-w-[12ch] truncate"
+                    title={
+                      section.teachers && section.teachers.length > 0
                         ? section.teachers
                             .map((teacher) => teacher.nameCn)
                             .join(", ")
-                        : "—"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {section.campus ? section.campus.nameCn : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {section.stdCount ?? 0} / {section.limitCount ?? "—"}
-                    </Badge>
-                  </TableCell>
-                </ClickableTableRow>
-              ))}
-            </TableBody>
-          </Table>
-        ) : (
-          semesterGroupedSections.map(([semesterName, semesterSections]) => (
-            <div key={semesterName} className="mb-6">
-              <h3 className="text-subtitle mb-3">
-                {t("semesterSections", {
-                  semester: semesterName,
-                  count: semesterSections.length,
-                })}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {semesterSections.map((section) => (
-                  <Link
-                    key={section.jwId}
-                    href={`/sections/${section.jwId}`}
-                    className="no-underline"
+                        : undefined
+                    }
                   >
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>
-                          <Badge variant="outline">{section.code}</Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardPanel>
-                        <div className="flex flex-col gap-3">
-                          {section.teachers && section.teachers.length > 0 && (
-                            <p className="text-body text-foreground">
-                              <strong>{t("teachers")}:</strong>{" "}
-                              <span
-                                className="inline-block max-w-[20ch] truncate align-bottom"
-                                title={section.teachers
-                                  .map((teacher) => teacher.nameCn)
-                                  .join(", ")}
-                              >
-                                {section.teachers
-                                  .map((teacher) => teacher.nameCn)
-                                  .join(", ")}
-                              </span>
-                            </p>
-                          )}
-                          {section.campus && (
-                            <p className="text-body text-foreground">
-                              <strong>{t("campus")}:</strong>{" "}
-                              {section.campus.nameCn}
-                            </p>
-                          )}
-                          <p className="text-body text-foreground">
-                            <strong>{t("capacity")}:</strong>{" "}
-                            {section.stdCount ?? 0} /{" "}
-                            {section.limitCount ?? "—"}
-                          </p>
-                        </div>
-                      </CardPanel>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))
-        )}
+                    {section.teachers && section.teachers.length > 0
+                      ? section.teachers
+                          .map((teacher) => teacher.nameCn)
+                          .join(", ")
+                      : "—"}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {section.campus ? section.campus.nameCn : "—"}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {section.stdCount ?? 0} / {section.limitCount ?? "—"}
+                  </Badge>
+                </TableCell>
+              </ClickableTableRow>
+            ))}
+          </TableBody>
+        </Table>
+
         {course.sections.length === 0 && (
           <Empty>
             <EmptyHeader>

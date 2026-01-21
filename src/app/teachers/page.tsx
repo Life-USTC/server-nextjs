@@ -40,7 +40,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ViewSwitcher } from "@/components/view-switcher";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
@@ -191,149 +190,63 @@ export default async function TeachersPage({
             </span>
           )}
         </p>
-        <ViewSwitcher />
       </div>
 
       {teachers.length > 0 ? (
-        view === "table" ? (
-          <div className="mb-8">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("name")}</TableHead>
-                  <TableHead>{t("department")}</TableHead>
-                  <TableHead>{t("title_label")}</TableHead>
-                  <TableHead>{t("email")}</TableHead>
-                  <TableHead>{t("sectionCount")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {teachers.map((teacher) => (
-                  <ClickableTableRow
-                    key={teacher.id}
-                    href={`/teachers/${teacher.id}`}
-                  >
-                    <TableCell>
-                      <div className="font-medium">
-                        {teacher.nameCn}
-                        {isEnglish && teacher.nameEn && (
-                          <span className="ml-2 text-muted-foreground">
-                            ({teacher.nameEn})
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {teacher.department ? (
-                        <Badge variant="outline">
-                          {teacher.department.nameCn}
-                        </Badge>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {teacher.teacherTitle ? teacher.teacherTitle.nameCn : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {teacher.email ? (
-                        <span className="text-sm">{teacher.email}</span>
-                      ) : (
-                        "—"
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {teacher._count.sections}
-                      </Badge>
-                    </TableCell>
-                  </ClickableTableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {teachers.map((teacher) => (
-              <Link
-                key={teacher.id}
-                href={`/teachers/${teacher.id}`}
-                className="no-underline"
-              >
-                <Card className="h-full overflow-hidden">
-                  <CardHeader>
-                    <CardTitle>
+        <div className="mb-8">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("name")}</TableHead>
+                <TableHead>{t("department")}</TableHead>
+                <TableHead>{t("title_label")}</TableHead>
+                <TableHead>{t("email")}</TableHead>
+                <TableHead>{t("sectionCount")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {teachers.map((teacher) => (
+                <ClickableTableRow
+                  key={teacher.id}
+                  href={`/teachers/${teacher.id}`}
+                >
+                  <TableCell>
+                    <div className="font-medium">
                       {teacher.nameCn}
                       {isEnglish && teacher.nameEn && (
-                        <span className="ml-2 text-muted-foreground text-lg">
+                        <span className="ml-2 text-muted-foreground">
                           ({teacher.nameEn})
                         </span>
                       )}
-                    </CardTitle>
-                    <CardDescription>
-                      <div className="flex flex-wrap gap-2">
-                        {teacher.department && (
-                          <Badge variant="outline">
-                            {teacher.department.nameCn}
-                          </Badge>
-                        )}
-                        {teacher.teacherTitle && (
-                          <Badge variant="secondary">
-                            {teacher.teacherTitle.nameCn}
-                          </Badge>
-                        )}
-                      </div>
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardPanel>
-                    <div className="flex flex-col gap-3">
-                      {teacher.email && (
-                        <p className="text-body text-foreground">
-                          <strong className="text-foreground font-semibold">
-                            {t("email")}:
-                          </strong>{" "}
-                          {teacher.email}
-                        </p>
-                      )}
-                      <p className="text-body text-foreground">
-                        <strong className="text-foreground font-semibold">
-                          {t("sectionCount")}:
-                        </strong>{" "}
-                        <Badge variant="secondary">
-                          {teacher._count.sections}
-                        </Badge>
-                      </p>
-                      {teacher.sections && teacher.sections.length > 0 && (
-                        <div className="text-body text-foreground">
-                          <strong className="text-foreground font-semibold">
-                            {t("sections")}:
-                          </strong>
-                          <div className="mt-1 flex flex-wrap gap-1">
-                            {teacher.sections.slice(0, 3).map((section) => (
-                              <Badge
-                                key={section.id}
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {section.course.nameCn}
-                              </Badge>
-                            ))}
-                            {teacher.sections.length > 3 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{teacher.sections.length - 3}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
-                  </CardPanel>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )
+                  </TableCell>
+                  <TableCell>
+                    {teacher.department ? (
+                      <Badge variant="outline">
+                        {teacher.department.nameCn}
+                      </Badge>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {teacher.teacherTitle ? teacher.teacherTitle.nameCn : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {teacher.email ? (
+                      <span className="text-sm">{teacher.email}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{teacher._count.sections}</Badge>
+                  </TableCell>
+                </ClickableTableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <Empty>
           <EmptyHeader>
