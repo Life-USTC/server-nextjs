@@ -484,7 +484,7 @@ export default async function SectionPage({
                       <p className="text-sm text-muted-foreground mb-2">
                         {t("sameSemesterOtherTeachers")}
                       </p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-x-2">
                         {sameSemesterOtherTeachers
                           .slice(0, 10)
                           .map((otherSection) => (
@@ -522,7 +522,7 @@ export default async function SectionPage({
                       <p className="text-sm text-muted-foreground mb-2">
                         {t("sameTeacherOtherSemesters")}
                       </p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-x-2">
                         {sameTeacherOtherSemesters
                           .slice(0, 10)
                           .map((otherSection) => (
