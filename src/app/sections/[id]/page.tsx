@@ -262,9 +262,7 @@ export default async function SectionPage({
                 <span className="text-muted-foreground">
                   {tCommon("undergraduateGraduate")}
                 </span>
-                <span className="font-medium text-foreground">
-                  {tCommon("undergraduateGraduate")}
-                </span>
+                <span className="font-medium text-foreground">✓</span>
               </div>
             )}
             {section.credits !== null && (
