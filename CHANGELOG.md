@@ -1,3 +1,10 @@
+## [0.26.2](https://github.com/Life-USTC/server-nextjs/compare/v0.26.1...v0.26.2) (2026-01-21)
+
+
+### Bug Fixes
+
+* **section:** use checkmark instead of duplicating label for UG&Grad ([134da16](https://github.com/Life-USTC/server-nextjs/commit/134da167989aedfb251cbe744bb8a3fa85f788d2))
+
 ## [0.26.1](https://github.com/Life-USTC/server-nextjs/compare/v0.26.0...v0.26.1) (2026-01-21)
 
 
