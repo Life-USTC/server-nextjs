@@ -1,3 +1,10 @@
+## [0.26.1](https://github.com/Life-USTC/server-nextjs/compare/v0.26.0...v0.26.1) (2026-01-21)
+
+
+### Bug Fixes
+
+* **i18n:** correct "本研贯通" label from "Graduate" to "UG & Grad" ([44bd124](https://github.com/Life-USTC/server-nextjs/commit/44bd124914956da3c39ed91e3542e201dda7db8b))
+
 # [0.26.0](https://github.com/Life-USTC/server-nextjs/compare/v0.25.1...v0.26.0) (2026-01-21)
 
 
