@@ -1,3 +1,10 @@
+## [0.26.3](https://github.com/Life-USTC/server-nextjs/compare/v0.26.2...v0.26.3) (2026-01-21)
+
+
+### Bug Fixes
+
+* **ui:** use gap-x-2 instead of gap-2 for horizontal-only spacing ([54710b6](https://github.com/Life-USTC/server-nextjs/commit/54710b6914c47b2902dcb3e87c73b0ff1679910b))
+
 ## [0.26.2](https://github.com/Life-USTC/server-nextjs/compare/v0.26.1...v0.26.2) (2026-01-21)
 
 
