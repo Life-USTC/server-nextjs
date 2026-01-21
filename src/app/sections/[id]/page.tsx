@@ -260,10 +260,10 @@ export default async function SectionPage({
             {section.graduateAndPostgraduate && (
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">
-                  {tCommon("graduate")}
+                  {tCommon("undergraduateGraduate")}
                 </span>
                 <span className="font-medium text-foreground">
-                  {tCommon("graduate")}
+                  {tCommon("undergraduateGraduate")}
                 </span>
               </div>
             )}
