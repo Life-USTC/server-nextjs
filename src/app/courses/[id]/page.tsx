@@ -63,6 +63,7 @@ export default async function CoursePage({
   }
 
   const t = await getTranslations("courseDetail");
+  const tCourse = await getTranslations("course");
   const tCommon = await getTranslations("common");
   const isEnglish = locale === "en-us";
 
@@ -117,18 +118,50 @@ export default async function CoursePage({
             )}
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-2">
-        <Badge variant="outline">{course.code}</Badge>
-        {course.educationLevel && (
-          <Badge variant="outline">{course.educationLevel.nameCn}</Badge>
-        )}
-        {course.category && (
-          <Badge variant="outline">{course.category.nameCn}</Badge>
-        )}
-        {course.classType && (
-          <Badge variant="outline">{course.classType.nameCn}</Badge>
-        )}
-      </div>
+      {/* Basic Info Card */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>{tCourse("basicInfo")}</CardTitle>
+        </CardHeader>
+        <CardPanel>
+          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-muted-foreground">{tCourse("code")}</span>
+              <span className="font-medium text-foreground font-mono">
+                {course.code}
+              </span>
+            </div>
+            {course.educationLevel && (
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">
+                  {tCourse("level")}
+                </span>
+                <span className="font-medium text-foreground">
+                  {course.educationLevel.nameCn}
+                </span>
+              </div>
+            )}
+            {course.category && (
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">
+                  {tCourse("category")}
+                </span>
+                <span className="font-medium text-foreground">
+                  {course.category.nameCn}
+                </span>
+              </div>
+            )}
+            {course.classType && (
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">{tCourse("type")}</span>
+                <span className="font-medium text-foreground">
+                  {course.classType.nameCn}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardPanel>
+      </Card>
 
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">

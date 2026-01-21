@@ -120,3 +120,55 @@ export function paginatedCourseQuery(
     page,
   );
 }
+
+/**
+ * Helper to build common include objects for teachers
+ */
+export const teacherInclude = {
+  department: true,
+  teacherTitle: true,
+  sections: {
+    include: {
+      course: true,
+      semester: true,
+    },
+    orderBy: {
+      semester: {
+        jwId: "desc" as const,
+      },
+    },
+  },
+  _count: {
+    select: {
+      sections: true,
+    },
+  },
+} satisfies Prisma.TeacherInclude;
+
+/**
+ * Type-safe paginated teacher query
+ */
+export type TeacherWithRelations = Prisma.TeacherGetPayload<{
+  include: typeof teacherInclude;
+}>;
+
+export function paginatedTeacherQuery(
+  page: number,
+  where?: Prisma.TeacherWhereInput,
+  orderBy?:
+    | Prisma.TeacherOrderByWithRelationInput
+    | Prisma.TeacherOrderByWithRelationInput[],
+): Promise<PaginatedResponse<TeacherWithRelations>> {
+  return paginatedQuery(
+    (skip, take) =>
+      prisma.teacher.findMany({
+        where,
+        skip,
+        take,
+        include: teacherInclude,
+        orderBy,
+      }),
+    () => prisma.teacher.count({ where }),
+    page,
+  );
+}

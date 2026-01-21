@@ -7,6 +7,7 @@
     "home": "Home",
     "courses": "Courses",
     "sections": "Sections",
+    "teachers": "Teachers",
     "subscriptions": "My Subscriptions",
     "me": "Me",
     "browseCourses": "Browse Courses",
@@ -17,6 +18,7 @@
     "previous": "Previous",
     "next": "Next",
     "backToHome": "Back to Home",
+    "graduate": "Graduate",
     "allSemesters": "All Semesters",
     "allEducationLevels": "All Education Levels",
     "allCategories": "All Categories",
@@ -92,6 +94,14 @@
       "mySubscriptions": {
         "title": "My Subscriptions",
         "description": "Manage your subscribed sections and get calendar links"
+      },
+      "myProfile": {
+        "title": "Me",
+        "description": "View your profile, subscriptions, and account settings"
+      },
+      "browseTeachers": {
+        "title": "Browse Teachers",
+        "description": "View teacher information and their teaching sections"
       }
     },
     "features": {
@@ -225,7 +235,38 @@
     "capacity": "Capacity"
   },
   "sectionDetail": {
+    "basicInfo": "Section Information",
+    "courseCode": "Course Code",
+    "sectionCode": "Section Code",
+    "semester": "Semester",
+    "campus": "Campus",
+    "credits": "Credits",
+    "capacity": "Capacity",
+    "department": "Department",
     "teachers": "Teachers",
+    "otherSections": "Other Sections",
+    "period": "Course Period",
+    "roomType": "Classroom Type",
+    "periodsPerWeek": "Periods per Week",
+    "timesPerWeek": "Times per Week",
+    "theoryPeriods": "Theory Periods",
+    "practicePeriods": "Practice Periods",
+    "experimentPeriods": "Experiment Periods",
+    "machinePeriods": "Machine Periods",
+    "designPeriods": "Design Periods",
+    "testPeriods": "Test Periods",
+    "detailedPeriods": "Detailed Periods",
+    "scheduleRemark": "Schedule Remark",
+    "teachLanguage": "Teaching Language",
+    "adminClasses": "Admin Classes",
+    "remark": "Remark",
+    "schedulingDetails": "Scheduling Details",
+    "moreDetails": "More Details",
+    "notes": "Notes",
+    "noTeacher": "No teacher",
+    "sameSemesterOtherTeachers": "Same Semester, Other Teachers",
+    "sameTeacherOtherSemesters": "Same Teacher, Other Semesters",
+    "viewAllCourseSections": "View All Sections",
     "addToCalendar": "Add to Calendar",
     "calendarSheetTitle": "Add to Calendar",
     "calendarSheetDescription": "Copy the link below and subscribe to this calendar in your calendar app",
@@ -369,6 +410,7 @@
   },
   "course": {
     "details": "Course Details",
+    "basicInfo": "Course Information",
     "sections": "Sections",
     "credits": "Credits",
     "hours": "Hours",
@@ -376,6 +418,7 @@
     "department": "Department",
     "category": "Category",
     "level": "Level",
+    "type": "Type",
     "description": "Description"
   },
   "section": {
@@ -399,5 +442,46 @@
     "errorAccountNotLinked": "This account is already linked to another user. Please sign in with a different account.",
     "errorGeneric": "An error occurred during sign in. Please try again.",
     "termsNotice": "By signing in, you agree to our Terms of Service and Privacy Policy."
+  },
+  "teachers": {
+    "title": "All Teachers",
+    "subtitle": "Browse and search through all teachers",
+    "searchPlaceholder": "Search by teacher name...",
+    "showing": "Showing {count} of {total} teachers",
+    "searchFor": "for \"{query}\"",
+    "inDepartment": "in {department}",
+    "noTeachersFound": "No teachers found",
+    "name": "Name",
+    "department": "Department",
+    "title_label": "Title",
+    "email": "Email",
+    "sectionCount": "Sections Taught",
+    "sections": "Sections",
+    "contact": "Contact",
+    "telephone": "Telephone",
+    "mobile": "Mobile",
+    "address": "Address",
+    "basicInfo": "Basic Information",
+    "teachingSections": "Teaching Sections ({count})",
+    "noSections": "No teaching sections available",
+    "viewAllSections": "View all sections taught by this teacher",
+    "allDepartments": "All Departments"
+  },
+  "teacherDetail": {
+    "name": "Name",
+    "department": "Department",
+    "title": "Title",
+    "email": "Email",
+    "telephone": "Telephone",
+    "mobile": "Mobile",
+    "address": "Address",
+    "basicInfo": "Basic Information",
+    "contact": "Contact",
+    "teachingSections": "Teaching Sections ({count})",
+    "noSections": "No teaching sections available",
+    "semester": "Semester",
+    "courseName": "Course Name",
+    "sectionCode": "Section Code",
+    "credits": "Credits"
   }
 }

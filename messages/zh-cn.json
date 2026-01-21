@@ -7,6 +7,7 @@
     "home": "首页",
     "courses": "课程",
     "sections": "班级",
+    "teachers": "教师",
     "subscriptions": "我的订阅",
     "me": "我的",
     "browseCourses": "浏览课程",
@@ -17,6 +18,7 @@
     "previous": "上一页",
     "next": "下一页",
     "backToHome": "返回首页",
+    "graduate": "研究生",
     "allSemesters": "所有学期",
     "allEducationLevels": "所有教育层次",
     "allCategories": "所有类别",
@@ -92,6 +94,14 @@
       "mySubscriptions": {
         "title": "我的订阅",
         "description": "管理您订阅的课程并获取日历链接"
+      },
+      "myProfile": {
+        "title": "我的",
+        "description": "查看您的个人资料、订阅和账户设置"
+      },
+      "browseTeachers": {
+        "title": "浏览教师",
+        "description": "查看教师信息及其授课班级"
       }
     },
     "features": {
@@ -225,7 +235,38 @@
     "capacity": "容量"
   },
   "sectionDetail": {
+    "basicInfo": "班级信息",
+    "courseCode": "课程代码",
+    "sectionCode": "班级代码",
+    "semester": "学期",
+    "campus": "校区",
+    "credits": "学分",
+    "capacity": "容量",
+    "department": "开课院系",
     "teachers": "教师",
+    "otherSections": "其他班级",
+    "period": "学时",
+    "roomType": "教室类型",
+    "periodsPerWeek": "周学时",
+    "timesPerWeek": "周次数",
+    "theoryPeriods": "理论学时",
+    "practicePeriods": "实践学时",
+    "experimentPeriods": "实验学时",
+    "machinePeriods": "上机学时",
+    "designPeriods": "课设学时",
+    "testPeriods": "测验学时",
+    "detailedPeriods": "学时详情",
+    "scheduleRemark": "排课备注",
+    "teachLanguage": "授课语言",
+    "adminClasses": "行政班级",
+    "remark": "备注",
+    "schedulingDetails": "排课详情",
+    "moreDetails": "更多信息",
+    "notes": "备注",
+    "noTeacher": "无教师",
+    "sameSemesterOtherTeachers": "同学期其他教师",
+    "sameTeacherOtherSemesters": "同教师其他学期",
+    "viewAllCourseSections": "查看全部班级",
     "addToCalendar": "添加到日历",
     "calendarSheetTitle": "添加到日历",
     "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中订阅此日历",
@@ -369,6 +410,7 @@
   },
   "course": {
     "details": "课程详情",
+    "basicInfo": "课程信息",
     "sections": "课程班级",
     "credits": "学分",
     "hours": "学时",
@@ -376,6 +418,7 @@
     "department": "开课院系",
     "category": "课程类别",
     "level": "培养层次",
+    "type": "课程类型",
     "description": "课程简介"
   },
   "section": {
@@ -399,5 +442,46 @@
     "errorAccountNotLinked": "此账户已关联到其他用户。请使用其他账户登录。",
     "errorGeneric": "登录过程中发生错误。请重试。",
     "termsNotice": "登录即表示您同意我们的服务条款和隐私政策。"
+  },
+  "teachers": {
+    "title": "所有教师",
+    "subtitle": "浏览和搜索所有教师",
+    "searchPlaceholder": "按教师姓名搜索...",
+    "showing": "显示 {total} 位教师中的 {count} 位",
+    "searchFor": "关于 \"{query}\"",
+    "inDepartment": "在 {department}",
+    "noTeachersFound": "未找到教师",
+    "name": "姓名",
+    "department": "院系",
+    "title_label": "职称",
+    "email": "邮箱",
+    "sectionCount": "授课班级数",
+    "sections": "授课班级",
+    "contact": "联系方式",
+    "telephone": "电话",
+    "mobile": "手机",
+    "address": "地址",
+    "basicInfo": "基本信息",
+    "teachingSections": "授课班级 ({count})",
+    "noSections": "暂无授课班级",
+    "viewAllSections": "查看此教师的所有授课班级",
+    "allDepartments": "所有院系"
+  },
+  "teacherDetail": {
+    "name": "姓名",
+    "department": "院系",
+    "title": "职称",
+    "email": "邮箱",
+    "telephone": "电话",
+    "mobile": "手机",
+    "address": "地址",
+    "basicInfo": "基本信息",
+    "contact": "联系方式",
+    "teachingSections": "授课班级 ({count})",
+    "noSections": "暂无授课班级",
+    "semester": "学期",
+    "courseName": "课程名称",
+    "sectionCode": "班级代码",
+    "credits": "学分"
   }
 }
