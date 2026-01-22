@@ -52,6 +52,8 @@
     "courseName": "Course Name",
     "section": "Section",
     "credits": "Credits",
+    "calendarTitle": "Calendar ({count})",
+    "calendarEmpty": "No schedule or exam events in this subscription",
     "bulkImport": {
       "title": "Bulk Import Sections",
       "description": "Paste text containing section codes (e.g., schedule screenshots, course selection lists). The system will automatically identify and match courses from the current semester.",
@@ -302,6 +304,8 @@
     "dateTBD": "Date TBD",
     "previousMonth": "Previous month",
     "nextMonth": "Next month",
+    "weekLabel": "Week",
+    "weekNumber": "Week #{week}",
     "schedule": "Schedule ({count})",
     "noSchedule": "No schedule information available for this section",
     "date": "Date",

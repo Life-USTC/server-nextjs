@@ -52,6 +52,8 @@
     "courseName": "课程名称",
     "section": "班级",
     "credits": "学分",
+    "calendarTitle": "日历（{count}）",
+    "calendarEmpty": "该订阅暂无课程或考试安排",
     "bulkImport": {
       "title": "批量导入班级",
       "description": "粘贴包含班级代码的文本（如课表截图文字、选课清单等），系统会自动识别并匹配当前学期的课程",
@@ -302,6 +304,8 @@
     "dateTBD": "日期待定",
     "previousMonth": "上个月",
     "nextMonth": "下个月",
+    "weekLabel": "周次",
+    "weekNumber": "第 {week} 周",
     "schedule": "课程表 ({count})",
     "noSchedule": "此班级暂无课程表信息",
     "date": "日期",
