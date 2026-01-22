@@ -1,6 +1,8 @@
 import dayjs from "dayjs";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
+import type { CalendarEvent } from "@/components/event-calendar";
+import { EventCalendar } from "@/components/event-calendar";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -17,29 +19,16 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 
 export default async function SectionPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
-  const searchP = await searchParams;
-  const view = searchP.view || "table";
   const locale = await getLocale();
 
   const section = await prisma.section.findUnique({
@@ -127,18 +116,120 @@ export default async function SectionPage({
   const tA11y = await getTranslations("accessibility");
   const isEnglish = locale === "en-us";
 
-  const formatWeekday = (weekday: number) => {
-    const weekdays = [
-      t("weekdays.sunday"),
-      t("weekdays.monday"),
-      t("weekdays.tuesday"),
-      t("weekdays.wednesday"),
-      t("weekdays.thursday"),
-      t("weekdays.friday"),
-      t("weekdays.saturday"),
-    ];
-    return weekdays[weekday] || `Day ${weekday}`;
+  const weekdayLabels = [
+    t("weekdays.sunday"),
+    t("weekdays.monday"),
+    t("weekdays.tuesday"),
+    t("weekdays.wednesday"),
+    t("weekdays.thursday"),
+    t("weekdays.friday"),
+    t("weekdays.saturday"),
+  ];
+
+  const formatDetailValue = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    return text.length > 0 ? text : null;
   };
+
+  const formatScheduleLocation = (
+    schedule: (typeof section.schedules)[number],
+  ) => {
+    if (schedule.customPlace) return schedule.customPlace;
+    if (!schedule.room) return "—";
+
+    const parts = [schedule.room.nameCn];
+    if (schedule.room.building) {
+      parts.push(schedule.room.building.nameCn);
+      if (schedule.room.building.campus) {
+        parts.push(schedule.room.building.campus.nameCn);
+      }
+    }
+
+    return parts.join(" · ");
+  };
+
+  const scheduleEvents: CalendarEvent[] = section.schedules.map((schedule) => {
+    const timeRange = `${formatTime(schedule.startTime)} - ${formatTime(
+      schedule.endTime,
+    )}`;
+    const details = [
+      { label: t("location"), value: formatScheduleLocation(schedule) },
+      {
+        label: t("teacher"),
+        value:
+          schedule.teachers && schedule.teachers.length > 0
+            ? schedule.teachers.map((teacher) => teacher.nameCn).join(", ")
+            : "—",
+      },
+      {
+        label: t("units"),
+        value: `${schedule.startUnit} - ${schedule.endUnit}`,
+      },
+      { label: t("week"), value: schedule.weekIndex ?? "—" },
+    ].flatMap((detail) => {
+      const value = formatDetailValue(detail.value);
+      return value ? [{ ...detail, value }] : [];
+    });
+
+    return {
+      id: `schedule-${schedule.id}`,
+      date: schedule.date,
+      line: `${t("classEvent")} ${timeRange}`,
+      tone: "default",
+      details,
+    };
+  });
+
+  const examEvents: CalendarEvent[] = section.exams.map((exam) => {
+    const timeRange =
+      exam.startTime !== null && exam.endTime !== null
+        ? ` ${formatTime(exam.startTime)} - ${formatTime(exam.endTime)}`
+        : "";
+    const examRooms = exam.examRooms
+      ? exam.examRooms
+          .map((room) => room.room)
+          .filter(Boolean)
+          .join(", ")
+      : "";
+    const details = [
+      { label: t("examMode"), value: exam.examMode ?? "" },
+      { label: t("examBatch"), value: exam.examBatch?.nameCn ?? "" },
+      { label: t("location"), value: examRooms },
+      { label: t("examCount"), value: exam.examTakeCount ?? null },
+    ].flatMap((detail) => {
+      const value = formatDetailValue(detail.value);
+      return value ? [{ ...detail, value }] : [];
+    });
+
+    return {
+      id: `exam-${exam.id}`,
+      date: exam.examDate,
+      line: `${t("examEvent")}${timeRange}`,
+      tone: "inverse",
+      details,
+    };
+  });
+
+  const calendarEvents = [...scheduleEvents, ...examEvents];
+  const datedEvents = calendarEvents
+    .filter((event): event is CalendarEvent & { date: Date } =>
+      Boolean(event.date),
+    )
+    .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+  const firstScheduleDate = section.schedules[0]?.date ?? null;
+  const lastEventDate = datedEvents.at(-1)?.date ?? null;
+  const today = dayjs().startOf("day");
+  const isOngoing =
+    firstScheduleDate &&
+    lastEventDate &&
+    !today.isBefore(dayjs(firstScheduleDate).startOf("day")) &&
+    !today.isAfter(dayjs(lastEventDate).startOf("day"));
+  const fallbackStartDate =
+    firstScheduleDate ?? datedEvents[0]?.date ?? today.toDate();
+  const calendarMonthStart = dayjs(isOngoing ? today : fallbackStartDate)
+    .startOf("month")
+    .toDate();
 
   return (
     <main className="page-main">
@@ -567,149 +658,22 @@ export default async function SectionPage({
         </CardPanel>
       </Card>
 
-      {section.exams && section.exams.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-title-2 mb-4">
-            {t("exams", { count: section.exams.length })}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {section.exams.map((exam) => (
-              <Card key={exam.id}>
-                <CardHeader>
-                  <CardTitle>
-                    {exam.examDate
-                      ? dayjs(exam.examDate).format("YYYY.MM.DD")
-                      : t("examDateTBD")}
-                  </CardTitle>
-                  {exam.examBatch && (
-                    <p className="text-small text-muted-foreground">
-                      {exam.examBatch.nameCn}
-                    </p>
-                  )}
-                </CardHeader>
-                <CardPanel>
-                  <div className="grid grid-cols-1 text-sm sm:grid-cols-2">
-                    {exam.examMode && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("examMode")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {exam.examMode}
-                        </span>
-                      </div>
-                    )}
-                    {exam.startTime !== null && exam.endTime !== null && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("time")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {formatTime(exam.startTime)} -{" "}
-                          {formatTime(exam.endTime)}
-                        </span>
-                      </div>
-                    )}
-                    {exam.examRooms && exam.examRooms.length > 0 && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("location")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {exam.examRooms
-                            .map((er) => er.room)
-                            .filter(Boolean)
-                            .join(", ")}
-                        </span>
-                      </div>
-                    )}
-                    {exam.examTakeCount !== null && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("examCount")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {exam.examTakeCount}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </CardPanel>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-title-2">
-            {t("schedule", { count: section.schedules.length })}
+            {t("calendar", { count: calendarEvents.length })}
           </h2>
         </div>
-        {section.schedules.length > 0 ? (
-          <div className="mb-8">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("date")}</TableHead>
-                  <TableHead>{t("weekday")}</TableHead>
-                  <TableHead>{t("time")}</TableHead>
-                  <TableHead>{t("units")}</TableHead>
-                  <TableHead>{t("week")}</TableHead>
-                  <TableHead>{t("location")}</TableHead>
-                  <TableHead>{t("teacher")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {section.schedules.map((schedule) => (
-                  <TableRow key={schedule.id}>
-                    <TableCell>
-                      {dayjs(schedule.date).format("YYYY.MM.DD")}
-                    </TableCell>
-                    <TableCell>
-                      {formatWeekday(dayjs(schedule.date).day())}
-                    </TableCell>
-                    <TableCell>
-                      {formatTime(schedule.startTime)} -{" "}
-                      {formatTime(schedule.endTime)}
-                    </TableCell>
-                    <TableCell>
-                      {schedule.startUnit} - {schedule.endUnit}
-                    </TableCell>
-                    <TableCell>{schedule.weekIndex || "—"}</TableCell>
-                    <TableCell>
-                      {schedule.customPlace
-                        ? schedule.customPlace
-                        : schedule.room
-                          ? `${schedule.room.nameCn}${
-                              schedule.room.building
-                                ? ` · ${schedule.room.building.nameCn}`
-                                : ""
-                            }${
-                              schedule.room.building?.campus
-                                ? ` · ${schedule.room.building.campus.nameCn}`
-                                : ""
-                            }`
-                          : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {schedule.teachers && schedule.teachers.length > 0
-                        ? schedule.teachers.map((t) => t.nameCn).join(", ")
-                        : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>{t("noSchedule")}</EmptyTitle>
-            </EmptyHeader>
-          </Empty>
-        )}
+        <EventCalendar
+          events={calendarEvents}
+          emptyLabel={t("calendarEmpty")}
+          monthStart={calendarMonthStart}
+          previousMonthLabel={t("previousMonth")}
+          nextMonthLabel={t("nextMonth")}
+          weekdayLabels={weekdayLabels}
+          weekStartsOn={0}
+          unscheduledLabel={t("dateTBD")}
+        />
       </div>
     </main>
   );
