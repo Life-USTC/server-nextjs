@@ -1,9 +1,13 @@
+import type { Prisma } from "@prisma/client";
+import dayjs from "dayjs";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { BulkImportSections } from "@/components/bulk-import-sections";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
+import type { CalendarEvent } from "@/components/event-calendar";
+import { EventCalendar } from "@/components/event-calendar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,8 +35,10 @@ import {
 import { Link } from "@/i18n/routing";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
+import { formatTime } from "@/lib/time-utils";
 
 export default async function SubscriptionsPage() {
+  const locale = await getLocale();
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/signin");
@@ -41,6 +47,78 @@ export default async function SubscriptionsPage() {
   const t = await getTranslations("subscriptions");
   const tCommon = await getTranslations("common");
   const tProfile = await getTranslations("profile");
+  const tSection = await getTranslations("sectionDetail");
+  const isEnglish = locale === "en-us";
+  const weekLabelTemplate = tSection("weekNumber", { week: "{week}" });
+
+  type SubscriptionSchedule = Prisma.ScheduleGetPayload<{
+    include: {
+      room: {
+        include: {
+          building: {
+            include: {
+              campus: true;
+            };
+          };
+        };
+      };
+      teachers: true;
+    };
+  }>;
+
+  const weekdayLabels = [
+    tSection("weekdays.sunday"),
+    tSection("weekdays.monday"),
+    tSection("weekdays.tuesday"),
+    tSection("weekdays.wednesday"),
+    tSection("weekdays.thursday"),
+    tSection("weekdays.friday"),
+    tSection("weekdays.saturday"),
+  ];
+
+  const formatDetailValue = (value: string | number | null | undefined) => {
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    return text.length > 0 ? text : null;
+  };
+
+  const formatScheduleLocation = (schedule: SubscriptionSchedule) => {
+    if (schedule.customPlace) return schedule.customPlace;
+    if (!schedule.room) return "—";
+
+    const parts = [schedule.room.nameCn];
+    if (schedule.room.building) {
+      parts.push(schedule.room.building.nameCn);
+      if (schedule.room.building.campus) {
+        parts.push(schedule.room.building.campus.nameCn);
+      }
+    }
+
+    return parts.join(" · ");
+  };
+
+  const getCalendarMonthStart = (events: CalendarEvent[]) => {
+    if (events.length === 0) {
+      return dayjs().startOf("month").toDate();
+    }
+
+    const datedEvents = events
+      .filter((event): event is CalendarEvent & { date: Date } =>
+        Boolean(event.date),
+      )
+      .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+    const today = dayjs().startOf("day");
+    const firstEventDate = datedEvents[0]?.date ?? today.toDate();
+    const lastEventDate = datedEvents.at(-1)?.date ?? today.toDate();
+    const isOngoing =
+      !today.isBefore(dayjs(firstEventDate).startOf("day")) &&
+      !today.isAfter(dayjs(lastEventDate).startOf("day"));
+    const fallbackStartDate = firstEventDate ?? today.toDate();
+
+    return dayjs(isOngoing ? today : fallbackStartDate)
+      .startOf("month")
+      .toDate();
+  };
 
   const subscriptions = await prisma.calendarSubscription.findMany({
     where: {
@@ -50,6 +128,28 @@ export default async function SubscriptionsPage() {
       sections: {
         include: {
           course: true,
+          schedules: {
+            include: {
+              room: {
+                include: {
+                  building: {
+                    include: {
+                      campus: true,
+                    },
+                  },
+                },
+              },
+              teachers: true,
+            },
+            orderBy: [{ date: "asc" }, { startTime: "asc" }],
+          },
+          exams: {
+            include: {
+              examBatch: true,
+              examRooms: true,
+            },
+            orderBy: { examDate: "asc" },
+          },
         },
       },
     },
@@ -65,6 +165,17 @@ export default async function SubscriptionsPage() {
       token: await generateCalendarSubscriptionJWT(sub.id),
     })),
   );
+
+  const semesters = await prisma.semester.findMany({
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+    },
+    orderBy: {
+      startDate: "asc",
+    },
+  });
 
   return (
     <main className="page-main">
@@ -125,43 +236,183 @@ export default async function SubscriptionsPage() {
                       {t("sectionsIncluded", { count: sub.sections.length })}
                     </CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    <CopyCalendarLinkButton
-                      url={`/api/calendar-subscriptions/${sub.id}/calendar.ics?token=${sub.token}`}
-                      label={t("iCalLink")}
-                      copiedMessage={t("linkCopied")}
-                      copiedDescription={t("linkCopiedDescription")}
-                    />
-                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("courseCode")}</TableHead>
-                        <TableHead>{t("courseName")}</TableHead>
-                        <TableHead>{t("section")}</TableHead>
-                        <TableHead>{t("credits")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sub.sections.map((section) => (
-                        <ClickableTableRow
-                          key={section.jwId}
-                          href={`/sections/${section.jwId}`}
-                        >
-                          <TableCell className="font-medium">
-                            {section.course.code}
-                          </TableCell>
-                          <TableCell>{section.course.nameCn}</TableCell>
-                          <TableCell>{section.code}</TableCell>
-                          <TableCell>{section.credits}</TableCell>
-                        </ClickableTableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="space-y-6">
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("courseCode")}</TableHead>
+                          <TableHead>{t("courseName")}</TableHead>
+                          <TableHead>{t("section")}</TableHead>
+                          <TableHead>{t("credits")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {sub.sections.map((section) => (
+                          <ClickableTableRow
+                            key={section.jwId}
+                            href={`/sections/${section.jwId}`}
+                          >
+                            <TableCell className="font-medium">
+                              {section.course.code}
+                            </TableCell>
+                            <TableCell>
+                              {isEnglish && section.course.nameEn
+                                ? section.course.nameEn
+                                : section.course.nameCn}
+                            </TableCell>
+                            <TableCell>{section.code}</TableCell>
+                            <TableCell>{section.credits}</TableCell>
+                          </ClickableTableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {(() => {
+                    const buildEventLine = (
+                      timeRange: string,
+                      label: string,
+                    ) => (timeRange ? `${timeRange}: ${label}` : label);
+                    const toMinutes = (time: number | null | undefined) =>
+                      time === null || time === undefined
+                        ? undefined
+                        : Math.floor(time / 100) * 60 + (time % 100);
+                    const scheduleEvents: CalendarEvent[] =
+                      sub.sections.flatMap((section) =>
+                        section.schedules.map((schedule) => {
+                          const timeRange = `${formatTime(
+                            schedule.startTime,
+                          )}-${formatTime(schedule.endTime)}`;
+                          const courseTitle =
+                            isEnglish && section.course.nameEn
+                              ? section.course.nameEn
+                              : section.course.nameCn;
+                          const details = [
+                            {
+                              label: tSection("location"),
+                              value: formatScheduleLocation(schedule),
+                            },
+                            {
+                              label: tSection("teacher"),
+                              value:
+                                schedule.teachers &&
+                                schedule.teachers.length > 0
+                                  ? schedule.teachers
+                                      .map((teacher) => teacher.nameCn)
+                                      .join(", ")
+                                  : "—",
+                            },
+                            {
+                              label: tSection("units"),
+                              value: `${schedule.startUnit} - ${schedule.endUnit}`,
+                            },
+                            {
+                              label: tSection("week"),
+                              value: schedule.weekIndex ?? "—",
+                            },
+                          ].flatMap((detail) => {
+                            const value = formatDetailValue(detail.value);
+                            return value ? [{ ...detail, value }] : [];
+                          });
+
+                          return {
+                            id: `subscription-${sub.id}-schedule-${schedule.id}`,
+                            date: schedule.date,
+                            line: buildEventLine(timeRange, courseTitle),
+                            tone: "default",
+                            sortValue: toMinutes(schedule.startTime),
+                            details,
+                          };
+                        }),
+                      );
+
+                    const examEvents: CalendarEvent[] = sub.sections.flatMap(
+                      (section) =>
+                        section.exams.map((exam) => {
+                          const timeRange =
+                            exam.startTime !== null && exam.endTime !== null
+                              ? `${formatTime(exam.startTime)}-${formatTime(
+                                  exam.endTime,
+                                )}`
+                              : "";
+                          const examRooms = exam.examRooms
+                            ? exam.examRooms
+                                .map((room) => room.room)
+                                .filter(Boolean)
+                                .join(", ")
+                            : "";
+                          const courseTitle =
+                            isEnglish && section.course.nameEn
+                              ? section.course.nameEn
+                              : section.course.nameCn;
+                          const details = [
+                            {
+                              label: tSection("examMode"),
+                              value: exam.examMode ?? "",
+                            },
+                            {
+                              label: tSection("examBatch"),
+                              value: exam.examBatch?.nameCn ?? "",
+                            },
+                            { label: tSection("location"), value: examRooms },
+                            {
+                              label: tSection("examCount"),
+                              value: exam.examTakeCount ?? null,
+                            },
+                          ].flatMap((detail) => {
+                            const value = formatDetailValue(detail.value);
+                            return value ? [{ ...detail, value }] : [];
+                          });
+
+                          return {
+                            id: `subscription-${sub.id}-exam-${exam.id}`,
+                            date: exam.examDate,
+                            line: buildEventLine(timeRange, courseTitle),
+                            tone: "inverse",
+                            sortValue: toMinutes(exam.startTime),
+                            details,
+                          };
+                        }),
+                    );
+
+                    const calendarEvents = [...scheduleEvents, ...examEvents];
+                    const calendarMonthStart =
+                      getCalendarMonthStart(calendarEvents);
+
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <h3 className="text-sm font-medium">
+                            {t("calendarTitle", {
+                              count: calendarEvents.length,
+                            })}
+                          </h3>
+                          <CopyCalendarLinkButton
+                            url={`/api/calendar-subscriptions/${sub.id}/calendar.ics?token=${sub.token}`}
+                            label={t("iCalLink")}
+                            copiedMessage={t("linkCopied")}
+                            copiedDescription={t("linkCopiedDescription")}
+                          />
+                        </div>
+                        <EventCalendar
+                          events={calendarEvents}
+                          emptyLabel={t("calendarEmpty")}
+                          monthStart={calendarMonthStart}
+                          previousMonthLabel={tSection("previousMonth")}
+                          nextMonthLabel={tSection("nextMonth")}
+                          semesters={semesters}
+                          weekLabelHeader={tSection("weekLabel")}
+                          weekLabelTemplate={weekLabelTemplate}
+                          weekdayLabels={weekdayLabels}
+                          weekStartsOn={0}
+                          unscheduledLabel={tSection("dateTBD")}
+                        />
+                      </div>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
