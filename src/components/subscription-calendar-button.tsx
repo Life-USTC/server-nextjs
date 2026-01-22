@@ -46,6 +46,8 @@ function getSubscriptionIcsUrl(state: SubscriptionState): string | null {
 
 interface SubscriptionCalendarButtonProps {
   sectionDatabaseId: number;
+  showCalendarButton?: boolean;
+  showSubscribeButton?: boolean;
   addToCalendarLabel: string;
   sheetTitle: string;
   sheetDescription: string;
@@ -77,6 +79,8 @@ interface SubscriptionCalendarButtonProps {
 
 export function SubscriptionCalendarButton({
   sectionDatabaseId,
+  showCalendarButton = true,
+  showSubscribeButton = true,
   addToCalendarLabel,
   sheetTitle,
   sheetDescription,
@@ -238,12 +242,16 @@ export function SubscriptionCalendarButton({
   if (isLoading) {
     return (
       <div className="flex gap-2">
-        <Button variant="outline" disabled>
-          <Bell className="h-5 w-5" />
-        </Button>
-        <Button variant="outline" disabled>
-          <Calendar className="h-5 w-5" />
-        </Button>
+        {showSubscribeButton && (
+          <Button variant="outline" disabled>
+            <Bell className="h-5 w-5" />
+          </Button>
+        )}
+        {showCalendarButton && (
+          <Button variant="outline" disabled>
+            <Calendar className="h-5 w-5" />
+          </Button>
+        )}
       </div>
     );
   }
@@ -251,97 +259,144 @@ export function SubscriptionCalendarButton({
   return (
     <div className="flex gap-2">
       {/* Subscribe/Unsubscribe Button or Login Prompt */}
-      {isAuthenticated ? (
-        <Button
-          onClick={handleSubscribeToggle}
-          disabled={isOperating}
-          variant={isSubscribed ? "default" : "outline"}
-          aria-label={isSubscribed ? unsubscribeLabel : subscribeLabel}
-        >
-          {isSubscribed ? (
-            <BellOff className="h-5 w-5" />
-          ) : (
-            <Bell className="h-5 w-5" />
-          )}
-        </Button>
-      ) : (
+      {showSubscribeButton &&
+        (isAuthenticated ? (
+          <Button
+            onClick={handleSubscribeToggle}
+            disabled={isOperating}
+            variant={isSubscribed ? "default" : "outline"}
+            aria-label={isSubscribed ? unsubscribeLabel : subscribeLabel}
+          >
+            {isSubscribed ? (
+              <BellOff className="h-5 w-5" />
+            ) : (
+              <Bell className="h-5 w-5" />
+            )}
+          </Button>
+        ) : (
+          <Dialog>
+            <DialogTrigger
+              render={<Button variant="outline" aria-label={subscribeLabel} />}
+            >
+              <Bell className="h-5 w-5" />
+            </DialogTrigger>
+            <DialogPopup>
+              <DialogHeader>
+                <DialogTitle>{loginRequiredLabel}</DialogTitle>
+                <DialogDescription>
+                  {loginRequiredDescriptionLabel}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose render={<Button variant="outline" />}>
+                  {closeLabel}
+                </DialogClose>
+                <Link href="/signin">
+                  <Button>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    {loginToSubscribeLabel}
+                  </Button>
+                </Link>
+              </DialogFooter>
+            </DialogPopup>
+          </Dialog>
+        ))}
+
+      {/* Calendar Dialog */}
+      {showCalendarButton && (
         <Dialog>
           <DialogTrigger
-            render={<Button variant="outline" aria-label={subscribeLabel} />}
+            render={
+              <Button variant="outline" aria-label={addToCalendarLabel} />
+            }
           >
-            <Bell className="h-5 w-5" />
+            <Calendar className="h-5 w-5" />
           </DialogTrigger>
           <DialogPopup>
             <DialogHeader>
-              <DialogTitle>{loginRequiredLabel}</DialogTitle>
+              <DialogTitle>{sheetTitle}</DialogTitle>
               <DialogDescription>
-                {loginRequiredDescriptionLabel}
+                {sheetDescription}{" "}
+                <a
+                  href="https://en.wikipedia.org/wiki/ICalendar"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  {learnMoreLabel}
+                </a>
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
-              <DialogClose render={<Button variant="outline" />}>
-                {closeLabel}
-              </DialogClose>
-              <Link href="/signin">
-                <Button>
-                  <LogIn className="h-4 w-4 mr-2" />
-                  {loginToSubscribeLabel}
-                </Button>
-              </Link>
-            </DialogFooter>
-          </DialogPopup>
-        </Dialog>
-      )}
 
-      {/* Calendar Dialog */}
-      <Dialog>
-        <DialogTrigger
-          render={<Button variant="outline" aria-label={addToCalendarLabel} />}
-        >
-          <Calendar className="h-5 w-5" />
-        </DialogTrigger>
-        <DialogPopup>
-          <DialogHeader>
-            <DialogTitle>{sheetTitle}</DialogTitle>
-            <DialogDescription>
-              {sheetDescription}{" "}
-              <a
-                href="https://en.wikipedia.org/wiki/ICalendar"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline inline-flex items-center gap-1"
-              >
-                {learnMoreLabel}
-              </a>
-            </DialogDescription>
-          </DialogHeader>
+            <DialogPanel>
+              <div className="space-y-6">
+                {/* Subscription Calendar (if exists and authenticated) */}
+                {isAuthenticated && subscriptionIcsUrl && (
+                  <div className="space-y-3">
+                    <label
+                      htmlFor="subscription-url"
+                      className="text-small font-medium block"
+                    >
+                      {subscriptionUrlLabel}
+                    </label>
+                    <p className="text-small text-muted-foreground">
+                      {subscriptionHintLabel}{" "}
+                      <Link
+                        href="/me/subscriptions/sections/"
+                        className="text-primary hover:underline"
+                      >
+                        {viewAllSubscriptionsLabel} →
+                      </Link>
+                    </p>
+                    <div className="flex gap-2 items-center">
+                      <Input
+                        id="subscription-url"
+                        aria-label={subscriptionCalendarUrlAriaLabel}
+                        disabled
+                        placeholder={fullSubscriptionUrl}
+                        type="url"
+                      />
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              aria-label={copyLabel}
+                              disabled={isSubscriptionCopied}
+                              onClick={handleCopySubscription}
+                              ref={subscriptionCopyButtonRef}
+                              size="icon"
+                              variant="outline"
+                            />
+                          }
+                        >
+                          {isSubscriptionCopied ? (
+                            <CheckIcon className="h-6 w-6" />
+                          ) : (
+                            <CopyIcon className="h-6 w-6" />
+                          )}
+                        </TooltipTrigger>
+                        <TooltipPopup>
+                          <p>{copyLabel}</p>
+                        </TooltipPopup>
+                      </Tooltip>
+                    </div>
+                  </div>
+                )}
 
-          <DialogPanel>
-            <div className="space-y-6">
-              {/* Subscription Calendar (if exists and authenticated) */}
-              {isAuthenticated && subscriptionIcsUrl && (
+                {/* Single Section Calendar */}
                 <div className="space-y-3">
                   <label
-                    htmlFor="subscription-url"
+                    htmlFor="calendar-url"
                     className="text-small font-medium block"
                   >
-                    {subscriptionUrlLabel}
+                    {calendarUrlLabel}
                   </label>
-                  <p className="text-small text-muted-foreground">
-                    {subscriptionHintLabel}{" "}
-                    <Link
-                      href="/me/subscriptions/sections/"
-                      className="text-primary hover:underline"
-                    >
-                      {viewAllSubscriptionsLabel} →
-                    </Link>
-                  </p>
                   <div className="flex gap-2 items-center">
                     <Input
-                      id="subscription-url"
-                      aria-label={subscriptionCalendarUrlAriaLabel}
+                      id="calendar-url"
+                      aria-label={singleSectionCalendarUrlAriaLabel}
                       disabled
-                      placeholder={fullSubscriptionUrl}
+                      placeholder={singleCalendarUrl}
                       type="url"
                     />
                     <Tooltip>
@@ -349,15 +404,15 @@ export function SubscriptionCalendarButton({
                         render={
                           <Button
                             aria-label={copyLabel}
-                            disabled={isSubscriptionCopied}
-                            onClick={handleCopySubscription}
-                            ref={subscriptionCopyButtonRef}
+                            disabled={isSingleCopied}
+                            onClick={handleCopySingle}
+                            ref={singleCopyButtonRef}
                             size="icon"
                             variant="outline"
                           />
                         }
                       >
-                        {isSubscriptionCopied ? (
+                        {isSingleCopied ? (
                           <CheckIcon className="h-6 w-6" />
                         ) : (
                           <CopyIcon className="h-6 w-6" />
@@ -369,59 +424,17 @@ export function SubscriptionCalendarButton({
                     </Tooltip>
                   </div>
                 </div>
-              )}
-
-              {/* Single Section Calendar */}
-              <div className="space-y-3">
-                <label
-                  htmlFor="calendar-url"
-                  className="text-small font-medium block"
-                >
-                  {calendarUrlLabel}
-                </label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    id="calendar-url"
-                    aria-label={singleSectionCalendarUrlAriaLabel}
-                    disabled
-                    placeholder={singleCalendarUrl}
-                    type="url"
-                  />
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <Button
-                          aria-label={copyLabel}
-                          disabled={isSingleCopied}
-                          onClick={handleCopySingle}
-                          ref={singleCopyButtonRef}
-                          size="icon"
-                          variant="outline"
-                        />
-                      }
-                    >
-                      {isSingleCopied ? (
-                        <CheckIcon className="h-6 w-6" />
-                      ) : (
-                        <CopyIcon className="h-6 w-6" />
-                      )}
-                    </TooltipTrigger>
-                    <TooltipPopup>
-                      <p>{copyLabel}</p>
-                    </TooltipPopup>
-                  </Tooltip>
-                </div>
               </div>
-            </div>
-          </DialogPanel>
+            </DialogPanel>
 
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>
-              {closeLabel}
-            </DialogClose>
-          </DialogFooter>
-        </DialogPopup>
-      </Dialog>
+            <DialogFooter>
+              <DialogClose render={<Button variant="outline" />}>
+                {closeLabel}
+              </DialogClose>
+            </DialogFooter>
+          </DialogPopup>
+        </Dialog>
+      )}
     </div>
   );
 }

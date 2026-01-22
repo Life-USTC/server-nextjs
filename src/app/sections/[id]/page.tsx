@@ -13,6 +13,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
@@ -75,6 +76,17 @@ export default async function SectionPage({
   if (!section) {
     notFound();
   }
+
+  const semesters = await prisma.semester.findMany({
+    select: {
+      id: true,
+      startDate: true,
+      endDate: true,
+    },
+    orderBy: {
+      startDate: "asc",
+    },
+  });
 
   // Fetch other sections of the same course (include teachers for grouping)
   const otherSections = await prisma.section.findMany({
@@ -149,8 +161,15 @@ export default async function SectionPage({
     return parts.join(" · ");
   };
 
+  const buildEventLine = (timeRange: string, label: string) =>
+    timeRange ? `${timeRange}: ${label}` : label;
+  const toMinutes = (time: number | null | undefined) =>
+    time === null || time === undefined
+      ? undefined
+      : Math.floor(time / 100) * 60 + (time % 100);
+
   const scheduleEvents: CalendarEvent[] = section.schedules.map((schedule) => {
-    const timeRange = `${formatTime(schedule.startTime)} - ${formatTime(
+    const timeRange = `${formatTime(schedule.startTime)}-${formatTime(
       schedule.endTime,
     )}`;
     const details = [
@@ -175,8 +194,9 @@ export default async function SectionPage({
     return {
       id: `schedule-${schedule.id}`,
       date: schedule.date,
-      line: `${t("classEvent")} ${timeRange}`,
+      line: buildEventLine(timeRange, t("classEvent")),
       tone: "default",
+      sortValue: toMinutes(schedule.startTime),
       details,
     };
   });
@@ -184,7 +204,7 @@ export default async function SectionPage({
   const examEvents: CalendarEvent[] = section.exams.map((exam) => {
     const timeRange =
       exam.startTime !== null && exam.endTime !== null
-        ? ` ${formatTime(exam.startTime)} - ${formatTime(exam.endTime)}`
+        ? `${formatTime(exam.startTime)}-${formatTime(exam.endTime)}`
         : "";
     const examRooms = exam.examRooms
       ? exam.examRooms
@@ -205,8 +225,9 @@ export default async function SectionPage({
     return {
       id: `exam-${exam.id}`,
       date: exam.examDate,
-      line: `${t("examEvent")}${timeRange}`,
+      line: buildEventLine(timeRange, t("examEvent")),
       tone: "inverse",
+      sortValue: toMinutes(exam.startTime),
       details,
     };
   });
@@ -275,6 +296,7 @@ export default async function SectionPage({
           </div>
           <SubscriptionCalendarButton
             sectionDatabaseId={section.id}
+            showCalendarButton={false}
             addToCalendarLabel={t("addToCalendar")}
             sheetTitle={t("calendarSheetTitle")}
             sheetDescription={t("calendarSheetDescription")}
@@ -667,9 +689,62 @@ export default async function SectionPage({
         <EventCalendar
           events={calendarEvents}
           emptyLabel={t("calendarEmpty")}
+          headerActions={
+            <>
+              <SubscriptionCalendarButton
+                sectionDatabaseId={section.id}
+                showSubscribeButton={false}
+                addToCalendarLabel={t("addToCalendar")}
+                sheetTitle={t("calendarSheetTitle")}
+                sheetDescription={t("calendarSheetDescription")}
+                calendarUrlLabel={t("calendarUrlLabel")}
+                subscriptionUrlLabel={t("subscriptionUrlLabel")}
+                subscriptionHintLabel={t("subscriptionHintLabel")}
+                subscribeLabel={t("subscribeLabel")}
+                unsubscribeLabel={t("unsubscribeLabel")}
+                copyLabel={t("copyToClipboard")}
+                closeLabel={t("close")}
+                learnMoreLabel={t("learnMoreAboutICalendar")}
+                copiedLabel={t("copied")}
+                subscribingLabel={t("subscribing")}
+                unsubscribingLabel={t("unsubscribing")}
+                pleaseWaitLabel={t("pleaseWait")}
+                subscribeSuccessLabel={t("subscribeSuccess")}
+                unsubscribeSuccessLabel={t("unsubscribeSuccess")}
+                subscribeSuccessDescriptionLabel={t(
+                  "subscribeSuccessDescription",
+                )}
+                unsubscribeSuccessDescriptionLabel={t(
+                  "unsubscribeSuccessDescription",
+                )}
+                operationFailedLabel={t("operationFailed")}
+                pleaseRetryLabel={t("pleaseRetry")}
+                viewAllSubscriptionsLabel={t("viewAllSubscriptions")}
+                loginRequiredLabel={t("loginRequired")}
+                loginRequiredDescriptionLabel={t("loginRequiredDescription")}
+                loginToSubscribeLabel={t("loginToSubscribe")}
+                subscriptionCalendarUrlAriaLabel={tA11y(
+                  "subscriptionCalendarUrl",
+                )}
+                singleSectionCalendarUrlAriaLabel={tA11y(
+                  "singleSectionCalendarUrl",
+                )}
+              />
+              <Button
+                render={<Link href="/me/subscriptions/sections/" />}
+                size="sm"
+                variant="outline"
+              >
+                {t("viewAllSubscriptions")}
+              </Button>
+            </>
+          }
           monthStart={calendarMonthStart}
           previousMonthLabel={t("previousMonth")}
           nextMonthLabel={t("nextMonth")}
+          semesters={semesters}
+          weekLabelHeader={t("weekLabel")}
+          weekLabelTemplate={t("weekNumber", { week: "{week}" })}
           weekdayLabels={weekdayLabels}
           weekStartsOn={0}
           unscheduledLabel={t("dateTBD")}
