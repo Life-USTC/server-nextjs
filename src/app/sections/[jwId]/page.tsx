@@ -27,13 +27,13 @@ import { formatTime } from "@/lib/time-utils";
 export default async function SectionPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ jwId: string }>;
 }) {
-  const { id } = await params;
+  const { jwId } = await params;
   const locale = await getLocale();
 
   const section = await prisma.section.findUnique({
-    where: { jwId: parseInt(id, 10) },
+    where: { jwId: parseInt(jwId, 10) },
     include: {
       course: true,
       semester: true,
@@ -296,6 +296,7 @@ export default async function SectionPage({
           </div>
           <SubscriptionCalendarButton
             sectionDatabaseId={section.id}
+            sectionJwId={section.jwId}
             showCalendarButton={false}
             addToCalendarLabel={t("addToCalendar")}
             sheetTitle={t("calendarSheetTitle")}
@@ -693,6 +694,7 @@ export default async function SectionPage({
             <>
               <SubscriptionCalendarButton
                 sectionDatabaseId={section.id}
+                sectionJwId={section.jwId}
                 showSubscribeButton={false}
                 addToCalendarLabel={t("addToCalendar")}
                 sheetTitle={t("calendarSheetTitle")}
