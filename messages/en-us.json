@@ -56,7 +56,9 @@
     "calendarEmpty": "No schedule or exam events in this subscription",
     "bulkImport": {
       "title": "Bulk Import Sections",
-      "description": "Paste text containing section codes (e.g., schedule screenshots, course selection lists). The system will automatically identify and match courses from the current semester.",
+      "description": "Paste text containing section codes (e.g., schedule screenshots, course selection lists). The system will automatically identify and match courses from the selected semester.",
+      "semesterLabel": "Semester",
+      "semesterPlaceholder": "Select a semester",
       "placeholder": "Paste any text containing section codes, e.g.: 001013.01, COMP3001.01, etc.",
       "matchButton": "Match Sections",
       "matching": "Matching...",

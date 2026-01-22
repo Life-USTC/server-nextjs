@@ -18,6 +18,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toastManager } from "@/components/ui/toast";
 
@@ -30,7 +38,17 @@ type SectionData = {
   teachers: Teacher[];
 };
 
-export function BulkImportSections() {
+type SemesterOption = Pick<Semester, "id" | "nameCn">;
+
+interface BulkImportSectionsProps {
+  semesters: SemesterOption[];
+  defaultSemesterId?: number | null;
+}
+
+export function BulkImportSections({
+  semesters,
+  defaultSemesterId,
+}: BulkImportSectionsProps) {
   const t = useTranslations("subscriptions");
   const router = useRouter();
 
@@ -43,6 +61,14 @@ export function BulkImportSections() {
   );
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [unmatchedCodes, setUnmatchedCodes] = useState<string[]>([]);
+  const [selectedSemesterId, setSelectedSemesterId] = useState(
+    defaultSemesterId ? defaultSemesterId.toString() : "",
+  );
+
+  const semesterItems = semesters.map((semester) => ({
+    label: semester.nameCn,
+    value: semester.id.toString(),
+  }));
 
   const handleFetchSections = async () => {
     if (!importText.trim()) return;
@@ -70,7 +96,10 @@ export function BulkImportSections() {
       const response = await fetch("/api/sections/match-codes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ codes: uniqueCodes }),
+        body: JSON.stringify({
+          codes: uniqueCodes,
+          semesterId: selectedSemesterId || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -162,6 +191,28 @@ export function BulkImportSections() {
           <p className="text-small text-muted-foreground mb-4">
             {t("bulkImport.description")}
           </p>
+          <Field className="mb-4">
+            <FieldLabel>{t("bulkImport.semesterLabel")}</FieldLabel>
+            <Select
+              name="semesterId"
+              value={selectedSemesterId}
+              onValueChange={(value) => setSelectedSemesterId(value ?? "")}
+              items={semesterItems}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue
+                  placeholder={t("bulkImport.semesterPlaceholder")}
+                />
+              </SelectTrigger>
+              <SelectPopup>
+                {semesterItems.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
+          </Field>
           <Textarea
             placeholder={t("bulkImport.placeholder")}
             value={importText}

@@ -56,7 +56,9 @@
     "calendarEmpty": "该订阅暂无课程或考试安排",
     "bulkImport": {
       "title": "批量导入班级",
-      "description": "粘贴包含班级代码的文本（如课表截图文字、选课清单等），系统会自动识别并匹配当前学期的课程",
+      "description": "粘贴包含班级代码的文本（如课表截图文字、选课清单等），系统会自动识别并匹配所选学期的课程",
+      "semesterLabel": "学期",
+      "semesterPlaceholder": "选择学期",
       "placeholder": "粘贴任意包含班级代码的文本，例如：001013.01, COMP3001.01 等",
       "matchButton": "识别并匹配课程",
       "matching": "正在匹配...",

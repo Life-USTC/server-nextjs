@@ -5,12 +5,12 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/sections/match-codes
- * Matches section codes against sections in the current semester
+ * Matches section codes against sections in the selected semester
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { codes } = body;
+    const { codes, semesterId } = body;
 
     if (!Array.isArray(codes) || codes.length === 0) {
       return NextResponse.json(
@@ -19,14 +19,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get current semester based on today's date
+    const parsedSemesterId = semesterId
+      ? Number.parseInt(String(semesterId), 10)
+      : null;
+
+    if (parsedSemesterId !== null && Number.isNaN(parsedSemesterId)) {
+      return NextResponse.json(
+        { error: "semesterId must be a valid number" },
+        { status: 400 },
+      );
+    }
+
     const now = new Date();
-    const currentSemester = await prisma.semester.findFirst({
-      where: {
-        startDate: { lte: now },
-        endDate: { gte: now },
-      },
-    });
+    const currentSemester = parsedSemesterId
+      ? await prisma.semester.findUnique({
+          where: {
+            id: parsedSemesterId,
+          },
+        })
+      : await prisma.semester.findFirst({
+          where: {
+            startDate: { lte: now },
+            endDate: { gte: now },
+          },
+        });
 
     if (!currentSemester) {
       return NextResponse.json({ error: "No semester found" }, { status: 404 });

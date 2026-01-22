@@ -128,6 +128,8 @@ export default async function SubscriptionsPage() {
       sections: {
         include: {
           course: true,
+          semester: true,
+          teachers: true,
           schedules: {
             include: {
               room: {
@@ -169,6 +171,7 @@ export default async function SubscriptionsPage() {
   const semesters = await prisma.semester.findMany({
     select: {
       id: true,
+      nameCn: true,
       startDate: true,
       endDate: true,
     },
@@ -176,6 +179,18 @@ export default async function SubscriptionsPage() {
       startDate: "asc",
     },
   });
+
+  const now = new Date();
+  const currentSemesterId =
+    semesters.find(
+      (semester) =>
+        semester.startDate &&
+        semester.endDate &&
+        semester.startDate <= now &&
+        semester.endDate >= now,
+    )?.id ??
+    semesters.at(-1)?.id ??
+    null;
 
   return (
     <main className="page-main">
@@ -206,7 +221,10 @@ export default async function SubscriptionsPage() {
         </p>
       </div>
 
-      <BulkImportSections />
+      <BulkImportSections
+        semesters={semesters}
+        defaultSemesterId={currentSemesterId}
+      />
 
       <div className="grid gap-6">
         {subscriptionsWithTokens.length === 0 ? (
@@ -240,37 +258,115 @@ export default async function SubscriptionsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t("courseCode")}</TableHead>
-                          <TableHead>{t("courseName")}</TableHead>
-                          <TableHead>{t("section")}</TableHead>
-                          <TableHead>{t("credits")}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {sub.sections.map((section) => (
-                          <ClickableTableRow
-                            key={section.jwId}
-                            href={`/sections/${section.jwId}`}
-                          >
-                            <TableCell className="font-medium">
-                              {section.course.code}
-                            </TableCell>
-                            <TableCell>
-                              {isEnglish && section.course.nameEn
-                                ? section.course.nameEn
-                                : section.course.nameCn}
-                            </TableCell>
-                            <TableCell>{section.code}</TableCell>
-                            <TableCell>{section.credits}</TableCell>
-                          </ClickableTableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  {(() => {
+                    const groups = sub.sections.reduce(
+                      (acc, section) => {
+                        const key =
+                          section.semester?.id?.toString() ?? "unknown";
+                        const label = section.semester?.nameCn ?? "—";
+                        const startDate = section.semester?.startDate ?? null;
+                        const existing = acc.get(key) ?? {
+                          key,
+                          label,
+                          startDate,
+                          sections: [],
+                        };
+                        existing.sections.push(section);
+                        acc.set(key, existing);
+                        return acc;
+                      },
+                      new Map<
+                        string,
+                        {
+                          key: string;
+                          label: string;
+                          startDate: Date | null;
+                          sections: typeof sub.sections;
+                        }
+                      >(),
+                    );
+
+                    const groupedSections = Array.from(groups.values()).sort(
+                      (a, b) => {
+                        if (a.startDate && b.startDate) {
+                          return b.startDate.getTime() - a.startDate.getTime();
+                        }
+                        if (a.startDate) return -1;
+                        if (b.startDate) return 1;
+                        return b.label.localeCompare(a.label);
+                      },
+                    );
+
+                    return groupedSections.map((group) => (
+                      <div key={group.key} className="space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">
+                          <span>
+                            {tSection("semester")}: {group.label}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {t("sectionsIncluded", {
+                              count: group.sections.length,
+                            })}
+                          </span>
+                        </div>
+                        <div className="rounded-md border">
+                          <Table className="table-fixed">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-1/4">
+                                  {tSection("sectionCode")}
+                                </TableHead>
+                                <TableHead className="w-1/4">
+                                  {t("courseName")}
+                                </TableHead>
+                                <TableHead className="w-1/4">
+                                  {tSection("teachers")}
+                                </TableHead>
+                                <TableHead className="w-1/4">
+                                  {t("credits")}
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {group.sections.map((section) => {
+                                const teacherNames = section.teachers
+                                  .map((teacher) =>
+                                    isEnglish && teacher.nameEn
+                                      ? teacher.nameEn
+                                      : teacher.nameCn,
+                                  )
+                                  .filter(Boolean);
+
+                                return (
+                                  <ClickableTableRow
+                                    key={section.jwId}
+                                    href={`/sections/${section.jwId}`}
+                                  >
+                                    <TableCell className="w-1/4 max-w-0 truncate font-medium">
+                                      {section.code}
+                                    </TableCell>
+                                    <TableCell className="w-1/4 max-w-0 truncate">
+                                      {isEnglish && section.course.nameEn
+                                        ? section.course.nameEn
+                                        : section.course.nameCn}
+                                    </TableCell>
+                                    <TableCell className="w-1/4 max-w-0 truncate">
+                                      {teacherNames.length > 0
+                                        ? teacherNames.join(", ")
+                                        : "—"}
+                                    </TableCell>
+                                    <TableCell className="w-1/4 max-w-0 truncate">
+                                      {section.credits}
+                                    </TableCell>
+                                  </ClickableTableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    ));
+                  })()}
                   {(() => {
                     const buildEventLine = (
                       timeRange: string,
