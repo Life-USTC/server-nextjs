@@ -1,3 +1,10 @@
+# [0.28.0](https://github.com/Life-USTC/server-nextjs/compare/v0.27.0...v0.28.0) (2026-01-22)
+
+
+### Features
+
+* **subscriptions:** add calendar preview ([e4522a2](https://github.com/Life-USTC/server-nextjs/commit/e4522a210e80ae7b1ebf0ed77596f4e108dbde66))
+
 # [0.27.0](https://github.com/Life-USTC/server-nextjs/compare/v0.26.3...v0.27.0) (2026-01-22)
 
 
