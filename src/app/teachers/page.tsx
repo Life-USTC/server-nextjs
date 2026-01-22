@@ -11,13 +11,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Empty,
   EmptyDescription,
   EmptyHeader,
@@ -40,7 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
 import { TeachersFilter } from "./teachers-filter";

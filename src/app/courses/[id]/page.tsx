@@ -20,7 +20,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 
 export default async function CoursePage({
@@ -32,7 +31,7 @@ export default async function CoursePage({
 }) {
   const { id } = await params;
   const searchP = await searchParams;
-  const view = searchP.view || "table";
+  const _view = searchP.view || "table";
   const locale = await getLocale();
   const course = await prisma.course.findUnique({
     where: { jwId: parseInt(id, 10) },
@@ -65,20 +64,6 @@ export default async function CoursePage({
   const tCourse = await getTranslations("course");
   const tCommon = await getTranslations("common");
   const isEnglish = locale === "en-us";
-
-  const semesterGroupedSections = course.sections.reduce(
-    (acc: [string, typeof course.sections][], section) => {
-      const semesterName = section.semester?.nameCn || tCommon("unknown");
-      const existing = acc.find(([name]) => name === semesterName);
-      if (existing) {
-        existing[1].push(section);
-      } else {
-        acc.push([semesterName, [section]]);
-      }
-      return acc;
-    },
-    [],
-  );
 
   return (
     <main className="page-main">
