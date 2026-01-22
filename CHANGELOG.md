@@ -1,3 +1,10 @@
+# [0.29.0](https://github.com/Life-USTC/server-nextjs/compare/v0.28.1...v0.29.0) (2026-01-22)
+
+
+### Features
+
+* **subscriptions:** support semester-scoped bulk import ([ac0346e](https://github.com/Life-USTC/server-nextjs/commit/ac0346ed694086f362ee3290ad3e278c82afc135))
+
 ## [0.28.1](https://github.com/Life-USTC/server-nextjs/compare/v0.28.0...v0.28.1) (2026-01-22)
 
 
