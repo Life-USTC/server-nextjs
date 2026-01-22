@@ -1,3 +1,10 @@
+# [0.27.0](https://github.com/Life-USTC/server-nextjs/compare/v0.26.3...v0.27.0) (2026-01-22)
+
+
+### Features
+
+* **section:** add calendar view for events ([4abaafd](https://github.com/Life-USTC/server-nextjs/commit/4abaafd3f918689e565eb0af15f3c9f6eaa39352))
+
 ## [0.26.3](https://github.com/Life-USTC/server-nextjs/compare/v0.26.2...v0.26.3) (2026-01-21)
 
 
