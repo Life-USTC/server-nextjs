@@ -194,6 +194,30 @@ export interface ScheduleDataInterface {
   };
 }
 
+const startTimeSlots = [
+  750, 840, 945, 1035, 1125, 1400, 1450, 1555, 1645, 1735, 1930, 2020, 2110,
+];
+const endTimeSlots = [
+  835, 925, 1030, 1120, 1210, 1445, 1535, 1640, 1730, 1820, 2015, 2105, 2155,
+];
+
+function findNearestTimeSlot(time: number, slots: number[]): number | null {
+  if (!Number.isFinite(time)) {
+    return null;
+  }
+  let nearest = slots[0];
+  let minDelta = Math.abs(time - nearest);
+  for (const slot of slots) {
+    const delta = Math.abs(time - slot);
+    if (delta < minDelta) {
+      minDelta = delta;
+      nearest = slot;
+    }
+  }
+  const index = slots.indexOf(nearest);
+  return index === -1 ? null : index + 1;
+}
+
 async function loadCampus(
   data: CampusInterface,
   prisma: PrismaClient,
@@ -563,6 +587,8 @@ async function loadSchedule(
   }
 
   const scheduleDate = new Date(data.date);
+  const startUnit = findNearestTimeSlot(data.startTime, startTimeSlots);
+  const endUnit = findNearestTimeSlot(data.endTime, endTimeSlots);
 
   // Create schedule with all teachers at once
   return prisma.schedule.create({
@@ -586,8 +612,8 @@ async function loadSchedule(
       lessonType: data.lessonType || null,
       weekIndex: data.weekIndex,
       exerciseClass: data.exerciseClass || false,
-      startUnit: data.startUnit,
-      endUnit: data.endUnit,
+      startUnit: startUnit ?? data.startUnit ?? 0,
+      endUnit: endUnit ?? data.endUnit ?? 0,
     },
   });
 }
