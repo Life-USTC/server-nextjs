@@ -10,13 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Table,
@@ -37,8 +31,6 @@ export default async function TeacherPage({
   searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
-  const searchP = await searchParams;
-  const view = searchP.view || "table";
   const locale = await getLocale();
   const isEnglish = locale === "en-us";
 
@@ -72,19 +64,6 @@ export default async function TeacherPage({
 
   const t = await getTranslations("teacherDetail");
   const tCommon = await getTranslations("common");
-
-  // Group sections by semester
-  const sectionsBySemester = teacher.sections.reduce(
-    (acc, section) => {
-      const semesterName = section.semester?.nameCn || "Unknown";
-      if (!acc[semesterName]) {
-        acc[semesterName] = [];
-      }
-      acc[semesterName].push(section);
-      return acc;
-    },
-    {} as Record<string, typeof teacher.sections>,
-  );
 
   return (
     <main className="page-main">
