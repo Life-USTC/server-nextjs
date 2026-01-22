@@ -46,6 +46,7 @@ function getSubscriptionIcsUrl(state: SubscriptionState): string | null {
 
 interface SubscriptionCalendarButtonProps {
   sectionDatabaseId: number;
+  sectionJwId: number;
   showCalendarButton?: boolean;
   showSubscribeButton?: boolean;
   addToCalendarLabel: string;
@@ -79,6 +80,7 @@ interface SubscriptionCalendarButtonProps {
 
 export function SubscriptionCalendarButton({
   sectionDatabaseId,
+  sectionJwId,
   showCalendarButton = true,
   showSubscribeButton = true,
   addToCalendarLabel,
@@ -177,7 +179,7 @@ export function SubscriptionCalendarButton({
   // Single section calendar URL
   const singleCalendarUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/api/sections/${sectionDatabaseId}/calendar.ics`
+      ? `${window.location.origin}/api/sections/${sectionJwId}/calendar.ics`
       : "";
 
   // Full subscription ICS URL

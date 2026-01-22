@@ -5,26 +5,26 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/sections/[id]/calendar.ics
- * Generate calendar for a single section by database ID
+ * GET /api/sections/[jwId]/calendar.ics
+ * Generate calendar for a single section by JW ID
  */
 export async function GET(
   _: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ jwId: string }> },
 ) {
   try {
-    const { id } = await context.params;
-    const sectionId = Number.parseInt(id, 10);
+    const { jwId } = await context.params;
+    const sectionJwId = Number.parseInt(jwId, 10);
 
-    if (Number.isNaN(sectionId)) {
+    if (Number.isNaN(sectionJwId)) {
       return NextResponse.json(
-        { error: "Invalid section ID" },
+        { error: "Invalid section JW ID" },
         { status: 400 },
       );
     }
 
     const section = await prisma.section.findUnique({
-      where: { id: sectionId },
+      where: { jwId: sectionJwId },
       include: {
         course: true,
         schedules: {

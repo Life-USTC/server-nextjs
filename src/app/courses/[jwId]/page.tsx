@@ -26,15 +26,15 @@ export default async function CoursePage({
   params,
   searchParams,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ jwId: string }>;
   searchParams: Promise<{ view?: string }>;
 }) {
-  const { id } = await params;
+  const { jwId } = await params;
   const searchP = await searchParams;
   const _view = searchP.view || "table";
   const locale = await getLocale();
   const course = await prisma.course.findUnique({
-    where: { jwId: parseInt(id, 10) },
+    where: { jwId: parseInt(jwId, 10) },
     include: {
       educationLevel: true,
       category: true,

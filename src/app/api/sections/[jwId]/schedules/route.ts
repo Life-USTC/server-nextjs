@@ -5,12 +5,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET(
   _request: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ jwId: string }> },
 ) {
   try {
-    const { id } = await context.params;
+    const { jwId } = await context.params;
     const section = await prisma.section.findUnique({
-      where: { jwId: parseInt(id, 10) },
+      where: { jwId: parseInt(jwId, 10) },
       include: {
         schedules: {
           include: {
