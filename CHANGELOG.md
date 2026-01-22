@@ -1,3 +1,10 @@
+## [0.28.1](https://github.com/Life-USTC/server-nextjs/compare/v0.28.0...v0.28.1) (2026-01-22)
+
+
+### Bug Fixes
+
+* **schedule:** derive units from time slots ([6eca613](https://github.com/Life-USTC/server-nextjs/commit/6eca613d372b392b635d68f45733f5ab7715ff17))
+
 # [0.28.0](https://github.com/Life-USTC/server-nextjs/compare/v0.27.0...v0.28.0) (2026-01-22)
 
 
