@@ -1,0 +1,89 @@
+import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { UploadsManager } from "@/components/uploads-manager";
+import { prisma } from "@/lib/prisma";
+import { uploadConfig } from "@/lib/upload-config";
+
+export default async function UploadsPage() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/signin");
+  }
+
+  const tCommon = await getTranslations("common");
+  const tProfile = await getTranslations("profile");
+  const tUploads = await getTranslations("uploads");
+  const accessUrl = process.env.R2_ACCESS_URL ?? "";
+
+  const now = new Date();
+  await prisma.uploadPending.deleteMany({
+    where: { userId: session.user.id, expiresAt: { lt: now } },
+  });
+
+  const [uploads, usage, pendingUsage] = await Promise.all([
+    prisma.upload.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.upload.aggregate({
+      where: { userId: session.user.id },
+      _sum: { size: true },
+    }),
+    prisma.uploadPending.aggregate({
+      where: { userId: session.user.id, expiresAt: { gt: now } },
+      _sum: { size: true },
+    }),
+  ]);
+
+  const usedBytes = (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
+
+  return (
+    <main className="page-main">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/me">{tProfile("title")}</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{tUploads("title")}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      <div className="mb-8 mt-8">
+        <h1 className="text-display mb-2">{tUploads("title")}</h1>
+        <p className="text-subtitle text-muted-foreground">
+          {tUploads("description")}
+        </p>
+      </div>
+
+      <UploadsManager
+        initialUploads={uploads.map((upload) => ({
+          id: upload.id,
+          key: upload.key,
+          filename: upload.filename,
+          size: upload.size,
+          createdAt: upload.createdAt.toISOString(),
+        }))}
+        initialUsedBytes={usedBytes}
+        maxFileSizeBytes={uploadConfig.maxFileSizeBytes}
+        quotaBytes={uploadConfig.totalQuotaBytes}
+        accessUrl={accessUrl}
+      />
+    </main>
+  );
+}

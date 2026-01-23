@@ -1,4 +1,4 @@
-import { Calendar, ChevronRight } from "lucide-react";
+import { Calendar, ChevronRight, UploadCloud } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -31,6 +31,7 @@ export default async function ProfilePage() {
   const t = await getTranslations("profile");
   const tCommon = await getTranslations("common");
   const tSubs = await getTranslations("subscriptions");
+  const tUploads = await getTranslations("uploads");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -86,6 +87,26 @@ export default async function ProfilePage() {
                     <div className="space-y-1">
                       <CardTitle>{tSubs("title")}</CardTitle>
                       <CardDescription>{tSubs("description")}</CardDescription>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/me/uploads" className="block no-underline">
+            <Card className="hover:bg-accent/50 transition-colors">
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <UploadCloud className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle>{tUploads("title")}</CardTitle>
+                      <CardDescription>
+                        {tUploads("description")}
+                      </CardDescription>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-muted-foreground" />

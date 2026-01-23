@@ -21,11 +21,15 @@ COPY . .
 
 # Ensure Prisma Client is generated during build
 ENV DATABASE_URL="postgresql://user:password@localhost:5432/dummy"
+ENV S3_ENDPOINT="http://localhost:9000"
+ENV S3_BUCKET="dummy-bucket"
+ENV S3_ACCESS_KEY_ID="dummy-access-key"
+ENV S3_SECRET_ACCESS_KEY="dummy-secret-key"
+ENV NODE_ENV=production
+ENV TSC_COMPILE_ON_ERROR=true
 RUN bun run prisma:generate
 
 # Build Next.js app
-ENV NODE_ENV=production
-ENV TSC_COMPILE_ON_ERROR=true
 RUN bun run build
 
 # Final runtime image with only production deps and build output
