@@ -25,10 +25,8 @@ import { prisma } from "@/lib/prisma";
 
 export default async function TeacherPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ view?: string }>;
 }) {
   const { id } = await params;
   const locale = await getLocale();
