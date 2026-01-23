@@ -1,3 +1,10 @@
+# [0.30.0](https://github.com/Life-USTC/server-nextjs/compare/v0.29.0...v0.30.0) (2026-01-23)
+
+
+### Features
+
+* add upload ability ([c0ebdc6](https://github.com/Life-USTC/server-nextjs/commit/c0ebdc6e20e75cd419ade2cfc85b56a6644bc799))
+
 # [0.29.0](https://github.com/Life-USTC/server-nextjs/compare/v0.28.1...v0.29.0) (2026-01-22)
 
 
