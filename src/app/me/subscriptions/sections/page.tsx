@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,6 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SubscriptionsPage() {
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/signin");
@@ -57,7 +58,6 @@ export default async function SubscriptionsPage() {
   const tCommon = await getTranslations("common");
   const tProfile = await getTranslations("profile");
   const tSection = await getTranslations("sectionDetail");
-  const isEnglish = locale === "en-us";
   const weekLabelTemplate = tSection("weekNumber", { week: "{week}" });
 
   type SubscriptionSchedule = Prisma.ScheduleGetPayload<{
@@ -73,7 +73,16 @@ export default async function SubscriptionsPage() {
       };
       teachers: true;
     };
-  }>;
+  }> & {
+    room: {
+      namePrimary: string;
+      building: {
+        namePrimary: string;
+        campus: { namePrimary: string } | null;
+      } | null;
+    } | null;
+    teachers: Array<{ namePrimary: string }>;
+  };
 
   const weekdayLabels = [
     tSection("weekdays.sunday"),
@@ -95,11 +104,11 @@ export default async function SubscriptionsPage() {
     if (schedule.customPlace) return schedule.customPlace;
     if (!schedule.room) return "—";
 
-    const parts = [schedule.room.nameCn];
+    const parts = [schedule.room.namePrimary];
     if (schedule.room.building) {
-      parts.push(schedule.room.building.nameCn);
+      parts.push(schedule.room.building.namePrimary);
       if (schedule.room.building.campus) {
-        parts.push(schedule.room.building.campus.nameCn);
+        parts.push(schedule.room.building.campus.namePrimary);
       }
     }
 
@@ -339,11 +348,7 @@ export default async function SubscriptionsPage() {
                             <TableBody>
                               {group.sections.map((section) => {
                                 const teacherNames = section.teachers
-                                  .map((teacher) =>
-                                    isEnglish && teacher.nameEn
-                                      ? teacher.nameEn
-                                      : teacher.nameCn,
-                                  )
+                                  .map((teacher) => teacher.namePrimary)
                                   .filter(Boolean);
 
                                 return (
@@ -355,9 +360,7 @@ export default async function SubscriptionsPage() {
                                       {section.code}
                                     </TableCell>
                                     <TableCell className="w-1/4 max-w-0 truncate">
-                                      {isEnglish && section.course.nameEn
-                                        ? section.course.nameEn
-                                        : section.course.nameCn}
+                                      {section.course.namePrimary}
                                     </TableCell>
                                     <TableCell className="w-1/4 max-w-0 truncate">
                                       {teacherNames.length > 0
@@ -391,10 +394,7 @@ export default async function SubscriptionsPage() {
                           const timeRange = `${formatTime(
                             schedule.startTime,
                           )}-${formatTime(schedule.endTime)}`;
-                          const courseTitle =
-                            isEnglish && section.course.nameEn
-                              ? section.course.nameEn
-                              : section.course.nameCn;
+                          const courseTitle = section.course.namePrimary;
                           const details = [
                             {
                               label: tSection("location"),
@@ -406,7 +406,7 @@ export default async function SubscriptionsPage() {
                                 schedule.teachers &&
                                 schedule.teachers.length > 0
                                   ? schedule.teachers
-                                      .map((teacher) => teacher.nameCn)
+                                      .map((teacher) => teacher.namePrimary)
                                       .join(", ")
                                   : "—",
                             },
@@ -449,10 +449,7 @@ export default async function SubscriptionsPage() {
                                 .filter(Boolean)
                                 .join(", ")
                             : "";
-                          const courseTitle =
-                            isEnglish && section.course.nameEn
-                              ? section.course.nameEn
-                              : section.course.nameCn;
+                          const courseTitle = section.course.namePrimary;
                           const details = [
                             {
                               label: tSection("examMode"),
@@ -460,7 +457,7 @@ export default async function SubscriptionsPage() {
                             },
                             {
                               label: tSection("examBatch"),
-                              value: exam.examBatch?.nameCn ?? "",
+                              value: exam.examBatch?.namePrimary ?? "",
                             },
                             { label: tSection("location"), value: examRooms },
                             {

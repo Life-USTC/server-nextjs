@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export async function generateMetadata({
   params,
@@ -31,6 +31,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const t = await getTranslations("metadata");
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
   const { id } = await params;
   const parsedId = parseInt(id, 10);
 
@@ -40,18 +41,13 @@ export async function generateMetadata({
 
   const teacher = await prisma.teacher.findUnique({
     where: { id: parsedId },
-    select: {
-      nameCn: true,
-      nameEn: true,
-    },
   });
 
   if (!teacher) {
     return { title: t("pages.teachers") };
   }
 
-  const teacherName =
-    locale === "en-us" && teacher.nameEn ? teacher.nameEn : teacher.nameCn;
+  const teacherName = teacher.namePrimary;
 
   return {
     title: t("pages.teacherDetail", {
@@ -67,6 +63,7 @@ export default async function TeacherPage({
 }) {
   const { id } = await params;
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
   const isEnglish = locale === "en-us";
 
   const parsedId = parseInt(id, 10);
@@ -117,23 +114,23 @@ export default async function TeacherPage({
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>{teacher.nameCn}</BreadcrumbPage>
+            <BreadcrumbPage>{teacher.namePrimary}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
       <div className="mb-8 mt-8">
         <h1 className="text-display mb-2">
-          {teacher.nameCn}
-          {isEnglish && teacher.nameEn && (
+          {teacher.namePrimary}
+          {isEnglish && teacher.nameSecondary && (
             <span className="ml-3 text-muted-foreground">
-              ({teacher.nameEn})
+              ({teacher.nameSecondary})
             </span>
           )}
         </h1>
         {teacher.department && (
           <p className="text-subtitle text-muted-foreground">
-            {teacher.department.nameCn}
+            {teacher.department.namePrimary}
           </p>
         )}
       </div>
@@ -148,10 +145,10 @@ export default async function TeacherPage({
             <div className="flex items-baseline gap-2">
               <span className="text-muted-foreground">{t("name")}</span>
               <span className="font-medium text-foreground">
-                {teacher.nameCn}
-                {teacher.nameEn && (
+                {teacher.namePrimary}
+                {teacher.nameSecondary && (
                   <span className="ml-2 text-muted-foreground">
-                    ({teacher.nameEn})
+                    ({teacher.nameSecondary})
                   </span>
                 )}
               </span>
@@ -160,7 +157,7 @@ export default async function TeacherPage({
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">{t("department")}</span>
                 <span className="font-medium text-foreground">
-                  {teacher.department.nameCn}
+                  {teacher.department.namePrimary}
                 </span>
               </div>
             )}
@@ -168,7 +165,7 @@ export default async function TeacherPage({
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">{t("title")}</span>
                 <span className="font-medium text-foreground">
-                  {teacher.teacherTitle.nameCn}
+                  {teacher.teacherTitle.namePrimary}
                 </span>
               </div>
             )}
@@ -237,11 +234,7 @@ export default async function TeacherPage({
                       <Badge variant="outline">{section.semester.nameCn}</Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    {isEnglish && section.course.nameEn
-                      ? section.course.nameEn
-                      : section.course.nameCn}
-                  </TableCell>
+                  <TableCell>{section.course.namePrimary}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
                       {section.code}

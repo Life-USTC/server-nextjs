@@ -22,7 +22,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Link } from "@/i18n/routing";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 
 export async function generateMetadata({
@@ -32,6 +32,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const t = await getTranslations("metadata");
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
   const { jwId } = await params;
   const parsedId = parseInt(jwId, 10);
 
@@ -43,12 +44,7 @@ export async function generateMetadata({
     where: { jwId: parsedId },
     select: {
       code: true,
-      course: {
-        select: {
-          nameCn: true,
-          nameEn: true,
-        },
-      },
+      course: true,
     },
   });
 
@@ -56,10 +52,7 @@ export async function generateMetadata({
     return { title: t("pages.sections") };
   }
 
-  const courseName =
-    locale === "en-us" && section.course.nameEn
-      ? section.course.nameEn
-      : section.course.nameCn;
+  const courseName = section.course.namePrimary;
   const displayName = courseName || section.code;
 
   return {
@@ -77,6 +70,7 @@ export default async function SectionPage({
 }) {
   const { jwId } = await params;
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
 
   const section = await prisma.section.findUnique({
     where: { jwId: parseInt(jwId, 10) },
@@ -172,7 +166,6 @@ export default async function SectionPage({
   const t = await getTranslations("sectionDetail");
   const tCommon = await getTranslations("common");
   const tA11y = await getTranslations("accessibility");
-  const isEnglish = locale === "en-us";
 
   const weekdayLabels = [
     t("weekdays.sunday"),
@@ -196,11 +189,11 @@ export default async function SectionPage({
     if (schedule.customPlace) return schedule.customPlace;
     if (!schedule.room) return "—";
 
-    const parts = [schedule.room.nameCn];
+    const parts = [schedule.room.namePrimary];
     if (schedule.room.building) {
-      parts.push(schedule.room.building.nameCn);
+      parts.push(schedule.room.building.namePrimary);
       if (schedule.room.building.campus) {
-        parts.push(schedule.room.building.campus.nameCn);
+        parts.push(schedule.room.building.campus.namePrimary);
       }
     }
 
@@ -224,7 +217,7 @@ export default async function SectionPage({
         label: t("teacher"),
         value:
           schedule.teachers && schedule.teachers.length > 0
-            ? schedule.teachers.map((teacher) => teacher.nameCn).join(", ")
+            ? schedule.teachers.map((teacher) => teacher.namePrimary).join(", ")
             : "—",
       },
       {
@@ -260,7 +253,7 @@ export default async function SectionPage({
       : "";
     const details = [
       { label: t("examMode"), value: exam.examMode ?? "" },
-      { label: t("examBatch"), value: exam.examBatch?.nameCn ?? "" },
+      { label: t("examBatch"), value: exam.examBatch?.namePrimary ?? "" },
       { label: t("location"), value: examRooms },
       { label: t("examCount"), value: exam.examTakeCount ?? null },
     ].flatMap((detail) => {
@@ -323,22 +316,12 @@ export default async function SectionPage({
       <div className="mb-8 mt-8">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h1 className="text-display mb-2">
-              {isEnglish && section.course.nameEn
-                ? section.course.nameEn
-                : section.course.nameCn}
-            </h1>
-            {isEnglish
-              ? section.course.nameCn && (
-                  <p className="text-subtitle text-muted-foreground">
-                    {section.course.nameCn}
-                  </p>
-                )
-              : section.course.nameEn && (
-                  <p className="text-subtitle text-muted-foreground">
-                    {section.course.nameEn}
-                  </p>
-                )}
+            <h1 className="text-display mb-2">{section.course.namePrimary}</h1>
+            {section.course.nameSecondary && (
+              <p className="text-subtitle text-muted-foreground">
+                {section.course.nameSecondary}
+              </p>
+            )}
           </div>
           <SubscriptionCalendarButton
             sectionDatabaseId={section.id}
@@ -409,7 +392,7 @@ export default async function SectionPage({
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">{t("campus")}</span>
                   <span className="font-medium text-foreground">
-                    {section.campus.nameCn}
+                    {section.campus.namePrimary}
                   </span>
                 </div>
               )}
@@ -447,7 +430,7 @@ export default async function SectionPage({
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">{t("examMode")}</span>
                 <span className="font-medium text-foreground">
-                  {section.examMode.nameCn}
+                  {section.examMode.namePrimary}
                 </span>
               </div>
             )}
@@ -482,10 +465,10 @@ export default async function SectionPage({
                       variant="secondary"
                       className="hover:bg-secondary/80 cursor-pointer"
                     >
-                      {teacher.nameCn}
+                      {teacher.namePrimary}
                       {teacher.department && (
                         <span className="text-muted-foreground ml-1">
-                          ({teacher.department.nameCn})
+                          ({teacher.department.namePrimary})
                         </span>
                       )}
                     </Badge>
@@ -508,7 +491,7 @@ export default async function SectionPage({
                       {t("teachLanguage")}
                     </span>
                     <span className="font-medium text-foreground">
-                      {section.teachLanguage.nameCn}
+                      {section.teachLanguage.namePrimary}
                     </span>
                   </div>
                 )}
@@ -518,7 +501,7 @@ export default async function SectionPage({
                       {t("roomType")}
                     </span>
                     <span className="font-medium text-foreground">
-                      {section.roomType.nameCn}
+                      {section.roomType.namePrimary}
                     </span>
                   </div>
                 )}
@@ -626,7 +609,7 @@ export default async function SectionPage({
                   <div className="flex flex-wrap gap-2">
                     {section.adminClasses.map((ac) => (
                       <Badge key={ac.id} variant="secondary">
-                        {ac.nameCn}
+                        {ac.namePrimary}
                       </Badge>
                     ))}
                   </div>
@@ -660,7 +643,7 @@ export default async function SectionPage({
                                 {otherSection.teachers.length > 0 ? (
                                   <span>
                                     {otherSection.teachers
-                                      .map((t) => t.nameCn)
+                                      .map((t) => t.namePrimary)
                                       .join(", ")}
                                   </span>
                                 ) : (

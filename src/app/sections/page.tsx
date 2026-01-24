@@ -1,4 +1,4 @@
-import type { Prisma, Semester } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
 
@@ -143,6 +143,7 @@ async function fetchSections(
   page: number,
   semesterId?: string,
   search?: string,
+  locale = "zh-cn",
 ) {
   const where: Prisma.SectionWhereInput = {};
   let orderBy: Prisma.SectionOrderByWithRelationInput | undefined;
@@ -301,10 +302,11 @@ async function fetchSections(
     orderBy = { semester: { jwId: "desc" } };
   }
 
-  return paginatedSectionQuery(page, where, orderBy);
+  return paginatedSectionQuery(page, where, orderBy, locale);
 }
 
-async function fetchSemesters(): Promise<Semester[]> {
+async function fetchSemesters(locale: string) {
+  const prisma = getPrisma(locale);
   const semesters = await prisma.semester.findMany({
     take: 100,
     orderBy: { jwId: "desc" },
@@ -337,11 +339,10 @@ export default async function SectionsPage({
   const semesterId = searchP.semesterId;
   const search = searchP.search;
   const view = searchP.view || "table";
-  const isEnglish = locale === "en-us";
 
   const [data, semesters] = await Promise.all([
-    fetchSections(page, semesterId, search),
-    fetchSemesters(),
+    fetchSections(page, semesterId, search, locale),
+    fetchSemesters(locale),
   ]);
 
   const { data: sections, pagination } = data;
@@ -455,11 +456,7 @@ export default async function SectionsPage({
                       <Badge variant="outline">{section.semester.nameCn}</Badge>
                     )}
                   </TableCell>
-                  <TableCell>
-                    {isEnglish && section.course.nameEn
-                      ? section.course.nameEn
-                      : section.course.nameCn}
-                  </TableCell>
+                  <TableCell>{section.course.namePrimary}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
                       {section.code}
@@ -471,14 +468,14 @@ export default async function SectionsPage({
                       title={
                         section.teachers && section.teachers.length > 0
                           ? section.teachers
-                              .map((teacher) => teacher.nameCn)
+                              .map((teacher) => teacher.namePrimary)
                               .join(", ")
                           : undefined
                       }
                     >
                       {section.teachers && section.teachers.length > 0
                         ? section.teachers
-                            .map((teacher) => teacher.nameCn)
+                            .map((teacher) => teacher.namePrimary)
                             .join(", ")
                         : "—"}
                     </div>
@@ -492,7 +489,7 @@ export default async function SectionsPage({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {section.campus ? section.campus.nameCn : "—"}
+                    {section.campus ? section.campus.namePrimary : "—"}
                   </TableCell>
                 </ClickableTableRow>
               ))}
