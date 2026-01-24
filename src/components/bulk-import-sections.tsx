@@ -3,7 +3,7 @@
 import type { Campus, Course, Semester, Teacher } from "@prisma/client";
 import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { addSectionsToSubscription } from "@/app/actions/subscription";
 import {
@@ -32,13 +32,26 @@ import { toastManager } from "@/components/ui/toast";
 type SectionData = {
   id: number;
   code: string;
-  course: Course;
-  semester: Semester | null;
-  campus: Campus | null;
-  teachers: Teacher[];
+  course: Course & {
+    namePrimary?: string;
+    nameSecondary?: string | null;
+  };
+  semester: (Semester & { namePrimary?: string }) | null;
+  campus:
+    | (Campus & {
+        namePrimary?: string;
+      })
+    | null;
+  teachers: Array<
+    Teacher & {
+      namePrimary?: string;
+    }
+  >;
 };
 
-type SemesterOption = Pick<Semester, "id" | "nameCn">;
+type SemesterOption = Pick<Semester, "id" | "nameCn"> & {
+  namePrimary?: string;
+};
 
 interface BulkImportSectionsProps {
   semesters: SemesterOption[];
@@ -50,6 +63,7 @@ export function BulkImportSections({
   defaultSemesterId,
 }: BulkImportSectionsProps) {
   const t = useTranslations("subscriptions");
+  const locale = useLocale();
   const router = useRouter();
 
   // Bulk import state
@@ -65,8 +79,32 @@ export function BulkImportSections({
     defaultSemesterId ? defaultSemesterId.toString() : "",
   );
 
+  const getNamePrimary = (item: {
+    namePrimary?: string;
+    nameCn?: string | null;
+    nameEn?: string | null;
+  }) => {
+    if (item.namePrimary) return item.namePrimary;
+    const english = item.nameEn?.trim();
+    if (locale === "en-us" && english) return english;
+    return item.nameCn ?? "";
+  };
+
+  const getNameSecondary = (item: {
+    nameSecondary?: string | null;
+    nameCn?: string | null;
+    nameEn?: string | null;
+  }) => {
+    if (item.nameSecondary !== undefined) return item.nameSecondary;
+    const english = item.nameEn?.trim();
+    if (locale === "en-us") {
+      return english ? (item.nameCn ?? null) : null;
+    }
+    return english ?? null;
+  };
+
   const semesterItems = semesters.map((semester) => ({
-    label: semester.nameCn,
+    label: getNamePrimary(semester),
     value: semester.id.toString(),
   }));
 
@@ -261,13 +299,27 @@ export function BulkImportSections({
                         />
                         <div className="flex-1">
                           <div className="font-medium">
-                            {section.course.nameCn}
+                            {getNamePrimary(section.course)}
+                            {getNameSecondary(section.course) && (
+                              <span className="ml-2 text-muted-foreground">
+                                ({getNameSecondary(section.course)})
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {section.code} · {section.semester?.nameCn} ·{" "}
-                            {section.campus?.nameCn}
-                            {section.teachers.length > 0 &&
-                              ` · ${section.teachers.map((t) => t.nameCn).join(", ")}`}
+                            {section.code} ·
+                            {section.semester
+                              ? getNamePrimary(section.semester)
+                              : "—"}
+                            {section.campus
+                              ? ` · ${getNamePrimary(section.campus)}`
+                              : ""}
+                            {section.teachers.length > 0
+                              ? ` · ${section.teachers
+                                  .map((teacher) => getNamePrimary(teacher))
+                                  .filter(Boolean)
+                                  .join(", ")}`
+                              : ""}
                           </div>
                         </div>
                       </button>

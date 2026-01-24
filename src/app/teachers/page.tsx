@@ -1,4 +1,4 @@
-import type { Department, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
 import { TeachersFilter } from "./teachers-filter";
 
@@ -42,6 +42,7 @@ async function fetchTeachers(
   page: number,
   departmentId?: string,
   search?: string,
+  locale = "zh-cn",
 ) {
   const where: Prisma.TeacherWhereInput = {};
 
@@ -60,10 +61,11 @@ async function fetchTeachers(
     ];
   }
 
-  return paginatedTeacherQuery(page, where, { nameCn: "asc" });
+  return paginatedTeacherQuery(page, where, { nameCn: "asc" }, locale);
 }
 
-async function fetchDepartments(): Promise<Department[]> {
+async function fetchDepartments(locale: string) {
+  const prisma = getPrisma(locale);
   const departments = await prisma.department.findMany({
     where: {
       teachers: {
@@ -103,8 +105,8 @@ export default async function TeachersPage({
   const isEnglish = locale === "en-us";
 
   const [data, departments] = await Promise.all([
-    fetchTeachers(page, departmentId, search),
-    fetchDepartments(),
+    fetchTeachers(page, departmentId, search, locale),
+    fetchDepartments(locale),
   ]);
 
   const { data: teachers, pagination } = data;
@@ -187,7 +189,9 @@ export default async function TeachersPage({
           )}
           {selectedDepartment && (
             <span className="ml-2">
-              {t("inDepartment", { department: selectedDepartment.nameCn })}
+              {t("inDepartment", {
+                department: selectedDepartment.namePrimary,
+              })}
             </span>
           )}
         </p>
@@ -213,10 +217,10 @@ export default async function TeachersPage({
                 >
                   <TableCell>
                     <div className="font-medium">
-                      {teacher.nameCn}
-                      {isEnglish && teacher.nameEn && (
+                      {teacher.namePrimary}
+                      {isEnglish && teacher.nameSecondary && (
                         <span className="ml-2 text-muted-foreground">
-                          ({teacher.nameEn})
+                          ({teacher.nameSecondary})
                         </span>
                       )}
                     </div>
@@ -224,14 +228,16 @@ export default async function TeachersPage({
                   <TableCell>
                     {teacher.department ? (
                       <Badge variant="outline">
-                        {teacher.department.nameCn}
+                        {teacher.department.namePrimary}
                       </Badge>
                     ) : (
                       "—"
                     )}
                   </TableCell>
                   <TableCell>
-                    {teacher.teacherTitle ? teacher.teacherTitle.nameCn : "—"}
+                    {teacher.teacherTitle
+                      ? teacher.teacherTitle.namePrimary
+                      : "—"}
                   </TableCell>
                   <TableCell>
                     {teacher.email ? (
@@ -259,7 +265,9 @@ export default async function TeachersPage({
             )}
             {selectedDepartment && (
               <EmptyDescription>
-                {t("inDepartment", { department: selectedDepartment.nameCn })}
+                {t("inDepartment", {
+                  department: selectedDepartment.namePrimary,
+                })}
               </EmptyDescription>
             )}
           </EmptyHeader>

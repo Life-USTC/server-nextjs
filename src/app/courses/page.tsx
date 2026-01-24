@@ -34,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 import { CoursesFilter } from "./courses-filter";
 
@@ -44,6 +44,7 @@ async function fetchCourses(
   educationLevelId?: string,
   categoryId?: string,
   classTypeId?: string,
+  locale = "zh-cn",
 ) {
   const where: Prisma.CourseWhereInput = {};
 
@@ -76,10 +77,11 @@ async function fetchCourses(
     }
   }
 
-  return paginatedCourseQuery(page, where);
+  return paginatedCourseQuery(page, where, undefined, locale);
 }
 
-async function fetchFilterOptions() {
+async function fetchFilterOptions(locale: string) {
+  const prisma = getPrisma(locale);
   const [educationLevels, categories, classTypes] = await Promise.all([
     prisma.educationLevel.findMany(),
     prisma.courseCategory.findMany(),
@@ -116,11 +118,17 @@ export default async function CoursesPage({
   const categoryId = searchP.categoryId;
   const classTypeId = searchP.classTypeId;
   const view = searchP.view || "table";
-  const isEnglish = locale === "en-us";
 
   const [data, filterOptions] = await Promise.all([
-    fetchCourses(page, search, educationLevelId, categoryId, classTypeId),
-    fetchFilterOptions(),
+    fetchCourses(
+      page,
+      search,
+      educationLevelId,
+      categoryId,
+      classTypeId,
+      locale,
+    ),
+    fetchFilterOptions(locale),
   ]);
   const { data: courses, pagination } = data;
   const { page: currentPage, total, totalPages } = pagination;
@@ -199,7 +207,6 @@ export default async function CoursesPage({
           categoryId,
           classTypeId,
         }}
-        locale={locale}
       />
 
       <div className="mb-6 flex items-center justify-between">
@@ -230,18 +237,12 @@ export default async function CoursesPage({
                   href={`/courses/${course.jwId}`}
                 >
                   <TableCell>
-                    {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
-                    {isEnglish
-                      ? course.nameCn && (
-                          <div className="text-muted-foreground text-xs">
-                            {course.nameCn}
-                          </div>
-                        )
-                      : course.nameEn && (
-                          <div className="text-muted-foreground text-xs">
-                            {course.nameEn}
-                          </div>
-                        )}
+                    {course.namePrimary}
+                    {course.nameSecondary && (
+                      <div className="text-muted-foreground text-xs">
+                        {course.nameSecondary}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
@@ -251,18 +252,22 @@ export default async function CoursesPage({
                   <TableCell>
                     {course.educationLevel && (
                       <Badge variant="outline">
-                        {course.educationLevel.nameCn}
+                        {course.educationLevel.namePrimary}
                       </Badge>
                     )}
                   </TableCell>
                   <TableCell>
                     {course.category && (
-                      <Badge variant="outline">{course.category.nameCn}</Badge>
+                      <Badge variant="outline">
+                        {course.category.namePrimary}
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell>
                     {course.classType && (
-                      <Badge variant="outline">{course.classType.nameCn}</Badge>
+                      <Badge variant="outline">
+                        {course.classType.namePrimary}
+                      </Badge>
                     )}
                   </TableCell>
                 </ClickableTableRow>
