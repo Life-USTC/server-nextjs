@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -36,6 +37,14 @@ import { Link } from "@/i18n/routing";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.subscriptions"),
+  };
+}
 
 export default async function SubscriptionsPage() {
   const locale = await getLocale();

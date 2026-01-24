@@ -1,4 +1,5 @@
 import { Calendar, ChevronRight, UploadCloud } from "lucide-react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -21,6 +22,14 @@ import {
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.profile"),
+  };
+}
 
 export default async function ProfilePage() {
   const session = await auth();

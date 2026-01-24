@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +86,14 @@ async function fetchFilterOptions() {
     prisma.classType.findMany(),
   ]);
   return { educationLevels, categories, classTypes };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.courses"),
+  };
 }
 
 export default async function CoursesPage({

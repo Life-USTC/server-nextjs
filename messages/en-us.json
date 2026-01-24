@@ -1,7 +1,21 @@
 {
   "metadata": {
     "title": "Life@USTC - Course and Schedule Management",
-    "description": "USTC course and schedule management system"
+    "titleTemplate": "%s - Life@USTC",
+    "description": "USTC course and schedule management system",
+    "pages": {
+      "home": "Home",
+      "courses": "Courses",
+      "courseDetail": "Course: {name}",
+      "sections": "Sections",
+      "sectionDetail": "{name} · Section {code}",
+      "teachers": "Teachers",
+      "teacherDetail": "Teacher: {name}",
+      "signIn": "Sign In",
+      "profile": "Profile",
+      "subscriptions": "My Subscriptions",
+      "uploads": "My Uploads"
+    }
   },
   "common": {
     "home": "Home",

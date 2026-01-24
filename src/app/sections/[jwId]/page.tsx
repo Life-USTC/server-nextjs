@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import type { CalendarEvent } from "@/components/event-calendar";
@@ -23,6 +24,51 @@ import {
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ jwId: string }>;
+}): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  const locale = await getLocale();
+  const { jwId } = await params;
+  const parsedId = parseInt(jwId, 10);
+
+  if (Number.isNaN(parsedId)) {
+    return { title: t("pages.sections") };
+  }
+
+  const section = await prisma.section.findUnique({
+    where: { jwId: parsedId },
+    select: {
+      code: true,
+      course: {
+        select: {
+          nameCn: true,
+          nameEn: true,
+        },
+      },
+    },
+  });
+
+  if (!section) {
+    return { title: t("pages.sections") };
+  }
+
+  const courseName =
+    locale === "en-us" && section.course.nameEn
+      ? section.course.nameEn
+      : section.course.nameCn;
+  const displayName = courseName || section.code;
+
+  return {
+    title: t("pages.sectionDetail", {
+      name: displayName,
+      code: section.code,
+    }),
+  };
+}
 
 export default async function SectionPage({
   params,
