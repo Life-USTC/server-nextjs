@@ -1,6 +1,5 @@
 "use client";
 
-import type { Department } from "@prisma/client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
@@ -18,7 +17,7 @@ import {
 import { Link } from "@/i18n/routing";
 
 interface TeachersFilterProps {
-  departments: Department[];
+  departments: Array<{ id: number; namePrimary: string }>;
   defaultValues: {
     search?: string;
     departmentId?: string;
@@ -62,11 +61,14 @@ export function TeachersFilter({
     updateFilters();
   };
 
-  const getSelectItems = (options: Department[], allLabel: string) => {
+  const getSelectItems = (
+    options: Array<{ id: number; namePrimary: string }>,
+    allLabel: string,
+  ) => {
     return [
       { label: allLabel, value: "" },
       ...options.map((opt) => ({
-        label: opt.nameCn,
+        label: opt.namePrimary,
         value: opt.id.toString(),
       })),
     ];

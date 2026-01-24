@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 export async function generateMetadata({
   params,
@@ -30,6 +30,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const t = await getTranslations("metadata");
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
   const { jwId } = await params;
   const parsedId = parseInt(jwId, 10);
 
@@ -39,19 +40,13 @@ export async function generateMetadata({
 
   const course = await prisma.course.findUnique({
     where: { jwId: parsedId },
-    select: {
-      code: true,
-      nameCn: true,
-      nameEn: true,
-    },
   });
 
   if (!course) {
     return { title: t("pages.courses") };
   }
 
-  const courseName =
-    locale === "en-us" && course.nameEn ? course.nameEn : course.nameCn;
+  const courseName = course.namePrimary;
   const displayName = courseName || course.code;
 
   return {
@@ -72,6 +67,7 @@ export default async function CoursePage({
   const searchP = await searchParams;
   const _view = searchP.view || "table";
   const locale = await getLocale();
+  const prisma = getPrisma(locale);
   const course = await prisma.course.findUnique({
     where: { jwId: parseInt(jwId, 10) },
     include: {
@@ -102,7 +98,6 @@ export default async function CoursePage({
   const t = await getTranslations("courseDetail");
   const tCourse = await getTranslations("course");
   const tCommon = await getTranslations("common");
-  const isEnglish = locale === "en-us";
 
   return (
     <main className="page-main">
@@ -125,20 +120,12 @@ export default async function CoursePage({
       </Breadcrumb>
 
       <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">
-          {isEnglish && course.nameEn ? course.nameEn : course.nameCn}
-        </h1>
-        {isEnglish
-          ? course.nameCn && (
-              <p className="text-subtitle text-muted-foreground">
-                {course.nameCn}
-              </p>
-            )
-          : course.nameEn && (
-              <p className="text-subtitle text-muted-foreground">
-                {course.nameEn}
-              </p>
-            )}
+        <h1 className="text-display mb-2">{course.namePrimary}</h1>
+        {course.nameSecondary && (
+          <p className="text-subtitle text-muted-foreground">
+            {course.nameSecondary}
+          </p>
+        )}
       </div>
 
       {/* Basic Info Card */}
@@ -160,7 +147,7 @@ export default async function CoursePage({
                   {tCourse("level")}
                 </span>
                 <span className="font-medium text-foreground">
-                  {course.educationLevel.nameCn}
+                  {course.educationLevel.namePrimary}
                 </span>
               </div>
             )}
@@ -170,7 +157,7 @@ export default async function CoursePage({
                   {tCourse("category")}
                 </span>
                 <span className="font-medium text-foreground">
-                  {course.category.nameCn}
+                  {course.category.namePrimary}
                 </span>
               </div>
             )}
@@ -178,7 +165,7 @@ export default async function CoursePage({
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">{tCourse("type")}</span>
                 <span className="font-medium text-foreground">
-                  {course.classType.nameCn}
+                  {course.classType.namePrimary}
                 </span>
               </div>
             )}
@@ -220,20 +207,20 @@ export default async function CoursePage({
                     title={
                       section.teachers && section.teachers.length > 0
                         ? section.teachers
-                            .map((teacher) => teacher.nameCn)
+                            .map((teacher) => teacher.namePrimary)
                             .join(", ")
                         : undefined
                     }
                   >
                     {section.teachers && section.teachers.length > 0
                       ? section.teachers
-                          .map((teacher) => teacher.nameCn)
+                          .map((teacher) => teacher.namePrimary)
                           .join(", ")
                       : "—"}
                   </div>
                 </TableCell>
                 <TableCell>
-                  {section.campus ? section.campus.nameCn : "—"}
+                  {section.campus ? section.campus.namePrimary : "—"}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">

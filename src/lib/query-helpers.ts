@@ -4,7 +4,7 @@ import {
   normalizePagination,
   type PaginatedResponse,
 } from "@/lib/api-helpers";
-import { prisma } from "@/lib/prisma";
+import { getPrisma } from "@/lib/prisma";
 
 /**
  * Generic paginated query function for Prisma models
@@ -65,20 +65,15 @@ export const courseInclude = {
   type: true,
 } satisfies Prisma.CourseInclude;
 
-/**
- * Type-safe paginated section query
- */
-export type SectionWithRelations = Prisma.SectionGetPayload<{
-  include: typeof sectionInclude;
-}>;
-
 export function paginatedSectionQuery(
   page: number,
   where?: Prisma.SectionWhereInput,
   orderBy?:
     | Prisma.SectionOrderByWithRelationInput
     | Prisma.SectionOrderByWithRelationInput[],
-): Promise<PaginatedResponse<SectionWithRelations>> {
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
   return paginatedQuery(
     (skip, take) =>
       prisma.section.findMany({
@@ -93,20 +88,15 @@ export function paginatedSectionQuery(
   );
 }
 
-/**
- * Type-safe paginated course query
- */
-export type CourseWithRelations = Prisma.CourseGetPayload<{
-  include: typeof courseInclude;
-}>;
-
 export function paginatedCourseQuery(
   page: number,
   where?: Prisma.CourseWhereInput,
   orderBy?:
     | Prisma.CourseOrderByWithRelationInput
     | Prisma.CourseOrderByWithRelationInput[],
-): Promise<PaginatedResponse<CourseWithRelations>> {
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
   return paginatedQuery(
     (skip, take) =>
       prisma.course.findMany({
@@ -145,20 +135,15 @@ export const teacherInclude = {
   },
 } satisfies Prisma.TeacherInclude;
 
-/**
- * Type-safe paginated teacher query
- */
-export type TeacherWithRelations = Prisma.TeacherGetPayload<{
-  include: typeof teacherInclude;
-}>;
-
 export function paginatedTeacherQuery(
   page: number,
   where?: Prisma.TeacherWhereInput,
   orderBy?:
     | Prisma.TeacherOrderByWithRelationInput
     | Prisma.TeacherOrderByWithRelationInput[],
-): Promise<PaginatedResponse<TeacherWithRelations>> {
+  locale = "zh-cn",
+) {
+  const prisma = getPrisma(locale);
   return paginatedQuery(
     (skip, take) =>
       prisma.teacher.findMany({

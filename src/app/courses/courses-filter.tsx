@@ -19,8 +19,8 @@ import { Link } from "@/i18n/routing";
 
 interface FilterOption {
   id: number;
-  nameCn: string;
-  nameEn?: string | null;
+  namePrimary: string;
+  nameSecondary?: string | null;
 }
 
 interface CoursesFilterProps {
@@ -33,7 +33,6 @@ interface CoursesFilterProps {
     categoryId?: string;
     classTypeId?: string;
   };
-  locale: string;
 }
 
 export function CoursesFilter({
@@ -41,7 +40,6 @@ export function CoursesFilter({
   categories,
   classTypes,
   defaultValues,
-  locale,
 }: CoursesFilterProps) {
   const t = useTranslations("courses");
   const tCommon = useTranslations("common");
@@ -49,11 +47,6 @@ export function CoursesFilter({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentView = searchParams.get("view");
-
-  const isEnglish = locale === "en-us";
-
-  const getLabel = (opt: FilterOption) =>
-    isEnglish && opt.nameEn ? opt.nameEn : opt.nameCn;
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -90,7 +83,7 @@ export function CoursesFilter({
     return [
       { label: allLabel, value: "" },
       ...options.map((opt) => ({
-        label: getLabel(opt) || "",
+        label: opt.namePrimary,
         value: opt.id.toString(),
       })),
     ];
