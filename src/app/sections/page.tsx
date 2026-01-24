@@ -1,4 +1,5 @@
 import type { Prisma, Semester } from "@prisma/client";
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { Badge } from "@/components/ui/badge";
@@ -310,6 +311,14 @@ async function fetchSemesters(): Promise<Semester[]> {
   });
 
   return semesters;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.sections"),
+  };
 }
 
 export default async function SectionsPage({

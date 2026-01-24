@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
@@ -21,6 +22,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { prisma } from "@/lib/prisma";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ jwId: string }>;
+}): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  const locale = await getLocale();
+  const { jwId } = await params;
+  const parsedId = parseInt(jwId, 10);
+
+  if (Number.isNaN(parsedId)) {
+    return { title: t("pages.courses") };
+  }
+
+  const course = await prisma.course.findUnique({
+    where: { jwId: parsedId },
+    select: {
+      code: true,
+      nameCn: true,
+      nameEn: true,
+    },
+  });
+
+  if (!course) {
+    return { title: t("pages.courses") };
+  }
+
+  const courseName =
+    locale === "en-us" && course.nameEn ? course.nameEn : course.nameCn;
+  const displayName = courseName || course.code;
+
+  return {
+    title: t("pages.courseDetail", {
+      name: displayName,
+    }),
+  };
+}
 
 export default async function CoursePage({
   params,

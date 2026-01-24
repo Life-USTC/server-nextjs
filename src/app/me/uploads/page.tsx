@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -12,6 +13,14 @@ import {
 import { UploadsManager } from "@/components/uploads-manager";
 import { prisma } from "@/lib/prisma";
 import { uploadConfig } from "@/lib/upload-config";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.uploads"),
+  };
+}
 
 export default async function UploadsPage() {
   const session = await auth();

@@ -1,8 +1,17 @@
 import { Calendar, User, Users } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.home"),
+  };
+}
 
 export default async function Homepage() {
   const t = await getTranslations("homepage");

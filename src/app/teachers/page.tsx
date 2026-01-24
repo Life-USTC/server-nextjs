@@ -1,4 +1,5 @@
 import type { Department, Prisma } from "@prisma/client";
+import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +74,14 @@ async function fetchDepartments(): Promise<Department[]> {
   });
 
   return departments;
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+
+  return {
+    title: t("pages.teachers"),
+  };
 }
 
 export default async function TeachersPage({
