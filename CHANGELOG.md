@@ -1,3 +1,10 @@
+# [0.31.0](https://github.com/Life-USTC/server-nextjs/compare/v0.30.0...v0.31.0) (2026-01-24)
+
+
+### Features
+
+* **i18n:** centralize localized names ([57b9e62](https://github.com/Life-USTC/server-nextjs/commit/57b9e62c52bdf633fa1ef9bd2ca4350b4251b38c))
+
 # [0.30.0](https://github.com/Life-USTC/server-nextjs/compare/v0.29.0...v0.30.0) (2026-01-24)
 
 
