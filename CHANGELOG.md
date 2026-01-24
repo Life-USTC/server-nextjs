@@ -1,3 +1,11 @@
+# [0.30.0](https://github.com/Life-USTC/server-nextjs/compare/v0.29.0...v0.30.0) (2026-01-24)
+
+
+### Features
+
+* add upload ability ([c0ebdc6](https://github.com/Life-USTC/server-nextjs/commit/c0ebdc6e20e75cd419ade2cfc85b56a6644bc799))
+* **metadata:** add title and favicon ([868e474](https://github.com/Life-USTC/server-nextjs/commit/868e47433a67def104085592973193cccb3231e7))
+
 # [0.30.0](https://github.com/Life-USTC/server-nextjs/compare/v0.29.0...v0.30.0) (2026-01-23)
 
 
