@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
@@ -22,6 +23,42 @@ import {
 } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  const locale = await getLocale();
+  const { id } = await params;
+  const parsedId = parseInt(id, 10);
+
+  if (Number.isNaN(parsedId)) {
+    return { title: t("pages.teachers") };
+  }
+
+  const teacher = await prisma.teacher.findUnique({
+    where: { id: parsedId },
+    select: {
+      nameCn: true,
+      nameEn: true,
+    },
+  });
+
+  if (!teacher) {
+    return { title: t("pages.teachers") };
+  }
+
+  const teacherName =
+    locale === "en-us" && teacher.nameEn ? teacher.nameEn : teacher.nameCn;
+
+  return {
+    title: t("pages.teacherDetail", {
+      name: teacherName,
+    }),
+  };
+}
 
 export default async function TeacherPage({
   params,
