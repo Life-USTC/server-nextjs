@@ -6,6 +6,29 @@ datasource db {
   provider = "postgresql"
 }
 
+enum CommentVisibility {
+  public
+  logged_in_only
+  anonymous
+}
+
+enum CommentStatus {
+  active
+  softbanned
+  deleted
+}
+
+enum CommentReactionType {
+  upvote
+  downvote
+  heart
+  laugh
+  hooray
+  confused
+  rocket
+  eyes
+}
+
 model AdminClass {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
@@ -99,6 +122,7 @@ model Course {
   type           CourseType?      @relation(fields: [typeId], references: [id])
 
   sections Section[]
+  comments Comment[]
 
   @@index([jwId])
   @@index([code])
@@ -345,9 +369,11 @@ model Section {
   scheduleGroups        ScheduleGroup[]
   adminClasses          AdminClass[]           @relation("SectionAdminClasses")
   teachers              Teacher[]              @relation("SectionTeachers")
+  sectionTeachers        SectionTeacher[]
   teacherAssignments    TeacherAssignment[]
   exams                 Exam[]
   calendarSubscriptions CalendarSubscription[] @relation("SectionCalendarSubscriptions")
+  comments              Comment[]
 
   @@index([jwId])
   @@index([code])
@@ -450,14 +476,35 @@ model Teacher {
   teacherTitle TeacherTitle? @relation(fields: [teacherTitleId], references: [id])
 
   sections           Section[]           @relation("SectionTeachers")
+  sectionTeachers    SectionTeacher[]
   teacherAssignments TeacherAssignment[]
   schedules          Schedule[]          @relation("ScheduleTeachers")
+  comments           Comment[]
 
   @@unique([nameCn, departmentId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
   @@index([teacherTitleId])
+}
+
+model SectionTeacher {
+  id Int @id @default(autoincrement())
+
+  sectionId Int
+  teacherId Int
+
+  section Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sectionId, teacherId])
+  @@index([sectionId])
+  @@index([teacherId])
 }
 
 model TeachLanguage {
@@ -541,6 +588,7 @@ model User {
   username        String?  @unique
   image           String?
   profilePictures String[] @default([])
+  isAdmin         Boolean  @default(false)
 
   accounts      Account[]
   sessions      Session[]
@@ -555,6 +603,12 @@ model User {
   calendarSubscriptions CalendarSubscription[]
   uploads               Upload[]
   uploadPendings        UploadPending[]
+  comments              Comment[]
+  moderatedComments     Comment[]         @relation("ModeratedComments")
+  commentReactions      CommentReaction[]
+  suspensions           UserSuspension[]  @relation("SuspendedUser")
+  suspensionsIssued     UserSuspension[]  @relation("SuspensionCreatedBy")
+  suspensionsLifted     UserSuspension[]  @relation("SuspensionLiftedBy")
 }
 
 model Upload {
@@ -569,7 +623,116 @@ model Upload {
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  commentAttachments CommentAttachment[]
+
   @@index([userId])
+}
+
+model Comment {
+  id String @id @default(cuid())
+
+  body       String
+  visibility CommentVisibility @default(public)
+  status     CommentStatus     @default(active)
+  isAnonymous Boolean          @default(false)
+  authorName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  moderatedAt DateTime?
+  moderationNote String?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  moderatedById String?
+  moderatedBy   User? @relation("ModeratedComments", fields: [moderatedById], references: [id], onDelete: SetNull)
+
+  parentId String?
+  parent   Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+
+  rootId String?
+  root   Comment?  @relation("CommentRoot", fields: [rootId], references: [id], onDelete: Cascade)
+  thread Comment[] @relation("CommentRoot")
+
+  sectionId        Int?
+  courseId         Int?
+  teacherId        Int?
+  sectionTeacherId Int?
+
+  section        Section?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course         Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher        Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  sectionTeacher SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)
+
+  attachments CommentAttachment[]
+  reactions   CommentReaction[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([rootId])
+  @@index([sectionId])
+  @@index([courseId])
+  @@index([teacherId])
+  @@index([sectionTeacherId])
+  @@index([status])
+  @@index([visibility])
+}
+
+model CommentAttachment {
+  id String @id @default(cuid())
+
+  commentId String
+  uploadId  String
+  createdAt DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  upload  Upload  @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, uploadId])
+  @@index([uploadId])
+}
+
+model CommentReaction {
+  id String @id @default(cuid())
+
+  type      CommentReactionType
+  createdAt DateTime @default(now())
+
+  commentId String
+  userId    String
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId, type])
+  @@index([userId])
+  @@index([commentId])
+}
+
+model UserSuspension {
+  id String @id @default(cuid())
+
+  userId      String
+  createdById String
+  createdAt   DateTime @default(now())
+  reason      String?
+  note        String?
+  expiresAt   DateTime?
+
+  liftedAt   DateTime?
+  liftedById String?
+
+  user      User  @relation("SuspendedUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User  @relation("SuspensionCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  liftedBy  User? @relation("SuspensionLiftedBy", fields: [liftedById], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdById])
+  @@index([liftedAt])
+  @@index([expiresAt])
 }
 
 model UploadPending {

@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
+import { CommentsSection } from "@/components/comments/comments-section";
 import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
@@ -166,6 +167,7 @@ export default async function SectionPage({
   const t = await getTranslations("sectionDetail");
   const tCommon = await getTranslations("common");
   const tA11y = await getTranslations("accessibility");
+  const tComments = await getTranslations("comments");
 
   const weekdayLabels = [
     t("weekdays.sunday"),
@@ -779,6 +781,37 @@ export default async function SectionPage({
           weekdayLabels={weekdayLabels}
           weekStartsOn={0}
           unscheduledLabel={t("dateTBD")}
+        />
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-title-2 mb-4">{tComments("title")}</h2>
+        <CommentsSection
+          targets={[
+            {
+              key: "section",
+              label: tComments("tabSection"),
+              type: "section",
+              targetId: section.id,
+            },
+            {
+              key: "course",
+              label: tComments("tabCourse"),
+              type: "course",
+              targetId: section.courseId,
+            },
+            {
+              key: "section-teacher",
+              label: tComments("tabSectionTeacher"),
+              type: "section-teacher",
+              sectionId: section.id,
+            },
+          ]}
+          teacherOptions={section.teachers.map((teacher) => ({
+            id: teacher.id,
+            label: teacher.namePrimary,
+          }))}
+          showAllTargets
         />
       </div>
     </main>

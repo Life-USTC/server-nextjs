@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { CommentsSection } from "@/components/comments/comments-section";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -98,6 +99,7 @@ export default async function CoursePage({
   const t = await getTranslations("courseDetail");
   const tCourse = await getTranslations("course");
   const tCommon = await getTranslations("common");
+  const tComments = await getTranslations("comments");
 
   return (
     <main className="page-main">
@@ -239,6 +241,20 @@ export default async function CoursePage({
             </EmptyHeader>
           </Empty>
         )}
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-title-2 mb-4">{tComments("title")}</h2>
+        <CommentsSection
+          targets={[
+            {
+              key: "course",
+              label: tComments("tabCourse"),
+              type: "course",
+              targetId: course.id,
+            },
+          ]}
+        />
       </div>
     </main>
   );
