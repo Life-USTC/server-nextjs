@@ -1,0 +1,364 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { useCallback, useEffect, useState } from "react";
+import { CommentEditor } from "@/components/comments/comment-editor";
+import { CommentThread } from "@/components/comments/comment-thread";
+import type {
+  CommentNode,
+  CommentViewer,
+} from "@/components/comments/comment-types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardPanel } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "@/i18n/routing";
+
+type UploadOption = {
+  id: string;
+  filename: string;
+  size: number;
+  key?: string;
+};
+
+type UploadSummary = {
+  maxFileSizeBytes: number;
+  quotaBytes: number;
+  usedBytes: number;
+};
+
+type ThreadResponse = {
+  thread: CommentNode[];
+  focusId: string;
+  hiddenCount: number;
+  viewer: CommentViewer;
+  target: {
+    sectionId?: number | null;
+    courseId?: number | null;
+    teacherId?: number | null;
+    sectionTeacherId?: number | null;
+    sectionTeacherSectionId?: number | null;
+    sectionTeacherTeacherId?: number | null;
+    sectionTeacherSectionJwId?: number | null;
+    sectionTeacherSectionCode?: string | null;
+    sectionTeacherTeacherName?: string | null;
+    sectionTeacherCourseJwId?: number | null;
+    sectionTeacherCourseName?: string | null;
+    sectionJwId?: number | null;
+    sectionCode?: string | null;
+    courseJwId?: number | null;
+    courseName?: string | null;
+    teacherName?: string | null;
+  };
+};
+
+type CommentThreadPageProps = {
+  commentId: string;
+};
+
+export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
+  const t = useTranslations("comments");
+  const [thread, setThread] = useState<CommentNode[]>([]);
+  const [viewer, setViewer] = useState<CommentViewer>({
+    userId: null,
+    name: null,
+    image: null,
+    isAdmin: false,
+    isAuthenticated: false,
+  });
+  const [uploads, setUploads] = useState<UploadOption[]>([]);
+  const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(
+    null,
+  );
+  const [focusId, setFocusId] = useState(commentId);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [target, setTarget] = useState<ThreadResponse["target"]>({});
+
+  const loadThread = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/comments/${commentId}`);
+      if (!response.ok) {
+        throw new Error("Failed to load");
+      }
+      const data = (await response.json()) as ThreadResponse;
+      setThread(data.thread);
+      setViewer(data.viewer);
+      setFocusId(data.focusId);
+      setTarget(data.target ?? {});
+    } catch (error) {
+      console.error("Failed to load comment thread", error);
+      setError(t("loadFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }, [commentId, t]);
+
+  useEffect(() => {
+    void loadThread();
+  }, [loadThread]);
+
+  useEffect(() => {
+    if (!viewer.isAuthenticated) {
+      setUploads([]);
+      setUploadSummary(null);
+      return;
+    }
+
+    const loadUploads = async () => {
+      try {
+        const response = await fetch("/api/uploads");
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          uploads: UploadOption[];
+          maxFileSizeBytes: number;
+          quotaBytes: number;
+          usedBytes: number;
+        };
+        setUploads(data.uploads ?? []);
+        setUploadSummary({
+          maxFileSizeBytes: data.maxFileSizeBytes,
+          quotaBytes: data.quotaBytes,
+          usedBytes: data.usedBytes,
+        });
+      } catch (error) {
+        console.error("Failed to load uploads", error);
+      }
+    };
+
+    void loadUploads();
+  }, [viewer.isAuthenticated]);
+
+  const createReply = async (payload: {
+    body: string;
+    visibility: string;
+    isAnonymous: boolean;
+    attachmentIds: string[];
+    parentId?: string;
+  }) => {
+    let targetType: string = "section";
+    let targetId: number | null = null;
+    let sectionId: number | null = null;
+    let teacherId: number | null = null;
+
+    if (target.sectionTeacherId) {
+      targetType = "section-teacher";
+      sectionId = target.sectionTeacherSectionId ?? null;
+      teacherId = target.sectionTeacherTeacherId ?? null;
+    } else if (target.courseId) {
+      targetType = "course";
+      targetId = target.courseId ?? null;
+    } else if (target.teacherId) {
+      targetType = "teacher";
+      targetId = target.teacherId ?? null;
+    } else if (target.sectionId) {
+      targetType = "section";
+      targetId = target.sectionId ?? null;
+    }
+
+    const response = await fetch("/api/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        targetType,
+        targetId,
+        sectionId,
+        teacherId,
+        body: payload.body,
+        visibility: payload.visibility,
+        isAnonymous: payload.isAnonymous,
+        parentId: payload.parentId ?? null,
+        attachmentIds: payload.attachmentIds,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to create reply");
+    }
+
+    await loadThread();
+  };
+
+  const handleEdit = async (
+    commentIdValue: string,
+    payload: { body: string; attachmentIds: string[] },
+  ) => {
+    const response = await fetch(`/api/comments/${commentIdValue}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        body: payload.body,
+        attachmentIds: payload.attachmentIds,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update comment");
+    }
+
+    await loadThread();
+  };
+
+  const handleDelete = async (commentIdValue: string) => {
+    const response = await fetch(`/api/comments/${commentIdValue}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete comment");
+    }
+
+    await loadThread();
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-dashed">
+        <CardPanel className="space-y-2">
+          <p className="text-sm text-muted-foreground">{error}</p>
+          <Button variant="outline" onClick={() => void loadThread()}>
+            {t("retry")}
+          </Button>
+        </CardPanel>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardPanel className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold">{t("threadTitle")}</h3>
+              <p className="text-sm text-muted-foreground">
+                {t("threadSubtitle")}
+              </p>
+            </div>
+            {viewer.isAuthenticated ? (
+              <Badge variant="secondary">{t("loggedInBadge")}</Badge>
+            ) : (
+              <Badge variant="outline">{t("guestBadge")}</Badge>
+            )}
+          </div>
+          <CommentEditor
+            viewer={viewer}
+            uploads={uploads}
+            uploadSummary={uploadSummary}
+            onUploadComplete={(
+              upload: UploadOption,
+              summary: UploadSummary,
+            ) => {
+              setUploads((current) => [upload, ...current]);
+              setUploadSummary(summary);
+            }}
+            submitLabel={t("postReply")}
+            onSubmit={(payload) => createReply(payload)}
+          />
+        </CardPanel>
+      </Card>
+
+      {(target.sectionJwId ||
+        target.courseJwId ||
+        target.teacherId ||
+        target.sectionTeacherSectionJwId ||
+        target.sectionTeacherCourseJwId) && (
+        <Card>
+          <CardPanel className="flex flex-wrap gap-3">
+            {target.sectionTeacherSectionJwId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                render={
+                  <Link
+                    href={`/sections/${target.sectionTeacherSectionJwId}`}
+                  />
+                }
+              >
+                {target.sectionTeacherSectionCode ?? t("viewSection")}
+              </Button>
+            ) : (
+              target.sectionJwId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<Link href={`/sections/${target.sectionJwId}`} />}
+                >
+                  {target.sectionCode ?? t("viewSection")}
+                </Button>
+              )
+            )}
+            {target.sectionTeacherCourseJwId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                render={
+                  <Link href={`/courses/${target.sectionTeacherCourseJwId}`} />
+                }
+              >
+                {target.sectionTeacherCourseName ?? t("viewCourse")}
+              </Button>
+            ) : (
+              target.courseJwId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<Link href={`/courses/${target.courseJwId}`} />}
+                >
+                  {target.courseName ?? t("viewCourse")}
+                </Button>
+              )
+            )}
+            {target.sectionTeacherTeacherId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                render={
+                  <Link href={`/teachers/${target.sectionTeacherTeacherId}`} />
+                }
+              >
+                {target.sectionTeacherTeacherName ?? t("viewTeacher")}
+              </Button>
+            ) : (
+              target.teacherId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<Link href={`/teachers/${target.teacherId}`} />}
+                >
+                  {target.teacherName ?? t("viewTeacher")}
+                </Button>
+              )
+            )}
+          </CardPanel>
+        </Card>
+      )}
+
+      <CommentThread
+        comments={thread}
+        viewer={viewer}
+        uploads={uploads}
+        uploadSummary={uploadSummary}
+        onUploadComplete={(upload: UploadOption, summary: UploadSummary) => {
+          setUploads((current) => [upload, ...current]);
+          setUploadSummary(summary);
+        }}
+        onReply={(parentId, payload) => createReply({ ...payload, parentId })}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        highlightId={focusId}
+      />
+    </div>
+  );
+}

@@ -5,6 +5,8 @@ import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const adapter: Adapter = {
   ...PrismaAdapter(prisma),
   createUser: async (adapterUser: AdapterUser) => {
@@ -65,7 +67,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         text: "#000",
       },
       profile(profile) {
-        console.log("OIDC Profile Fetched:", JSON.stringify(profile, null, 2));
+        if (isDev) {
+          console.log(
+            "OIDC Profile Fetched:",
+            JSON.stringify(profile, null, 2),
+          );
+        }
 
         return {
           id: profile.sub,
@@ -79,10 +86,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async signIn({ user, account, profile }) {
       if (!account || !user.id) return true;
 
-      console.log(
-        `Profile fetched for ${account.provider}:`,
-        JSON.stringify(profile, null, 2),
-      );
+      if (isDev) {
+        console.log(
+          `Profile fetched for ${account.provider}:`,
+          JSON.stringify(profile, null, 2),
+        );
+      }
 
       // Check if user already exists in database
       const existingUser = await prisma.user.findUnique({
@@ -130,6 +139,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       user: {
         ...session.user,
         id: user.id,
+        isAdmin: (user as AdapterUser & { isAdmin?: boolean }).isAdmin ?? false,
       },
     }),
   },
@@ -174,7 +184,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
     },
   },
-  debug: true,
+  debug: isDev,
   logger: {
     error(code, ...message) {
       console.error(code, message);
@@ -183,7 +193,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       console.warn(code, message);
     },
     debug(code, ...message) {
-      console.debug(code, message);
+      if (isDev) {
+        console.debug(code, message);
+      }
     },
   },
 });
