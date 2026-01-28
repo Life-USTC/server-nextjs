@@ -116,7 +116,7 @@ export async function GET(request: Request) {
     }
 
     const [viewer, comments] = await Promise.all([
-      getViewerContext(),
+      getViewerContext({ includeAdmin: false }),
       prismaAny.comment.findMany({
         where: whereTarget,
         include: {

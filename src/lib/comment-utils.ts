@@ -13,9 +13,14 @@ export type ViewerContext = {
   image: string | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  isSuspended: boolean;
+  suspensionReason: string | null;
+  suspensionExpiresAt: string | null;
 };
 
-export async function getViewerContext(): Promise<ViewerContext> {
+export async function getViewerContext(
+  options: { includeAdmin?: boolean } = {},
+): Promise<ViewerContext> {
   const session = await auth();
   if (!session?.user?.id) {
     return {
@@ -24,6 +29,9 @@ export async function getViewerContext(): Promise<ViewerContext> {
       image: null,
       isAdmin: false,
       isAuthenticated: false,
+      isSuspended: false,
+      suspensionReason: null,
+      suspensionExpiresAt: null,
     };
   }
 
@@ -31,6 +39,7 @@ export async function getViewerContext(): Promise<ViewerContext> {
     where: { id: session.user.id },
   });
   const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  const shouldExposeAdmin = options.includeAdmin === true;
 
   if (!user) {
     return {
@@ -39,15 +48,23 @@ export async function getViewerContext(): Promise<ViewerContext> {
       image: null,
       isAdmin: false,
       isAuthenticated: false,
+      isSuspended: false,
+      suspensionReason: null,
+      suspensionExpiresAt: null,
     };
   }
+
+  const suspension = await findActiveSuspension(user.id);
 
   return {
     userId: user.id,
     name: (user as { name?: string | null }).name ?? null,
     image: (user as { image?: string | null }).image ?? null,
-    isAdmin,
+    isAdmin: shouldExposeAdmin ? isAdmin : false,
     isAuthenticated: true,
+    isSuspended: Boolean(suspension),
+    suspensionReason: suspension?.reason ?? null,
+    suspensionExpiresAt: suspension?.expiresAt?.toISOString() ?? null,
   };
 }
 
