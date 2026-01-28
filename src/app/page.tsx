@@ -1,9 +1,11 @@
-import { Calendar, User, Users } from "lucide-react";
+import { Calendar, Shield, User, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import { auth } from "@/auth";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
+import { prisma } from "@/lib/prisma";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -15,6 +17,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Homepage() {
   const t = await getTranslations("homepage");
+  const session = await auth();
+  let isAdmin = false;
+  if (session?.user?.id) {
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+    isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  }
 
   return (
     <main className="page-main">
@@ -117,6 +127,23 @@ export default async function Homepage() {
               </CardPanel>
             </Card>
           </Link>
+          {isAdmin && (
+            <Link href="/admin" className="no-underline">
+              <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <Shield className="h-5 w-5 text-primary" />
+                    <CardTitle>{t("quickAccess.admin.title")}</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardPanel>
+                  <p className="text-body text-muted-foreground line-clamp-2">
+                    {t("quickAccess.admin.description")}
+                  </p>
+                </CardPanel>
+              </Card>
+            </Link>
+          )}
         </div>
       </section>
     </main>

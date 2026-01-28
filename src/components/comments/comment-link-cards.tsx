@@ -15,9 +15,10 @@ const urlPattern = /\bhttps?:\/\/[^\s<>()]+/gi;
 const mentionPattern = /\b(section|teacher)#(\d+)\b/gi;
 
 function extractLinkCards(
-  content: string,
+  content: string | undefined | null,
   t: ReturnType<typeof useTranslations>,
 ) {
+  if (!content) return [];
   const cards: LinkCard[] = [];
   const seen = new Set<string>();
 
@@ -56,7 +57,7 @@ function extractLinkCards(
 }
 
 type CommentLinkCardsProps = {
-  content: string;
+  content?: string | null;
 };
 
 export function CommentLinkCards({ content }: CommentLinkCardsProps) {
