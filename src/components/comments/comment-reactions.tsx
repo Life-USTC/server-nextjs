@@ -9,11 +9,12 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const REACTION_OPTIONS = [
-  { type: "upvote", emoji: "▲", labelKey: "upvote" },
-  { type: "downvote", emoji: "▼", labelKey: "downvote" },
-  { type: "heart", emoji: "❤", labelKey: "heart" },
+  { type: "upvote", emoji: "👍", labelKey: "upvote" },
+  { type: "downvote", emoji: "👎", labelKey: "downvote" },
+  { type: "heart", emoji: "❤️", labelKey: "heart" },
   { type: "laugh", emoji: "😄", labelKey: "laugh" },
   { type: "hooray", emoji: "🎉", labelKey: "hooray" },
   { type: "confused", emoji: "😕", labelKey: "confused" },
@@ -100,10 +101,14 @@ export function CommentReactions({
         return (
           <Button
             key={option.type}
-            variant={active ? "default" : "ghost"}
+            variant="outline"
             size="xs"
             onClick={() => toggleReaction(option.type)}
             disabled={pendingType === option.type}
+            className={cn(
+              "bg-background text-foreground",
+              active && "bg-accent/70",
+            )}
           >
             <span className="text-base leading-none">{option.emoji}</span>
             <span className="text-xs">{count}</span>

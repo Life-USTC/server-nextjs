@@ -1,5 +1,3 @@
-import { buildUploadUrl } from "@/lib/comment-utils";
-
 export type CommentAuthorSummary = {
   id?: string;
   name: string | null;
@@ -55,7 +53,7 @@ export type ViewerInfo = {
 
 const MAX_SORT_DEPTH = 20;
 
-function buildAuthorSummary(comment: any, viewer: ViewerInfo) {
+function buildAuthorSummary(comment: any, _viewer: ViewerInfo) {
   const user = comment.user as
     | {
         id: string;
@@ -113,7 +111,7 @@ function buildAttachments(comment: any) {
       id: attachment.id,
       uploadId: attachment.uploadId,
       filename: upload.filename ?? "",
-      url: buildUploadUrl(upload.key),
+      url: `/api/uploads/${attachment.uploadId}/download`,
       contentType: upload.contentType ?? null,
       size: upload.size ?? 0,
     } satisfies CommentAttachmentSummary;
@@ -171,6 +169,7 @@ export function buildCommentNodes(rawComments: any[], viewer: ViewerInfo) {
 
   for (const comment of rawComments) {
     const isAuthor = Boolean(viewer.userId && comment.userId === viewer.userId);
+    const rawStatus = String(comment.status);
     const hasDescendant = computeHasVisibleDescendant(comment.id);
     if (shouldHideComment(comment, viewer, isAuthor, hasDescendant)) {
       if (
@@ -187,12 +186,14 @@ export function buildCommentNodes(rawComments: any[], viewer: ViewerInfo) {
       (String(comment.visibility) === "anonymous" || comment.isAnonymous) &&
       !viewer.isAdmin;
     const author = authorHidden ? null : buildAuthorSummary(comment, viewer);
+    const status =
+      rawStatus === "softbanned" && !viewer.isAdmin ? "active" : rawStatus;
 
     visibleNodes.set(comment.id, {
       id: comment.id,
       body: comment.body,
       visibility: String(comment.visibility),
-      status: String(comment.status),
+      status,
       author,
       authorHidden,
       isAnonymous: Boolean(comment.isAnonymous),
@@ -205,7 +206,7 @@ export function buildCommentNodes(rawComments: any[], viewer: ViewerInfo) {
       attachments: buildAttachments(comment),
       reactions: buildReactionSummary(comment, viewer),
       canReply: viewer.isAuthenticated,
-      canEdit: isAuthor && String(comment.status) === "active",
+      canEdit: isAuthor && rawStatus !== "deleted",
       canModerate: viewer.isAdmin,
     });
   }

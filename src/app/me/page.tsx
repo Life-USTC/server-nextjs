@@ -1,4 +1,9 @@
-import { Calendar, ChevronRight, UploadCloud } from "lucide-react";
+import {
+  Calendar,
+  ChevronRight,
+  MessageSquare,
+  UploadCloud,
+} from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -41,6 +46,7 @@ export default async function ProfilePage() {
   const tCommon = await getTranslations("common");
   const tSubs = await getTranslations("subscriptions");
   const tUploads = await getTranslations("uploads");
+  const tMyComments = await getTranslations("myComments");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -115,6 +121,26 @@ export default async function ProfilePage() {
                       <CardTitle>{tUploads("title")}</CardTitle>
                       <CardDescription>
                         {tUploads("description")}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/me/comments" className="block no-underline">
+            <Card className="hover:bg-accent/50 transition-colors">
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <MessageSquare className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle>{tMyComments("title")}</CardTitle>
+                      <CardDescription>
+                        {tMyComments("description")}
                       </CardDescription>
                     </div>
                   </div>

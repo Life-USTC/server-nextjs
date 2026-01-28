@@ -53,7 +53,7 @@ export async function GET(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const viewer = await getViewerContext();
+    const viewer = await getViewerContext({ includeAdmin: false });
     const threadKey = comment.rootId ?? comment.id;
 
     const threadComments = await prismaAny.comment.findMany({
@@ -120,7 +120,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  let body: { body?: string; attachmentIds?: string[] } = {};
+  let body: {
+    body?: string;
+    attachmentIds?: string[];
+    visibility?: string;
+    isAnonymous?: boolean;
+  } = {};
 
   try {
     body = await request.json();
@@ -132,6 +137,11 @@ export async function PATCH(
   if (!content) {
     return NextResponse.json({ error: "Content required" }, { status: 400 });
   }
+
+  const visibility =
+    typeof body.visibility === "string" ? body.visibility : undefined;
+  const isAnonymous =
+    typeof body.isAnonymous === "boolean" ? body.isAnonymous : undefined;
 
   const hasAttachmentUpdate = Array.isArray(body.attachmentIds);
   const attachmentIds = hasAttachmentUpdate
@@ -153,7 +163,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (String(comment.status) !== "active") {
+    if (String(comment.status) === "deleted") {
       return NextResponse.json({ error: "Comment locked" }, { status: 403 });
     }
 
@@ -182,7 +192,11 @@ export async function PATCH(
       const txAny = tx as typeof prismaAny;
       await txAny.comment.update({
         where: { id },
-        data: { body: content },
+        data: {
+          body: content,
+          visibility,
+          isAnonymous,
+        },
       });
 
       if (!hasAttachmentUpdate) {
@@ -213,7 +227,24 @@ export async function PATCH(
       }
     });
 
-    return NextResponse.json({ success: true });
+    const updatedComment = await prismaAny.comment.findUnique({
+      where: { id },
+      include: {
+        user: {
+          include: {
+            accounts: {
+              select: { provider: true },
+            },
+          },
+        },
+        attachments: { include: { upload: true } },
+        reactions: true,
+      },
+    });
+
+    const { roots } = buildCommentNodes([updatedComment], viewer);
+
+    return NextResponse.json({ success: true, comment: roots[0] });
   } catch (error) {
     return handleRouteError("Failed to update comment", error);
   }

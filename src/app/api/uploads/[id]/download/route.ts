@@ -28,8 +28,8 @@ export async function GET(
   }
 
   try {
-    const upload = await prisma.upload.findFirst({
-      where: { id, userId: session.user.id },
+    const upload = await prisma.upload.findUnique({
+      where: { id },
     });
 
     if (!upload) {

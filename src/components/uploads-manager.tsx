@@ -96,7 +96,7 @@ export function UploadsManager({
   initialUsedBytes,
   maxFileSizeBytes,
   quotaBytes,
-  accessUrl,
+  accessUrl: _accessUrl,
 }: UploadsManagerProps) {
   const t = useTranslations("uploads");
   const locale = useLocale();
@@ -269,7 +269,7 @@ export function UploadsManager({
   };
 
   const handleOpen = (item: UploadItem) => {
-    const url = buildPublicUrl(item) || `/api/uploads/${item.id}/download`;
+    const url = `/api/uploads/${item.id}/download`;
     try {
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (error) {
@@ -282,22 +282,11 @@ export function UploadsManager({
     }
   };
 
-  const buildPublicUrl = (item: UploadItem) => {
-    if (!accessUrl) return "";
-    const base = accessUrl.endsWith("/") ? accessUrl.slice(0, -1) : accessUrl;
-    return `${base}/${item.key}`;
-  };
-
   const handleCopyLink = async (item: UploadItem) => {
-    const url = buildPublicUrl(item);
-    if (!url) {
-      toast({
-        title: t("toastLinkUnavailableTitle"),
-        description: t("toastLinkUnavailableDescription"),
-        variant: "warning",
-      });
-      return;
-    }
+    const url = new URL(
+      `/api/uploads/${item.id}/download`,
+      window.location.origin,
+    ).href;
 
     try {
       await navigator.clipboard.writeText(url);

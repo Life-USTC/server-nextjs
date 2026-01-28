@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CommentEditor } from "@/components/comments/comment-editor";
 import { CommentThread } from "@/components/comments/comment-thread";
@@ -9,6 +9,7 @@ import type {
   CommentTarget,
   CommentViewer,
 } from "@/components/comments/comment-types";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
@@ -68,20 +69,24 @@ export function CommentsSection({
   showAllTargets = false,
 }: CommentsSectionProps) {
   const t = useTranslations("comments");
-  const [activeKey, setActiveKey] = useState(targets[0]?.key ?? "");
+  const locale = useLocale();
+  const [activeKey] = useState(targets[0]?.key ?? "");
   const [postTargetKey, setPostTargetKey] = useState(targets[0]?.key ?? "");
   const [comments, setComments] = useState<CommentNode[]>([]);
   const [commentMap, setCommentMap] = useState<Record<string, CommentNode[]>>(
     {},
   );
   const [hiddenCount, setHiddenCount] = useState(0);
-  const [hiddenMap, setHiddenMap] = useState<Record<string, number>>({});
+  const [, setHiddenMap] = useState<Record<string, number>>({});
   const [viewer, setViewer] = useState<CommentViewer>({
     userId: null,
     name: null,
     image: null,
     isAdmin: false,
     isAuthenticated: false,
+    isSuspended: false,
+    suspensionReason: null,
+    suspensionExpiresAt: null,
   });
   const [uploads, setUploads] = useState<UploadOption[]>([]);
   const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(
@@ -91,6 +96,15 @@ export function CommentsSection({
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(
     teacherOptions[0]?.id ?? null,
+  );
+
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [locale],
   );
 
   const activeTarget = useMemo(
@@ -267,7 +281,12 @@ export function CommentsSection({
 
   const handleEdit = async (
     commentId: string,
-    payload: { body: string; attachmentIds: string[] },
+    payload: {
+      body: string;
+      attachmentIds: string[];
+      visibility?: string;
+      isAnonymous?: boolean;
+    },
   ) => {
     const response = await fetch(`/api/comments/${commentId}`, {
       method: "PATCH",
@@ -275,6 +294,8 @@ export function CommentsSection({
       body: JSON.stringify({
         body: payload.body,
         attachmentIds: payload.attachmentIds,
+        visibility: payload.visibility,
+        isAnonymous: payload.isAnonymous,
       }),
     });
 
@@ -282,7 +303,79 @@ export function CommentsSection({
       throw new Error("Failed to update comment");
     }
 
-    await loadComments();
+    const { comment } = await response.json();
+    if (comment) {
+      const updateNodes = (nodes: CommentNode[]): CommentNode[] => {
+        return nodes.map((node) => {
+          if (node.id === commentId) {
+            return { ...comment, replies: node.replies };
+          }
+          if (node.replies && node.replies.length > 0) {
+            return { ...node, replies: updateNodes(node.replies) };
+          }
+          return node;
+        });
+      };
+
+      setComments((prev) => updateNodes(prev));
+    }
+  };
+
+  const handleReact = async (
+    commentId: string,
+    type: string,
+    remove: boolean,
+  ) => {
+    const method = remove ? "DELETE" : "POST";
+    const response = await fetch(`/api/comments/${commentId}/reactions`, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update reaction");
+    }
+
+    const { success } = await response.json();
+    if (success) {
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) {
+            const existing = c.reactions.find((r) => r.type === type);
+            const nextReactions = [...c.reactions];
+            if (remove) {
+              if (existing && existing.count > 1) {
+                const idx = nextReactions.indexOf(existing);
+                nextReactions[idx] = {
+                  ...existing,
+                  count: existing.count - 1,
+                  viewerHasReacted: false,
+                };
+              } else {
+                return {
+                  ...c,
+                  reactions: nextReactions.filter((r) => r.type !== type),
+                };
+              }
+            } else {
+              if (existing) {
+                const idx = nextReactions.indexOf(existing);
+                nextReactions[idx] = {
+                  ...existing,
+                  count: existing.count + 1,
+                  viewerHasReacted: true,
+                };
+              } else {
+                nextReactions.push({ type, count: 1, viewerHasReacted: true });
+              }
+            }
+            return { ...c, reactions: nextReactions };
+          }
+          return c;
+        }),
+      );
+    }
   };
 
   const handleDelete = async (commentId: string) => {
@@ -344,6 +437,7 @@ export function CommentsSection({
           onReply={handleReply}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onReact={handleReact}
         />
       );
     }
@@ -391,6 +485,7 @@ export function CommentsSection({
           onReply={handleReply}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onReact={handleReact}
         />
       </div>
     );
@@ -400,6 +495,31 @@ export function CommentsSection({
 
   const content = (
     <div className="space-y-6">
+      {viewer.isSuspended && (
+        <Alert variant="error">
+          <AlertTitle>{t("suspendedTitle")}</AlertTitle>
+          <AlertDescription className="space-y-1">
+            <p>{t("suspendedMessage")}</p>
+            {viewer.suspensionReason && (
+              <p className="text-sm">
+                {t("suspendedReason", { reason: viewer.suspensionReason })}
+              </p>
+            )}
+            {viewer.suspensionExpiresAt ? (
+              <p className="text-sm">
+                {t("suspendedExpires", {
+                  date: dateFormatter.format(
+                    new Date(viewer.suspensionExpiresAt),
+                  ),
+                })}
+              </p>
+            ) : (
+              <p className="text-sm font-semibold">{t("suspendedPermanent")}</p>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardPanel className="space-y-4">
           {activeTarget?.type === "section-teacher" &&
@@ -444,7 +564,6 @@ export function CommentsSection({
             }}
             submitLabel={t("postAction")}
             onSubmit={(payload) => createComment(payload)}
-            visibilityStyle="checkboxes"
             targetOptions={
               targets.length > 1
                 ? targets.map((target) => ({

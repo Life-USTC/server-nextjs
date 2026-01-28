@@ -49,6 +49,9 @@ export type CommentViewer = {
   image: string | null;
   isAdmin: boolean;
   isAuthenticated: boolean;
+  isSuspended: boolean;
+  suspensionReason: string | null;
+  suspensionExpiresAt: string | null;
 };
 
 export type CommentTarget = {
