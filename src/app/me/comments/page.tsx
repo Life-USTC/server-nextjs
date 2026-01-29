@@ -187,7 +187,10 @@ export default async function MyCommentsPage({
                   </CardDescription>
                   <CardAction>
                     <Button variant="outline" size="sm">
-                      <Link href={buildTargetHref(comment)}>
+                      <Link
+                        className="no-underline"
+                        href={buildTargetHref(comment)}
+                      >
                         {t("viewThread")}
                       </Link>
                     </Button>
