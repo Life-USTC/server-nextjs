@@ -267,7 +267,12 @@
     "teachers": "Teachers",
     "campus": "Campus",
     "capacity": "Capacity",
-    "semesterSections": "{semester} ({count})"
+    "semesterSections": "{semester} ({count})",
+    "tabs": {
+      "description": "Description",
+      "comments": "Comments",
+      "sections": "Sections"
+    }
   },
   "sections": {
     "title": "All Sections",
@@ -311,7 +316,7 @@
       {
         "syntax": "semester:name",
         "description": "Search by semester name",
-        "example": "semester:2024春"
+        "example": "semester:2024 春"
       },
       {
         "syntax": "category:name",
@@ -408,6 +413,11 @@
     "pleaseRetry": "Please retry",
     "viewAllSubscriptions": "View all subscriptions",
     "loginRequired": "Login Required",
+    "tabs": {
+      "description": "Description",
+      "comments": "Comments",
+      "calendar": "Calendar"
+    },
     "loginRequiredDescription": "Sign in to subscribe to course sections and sync your calendar across devices.",
     "loginToSubscribe": "Sign in to Subscribe",
     "calendar": "Calendar ({count})",
@@ -614,6 +624,38 @@
     "sectionCode": "Section Code",
     "credits": "Credits"
   },
+  "descriptions": {
+    "title": "Description",
+    "empty": "No description yet. Add one to help others.",
+    "edit": "Edit",
+    "editAction": "Edit description",
+    "editorPlaceholder": "Write a helpful description...",
+    "tabWrite": "Write",
+    "tabPreview": "Preview",
+    "previewEmpty": "Preview will appear here.",
+    "markdownGuide": "Markdown guide",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "loginToEdit": "Sign in to edit",
+    "lastEdited": "Last edited {date}",
+    "editedBy": "Edited by {name}",
+    "historyTitle": "Edit History ({count})",
+    "historyEmpty": "No edits yet",
+    "previousLabel": "Previous",
+    "updatedLabel": "Updated",
+    "emptyValue": "Empty",
+    "loadFailed": "Unable to load description.",
+    "retry": "Retry",
+    "updateSuccess": "Description updated",
+    "updateError": "Couldn't update description",
+    "suspendedTitle": "Editing disabled",
+    "suspendedMessage": "Your account is suspended and cannot edit descriptions.",
+    "suspendedReason": "Reason: {reason}",
+    "suspendedExpires": "Suspension will be lifted on {date}",
+    "suspendedPermanent": "Permanent suspension",
+    "editorUnknown": "Unknown editor"
+  },
   "comments": {
     "title": "Comments",
     "subtitle": "Share feedback and notes about this course",
@@ -680,6 +722,7 @@
     "saveAction": "Save",
     "cancelAction": "Cancel",
     "openAttachment": "Open attachment",
+    "removeAttachment": "Remove attachment",
     "loginRequired": "Sign in required",
     "loginRequiredDescription": "Sign in to react to comments.",
     "reactionMenu": "Reactions",

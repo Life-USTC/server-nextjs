@@ -55,7 +55,7 @@
     padding: 2rem 1.5rem;
     padding-bottom: 2rem;
 
-    @media (min-width: 640px) {
+    @media (min-width: 800px) {
       padding: 3rem 2rem;
       padding-bottom: 2rem;
     }

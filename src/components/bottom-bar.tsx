@@ -1,32 +1,21 @@
 "use client";
 
-import {
-  Github,
-  Globe,
-  Monitor,
-  Moon,
-  Sun,
-  User as UserIcon,
-} from "lucide-react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { Github, Globe, Monitor, Moon, Sun } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/routing";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
   Menu,
-  MenuItem,
   MenuPopup,
   MenuRadioGroup,
   MenuRadioItem,
-  MenuSeparator,
   MenuTrigger,
 } from "./ui/menu";
 
 export default function BottomBar() {
-  const t = useTranslations("profile");
-  const commonT = useTranslations("common");
+  const _commonT = useTranslations("common");
   const langT = useTranslations("language");
   const themeT = useTranslations("theme");
   const a11yT = useTranslations("accessibility");
@@ -34,7 +23,6 @@ export default function BottomBar() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const { data: session } = useSession();
 
   useEffect(() => {
     setMounted(true);
@@ -83,74 +71,35 @@ export default function BottomBar() {
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
           {/* GitHub Link */}
-          <a
-            href="https://github.com/Life-USTC/server-nextjs"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
+          <Button
             aria-label={a11yT("viewSourceOnGithub")}
+            className="h-9 w-9"
+            size="icon"
+            variant="outline"
+            render={
+              <Link
+                href="https://github.com/Life-USTC/server-nextjs"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={a11yT("viewSourceOnGithub")}
+              />
+            }
           >
             <Github className="h-5 w-5" />
-          </a>
-
-          {/* User Menu */}
-          <Menu>
-            <MenuTrigger
-              render={
-                <button
-                  type="button"
-                  className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
-                  aria-label={session ? "User menu" : "Sign in"}
-                >
-                  {session?.user?.image ? (
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage
-                        src={session.user.image}
-                        alt={session.user.name || "User"}
-                      />
-                      <AvatarFallback>
-                        {session.user.name?.charAt(0) || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <UserIcon className="h-5 w-5" />
-                  )}
-                </button>
-              }
-            />
-            <MenuPopup>
-              {session ? (
-                <>
-                  <MenuItem className="font-medium" disabled>
-                    {session.user?.name || "User"}
-                  </MenuItem>
-                  <MenuSeparator />
-                  <MenuItem onClick={() => router.push("/me")}>
-                    {t("title")}
-                  </MenuItem>
-                  <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
-                    {t("signOut")}
-                  </MenuItem>
-                </>
-              ) : (
-                <MenuItem onClick={() => signIn()}>
-                  {commonT("signIn")}
-                </MenuItem>
-              )}
-            </MenuPopup>
-          </Menu>
+          </Button>
 
           {/* Language Switcher */}
           <Menu>
             <MenuTrigger
               render={
-                <button
-                  type="button"
-                  className="h-9 w-9 p-0 inline-flex items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
+                <Button
                   aria-label={langT("selector")}
+                  className="h-9 w-9"
+                  size="icon"
+                  variant="outline"
                 >
                   <Globe className="h-5 w-5" />
-                </button>
+                </Button>
               }
             />
             <MenuPopup>
@@ -166,18 +115,19 @@ export default function BottomBar() {
 
           {/* Theme Switcher */}
           {mounted && (
-            <button
-              type="button"
+            <Button
+              aria-label={getThemeLabel()}
+              className="h-9 w-9"
               onClick={() => {
                 if (theme === "light") setTheme("dark");
                 else if (theme === "dark") setTheme("system");
                 else setTheme("light");
               }}
-              aria-label={getThemeLabel()}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-card hover:bg-accent transition-colors focus-ring"
+              size="icon"
+              variant="outline"
             >
               {getThemeIcon()}
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { CommentsSection } from "@/components/comments/comments-section";
+import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -136,6 +137,8 @@ export default async function TeacherPage({
           </p>
         )}
       </div>
+
+      <DescriptionPanel targetType="teacher" targetId={teacher.id} />
 
       {/* Basic Info Card */}
       <Card className="mb-8">
