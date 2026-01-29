@@ -1,3 +1,11 @@
+# [0.32.0](https://github.com/Life-USTC/server-nextjs/compare/v0.31.0...v0.32.0) (2026-01-29)
+
+
+### Features
+
+* add basic comment structure ([4b75ba0](https://github.com/Life-USTC/server-nextjs/commit/4b75ba0845a29dc483aa0f34ea893c6d4f3fb793))
+* **comments:** enhance comment functionality with reactions, visibility options, and user suspension handling ([49a9ee5](https://github.com/Life-USTC/server-nextjs/commit/49a9ee50d230c19cad2d63b0ad9ac55405b0b26f))
+
 # [0.31.0](https://github.com/Life-USTC/server-nextjs/compare/v0.30.0...v0.31.0) (2026-01-24)
 
 
