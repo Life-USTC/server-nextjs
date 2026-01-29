@@ -1,3 +1,10 @@
+# [0.33.0](https://github.com/Life-USTC/server-nextjs/compare/v0.32.0...v0.33.0) (2026-01-29)
+
+
+### Features
+
+* add descriptions API and comment UI updates ([817f2bc](https://github.com/Life-USTC/server-nextjs/commit/817f2bc67fd6910e1ada858e3284a4d0b42065ed))
+
 # [0.32.0](https://github.com/Life-USTC/server-nextjs/compare/v0.31.0...v0.32.0) (2026-01-29)
 
 
