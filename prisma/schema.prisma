@@ -29,6 +29,7 @@ enum CommentReactionType {
   eyes
 }
 
+
 model AdminClass {
   id   Int  @id @default(autoincrement())
   jwId Int? @unique
@@ -123,6 +124,7 @@ model Course {
 
   sections Section[]
   comments Comment[]
+  description Description?
 
   @@index([jwId])
   @@index([code])
@@ -374,6 +376,7 @@ model Section {
   exams                 Exam[]
   calendarSubscriptions CalendarSubscription[] @relation("SectionCalendarSubscriptions")
   comments              Comment[]
+  description           Description?
 
   @@index([jwId])
   @@index([code])
@@ -480,12 +483,57 @@ model Teacher {
   teacherAssignments TeacherAssignment[]
   schedules          Schedule[]          @relation("ScheduleTeachers")
   comments           Comment[]
+  description        Description?
 
   @@unique([nameCn, departmentId])
   @@index([code])
   @@index([nameCn])
   @@index([nameEn])
   @@index([teacherTitleId])
+}
+
+model Description {
+  id String @id @default(cuid())
+
+  content String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastEditedAt DateTime?
+
+  lastEditedById String?
+  lastEditedBy   User?   @relation("DescriptionLastEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)
+
+  sectionId Int? @unique
+  courseId  Int? @unique
+  teacherId Int? @unique
+
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  course  Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  edits DescriptionEdit[]
+
+  @@index([lastEditedById])
+}
+
+model DescriptionEdit {
+  id String @id @default(cuid())
+
+  descriptionId String
+  description   Description @relation(fields: [descriptionId], references: [id], onDelete: Cascade)
+
+  editorId String?
+  editor   User?   @relation("DescriptionEdits", fields: [editorId], references: [id], onDelete: SetNull)
+
+  previousContent String?
+  nextContent     String
+
+  createdAt DateTime @default(now())
+
+  @@index([descriptionId])
+  @@index([editorId])
+  @@index([createdAt])
 }
 
 model SectionTeacher {
@@ -609,6 +657,8 @@ model User {
   suspensions           UserSuspension[]  @relation("SuspendedUser")
   suspensionsIssued     UserSuspension[]  @relation("SuspensionCreatedBy")
   suspensionsLifted     UserSuspension[]  @relation("SuspensionLiftedBy")
+  descriptionEdits      DescriptionEdit[] @relation("DescriptionEdits")
+  descriptionLastEdits  Description[]     @relation("DescriptionLastEditor")
 }
 
 model Upload {

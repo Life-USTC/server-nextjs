@@ -3,19 +3,21 @@
 import { UploadCloud, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
-import { CommentMarkdown } from "@/components/comments/comment-markdown";
 import type { CommentViewer } from "@/components/comments/comment-types";
+import { MarkdownEditor } from "@/components/comments/markdown-editor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
-  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
+  DialogPanel,
+  DialogPopup,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,12 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { useCommentUpload } from "@/hooks/use-comment-upload";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
 
 type UploadOption = {
   id: string;
@@ -106,7 +104,6 @@ export function CommentEditor({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [targetDialogOpen, setTargetDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("write");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const anonymousId = useId();
@@ -226,113 +223,91 @@ export function CommentEditor({
           <span className="text-muted-foreground">
             {getVisibilityDescription()}
           </span>
-          <Button
-            variant="link"
-            size="xs"
-            className="h-auto p-0 text-primary"
-            onClick={() => setTargetDialogOpen(true)}
-          >
-            {t("changeTarget")}
-          </Button>
+
+          <Dialog open={targetDialogOpen} onOpenChange={setTargetDialogOpen}>
+            <DialogTrigger
+              render={
+                <Button
+                  variant="link"
+                  size="xs"
+                  className="h-auto p-0 text-primary"
+                ></Button>
+              }
+            >
+              {t("changeTarget")}
+            </DialogTrigger>
+            <DialogPopup>
+              <DialogHeader>
+                <DialogTitle>{t("changeTargetTitle")}</DialogTitle>
+                <DialogDescription>
+                  {t("changeTargetDescription")}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogPanel>
+                <Select
+                  value={targetValue}
+                  onValueChange={(value) => {
+                    if (value) {
+                      onTargetChange?.(value);
+                      setTargetDialogOpen(false);
+                    }
+                  }}
+                  items={targetOptions}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={t("commentTargetPlaceholder")} />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    {targetOptions?.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+              </DialogPanel>
+              <DialogFooter>
+                <DialogClose render={<Button variant="ghost" />}>
+                  {t("cancelAction")}
+                </DialogClose>
+              </DialogFooter>
+            </DialogPopup>
+          </Dialog>
         </div>
       )}
 
       <div className="space-y-3">
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => v && setActiveTab(v)}
-          className="w-full"
-        >
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <TabsList className="h-8 p-0.5 bg-muted/50">
-              <TabsTab value="write" className="h-7 px-3 text-xs">
-                {t("tabWrite")}
-              </TabsTab>
-              <TabsTab value="preview" className="h-7 px-3 text-xs">
-                {t("tabPreview")}
-              </TabsTab>
-            </TabsList>
-
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="xs"
-                className="h-8 px-2"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={
-                  !viewer.isAuthenticated || viewer.isSuspended || isUploading
-                }
-              >
-                <UploadCloud className="h-3.5 w-3.5 mr-1.5" />
-                <span className="text-xs">
-                  {isUploading ? tu("uploading") : tu("uploadAction")}
-                </span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="xs"
-                className="h-8 px-2"
-                render={<Link href="/comments/guide" />}
-              >
-                <span className="text-xs text-muted-foreground">
-                  {t("markdownGuide")}
-                </span>
-              </Button>
-            </div>
-          </div>
-
-          <div
-            className={cn(
-              "rounded-xl border bg-muted/10 transition-shadow min-h-[8rem]",
-              activeTab === "write" &&
-                "focus-within:border-primary/50 focus-within:ring-[3px] focus-within:ring-primary/10",
-            )}
-          >
-            <div
-              className={cn("flex flex-col", activeTab !== "write" && "hidden")}
-            >
-              <Textarea
-                ref={textareaRef}
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                placeholder={placeholder ?? t("editorPlaceholder")}
-                rows={compact ? 3 : 6}
-                disabled={!viewer.isAuthenticated || viewer.isSuspended}
-                unstyled
-                className={cn(
-                  "w-full bg-transparent p-4 text-sm resize-none",
-                  isDragActive ? "bg-primary/5" : "",
-                )}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragActive(true);
-                }}
-                onDragLeave={() => setIsDragActive(false)}
-                onDrop={handleDrop}
-                onKeyDown={(event) => {
-                  if (
-                    (event.metaKey || event.ctrlKey) &&
-                    event.key === "Enter" &&
-                    viewer.isAuthenticated &&
-                    !viewer.isSuspended
-                  ) {
-                    event.preventDefault();
-                    void handleSubmit();
-                  }
-                }}
-              />
-            </div>
-            <div className={cn("p-4", activeTab !== "preview" && "hidden")}>
-              {content.trim() ? (
-                <CommentMarkdown content={content} />
-              ) : (
-                <p className="text-xs text-muted-foreground italic text-center">
-                  {t("previewEmpty")}
-                </p>
-              )}
-            </div>
-          </div>
-        </Tabs>
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          placeholder={placeholder ?? t("editorPlaceholder")}
+          tabWriteLabel={t("tabWrite")}
+          tabPreviewLabel={t("tabPreview")}
+          previewEmptyLabel={t("previewEmpty")}
+          markdownGuideLabel={t("markdownGuide")}
+          markdownGuideHref="/comments/guide"
+          disabled={!viewer.isAuthenticated || viewer.isSuspended}
+          compact={compact}
+          isDragActive={isDragActive}
+          textareaRef={textareaRef}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragActive(true);
+          }}
+          onDragLeave={() => setIsDragActive(false)}
+          onDrop={handleDrop}
+          onKeyDown={(event) => {
+            if (
+              (event.metaKey || event.ctrlKey) &&
+              event.key === "Enter" &&
+              viewer.isAuthenticated &&
+              !viewer.isSuspended
+            ) {
+              event.preventDefault();
+              void handleSubmit();
+            }
+          }}
+        />
 
         <Input
           ref={fileInputRef}
@@ -354,17 +329,20 @@ export function CommentEditor({
                 <span className="max-w-[150px] truncate text-[10px]">
                   {upload?.filename ?? id}
                 </span>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={t("removeAttachment")}
                   onClick={() =>
                     setSelectedAttachments((prev) =>
                       prev.filter((i) => i !== id),
                     )
                   }
-                  className="rounded-full hover:bg-muted p-0.5"
+                  className="h-5 w-5 rounded-full"
                 >
                   <XIcon className="h-3 w-3" />
-                </button>
+                </Button>
               </Badge>
             );
           })}
@@ -423,6 +401,22 @@ export function CommentEditor({
               {cancelLabel}
             </Button>
           )}
+
+          <Button
+            variant="ghost"
+            size="xs"
+            className="h-9"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={
+              !viewer.isAuthenticated || viewer.isSuspended || isUploading
+            }
+          >
+            <UploadCloud className="h-3.5 w-3.5 mr-1.5" />
+            <span className="text-xs">
+              {isUploading ? tu("uploading") : tu("uploadAction")}
+            </span>
+          </Button>
+
           {!viewer.isAuthenticated ? (
             <Button
               variant="outline"
@@ -451,45 +445,6 @@ export function CommentEditor({
           )}
         </div>
       </div>
-
-      <Dialog open={targetDialogOpen} onOpenChange={setTargetDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("changeTargetTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("changeTargetDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Select
-              value={targetValue}
-              onValueChange={(value) => {
-                if (value) {
-                  onTargetChange?.(value);
-                  setTargetDialogOpen(false);
-                }
-              }}
-              items={targetOptions}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("commentTargetPlaceholder")} />
-              </SelectTrigger>
-              <SelectPopup>
-                {targetOptions?.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          </div>
-          <DialogFooter>
-            <DialogClose render={<Button variant="ghost" />}>
-              {t("cancelAction")}
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -8,7 +8,7 @@
       "courses": "课程",
       "courseDetail": "课程：{name}",
       "sections": "班级",
-      "sectionDetail": "{name}（{code}）",
+      "sectionDetail": "{name}({code})",
       "teachers": "教师",
       "teacherDetail": "教师：{name}",
       "signIn": "登录",
@@ -267,7 +267,12 @@
     "teachers": "教师",
     "campus": "校区",
     "capacity": "容量",
-    "semesterSections": "{semester} ({count})"
+    "semesterSections": "{semester} ({count})",
+    "tabs": {
+      "description": "简介",
+      "comments": "评论",
+      "sections": "班级"
+    }
   },
   "sections": {
     "title": "所有班级",
@@ -311,7 +316,7 @@
       {
         "syntax": "semester:学期名",
         "description": "按学期名称搜索",
-        "example": "semester:2024春"
+        "example": "semester:2024 春"
       },
       {
         "syntax": "category:类别名",
@@ -396,7 +401,7 @@
     "copyToClipboard": "复制",
     "close": "关闭",
     "learnMoreAboutICalendar": "了解更多关于 iCalendar 格式",
-    "copied": "已复制!",
+    "copied": "已复制！",
     "subscribing": "订阅中...",
     "unsubscribing": "取消订阅中...",
     "pleaseWait": "请稍候",
@@ -408,6 +413,11 @@
     "pleaseRetry": "请重试",
     "viewAllSubscriptions": "查看所有订阅",
     "loginRequired": "需要登录",
+    "tabs": {
+      "description": "简介",
+      "comments": "评论",
+      "calendar": "日历"
+    },
     "loginRequiredDescription": "登录以订阅课程班级，并在不同设备间同步您的日历。",
     "loginToSubscribe": "登录以订阅",
     "calendar": "日历 ({count})",
@@ -481,7 +491,7 @@
     "username": "用户名",
     "usernamePlaceholder": "用户名",
     "usernameHint": "这是您的公开显示名称。",
-    "usernameValidation": "仅限小写字母和数字，最多20个字符",
+    "usernameValidation": "仅限小写字母和数字，最多 20 个字符",
     "save": "保存更改",
     "saving": "保存中...",
     "updateSuccess": "成功",
@@ -614,6 +624,38 @@
     "sectionCode": "班级代码",
     "credits": "学分"
   },
+  "descriptions": {
+    "title": "简介",
+    "empty": "暂无简介，欢迎补充。",
+    "edit": "编辑",
+    "editAction": "编辑简介",
+    "editorPlaceholder": "写下简明的简介...",
+    "tabWrite": "编辑",
+    "tabPreview": "预览",
+    "previewEmpty": "预览将在这里显示。",
+    "markdownGuide": "Markdown 指南",
+    "cancel": "取消",
+    "save": "保存",
+    "saving": "保存中...",
+    "loginToEdit": "登录后编辑",
+    "lastEdited": "最后编辑于 {date}",
+    "editedBy": "编辑者：{name}",
+    "historyTitle": "编辑记录 ({count})",
+    "historyEmpty": "暂无编辑记录",
+    "previousLabel": "之前",
+    "updatedLabel": "更新后",
+    "emptyValue": "空",
+    "loadFailed": "简介加载失败。",
+    "retry": "重试",
+    "updateSuccess": "简介已更新",
+    "updateError": "简介更新失败",
+    "suspendedTitle": "无法编辑",
+    "suspendedMessage": "你的账号已被封禁，无法编辑简介。",
+    "suspendedReason": "封禁原因：{reason}",
+    "suspendedExpires": "封禁将于 {date} 解除",
+    "suspendedPermanent": "永久封禁",
+    "editorUnknown": "未知编辑者"
+  },
   "comments": {
     "title": "评论",
     "subtitle": "分享对课程的体验与建议",
@@ -680,6 +722,7 @@
     "saveAction": "保存",
     "cancelAction": "取消",
     "openAttachment": "打开附件",
+    "removeAttachment": "移除附件",
     "loginRequired": "需要登录",
     "loginRequiredDescription": "登录后才能添加表情或点赞。",
     "reactionMenu": "表情",

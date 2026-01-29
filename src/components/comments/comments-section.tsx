@@ -10,17 +10,9 @@ import type {
   CommentViewer,
 } from "@/components/comments/comment-types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import {
-  Select,
-  SelectItem,
-  SelectPopup,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/routing";
 
@@ -94,7 +86,8 @@ export function CommentsSection({
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedTeacherId, setSelectedTeacherId] = useState<number | null>(
+  const [selectedTeacherId, _setSelectedTeacherId] = useState<number | null>(
+    // By design: only the first teacher matters for section-teacher comments.
     teacherOptions[0]?.id ?? null,
   );
 
@@ -339,11 +332,11 @@ export function CommentsSection({
 
     const { success } = await response.json();
     if (success) {
-      setComments((prev) =>
-        prev.map((c) => {
-          if (c.id === commentId) {
-            const existing = c.reactions.find((r) => r.type === type);
-            const nextReactions = [...c.reactions];
+      const updateNodes = (nodes: CommentNode[]): CommentNode[] =>
+        nodes.map((node) => {
+          if (node.id === commentId) {
+            const existing = node.reactions.find((r) => r.type === type);
+            const nextReactions = [...node.reactions];
             if (remove) {
               if (existing && existing.count > 1) {
                 const idx = nextReactions.indexOf(existing);
@@ -354,7 +347,7 @@ export function CommentsSection({
                 };
               } else {
                 return {
-                  ...c,
+                  ...node,
                   reactions: nextReactions.filter((r) => r.type !== type),
                 };
               }
@@ -370,11 +363,15 @@ export function CommentsSection({
                 nextReactions.push({ type, count: 1, viewerHasReacted: true });
               }
             }
-            return { ...c, reactions: nextReactions };
+            return { ...node, reactions: nextReactions };
           }
-          return c;
-        }),
-      );
+          if (node.replies && node.replies.length > 0) {
+            return { ...node, replies: updateNodes(node.replies) };
+          }
+          return node;
+        });
+
+      setComments((prev) => updateNodes(prev));
     }
   };
 
@@ -522,35 +519,6 @@ export function CommentsSection({
 
       <Card>
         <CardPanel className="space-y-4">
-          {activeTarget?.type === "section-teacher" &&
-            teacherOptions.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{t("teacherFilter")}</Badge>
-                <Select
-                  value={selectedTeacherId ? String(selectedTeacherId) : ""}
-                  onValueChange={(value) => {
-                    const parsed = value ? parseInt(value, 10) : Number.NaN;
-                    setSelectedTeacherId(Number.isNaN(parsed) ? null : parsed);
-                  }}
-                  items={teacherOptions.map((teacher) => ({
-                    label: teacher.label,
-                    value: String(teacher.id),
-                  }))}
-                >
-                  <SelectTrigger className="w-full sm:w-32">
-                    <SelectValue placeholder={t("selectTeacher")} />
-                  </SelectTrigger>
-                  <SelectPopup>
-                    {teacherOptions.map((teacher) => (
-                      <SelectItem key={teacher.id} value={String(teacher.id)}>
-                        {teacher.label}
-                      </SelectItem>
-                    ))}
-                  </SelectPopup>
-                </Select>
-              </div>
-            )}
-
           <CommentEditor
             viewer={viewer}
             uploads={uploads}

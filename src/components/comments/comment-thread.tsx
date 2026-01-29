@@ -125,7 +125,7 @@ export function CommentThread({
           onEdit={onEdit}
           onDelete={onDelete}
           onReact={onReact}
-          isHighlighted={highlightedId === comment.id}
+          highlightId={highlightedId}
         />
       ))}
     </div>
@@ -159,7 +159,7 @@ type CommentItemProps = {
   onDelete: (commentId: string) => Promise<void>;
   onReact: (commentId: string, type: string, remove: boolean) => Promise<void>;
   depth?: number;
-  isHighlighted?: boolean;
+  highlightId?: string | null;
 };
 
 function CommentItem({
@@ -173,7 +173,7 @@ function CommentItem({
   onDelete,
   onReact,
   depth = 0,
-  isHighlighted = false,
+  highlightId,
 }: CommentItemProps) {
   const t = useTranslations("comments");
   const locale = useLocale();
@@ -223,6 +223,8 @@ function CommentItem({
     [locale],
   );
 
+  const isHighlighted = highlightId === comment.id;
+
   return (
     <div
       className={cn("space-y-3", depth > 0 && "pl-5")}
@@ -231,7 +233,7 @@ function CommentItem({
       <Card
         id={`comment-${comment.id}`}
         className={cn(
-          "gap-4 border bg-background transition-colors duration-500",
+          "group gap-4 border bg-background transition-colors duration-500",
           isHighlighted && "ring-1 ring-primary/40",
         )}
       >
@@ -285,7 +287,7 @@ function CommentItem({
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
               {comment.canReply && (
                 <Button
                   variant="ghost"
@@ -441,7 +443,7 @@ function CommentItem({
               onDelete={onDelete}
               onReact={onReact}
               depth={depth + 1}
-              isHighlighted={isHighlighted}
+              highlightId={highlightId}
             />
           ))}
         </div>
