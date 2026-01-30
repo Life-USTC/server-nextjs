@@ -1,6 +1,7 @@
 import {
   Calendar,
   ChevronRight,
+  ClipboardList,
   MessageSquare,
   UploadCloud,
 } from "lucide-react";
@@ -47,6 +48,7 @@ export default async function ProfilePage() {
   const tSubs = await getTranslations("subscriptions");
   const tUploads = await getTranslations("uploads");
   const tMyComments = await getTranslations("myComments");
+  const tMyHomeworks = await getTranslations("myHomeworks");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -80,14 +82,14 @@ export default async function ProfilePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <ProfileEditForm user={user} />
           <AccountLinkingSection user={user} />
           <AccountDeletionSection />
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-4">
           <Link
             href="/me/subscriptions/sections"
             className="block no-underline"
@@ -141,6 +143,26 @@ export default async function ProfilePage() {
                       <CardTitle>{tMyComments("title")}</CardTitle>
                       <CardDescription>
                         {tMyComments("description")}
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link href="/me/homeworks" className="block no-underline">
+            <Card className="hover:bg-accent/50 transition-colors">
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <ClipboardList className="h-5 w-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle>{tMyHomeworks("title")}</CardTitle>
+                      <CardDescription>
+                        {tMyHomeworks("description")}
                       </CardDescription>
                     </div>
                   </div>

@@ -44,6 +44,10 @@ type ThreadResponse = {
     sectionTeacherTeacherName?: string | null;
     sectionTeacherCourseJwId?: number | null;
     sectionTeacherCourseName?: string | null;
+    homeworkId?: string | null;
+    homeworkTitle?: string | null;
+    homeworkSectionJwId?: number | null;
+    homeworkSectionCode?: string | null;
     sectionJwId?: number | null;
     sectionCode?: string | null;
     courseJwId?: number | null;
@@ -145,11 +149,15 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     let targetId: number | null = null;
     let sectionId: number | null = null;
     let teacherId: number | null = null;
+    let homeworkId: string | null = null;
 
     if (target.sectionTeacherId) {
       targetType = "section-teacher";
       sectionId = target.sectionTeacherSectionId ?? null;
       teacherId = target.sectionTeacherTeacherId ?? null;
+    } else if (target.homeworkId) {
+      targetType = "homework";
+      homeworkId = target.homeworkId ?? null;
     } else if (target.courseId) {
       targetType = "course";
       targetId = target.courseId ?? null;
@@ -161,12 +169,13 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
       targetId = target.sectionId ?? null;
     }
 
+    const payloadTargetId = targetType === "homework" ? homeworkId : targetId;
     const response = await fetch("/api/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         targetType,
-        targetId,
+        targetId: payloadTargetId,
         sectionId,
         teacherId,
         body: payload.body,
@@ -345,9 +354,23 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
         target.courseJwId ||
         target.teacherId ||
         target.sectionTeacherSectionJwId ||
-        target.sectionTeacherCourseJwId) && (
+        target.sectionTeacherCourseJwId ||
+        target.homeworkId) && (
         <Card>
           <CardPanel className="flex flex-wrap gap-3">
+            {target.homeworkId && target.homeworkSectionJwId && (
+              <Button
+                size="sm"
+                variant="outline"
+                render={
+                  <Link
+                    href={`/sections/${target.homeworkSectionJwId}#homework-${target.homeworkId}`}
+                  />
+                }
+              >
+                {target.homeworkTitle ?? t("viewHomework")}
+              </Button>
+            )}
             {target.sectionTeacherSectionJwId ? (
               <Button
                 size="sm"

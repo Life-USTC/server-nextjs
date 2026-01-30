@@ -7,6 +7,9 @@ import { Tabs } from "@/components/ui/tabs";
 type CommentAwareTabsProps = {
   defaultValue: string;
   commentValue: string;
+  hashMappings?: { prefix: string; value: string }[];
+  tabValues?: string[];
+  tabHashPrefix?: string;
   className?: string;
   children: React.ReactNode;
 };
@@ -14,6 +17,9 @@ type CommentAwareTabsProps = {
 export function CommentAwareTabs({
   defaultValue,
   commentValue,
+  hashMappings = [],
+  tabValues = [],
+  tabHashPrefix = "#tab-",
   className,
   children,
 }: CommentAwareTabsProps) {
@@ -21,18 +27,44 @@ export function CommentAwareTabs({
 
   useEffect(() => {
     const handleHash = () => {
-      if (window.location.hash.startsWith("#comment-")) {
-        setValue(commentValue);
+      const hash = window.location.hash;
+      if (hash.startsWith(tabHashPrefix)) {
+        const nextValue = hash.slice(tabHashPrefix.length);
+        if (!tabValues.length || tabValues.includes(nextValue)) {
+          setValue(nextValue);
+        }
+        return;
+      }
+
+      const mappings = [
+        { prefix: "#comment-", value: commentValue },
+        ...hashMappings,
+      ];
+      for (const mapping of mappings) {
+        if (hash.startsWith(mapping.prefix)) {
+          setValue(mapping.value);
+          return;
+        }
       }
     };
 
     handleHash();
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
-  }, [commentValue]);
+  }, [commentValue, hashMappings, tabHashPrefix, tabValues]);
+
+  const handleValueChange = (nextValue: string) => {
+    setValue(nextValue);
+    if (typeof window === "undefined") return;
+    if (tabValues.length && !tabValues.includes(nextValue)) return;
+    const nextHash = `${tabHashPrefix}${nextValue}`;
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash;
+    }
+  };
 
   return (
-    <Tabs className={className} value={value} onValueChange={setValue}>
+    <Tabs className={className} value={value} onValueChange={handleValueChange}>
       {children}
     </Tabs>
   );

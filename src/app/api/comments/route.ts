@@ -13,6 +13,7 @@ const TARGET_TYPES = [
   "course",
   "teacher",
   "section-teacher",
+  "homework",
 ] as const;
 
 type TargetType = (typeof TARGET_TYPES)[number];
@@ -27,6 +28,7 @@ const prismaAny = prisma as typeof prisma & {
   section: any;
   course: any;
   teacher: any;
+  homework: any;
 };
 
 function parseIntParam(value: string | null) {
@@ -81,12 +83,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
   }
 
-  const targetId = parseIntParam(searchParams.get("targetId"));
+  const targetIdParam = searchParams.get("targetId");
+  const targetId = parseIntParam(targetIdParam);
   const sectionId = parseIntParam(searchParams.get("sectionId"));
   const teacherId = parseIntParam(searchParams.get("teacherId"));
 
   try {
-    let whereTarget: Record<string, number> | null = null;
+    let whereTarget: Record<string, number | string> | null = null;
     let resolvedSectionTeacherId: number | null = null;
 
     if (targetType === "section" && targetId) {
@@ -95,6 +98,8 @@ export async function GET(request: Request) {
       whereTarget = { courseId: targetId };
     } else if (targetType === "teacher" && targetId) {
       whereTarget = { teacherId: targetId };
+    } else if (targetType === "homework" && targetIdParam) {
+      whereTarget = { homeworkId: targetIdParam };
     } else if (targetType === "section-teacher") {
       const sectionTeacherId = targetId ?? null;
       if (sectionTeacherId) {
@@ -148,10 +153,11 @@ export async function GET(request: Request) {
       viewer,
       target: {
         type: targetType,
-        targetId,
+        targetId: targetType === "homework" ? targetIdParam : targetId,
         sectionId,
         teacherId,
         sectionTeacherId: resolvedSectionTeacherId,
+        homeworkId: targetType === "homework" ? targetIdParam : null,
       },
     });
   } catch (error) {
@@ -162,7 +168,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   let body: {
     targetType?: TargetType;
-    targetId?: number;
+    targetId?: number | string;
     sectionId?: number;
     teacherId?: number;
     body?: string;
@@ -223,9 +229,13 @@ export async function POST(request: Request) {
 
   try {
     const normalizedTargetId = normalizeId(body.targetId);
+    const normalizedHomeworkId =
+      typeof body.targetId === "string" && body.targetId.trim().length > 0
+        ? body.targetId.trim()
+        : null;
     const normalizedSectionId = normalizeId(body.sectionId);
     const normalizedTeacherId = normalizeId(body.teacherId);
-    let targetData: Record<string, number> | null = null;
+    let targetData: Record<string, number | string> | null = null;
     let resolvedSectionTeacherId: number | null = null;
 
     if (targetType === "section" && normalizedTargetId) {
@@ -234,6 +244,8 @@ export async function POST(request: Request) {
       targetData = { courseId: normalizedTargetId };
     } else if (targetType === "teacher" && normalizedTargetId) {
       targetData = { teacherId: normalizedTargetId };
+    } else if (targetType === "homework" && normalizedHomeworkId) {
+      targetData = { homeworkId: normalizedHomeworkId };
     } else if (
       targetType === "section-teacher" &&
       normalizedSectionId &&
