@@ -126,7 +126,12 @@ export function ModerationDashboard() {
     let url = "/";
     let label = t("unknownTarget");
 
-    if (comment.sectionTeacher?.section?.jwId) {
+    if (comment.homework?.id) {
+      url = `/comments/${comment.id}`;
+      const sectionCode = comment.homework.section?.code ?? "";
+      const homeworkTitle = comment.homework.title ?? "";
+      label = [sectionCode, homeworkTitle].filter(Boolean).join(" · ");
+    } else if (comment.sectionTeacher?.section?.jwId) {
       url = `/sections/${comment.sectionTeacher.section.jwId}`;
       label = `${comment.sectionTeacher.section.code} · ${comment.sectionTeacher.teacher?.nameCn ?? ""}`;
     } else if (comment.section?.jwId) {

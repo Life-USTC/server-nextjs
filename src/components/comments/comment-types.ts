@@ -55,9 +55,10 @@ export type CommentViewer = {
 };
 
 export type CommentTarget = {
-  type: "section" | "course" | "teacher" | "section-teacher";
+  type: "section" | "course" | "teacher" | "section-teacher" | "homework";
   targetId?: number | null;
   sectionId?: number | null;
   teacherId?: number | null;
   sectionTeacherId?: number | null;
+  homeworkId?: string | null;
 };

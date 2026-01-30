@@ -40,6 +40,11 @@ export async function GET(request: Request) {
         section: true,
         course: true,
         teacher: true,
+        homework: {
+          include: {
+            section: true,
+          },
+        },
         sectionTeacher: {
           include: {
             section: { include: { course: true } },

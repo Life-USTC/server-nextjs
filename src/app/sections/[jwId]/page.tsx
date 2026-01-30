@@ -8,6 +8,7 @@ import { CommentsSection } from "@/components/comments/comments-section";
 import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
+import { HomeworkPanel } from "@/components/homeworks/homework-panel";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -410,17 +411,29 @@ export default async function SectionPage({
           <CommentAwareTabs
             defaultValue="description"
             commentValue="comments"
+            hashMappings={[{ prefix: "#homework-", value: "homeworks" }]}
+            tabValues={["description", "homeworks", "calendar", "comments"]}
             className="space-y-6"
           >
             <TabsList className="w-full" variant="underline">
               <TabsTrigger value="description">
                 {t("tabs.description")}
               </TabsTrigger>
+              <TabsTrigger value="homeworks">{t("tabs.homeworks")}</TabsTrigger>
               <TabsTrigger value="calendar">{t("tabs.calendar")}</TabsTrigger>
               <TabsTrigger value="comments">{t("tabs.comments")}</TabsTrigger>
             </TabsList>
             <TabsContent value="description">
               <DescriptionPanel targetType="section" targetId={section.id} />
+            </TabsContent>
+            <TabsContent value="homeworks">
+              <HomeworkPanel
+                sectionId={section.id}
+                semesterStart={
+                  section.semester?.startDate?.toISOString() ?? null
+                }
+                semesterEnd={section.semester?.endDate?.toISOString() ?? null}
+              />
             </TabsContent>
             <TabsContent value="comments">
               <div className="space-y-4">

@@ -36,6 +36,7 @@ type TargetOption = {
   targetId?: number;
   sectionId?: number;
   teacherId?: number;
+  homeworkId?: string;
 };
 
 type TeacherOption = {
@@ -136,7 +137,9 @@ export function CommentsSection({
           .map(async (target) => {
             const params = new URLSearchParams();
             params.set("targetType", target.type);
-            if (target.targetId) {
+            if (target.type === "homework" && target.homeworkId) {
+              params.set("targetId", target.homeworkId);
+            } else if (target.targetId) {
               params.set("targetId", String(target.targetId));
             }
             if (target.sectionId) {
@@ -239,7 +242,10 @@ export function CommentsSection({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         targetType: targetForPost.type,
-        targetId: targetForPost.targetId,
+        targetId:
+          targetForPost.type === "homework"
+            ? targetForPost.homeworkId
+            : targetForPost.targetId,
         sectionId: targetForPost.sectionId,
         teacherId:
           targetForPost.type === "section-teacher"

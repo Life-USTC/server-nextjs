@@ -233,7 +233,7 @@ function CommentItem({
       <Card
         id={`comment-${comment.id}`}
         className={cn(
-          "group gap-4 border bg-background transition-colors duration-500",
+          "group gap-2 border bg-background transition-colors duration-500",
           isHighlighted && "ring-1 ring-primary/40",
         )}
       >

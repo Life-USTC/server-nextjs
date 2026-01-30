@@ -5,7 +5,8 @@ export type CommentTargetType =
   | "section"
   | "course"
   | "teacher"
-  | "section-teacher";
+  | "section-teacher"
+  | "homework";
 
 export type ViewerContext = {
   userId: string | null;
