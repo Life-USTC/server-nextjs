@@ -87,7 +87,21 @@ async function fetchFilterOptions(locale: string) {
     prisma.courseCategory.findMany(),
     prisma.classType.findMany(),
   ]);
-  return { educationLevels, categories, classTypes };
+  const toFilterOption = (item: {
+    id: number;
+    namePrimary: string;
+    nameSecondary: string | null;
+  }) => ({
+    id: item.id,
+    namePrimary: item.namePrimary,
+    nameSecondary: item.nameSecondary,
+  });
+
+  return {
+    educationLevels: educationLevels.map(toFilterOption),
+    categories: categories.map(toFilterOption),
+    classTypes: classTypes.map(toFilterOption),
+  };
 }
 
 export async function generateMetadata(): Promise<Metadata> {
