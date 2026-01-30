@@ -72,6 +72,9 @@ type HomeworkEntry = {
   updatedAt: string;
   deletedAt: string | null;
   createdById: string | null;
+  completion: {
+    completedAt: string;
+  } | null;
   description: {
     id: string;
     content: string;
@@ -192,6 +195,9 @@ export function HomeworkPanel({
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
     {},
   );
+  const [completionSaving, setCompletionSaving] = useState<
+    Record<string, boolean>
+  >({});
 
   const formatter = useMemo(
     () =>
@@ -591,6 +597,9 @@ export function HomeworkPanel({
 
   const renderTagBadges = (homework: HomeworkEntry) => (
     <div className="flex flex-wrap gap-2">
+      {homework.completion && (
+        <Badge variant="success">{t("completedLabel")}</Badge>
+      )}
       {homework.isMajor && <Badge variant="secondary">{t("tagMajor")}</Badge>}
       {homework.requiresTeam && <Badge variant="outline">{t("tagTeam")}</Badge>}
       {!homework.isMajor && !homework.requiresTeam && (
@@ -598,6 +607,56 @@ export function HomeworkPanel({
       )}
     </div>
   );
+
+  const handleCompletionToggle = async (
+    homeworkId: string,
+    nextCompleted: boolean,
+  ) => {
+    if (!viewer.isAuthenticated) return;
+    setCompletionSaving((prev) => ({ ...prev, [homeworkId]: true }));
+    try {
+      const response = await fetch(`/api/homeworks/${homeworkId}/completion`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: nextCompleted }),
+      });
+
+      if (!response.ok) {
+        toast({
+          title: t("completionFailed"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = (await response.json()) as {
+        completed: boolean;
+        completedAt: string | null;
+      };
+
+      setHomeworks((prev) =>
+        prev.map((homework) =>
+          homework.id === homeworkId
+            ? {
+                ...homework,
+                completion:
+                  data.completed && data.completedAt
+                    ? { completedAt: data.completedAt }
+                    : null,
+              }
+            : homework,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to update completion", err);
+      toast({
+        title: t("completionFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setCompletionSaving((prev) => ({ ...prev, [homeworkId]: false }));
+    }
+  };
 
   const renderHelperActions = (
     type: "create" | "edit",
@@ -996,7 +1055,29 @@ export function HomeworkPanel({
                               : t("dateTBD")}
                           </p>
                         </div>
-                        {renderTagBadges(homework)}
+                        <div className="flex flex-wrap items-center gap-3">
+                          {renderTagBadges(homework)}
+                          {viewer.isAuthenticated && (
+                            <div className="flex items-center gap-2">
+                              <Switch
+                                id={`homework-completed-${homework.id}`}
+                                checked={Boolean(homework.completion)}
+                                onCheckedChange={(checked) =>
+                                  void handleCompletionToggle(
+                                    homework.id,
+                                    checked,
+                                  )
+                                }
+                                disabled={completionSaving[homework.id]}
+                              />
+                              <Label
+                                htmlFor={`homework-completed-${homework.id}`}
+                              >
+                                {t("completedLabel")}
+                              </Label>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </>
                   )}

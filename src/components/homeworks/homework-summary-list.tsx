@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { CommentMarkdown } from "@/components/comments/comment-markdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,9 @@ import {
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 
 type HomeworkSummary = {
@@ -23,6 +27,9 @@ type HomeworkSummary = {
   submissionDueAt: string | null;
   createdAt: string;
   description: string | null;
+  completion: {
+    completedAt: string;
+  } | null;
   section: {
     jwId: number | null;
     code: string | null;
@@ -38,10 +45,19 @@ type HomeworkSummaryListProps = {
 export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
   const t = useTranslations("homeworks");
   const locale = useLocale();
+  const { toast } = useToast();
+  const [items, setItems] = useState(homeworks);
+  const [completionSaving, setCompletionSaving] = useState<
+    Record<string, boolean>
+  >({});
   const formatter = new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   });
+
+  useEffect(() => {
+    setItems(homeworks);
+  }, [homeworks]);
 
   const formatDate = (value: string | null) => {
     if (!value) return t("dateTBD");
@@ -52,6 +68,9 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
 
   const renderTags = (homework: HomeworkSummary) => (
     <div className="flex flex-wrap gap-2">
+      {homework.completion && (
+        <Badge variant="success">{t("completedLabel")}</Badge>
+      )}
       {homework.isMajor && <Badge variant="secondary">{t("tagMajor")}</Badge>}
       {homework.requiresTeam && <Badge variant="outline">{t("tagTeam")}</Badge>}
       {!homework.isMajor && !homework.requiresTeam && (
@@ -60,9 +79,58 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
     </div>
   );
 
+  const handleCompletionToggle = async (
+    homeworkId: string,
+    nextCompleted: boolean,
+  ) => {
+    setCompletionSaving((prev) => ({ ...prev, [homeworkId]: true }));
+    try {
+      const response = await fetch(`/api/homeworks/${homeworkId}/completion`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: nextCompleted }),
+      });
+
+      if (!response.ok) {
+        toast({
+          title: t("completionFailed"),
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const data = (await response.json()) as {
+        completed: boolean;
+        completedAt: string | null;
+      };
+
+      setItems((prev) =>
+        prev.map((homework) =>
+          homework.id === homeworkId
+            ? {
+                ...homework,
+                completion:
+                  data.completed && data.completedAt
+                    ? { completedAt: data.completedAt }
+                    : null,
+              }
+            : homework,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to update completion", error);
+      toast({
+        title: t("completionFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setCompletionSaving((prev) => ({ ...prev, [homeworkId]: false }));
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {homeworks.map((homework) => {
+      {items.map((homework) => {
         const section = homework.section;
         const detailParts = [
           section?.courseName ?? "",
@@ -90,11 +158,27 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
                     </p>
                   )}
                 </div>
-                <CardAction className="flex flex-wrap gap-2">
+                <CardAction className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id={`homework-completed-summary-${homework.id}`}
+                      checked={Boolean(homework.completion)}
+                      onCheckedChange={(checked) =>
+                        void handleCompletionToggle(homework.id, checked)
+                      }
+                      disabled={completionSaving[homework.id]}
+                    />
+                    <Label
+                      htmlFor={`homework-completed-summary-${homework.id}`}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {t("completedLabel")}
+                    </Label>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    render={<Link href={href} />}
+                    render={<Link className="no-underline" href={href} />}
                   >
                     {t("viewDetails")}
                   </Button>

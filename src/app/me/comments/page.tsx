@@ -56,6 +56,44 @@ export default async function MyCommentsPage({
   const locale = await getLocale();
   const prisma = getPrisma(locale);
   const prismaAny = prisma as typeof prisma & { comment: any };
+  type CommentEntry = {
+    id: string;
+    body: string;
+    createdAt: Date;
+    homework: {
+      id: string;
+      title: string | null;
+      section: {
+        jwId: number | null;
+        code: string | null;
+      } | null;
+    } | null;
+    section: {
+      jwId: number | null;
+      code: string | null;
+    } | null;
+    course: {
+      jwId: number | null;
+      code: string | null;
+      namePrimary?: string | null;
+    } | null;
+    teacher: {
+      id: number;
+      namePrimary?: string | null;
+    } | null;
+    sectionTeacher: {
+      section: {
+        jwId: number | null;
+        code: string | null;
+        course: {
+          namePrimary?: string | null;
+        } | null;
+      } | null;
+      teacher: {
+        namePrimary?: string | null;
+      } | null;
+    } | null;
+  };
   const searchP = await searchParams;
   const page = Math.max(parseInt(searchP.page ?? "1", 10) || 1, 1);
   const skip = (page - 1) * PAGE_SIZE;
@@ -85,7 +123,7 @@ export default async function MyCommentsPage({
       orderBy: { createdAt: "desc" },
       skip,
       take: PAGE_SIZE,
-    }),
+    }) as Promise<CommentEntry[]>,
     prisma.comment.count({
       where: {
         userId: session.user.id,
@@ -99,7 +137,7 @@ export default async function MyCommentsPage({
   const t = await getTranslations("myComments");
   const tCommon = await getTranslations("common");
 
-  const buildTargetLabel = (comment: (typeof comments)[number]) => {
+  const buildTargetLabel = (comment: CommentEntry) => {
     if (comment.homework?.id) {
       const sectionCode = comment.homework.section?.code ?? "";
       const title = comment.homework.title ?? "";
@@ -122,7 +160,7 @@ export default async function MyCommentsPage({
     return tCommon("unknown");
   };
 
-  const buildTargetHref = (comment: (typeof comments)[number]) => {
+  const buildTargetHref = (comment: CommentEntry) => {
     const suffix = `#comment-${comment.id}`;
     if (comment.homework?.section?.jwId) {
       return `/sections/${comment.homework.section.jwId}#homework-${comment.homework.id}`;
@@ -185,7 +223,7 @@ export default async function MyCommentsPage({
       ) : (
         <div className="flex flex-col gap-4">
           <div className="space-y-4">
-            {comments.map((comment) => (
+            {comments.map((comment: CommentEntry) => (
               <Card key={comment.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-medium">
