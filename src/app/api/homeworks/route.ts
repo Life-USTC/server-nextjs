@@ -40,25 +40,35 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [viewer, homeworks, auditLogs] = await Promise.all([
-      getViewerContext({ includeAdmin: true }),
+    const viewer = await getViewerContext({ includeAdmin: true });
+    const homeworkInclude: Record<string, unknown> = {
+      description: true,
+      createdBy: {
+        select: { id: true, name: true, username: true, image: true },
+      },
+      updatedBy: {
+        select: { id: true, name: true, username: true, image: true },
+      },
+      deletedBy: {
+        select: { id: true, name: true, username: true, image: true },
+      },
+      ...(viewer.userId
+        ? {
+            homeworkCompletions: {
+              where: { userId: viewer.userId },
+              select: { completedAt: true },
+            },
+          }
+        : {}),
+    };
+
+    const [homeworks, auditLogs] = await Promise.all([
       prismaAny.homework.findMany({
         where: {
           sectionId,
           ...(includeDeleted ? {} : { deletedAt: null }),
         },
-        include: {
-          description: true,
-          createdBy: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-          updatedBy: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-          deletedBy: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-        },
+        include: homeworkInclude,
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       }),
       prismaAny.homeworkAuditLog.findMany({
@@ -73,9 +83,19 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    const responseHomeworks = homeworks.map(
+      (homework: { homeworkCompletions?: Array<{ completedAt: Date }> }) => {
+        const { homeworkCompletions, ...rest } = homework;
+        return {
+          ...rest,
+          completion: homeworkCompletions?.[0] ?? null,
+        };
+      },
+    );
+
     return NextResponse.json({
       viewer,
-      homeworks,
+      homeworks: responseHomeworks,
       auditLogs,
     });
   } catch (error) {

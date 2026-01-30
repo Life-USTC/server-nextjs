@@ -32,6 +32,7 @@ type HomeworkWithSection = {
   submissionDueAt: Date | null;
   createdAt: Date;
   description: { content: string } | null;
+  homeworkCompletions: Array<{ completedAt: Date }>;
   section: {
     jwId: number | null;
     code: string | null;
@@ -83,6 +84,10 @@ export default async function MyHomeworksPage() {
         where: { sectionId: { in: sectionIds }, deletedAt: null },
         include: {
           description: { select: { content: true } },
+          homeworkCompletions: {
+            where: { userId: session.user.id },
+            select: { completedAt: true },
+          },
           section: {
             include: { course: true, semester: true },
           },
@@ -101,6 +106,12 @@ export default async function MyHomeworksPage() {
     submissionDueAt: homework.submissionDueAt?.toISOString() ?? null,
     createdAt: homework.createdAt.toISOString(),
     description: homework.description?.content ?? null,
+    completion: homework.homeworkCompletions[0]
+      ? {
+          completedAt:
+            homework.homeworkCompletions[0].completedAt.toISOString(),
+        }
+      : null,
     section: homework.section
       ? {
           jwId: homework.section.jwId ?? null,

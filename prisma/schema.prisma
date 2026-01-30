@@ -557,11 +557,25 @@ model Homework {
   description Description?
   comments    Comment[]
   auditLogs   HomeworkAuditLog[]
+  homeworkCompletions HomeworkCompletion[]
 
   @@index([sectionId])
   @@index([publishedAt])
   @@index([submissionDueAt])
   @@index([deletedAt])
+}
+
+model HomeworkCompletion {
+  userId     String
+  homeworkId String
+  completedAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homework Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+
+  @@id([userId, homeworkId])
+  @@index([homeworkId])
+  @@index([userId])
 }
 
 model HomeworkAuditLog {
@@ -733,6 +747,7 @@ model User {
   homeworksUpdated      Homework[]        @relation("HomeworkUpdatedBy")
   homeworksDeleted      Homework[]        @relation("HomeworkDeletedBy")
   homeworkAuditLogs     HomeworkAuditLog[] @relation("HomeworkAuditActor")
+  homeworkCompletions   HomeworkCompletion[]
 }
 
 model Upload {
