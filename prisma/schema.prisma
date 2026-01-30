@@ -29,6 +29,11 @@ enum CommentReactionType {
   eyes
 }
 
+enum HomeworkAuditAction {
+  created
+  deleted
+}
+
 
 model AdminClass {
   id   Int  @id @default(autoincrement())
@@ -377,6 +382,8 @@ model Section {
   calendarSubscriptions CalendarSubscription[] @relation("SectionCalendarSubscriptions")
   comments              Comment[]
   description           Description?
+  homeworks             Homework[]
+  homeworkAuditLogs     HomeworkAuditLog[]
 
   @@index([jwId])
   @@index([code])
@@ -507,14 +514,77 @@ model Description {
   sectionId Int? @unique
   courseId  Int? @unique
   teacherId Int? @unique
+  homeworkId String? @unique
 
   section Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   course  Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  homework Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
 
   edits DescriptionEdit[]
 
   @@index([lastEditedById])
+  @@index([homeworkId])
+}
+
+model Homework {
+  id String @id @default(cuid())
+
+  title String
+  isMajor      Boolean @default(false)
+  requiresTeam Boolean @default(false)
+
+  publishedAt       DateTime?
+  submissionStartAt DateTime?
+  submissionDueAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  sectionId Int
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  createdById String?
+  createdBy   User?   @relation("HomeworkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  updatedById String?
+  updatedBy   User?   @relation("HomeworkUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  deletedById String?
+  deletedBy   User?   @relation("HomeworkDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  description Description?
+  comments    Comment[]
+  auditLogs   HomeworkAuditLog[]
+
+  @@index([sectionId])
+  @@index([publishedAt])
+  @@index([submissionDueAt])
+  @@index([deletedAt])
+}
+
+model HomeworkAuditLog {
+  id String @id @default(cuid())
+
+  action HomeworkAuditAction
+  titleSnapshot String
+
+  createdAt DateTime @default(now())
+
+  sectionId Int
+  section   Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  homeworkId String?
+  homework   Homework? @relation(fields: [homeworkId], references: [id], onDelete: SetNull)
+
+  actorId String?
+  actor   User?   @relation("HomeworkAuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([sectionId])
+  @@index([homeworkId])
+  @@index([actorId])
+  @@index([createdAt])
 }
 
 model DescriptionEdit {
@@ -659,6 +729,10 @@ model User {
   suspensionsLifted     UserSuspension[]  @relation("SuspensionLiftedBy")
   descriptionEdits      DescriptionEdit[] @relation("DescriptionEdits")
   descriptionLastEdits  Description[]     @relation("DescriptionLastEditor")
+  homeworksCreated      Homework[]        @relation("HomeworkCreatedBy")
+  homeworksUpdated      Homework[]        @relation("HomeworkUpdatedBy")
+  homeworksDeleted      Homework[]        @relation("HomeworkDeletedBy")
+  homeworkAuditLogs     HomeworkAuditLog[] @relation("HomeworkAuditActor")
 }
 
 model Upload {
@@ -711,11 +785,13 @@ model Comment {
   courseId         Int?
   teacherId        Int?
   sectionTeacherId Int?
+  homeworkId       String?
 
   section        Section?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   course         Course?        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher        Teacher?       @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   sectionTeacher SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)
+  homework       Homework?      @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
 
   attachments CommentAttachment[]
   reactions   CommentReaction[]
@@ -727,6 +803,7 @@ model Comment {
   @@index([courseId])
   @@index([teacherId])
   @@index([sectionTeacherId])
+  @@index([homeworkId])
   @@index([status])
   @@index([visibility])
 }

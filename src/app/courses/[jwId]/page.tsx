@@ -148,6 +148,7 @@ export default async function CoursePage({
           <CommentAwareTabs
             defaultValue="description"
             commentValue="comments"
+            tabValues={["description", "sections", "comments"]}
             className="space-y-6"
           >
             <TabsList className="w-full" variant="underline">

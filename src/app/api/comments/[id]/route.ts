@@ -33,6 +33,15 @@ export async function GET(
     const comment = await prismaAny.comment.findUnique({
       where: { id },
       include: {
+        homework: {
+          include: {
+            section: {
+              include: {
+                course: true,
+              },
+            },
+          },
+        },
         sectionTeacher: {
           include: {
             section: {
@@ -103,6 +112,10 @@ export async function GET(
           comment.sectionTeacher?.section?.course?.jwId ?? null,
         sectionTeacherCourseName:
           comment.sectionTeacher?.section?.course?.nameCn ?? null,
+        homeworkId: comment.homework?.id ?? null,
+        homeworkTitle: comment.homework?.title ?? null,
+        homeworkSectionJwId: comment.homework?.section?.jwId ?? null,
+        homeworkSectionCode: comment.homework?.section?.code ?? null,
         sectionJwId: comment.section?.jwId ?? null,
         sectionCode: comment.section?.code ?? null,
         courseJwId: comment.course?.jwId ?? null,

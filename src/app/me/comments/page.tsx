@@ -55,17 +55,23 @@ export default async function MyCommentsPage({
 
   const locale = await getLocale();
   const prisma = getPrisma(locale);
+  const prismaAny = prisma as typeof prisma & { comment: any };
   const searchP = await searchParams;
   const page = Math.max(parseInt(searchP.page ?? "1", 10) || 1, 1);
   const skip = (page - 1) * PAGE_SIZE;
 
   const [comments, total] = await Promise.all([
-    prisma.comment.findMany({
+    prismaAny.comment.findMany({
       where: {
         userId: session.user.id,
         status: { in: ["active", "softbanned"] },
       },
       include: {
+        homework: {
+          include: {
+            section: true,
+          },
+        },
         section: true,
         course: true,
         teacher: true,
@@ -94,6 +100,11 @@ export default async function MyCommentsPage({
   const tCommon = await getTranslations("common");
 
   const buildTargetLabel = (comment: (typeof comments)[number]) => {
+    if (comment.homework?.id) {
+      const sectionCode = comment.homework.section?.code ?? "";
+      const title = comment.homework.title ?? "";
+      return [sectionCode, title].filter(Boolean).join(" · ");
+    }
     if (comment.sectionTeacher?.section?.jwId) {
       return `${comment.sectionTeacher.section.code} · ${comment.sectionTeacher.teacher?.namePrimary ?? ""}`;
     }
@@ -113,6 +124,9 @@ export default async function MyCommentsPage({
 
   const buildTargetHref = (comment: (typeof comments)[number]) => {
     const suffix = `#comment-${comment.id}`;
+    if (comment.homework?.section?.jwId) {
+      return `/sections/${comment.homework.section.jwId}#homework-${comment.homework.id}`;
+    }
     if (comment.sectionTeacher?.section?.jwId) {
       return `/sections/${comment.sectionTeacher.section.jwId}${suffix}`;
     }

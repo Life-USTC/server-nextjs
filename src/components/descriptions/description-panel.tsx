@@ -27,7 +27,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 
-type TargetType = "section" | "course" | "teacher";
+type TargetType = "section" | "course" | "teacher" | "homework";
 
 type EditorSummary = {
   id: string;
@@ -73,7 +73,7 @@ type DescriptionResponse = {
 
 type DescriptionPanelProps = {
   targetType: TargetType;
-  targetId: number;
+  targetId: number | string;
 };
 
 const EMPTY_DESCRIPTION: DescriptionData = {

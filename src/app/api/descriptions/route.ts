@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const TARGET_TYPES = ["section", "course", "teacher"] as const;
+const TARGET_TYPES = ["section", "course", "teacher", "homework"] as const;
 type TargetType = (typeof TARGET_TYPES)[number];
 
 const prismaAny = prisma as typeof prisma & {
@@ -15,6 +15,7 @@ const prismaAny = prisma as typeof prisma & {
   section: any;
   course: any;
   teacher: any;
+  homework: any;
 };
 
 function parseIntParam(value: string | null) {
@@ -23,20 +24,25 @@ function parseIntParam(value: string | null) {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function getTargetWhere(targetType: TargetType, targetId: number) {
+function getTargetWhere(targetType: TargetType, targetId: number | string) {
   switch (targetType) {
     case "section":
-      return { sectionId: targetId };
+      return typeof targetId === "number" ? { sectionId: targetId } : null;
     case "course":
-      return { courseId: targetId };
+      return typeof targetId === "number" ? { courseId: targetId } : null;
     case "teacher":
-      return { teacherId: targetId };
+      return typeof targetId === "number" ? { teacherId: targetId } : null;
+    case "homework":
+      return typeof targetId === "string" ? { homeworkId: targetId } : null;
     default:
       return null;
   }
 }
 
-async function ensureTargetExists(targetType: TargetType, targetId: number) {
+async function ensureTargetExists(
+  targetType: TargetType,
+  targetId: number | string,
+) {
   if (targetType === "section") {
     return prismaAny.section.findUnique({
       where: { id: targetId },
@@ -49,7 +55,13 @@ async function ensureTargetExists(targetType: TargetType, targetId: number) {
       select: { id: true },
     });
   }
-  return prismaAny.teacher.findUnique({
+  if (targetType === "teacher") {
+    return prismaAny.teacher.findUnique({
+      where: { id: targetId },
+      select: { id: true },
+    });
+  }
+  return prismaAny.homework.findUnique({
     where: { id: targetId },
     select: { id: true },
   });
@@ -58,7 +70,11 @@ async function ensureTargetExists(targetType: TargetType, targetId: number) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const targetType = searchParams.get("targetType") as TargetType | null;
-  const targetId = parseIntParam(searchParams.get("targetId"));
+  const targetIdParam = searchParams.get("targetId");
+  const targetId =
+    targetType === "homework"
+      ? targetIdParam
+      : parseIntParam(searchParams.get("targetId"));
 
   if (!targetType || !TARGET_TYPES.includes(targetType)) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
@@ -130,8 +146,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: { targetType?: TargetType; targetId?: number; content?: string } =
-    {};
+  let body: {
+    targetType?: TargetType;
+    targetId?: number | string;
+    content?: string;
+  } = {};
 
   try {
     body = await request.json();
@@ -145,13 +164,17 @@ export async function POST(request: Request) {
   }
 
   const targetId =
-    typeof body.targetId === "number"
-      ? body.targetId
-      : typeof body.targetId === "string"
-        ? parseInt(body.targetId, 10)
-        : null;
+    targetType === "homework"
+      ? typeof body.targetId === "string"
+        ? body.targetId.trim()
+        : null
+      : typeof body.targetId === "number"
+        ? body.targetId
+        : typeof body.targetId === "string"
+          ? parseInt(body.targetId, 10)
+          : null;
 
-  if (!targetId || Number.isNaN(targetId)) {
+  if (!targetId || (typeof targetId === "number" && Number.isNaN(targetId))) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
   }
 
