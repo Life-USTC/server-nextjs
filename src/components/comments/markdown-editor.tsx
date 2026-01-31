@@ -72,7 +72,7 @@ export function MarkdownEditor({
             variant="ghost"
             size="xs"
             className="h-8 px-2"
-            render={<Link href={markdownGuideHref} />}
+            render={<Link className="no-underline" href={markdownGuideHref} />}
           >
             <span className="text-xs text-muted-foreground">
               {markdownGuideLabel}

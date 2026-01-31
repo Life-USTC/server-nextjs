@@ -184,7 +184,8 @@ export function buildCommentNodes(rawComments: any[], viewer: ViewerInfo) {
 
     const authorHidden =
       (String(comment.visibility) === "anonymous" || comment.isAnonymous) &&
-      !viewer.isAdmin;
+      !viewer.isAdmin &&
+      !isAuthor;
     const author = authorHidden ? null : buildAuthorSummary(comment, viewer);
     const status =
       rawStatus === "softbanned" && !viewer.isAdmin ? "active" : rawStatus;

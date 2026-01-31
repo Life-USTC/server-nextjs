@@ -31,7 +31,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserMenu } from "@/components/user-menu";
+import { getViewerContext } from "@/lib/comment-utils";
+import { getCommentsPayload } from "@/lib/comments-server";
+import { getDescriptionPayload } from "@/lib/descriptions-server";
 import { getPrisma } from "@/lib/prisma";
 
 export async function generateMetadata({
@@ -110,6 +112,20 @@ export default async function CoursePage({
   const tCourse = await getTranslations("course");
   const tCommon = await getTranslations("common");
   const tComments = await getTranslations("comments");
+  const viewer = await getViewerContext({ includeAdmin: false });
+  const [descriptionData, commentsData, commentCount] = await Promise.all([
+    getDescriptionPayload("course", course.id, viewer),
+    getCommentsPayload({ type: "course", targetId: course.id }, viewer),
+    prisma.comment.count({
+      where: { courseId: course.id, status: { not: "deleted" } },
+    }),
+  ]);
+  const commentsInitialData = {
+    commentMap: { course: commentsData.comments },
+    hiddenMap: { course: commentsData.hiddenCount },
+    hiddenCount: commentsData.hiddenCount,
+    viewer: commentsData.viewer,
+  };
 
   return (
     <main className="page-main">
@@ -131,7 +147,6 @@ export default async function CoursePage({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <UserMenu className="shrink-0" />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
@@ -146,22 +161,18 @@ export default async function CoursePage({
           </div>
 
           <CommentAwareTabs
-            defaultValue="description"
+            defaultValue="sections"
             commentValue="comments"
-            tabValues={["description", "sections", "comments"]}
+            tabValues={["sections", "comments"]}
             className="space-y-6"
           >
             <TabsList className="w-full" variant="underline">
-              <TabsTrigger value="description">
-                {t("tabs.description")}
-              </TabsTrigger>
               <TabsTrigger value="sections">{t("tabs.sections")}</TabsTrigger>
-              <TabsTrigger value="comments">{t("tabs.comments")}</TabsTrigger>
+              <TabsTrigger value="comments">
+                {t("tabs.comments")} ({commentCount})
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="description">
-              <DescriptionPanel targetType="course" targetId={course.id} />
-            </TabsContent>
-            <TabsContent value="comments">
+            <TabsContent value="comments" keepMounted>
               <div className="space-y-4">
                 <CommentsSection
                   targets={[
@@ -172,10 +183,11 @@ export default async function CoursePage({
                       targetId: course.id,
                     },
                   ]}
+                  initialData={commentsInitialData}
                 />
               </div>
             </TabsContent>
-            <TabsContent value="sections">
+            <TabsContent value="sections" keepMounted>
               <div className="space-y-4">
                 <Table>
                   <TableHeader>
@@ -244,6 +256,11 @@ export default async function CoursePage({
         </div>
 
         <aside className="space-y-4">
+          <DescriptionPanel
+            targetType="course"
+            targetId={course.id}
+            initialData={descriptionData}
+          />
           <Collapsible className="space-y-4" defaultOpen>
             <CollapsibleTrigger className="lg:hidden flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
               <span>{tCourse("basicInfo")}</span>

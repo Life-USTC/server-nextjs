@@ -123,7 +123,7 @@ export default async function AdminUsersPage({
           <Button
             type="button"
             variant="ghost"
-            render={<Link href="/admin/users" />}
+            render={<Link className="no-underline" href="/admin/users" />}
           >
             {tCommon("clear")}
           </Button>

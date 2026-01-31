@@ -418,7 +418,12 @@ export function ModerationDashboard() {
                           <Button
                             size="xs"
                             variant="link"
-                            render={<Link href={target.href} />}
+                            render={
+                              <Link
+                                className="no-underline"
+                                href={target.href}
+                              />
+                            }
                             onClick={(e) => e.stopPropagation()}
                           >
                             {target.label}

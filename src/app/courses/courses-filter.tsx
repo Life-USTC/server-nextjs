@@ -182,7 +182,10 @@ export function CoursesFilter({
           defaultValues.educationLevelId ||
           defaultValues.categoryId ||
           defaultValues.classTypeId) && (
-          <Button variant="ghost" render={<Link href="/courses" />}>
+          <Button
+            variant="ghost"
+            render={<Link className="no-underline" href="/courses" />}
+          >
             {tCommon("clear")}
           </Button>
         )}

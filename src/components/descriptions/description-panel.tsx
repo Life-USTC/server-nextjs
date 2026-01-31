@@ -74,6 +74,7 @@ type DescriptionResponse = {
 type DescriptionPanelProps = {
   targetType: TargetType;
   targetId: number | string;
+  initialData?: DescriptionResponse;
 };
 
 const EMPTY_DESCRIPTION: DescriptionData = {
@@ -134,15 +135,21 @@ function renderDiff(previous: string | null, next: string, mode: DiffMode) {
 export function DescriptionPanel({
   targetType,
   targetId,
+  initialData,
 }: DescriptionPanelProps) {
   const t = useTranslations("descriptions");
   const locale = useLocale();
   const { toast } = useToast();
-  const [description, setDescription] =
-    useState<DescriptionData>(EMPTY_DESCRIPTION);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [viewer, setViewer] = useState<ViewerSummary>(EMPTY_VIEWER);
-  const [loading, setLoading] = useState(true);
+  const [description, setDescription] = useState<DescriptionData>(
+    initialData?.description ?? EMPTY_DESCRIPTION,
+  );
+  const [history, setHistory] = useState<HistoryItem[]>(
+    initialData?.history ?? [],
+  );
+  const [viewer, setViewer] = useState<ViewerSummary>(
+    initialData?.viewer ?? EMPTY_VIEWER,
+  );
+  const [loading, setLoading] = useState(!initialData);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -181,8 +188,9 @@ export function DescriptionPanel({
   }, [t, targetId, targetType]);
 
   useEffect(() => {
+    if (initialData) return;
     void loadDescription();
-  }, [loadDescription]);
+  }, [initialData, loadDescription]);
 
   const handleEdit = () => {
     setDraft(description.content);

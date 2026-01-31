@@ -13,7 +13,7 @@
       "teacherDetail": "教师：{name}",
       "signIn": "登录",
       "profile": "个人资料",
-      "subscriptions": "我的订阅",
+      "subscriptions": "已选课班级",
       "uploads": "我的上传",
       "homeworks": "我的作业"
     }
@@ -23,10 +23,10 @@
     "courses": "课程",
     "sections": "班级",
     "teachers": "教师",
-    "subscriptions": "我的订阅",
+    "subscriptions": "已选课班级",
     "me": "我的",
     "browseCourses": "浏览课程",
-    "sectionSubscriptions": "课程订阅",
+    "sectionSubscriptions": "已选课班级",
     "viewAll": "查看全部",
     "search": "搜索",
     "clear": "清除",
@@ -53,12 +53,12 @@
     "unknown": "未知"
   },
   "subscriptions": {
-    "title": "我的订阅",
-    "description": "管理您的课程班级订阅",
-    "noSubscriptions": "无订阅",
-    "noSubscriptionsDescription": "您尚未订阅任何课程班级。",
+    "title": "已选课班级",
+    "description": "管理您的已选课班级",
+    "noSubscriptions": "暂无已选课班级",
+    "noSubscriptionsDescription": "您尚未选课任何班级。",
     "browseCourses": "浏览课程",
-    "subscriptionTitle": "订阅 #{id}",
+    "subscriptionTitle": "已选班级 #{id}",
     "sectionsIncluded": "包含 {count} 个班级",
     "iCalLink": "复制日历链接",
     "linkCopied": "已复制链接",
@@ -68,7 +68,7 @@
     "section": "班级",
     "credits": "学分",
     "calendarTitle": "日历（{count}）",
-    "calendarEmpty": "该订阅暂无课程或考试安排",
+    "calendarEmpty": "该已选班级暂无课程或考试安排",
     "bulkImport": {
       "title": "批量导入班级",
       "description": "粘贴包含班级代码的文本（如课表截图文字、选课清单等），系统会自动识别并匹配所选学期的课程",
@@ -81,14 +81,14 @@
       "checkFormat": "请检查输入的文本格式",
       "fetchFailed": "获取课程信息失败",
       "pleaseRetry": "请稍后重试",
-      "confirmTitle": "确认订阅 {count} 个班级",
-      "foundSections": "找到 {count} 个匹配的班级，请选择要订阅的课程：",
+      "confirmTitle": "确认加入 {count} 个班级",
+      "foundSections": "找到 {count} 个匹配的班级，请选择要加入的班级：",
       "unmatchedCodes": "未匹配到的代码 ({count})",
       "cancel": "取消",
-      "subscribeSelected": "订阅选中的 {count} 个班级",
-      "success": "订阅成功",
-      "successDescription": "已成功订阅 {count} 个班级",
-      "importFailed": "订阅失败"
+      "subscribeSelected": "加入已选的 {count} 个班级",
+      "success": "已加入",
+      "successDescription": "已成功加入 {count} 个班级",
+      "importFailed": "加入失败"
     }
   },
   "uploads": {
@@ -163,12 +163,12 @@
         "description": "查看班级时间表、教师和可用性"
       },
       "mySubscriptions": {
-        "title": "我的订阅",
-        "description": "管理您订阅的课程并获取日历链接"
+        "title": "已选课班级",
+        "description": "管理您的已选课班级并获取日历链接"
       },
       "myProfile": {
         "title": "我的",
-        "description": "查看您的个人资料、订阅和账户设置"
+        "description": "查看您的个人资料、已选课班级和账户设置"
       },
       "browseTeachers": {
         "title": "浏览教师",
@@ -244,11 +244,11 @@
   },
   "myHomeworks": {
     "title": "我的作业",
-    "description": "查看你订阅班级的作业信息。",
-    "noSubscriptions": "尚未订阅班级",
-    "noSubscriptionsDescription": "订阅班级后即可在此查看作业。",
+    "description": "查看你已选课班级的作业信息。",
+    "noSubscriptions": "尚未选择班级",
+    "noSubscriptionsDescription": "选择班级后即可在此查看作业。",
     "emptyTitle": "暂无作业",
-    "emptyDescription": "你订阅的班级还没有发布作业。",
+    "emptyDescription": "你已选课的班级还没有发布作业。",
     "listTitle": "作业（{count}）",
     "listDescription": "按截止时间排序。",
     "course": "课程",
@@ -409,26 +409,26 @@
     "viewAllCourseSections": "查看全部班级",
     "addToCalendar": "添加到日历",
     "calendarSheetTitle": "添加到日历",
-    "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中订阅此日历",
-    "calendarUrlLabel": "单个班级日历订阅链接",
-    "subscriptionUrlLabel": "所有订阅班级日历链接",
-    "subscriptionHintLabel": "此链接包含您订阅的所有班级，会自动同步更新",
-    "subscribeLabel": "订阅此班级",
-    "unsubscribeLabel": "取消订阅",
+    "calendarSheetDescription": "复制下面的链接，然后在您的日历应用中添加此日历",
+    "calendarUrlLabel": "单个班级日历链接",
+    "subscriptionUrlLabel": "已选课班级日历链接",
+    "subscriptionHintLabel": "此链接包含您已选课的所有班级，会自动同步更新",
+    "subscribeLabel": "加入已选课班级",
+    "unsubscribeLabel": "取消已选",
     "copyToClipboard": "复制",
     "close": "关闭",
     "learnMoreAboutICalendar": "了解更多关于 iCalendar 格式",
     "copied": "已复制！",
-    "subscribing": "订阅中...",
-    "unsubscribing": "取消订阅中...",
+    "subscribing": "加入中...",
+    "unsubscribing": "移除中...",
     "pleaseWait": "请稍候",
-    "subscribeSuccess": "订阅成功",
-    "unsubscribeSuccess": "已取消订阅",
-    "subscribeSuccessDescription": "该课程已添加到您的订阅",
-    "unsubscribeSuccessDescription": "该课程已从您的订阅中移除",
+    "subscribeSuccess": "已加入",
+    "unsubscribeSuccess": "已移除",
+    "subscribeSuccessDescription": "该班级已添加到已选课班级",
+    "unsubscribeSuccessDescription": "该班级已从已选课班级中移除",
     "operationFailed": "操作失败",
     "pleaseRetry": "请重试",
-    "viewAllSubscriptions": "查看所有订阅",
+    "viewAllSubscriptions": "查看已选课班级",
     "loginRequired": "需要登录",
     "tabs": {
       "description": "简介",
@@ -436,8 +436,8 @@
       "comments": "评论",
       "calendar": "日历"
     },
-    "loginRequiredDescription": "登录以订阅课程班级，并在不同设备间同步您的日历。",
-    "loginToSubscribe": "登录以订阅",
+    "loginRequiredDescription": "登录以添加已选课班级，并在不同设备间同步您的日历。",
+    "loginToSubscribe": "登录以加入",
     "calendar": "日历 ({count})",
     "calendarEmpty": "此班级暂无课程或考试安排",
     "classEvent": "上课",
@@ -464,7 +464,7 @@
     "examMode": "考试方式",
     "examCount": "考试人数",
     "viewAllSections": "查看这门课全部开课班级",
-    "viewMySubscriptions": "查看我的所有订阅",
+    "viewMySubscriptions": "查看我的已选课班级",
     "viewTeacherCourses": "查看 {teacher} 教授的其他课程",
     "weekdays": {
       "sunday": "星期日",
@@ -495,7 +495,7 @@
   "accessibility": {
     "viewSourceOnGithub": "在 GitHub 上查看源码",
     "avatarOption": "头像选项",
-    "subscriptionCalendarUrl": "订阅日历链接",
+    "subscriptionCalendarUrl": "已选课班级日历链接",
     "singleSectionCalendarUrl": "单个班级日历链接"
   },
   "profile": {
@@ -536,7 +536,7 @@
     "deleteAccount": "删除账户",
     "deletingAccount": "删除中...",
     "deleteAccountConfirmTitle": "您确定要删除吗？",
-    "deleteAccountConfirmDescription": "此操作无法撤销。这将永久删除您的账户、所有关联账户、订阅，并从我们的服务器中删除您的所有数据。",
+    "deleteAccountConfirmDescription": "此操作无法撤销。这将永久删除您的账户、所有关联账户、已选课班级，并从我们的服务器中删除您的所有数据。",
     "deleteAccountConfirmPrompt": "输入 {phrase} 以确认：",
     "deleteAccountSuccess": "账户已删除",
     "deleteAccountSuccessDescription": "您的账户已被永久删除。",
