@@ -254,7 +254,9 @@ export default async function SubscriptionsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button render={<Link href="/courses" />}>
+              <Button
+                render={<Link className="no-underline" href="/courses" />}
+              >
                 {t("browseCourses")}
               </Button>
             </CardContent>

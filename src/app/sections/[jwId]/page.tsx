@@ -27,9 +27,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserMenu } from "@/components/user-menu";
 import { Link } from "@/i18n/routing";
-import { getPrisma } from "@/lib/prisma";
+import { getViewerContext } from "@/lib/comment-utils";
+import { getCommentsPayload } from "@/lib/comments-server";
+import { getDescriptionPayload } from "@/lib/descriptions-server";
+import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 import { cn } from "@/lib/utils";
 
@@ -175,6 +177,161 @@ export default async function SectionPage({
   const tCommon = await getTranslations("common");
   const tA11y = await getTranslations("accessibility");
   const tComments = await getTranslations("comments");
+  const viewer = await getViewerContext({ includeAdmin: false });
+  const homeworkViewer = await getViewerContext({ includeAdmin: true });
+
+  const teacherOptions = section.teachers.map((teacher) => ({
+    id: teacher.id,
+    label: teacher.namePrimary,
+  }));
+  const selectedTeacherId = teacherOptions[0]?.id ?? null;
+
+  const [
+    descriptionData,
+    sectionComments,
+    courseComments,
+    sectionTeacherComments,
+  ] = await Promise.all([
+    getDescriptionPayload("section", section.id, viewer),
+    getCommentsPayload({ type: "section", targetId: section.id }, viewer),
+    getCommentsPayload({ type: "course", targetId: section.courseId }, viewer),
+    selectedTeacherId
+      ? getCommentsPayload(
+          {
+            type: "section-teacher",
+            sectionId: section.id,
+            teacherId: selectedTeacherId,
+          },
+          viewer,
+        )
+      : Promise.resolve({ comments: [], hiddenCount: 0, viewer }),
+  ]);
+
+  const sectionTeacherIds = await basePrisma.sectionTeacher.findMany({
+    where: { sectionId: section.id },
+    select: { id: true },
+  });
+  const sectionTeacherIdList = sectionTeacherIds.map((entry) => entry.id);
+  const [sectionCommentCount, courseCommentCount, sectionTeacherCommentCount] =
+    await Promise.all([
+      basePrisma.comment.count({
+        where: { sectionId: section.id, status: { not: "deleted" } },
+      }),
+      basePrisma.comment.count({
+        where: { courseId: section.courseId, status: { not: "deleted" } },
+      }),
+      sectionTeacherIdList.length
+        ? basePrisma.comment.count({
+            where: {
+              sectionTeacherId: { in: sectionTeacherIdList },
+              status: { not: "deleted" },
+            },
+          })
+        : Promise.resolve(0),
+    ]);
+  const commentCount =
+    sectionCommentCount + courseCommentCount + sectionTeacherCommentCount;
+
+  const commentsInitialData = {
+    commentMap: {
+      section: sectionComments.comments,
+      course: courseComments.comments,
+      "section-teacher": sectionTeacherComments.comments,
+    },
+    hiddenMap: {
+      section: sectionComments.hiddenCount,
+      course: courseComments.hiddenCount,
+      "section-teacher": sectionTeacherComments.hiddenCount,
+    },
+    hiddenCount:
+      sectionComments.hiddenCount +
+      courseComments.hiddenCount +
+      sectionTeacherComments.hiddenCount,
+    viewer: sectionComments.viewer,
+  };
+
+  const prismaAny = basePrisma as typeof basePrisma & {
+    homework: any;
+    homeworkAuditLog: any;
+  };
+
+  const homeworkInclude: Record<string, unknown> = {
+    description: true,
+    createdBy: {
+      select: { id: true, name: true, username: true, image: true },
+    },
+    updatedBy: {
+      select: { id: true, name: true, username: true, image: true },
+    },
+    deletedBy: {
+      select: { id: true, name: true, username: true, image: true },
+    },
+    ...(homeworkViewer.userId
+      ? {
+          homeworkCompletions: {
+            where: { userId: homeworkViewer.userId },
+            select: { completedAt: true },
+          },
+        }
+      : {}),
+  };
+
+  const [homeworkEntries, homeworkAuditLogs] = await Promise.all([
+    prismaAny.homework.findMany({
+      where: { sectionId: section.id, deletedAt: null },
+      include: homeworkInclude,
+      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+    }),
+    prismaAny.homeworkAuditLog.findMany({
+      where: { sectionId: section.id },
+      include: {
+        actor: {
+          select: { id: true, name: true, username: true, image: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+  ]);
+
+  const homeworks = homeworkEntries.map(
+    (homework: { homeworkCompletions?: Array<{ completedAt: Date }> }) => {
+      const { homeworkCompletions, ...rest } = homework;
+      return {
+        ...rest,
+        completion: homeworkCompletions?.[0] ?? null,
+      };
+    },
+  );
+
+  const homeworkInitialData = {
+    homeworks: homeworks.map((homework: any) => ({
+      ...homework,
+      createdAt: homework.createdAt.toISOString(),
+      updatedAt: homework.updatedAt.toISOString(),
+      deletedAt: homework.deletedAt?.toISOString() ?? null,
+      publishedAt: homework.publishedAt?.toISOString() ?? null,
+      submissionStartAt: homework.submissionStartAt?.toISOString() ?? null,
+      submissionDueAt: homework.submissionDueAt?.toISOString() ?? null,
+      description: homework.description
+        ? {
+            id: homework.description.id,
+            content: homework.description.content ?? "",
+            updatedAt: homework.description.updatedAt
+              ? homework.description.updatedAt.toISOString()
+              : null,
+          }
+        : null,
+      completion: homework.completion
+        ? { completedAt: homework.completion.completedAt.toISOString() }
+        : null,
+    })),
+    auditLogs: homeworkAuditLogs.map((log: any) => ({
+      ...log,
+      createdAt: log.createdAt.toISOString(),
+    })),
+    viewer: homeworkViewer,
+  };
 
   const weekdayLabels = [
     t("weekdays.sunday"),
@@ -348,7 +505,6 @@ export default async function SectionPage({
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <UserMenu className="shrink-0" />
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
@@ -409,33 +565,32 @@ export default async function SectionPage({
           </div>
 
           <CommentAwareTabs
-            defaultValue="description"
+            defaultValue="homeworks"
             commentValue="comments"
             hashMappings={[{ prefix: "#homework-", value: "homeworks" }]}
-            tabValues={["description", "homeworks", "calendar", "comments"]}
+            tabValues={["homeworks", "calendar", "comments"]}
             className="space-y-6"
           >
             <TabsList className="w-full" variant="underline">
-              <TabsTrigger value="description">
-                {t("tabs.description")}
-              </TabsTrigger>
-              <TabsTrigger value="homeworks">{t("tabs.homeworks")}</TabsTrigger>
               <TabsTrigger value="calendar">{t("tabs.calendar")}</TabsTrigger>
-              <TabsTrigger value="comments">{t("tabs.comments")}</TabsTrigger>
+              <TabsTrigger value="homeworks">
+                {t("tabs.homeworks")} ({homeworkEntries.length})
+              </TabsTrigger>
+              <TabsTrigger value="comments">
+                {t("tabs.comments")} ({commentCount})
+              </TabsTrigger>
             </TabsList>
-            <TabsContent value="description">
-              <DescriptionPanel targetType="section" targetId={section.id} />
-            </TabsContent>
-            <TabsContent value="homeworks">
+            <TabsContent value="homeworks" keepMounted>
               <HomeworkPanel
                 sectionId={section.id}
                 semesterStart={
                   section.semester?.startDate?.toISOString() ?? null
                 }
                 semesterEnd={section.semester?.endDate?.toISOString() ?? null}
+                initialData={homeworkInitialData}
               />
             </TabsContent>
-            <TabsContent value="comments">
+            <TabsContent value="comments" keepMounted>
               <div className="space-y-4">
                 <CommentsSection
                   targets={[
@@ -458,15 +613,13 @@ export default async function SectionPage({
                       sectionId: section.id,
                     },
                   ]}
-                  teacherOptions={section.teachers.map((teacher) => ({
-                    id: teacher.id,
-                    label: teacher.namePrimary,
-                  }))}
+                  teacherOptions={teacherOptions}
                   showAllTargets
+                  initialData={commentsInitialData}
                 />
               </div>
             </TabsContent>
-            <TabsContent value="calendar">
+            <TabsContent value="calendar" keepMounted>
               <div className="space-y-3">
                 <EventCalendar
                   events={calendarEvents}
@@ -545,6 +698,11 @@ export default async function SectionPage({
         </div>
 
         <aside className="space-y-4">
+          <DescriptionPanel
+            targetType="section"
+            targetId={section.id}
+            initialData={descriptionData}
+          />
           <Collapsible className="space-y-4" defaultOpen>
             <CollapsibleTrigger className="lg:hidden flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
               <span>{t("basicInfo")}</span>

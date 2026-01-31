@@ -156,7 +156,7 @@ export default async function MyHomeworksPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button render={<Link href="/courses" />}>
+            <Button render={<Link className="no-underline" href="/courses" />}>
               {tCommon("browseCourses")}
             </Button>
           </CardContent>

@@ -48,6 +48,12 @@ type CommentsSectionProps = {
   targets: TargetOption[];
   teacherOptions?: TeacherOption[];
   showAllTargets?: boolean;
+  initialData?: {
+    commentMap: Record<string, CommentNode[]>;
+    hiddenMap: Record<string, number>;
+    hiddenCount: number;
+    viewer: CommentViewer;
+  };
 };
 
 type CommentsResponse = {
@@ -60,32 +66,39 @@ export function CommentsSection({
   targets,
   teacherOptions = [],
   showAllTargets = false,
+  initialData,
 }: CommentsSectionProps) {
   const t = useTranslations("comments");
   const locale = useLocale();
   const [activeKey] = useState(targets[0]?.key ?? "");
   const [postTargetKey, setPostTargetKey] = useState(targets[0]?.key ?? "");
-  const [comments, setComments] = useState<CommentNode[]>([]);
-  const [commentMap, setCommentMap] = useState<Record<string, CommentNode[]>>(
-    {},
+  const [comments, setComments] = useState<CommentNode[]>(
+    initialData?.commentMap[targets[0]?.key ?? ""] ?? [],
   );
-  const [hiddenCount, setHiddenCount] = useState(0);
-  const [, setHiddenMap] = useState<Record<string, number>>({});
-  const [viewer, setViewer] = useState<CommentViewer>({
-    userId: null,
-    name: null,
-    image: null,
-    isAdmin: false,
-    isAuthenticated: false,
-    isSuspended: false,
-    suspensionReason: null,
-    suspensionExpiresAt: null,
-  });
+  const [commentMap, setCommentMap] = useState<Record<string, CommentNode[]>>(
+    initialData?.commentMap ?? {},
+  );
+  const [hiddenCount, setHiddenCount] = useState(initialData?.hiddenCount ?? 0);
+  const [, setHiddenMap] = useState<Record<string, number>>(
+    initialData?.hiddenMap ?? {},
+  );
+  const [viewer, setViewer] = useState<CommentViewer>(
+    initialData?.viewer ?? {
+      userId: null,
+      name: null,
+      image: null,
+      isAdmin: false,
+      isAuthenticated: false,
+      isSuspended: false,
+      suspensionReason: null,
+      suspensionExpiresAt: null,
+    },
+  );
   const [uploads, setUploads] = useState<UploadOption[]>([]);
   const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacherId, _setSelectedTeacherId] = useState<number | null>(
     // By design: only the first teacher matters for section-teacher comments.
@@ -190,8 +203,9 @@ export function CommentsSection({
   }, [activeTarget, selectedTeacherId, showAllTargets, t, targets]);
 
   useEffect(() => {
+    if (initialData) return;
     void loadComments();
-  }, [loadComments]);
+  }, [initialData, loadComments]);
 
   useEffect(() => {
     if (!viewer.isAuthenticated) {
@@ -563,7 +577,7 @@ export function CommentsSection({
             <Button
               size="sm"
               variant="outline"
-              render={<Link href="/signin" />}
+              render={<Link className="no-underline" href="/signin" />}
             >
               {t("loginToView")}
             </Button>

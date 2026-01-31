@@ -24,7 +24,10 @@ export default function ErrorPage({
           <Button onClick={reset} variant="default">
             Try again
           </Button>
-          <Button render={<Link href="/" />} variant="outline">
+          <Button
+            render={<Link className="no-underline" href="/" />}
+            variant="outline"
+          >
             Go home
           </Button>
         </div>

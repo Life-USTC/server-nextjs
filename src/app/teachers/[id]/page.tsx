@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { CommentAwareTabs } from "@/components/comments/comment-aware-tabs";
 import { CommentsSection } from "@/components/comments/comments-section";
 import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@/i18n/routing";
 import { getPrisma } from "@/lib/prisma";
 
@@ -99,6 +101,9 @@ export default async function TeacherPage({
   const t = await getTranslations("teacherDetail");
   const tCommon = await getTranslations("common");
   const tComments = await getTranslations("comments");
+  const commentCount = await prisma.comment.count({
+    where: { teacherId: teacher.id, status: { not: "deleted" } },
+  });
 
   return (
     <main className="page-main">
@@ -122,157 +127,177 @@ export default async function TeacherPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">
-          {teacher.namePrimary}
-          {isEnglish && teacher.nameSecondary && (
-            <span className="ml-3 text-muted-foreground">
-              ({teacher.nameSecondary})
-            </span>
-          )}
-        </h1>
-        {teacher.department && (
-          <p className="text-subtitle text-muted-foreground">
-            {teacher.department.namePrimary}
-          </p>
-        )}
-      </div>
-
-      <DescriptionPanel targetType="teacher" targetId={teacher.id} />
-
-      {/* Basic Info Card */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>{t("basicInfo")}</CardTitle>
-        </CardHeader>
-        <CardPanel>
-          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-muted-foreground">{t("name")}</span>
-              <span className="font-medium text-foreground">
-                {teacher.namePrimary}
-                {teacher.nameSecondary && (
-                  <span className="ml-2 text-muted-foreground">
-                    ({teacher.nameSecondary})
-                  </span>
-                )}
-              </span>
-            </div>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div className="space-y-8">
+          <div className="mt-2">
+            <h1 className="text-display mb-2">
+              {teacher.namePrimary}
+              {isEnglish && teacher.nameSecondary && (
+                <span className="ml-3 text-muted-foreground">
+                  ({teacher.nameSecondary})
+                </span>
+              )}
+            </h1>
             {teacher.department && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">{t("department")}</span>
-                <span className="font-medium text-foreground">
-                  {teacher.department.namePrimary}
-                </span>
-              </div>
-            )}
-            {teacher.teacherTitle && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">{t("title")}</span>
-                <span className="font-medium text-foreground">
-                  {teacher.teacherTitle.namePrimary}
-                </span>
-              </div>
-            )}
-            {teacher.email && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">{t("email")}</span>
-                <span className="font-medium text-foreground">
-                  {teacher.email}
-                </span>
-              </div>
-            )}
-            {teacher.telephone && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">{t("telephone")}</span>
-                <span className="font-medium text-foreground">
-                  {teacher.telephone}
-                </span>
-              </div>
-            )}
-            {teacher.mobile && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">{t("mobile")}</span>
-                <span className="font-medium text-foreground">
-                  {teacher.mobile}
-                </span>
-              </div>
-            )}
-            {teacher.address && (
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">{t("address")}</span>
-                <span className="font-medium text-foreground">
-                  {teacher.address}
-                </span>
-              </div>
+              <p className="text-subtitle text-muted-foreground">
+                {teacher.department.namePrimary}
+              </p>
             )}
           </div>
-        </CardPanel>
-      </Card>
 
-      {/* Teaching Sections */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-headline">
-          {t("teachingSections", { count: teacher.sections.length })}
-        </h2>
-      </div>
-
-      {teacher.sections.length > 0 ? (
-        <div className="mb-8">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("semester")}</TableHead>
-                <TableHead>{t("courseName")}</TableHead>
-                <TableHead>{t("sectionCode")}</TableHead>
-                <TableHead>{t("credits")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {teacher.sections.map((section) => (
-                <ClickableTableRow
-                  key={section.id}
-                  href={`/sections/${section.jwId}`}
-                >
-                  <TableCell>
-                    {section.semester && (
-                      <Badge variant="outline">{section.semester.nameCn}</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>{section.course.namePrimary}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {section.code}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {section.credits !== null ? section.credits : "—"}
-                  </TableCell>
-                </ClickableTableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <CommentAwareTabs
+            defaultValue="sections"
+            commentValue="comments"
+            tabValues={["sections", "comments"]}
+            className="space-y-6"
+          >
+            <TabsList className="w-full" variant="underline">
+              <TabsTrigger value="sections">
+                {t("teachingSections", { count: teacher.sections.length })}
+              </TabsTrigger>
+              <TabsTrigger value="comments">
+                {tComments("title")} ({commentCount})
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="sections" keepMounted>
+              {teacher.sections.length > 0 ? (
+                <div>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t("semester")}</TableHead>
+                        <TableHead>{t("courseName")}</TableHead>
+                        <TableHead>{t("sectionCode")}</TableHead>
+                        <TableHead>{t("credits")}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teacher.sections.map((section) => (
+                        <ClickableTableRow
+                          key={section.id}
+                          href={`/sections/${section.jwId}`}
+                        >
+                          <TableCell>
+                            {section.semester && (
+                              <Badge variant="outline">
+                                {section.semester.nameCn}
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>{section.course.namePrimary}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono">
+                              {section.code}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {section.credits !== null ? section.credits : "—"}
+                          </TableCell>
+                        </ClickableTableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyTitle>{t("noSections")}</EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
+              )}
+            </TabsContent>
+            <TabsContent value="comments" keepMounted>
+              <CommentsSection
+                targets={[
+                  {
+                    key: "teacher",
+                    label: tComments("tabTeacher"),
+                    type: "teacher",
+                    targetId: teacher.id,
+                  },
+                ]}
+              />
+            </TabsContent>
+          </CommentAwareTabs>
         </div>
-      ) : (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{t("noSections")}</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
-      )}
 
-      <div className="mt-10">
-        <h2 className="text-title-2 mb-4">{tComments("title")}</h2>
-        <CommentsSection
-          targets={[
-            {
-              key: "teacher",
-              label: tComments("tabTeacher"),
-              type: "teacher",
-              targetId: teacher.id,
-            },
-          ]}
-        />
+        <aside className="space-y-4">
+          <DescriptionPanel targetType="teacher" targetId={teacher.id} />
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("basicInfo")}</CardTitle>
+            </CardHeader>
+            <CardPanel>
+              <div className="grid grid-cols-1 gap-4 text-sm">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t("name")}</span>
+                  <span className="font-medium text-foreground">
+                    {teacher.namePrimary}
+                    {teacher.nameSecondary && (
+                      <span className="ml-2 text-muted-foreground">
+                        ({teacher.nameSecondary})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {teacher.department && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">
+                      {t("department")}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {teacher.department.namePrimary}
+                    </span>
+                  </div>
+                )}
+                {teacher.teacherTitle && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">{t("title")}</span>
+                    <span className="font-medium text-foreground">
+                      {teacher.teacherTitle.namePrimary}
+                    </span>
+                  </div>
+                )}
+                {teacher.email && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">{t("email")}</span>
+                    <span className="font-medium text-foreground">
+                      {teacher.email}
+                    </span>
+                  </div>
+                )}
+                {teacher.telephone && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">
+                      {t("telephone")}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {teacher.telephone}
+                    </span>
+                  </div>
+                )}
+                {teacher.mobile && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">{t("mobile")}</span>
+                    <span className="font-medium text-foreground">
+                      {teacher.mobile}
+                    </span>
+                  </div>
+                )}
+                {teacher.address && (
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-muted-foreground">
+                      {t("address")}
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {teacher.address}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </CardPanel>
+          </Card>
+        </aside>
       </div>
     </main>
   );
