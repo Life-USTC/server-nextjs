@@ -12,20 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUploadsSummary } from "@/hooks/use-uploads-summary";
 import { Link } from "@/i18n/routing";
-
-type UploadOption = {
-  id: string;
-  filename: string;
-  size: number;
-  key?: string;
-};
-
-type UploadSummary = {
-  maxFileSizeBytes: number;
-  quotaBytes: number;
-  usedBytes: number;
-};
 
 type ThreadResponse = {
   thread: CommentNode[];
@@ -73,10 +61,13 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     suspensionReason: null,
     suspensionExpiresAt: null,
   });
-  const [uploads, setUploads] = useState<UploadOption[]>([]);
-  const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(
-    null,
-  );
+  const {
+    uploads,
+    summary: uploadSummary,
+    addUpload,
+  } = useUploadsSummary({
+    enabled: viewer.isAuthenticated,
+  });
   const [focusId, setFocusId] = useState(commentId);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,37 +97,6 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
   useEffect(() => {
     void loadThread();
   }, [loadThread]);
-
-  useEffect(() => {
-    if (!viewer.isAuthenticated) {
-      setUploads([]);
-      setUploadSummary(null);
-      return;
-    }
-
-    const loadUploads = async () => {
-      try {
-        const response = await fetch("/api/uploads");
-        if (!response.ok) return;
-        const data = (await response.json()) as {
-          uploads: UploadOption[];
-          maxFileSizeBytes: number;
-          quotaBytes: number;
-          usedBytes: number;
-        };
-        setUploads(data.uploads ?? []);
-        setUploadSummary({
-          maxFileSizeBytes: data.maxFileSizeBytes,
-          quotaBytes: data.quotaBytes,
-          usedBytes: data.usedBytes,
-        });
-      } catch (error) {
-        console.error("Failed to load uploads", error);
-      }
-    };
-
-    void loadUploads();
-  }, [viewer.isAuthenticated]);
 
   const createReply = async (payload: {
     body: string;
@@ -337,13 +297,7 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
             viewer={viewer}
             uploads={uploads}
             uploadSummary={uploadSummary}
-            onUploadComplete={(
-              upload: UploadOption,
-              summary: UploadSummary,
-            ) => {
-              setUploads((current) => [upload, ...current]);
-              setUploadSummary(summary);
-            }}
+            onUploadComplete={addUpload}
             submitLabel={t("postReply")}
             onSubmit={(payload) => createReply(payload)}
           />
@@ -468,10 +422,7 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
         viewer={viewer}
         uploads={uploads}
         uploadSummary={uploadSummary}
-        onUploadComplete={(upload: UploadOption, summary: UploadSummary) => {
-          setUploads((current) => [upload, ...current]);
-          setUploadSummary(summary);
-        }}
+        onUploadComplete={addUpload}
         onReply={(parentId, payload) => createReply({ ...payload, parentId })}
         onEdit={handleEdit}
         onDelete={handleDelete}

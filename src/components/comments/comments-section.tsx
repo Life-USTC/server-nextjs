@@ -14,20 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useUploadsSummary } from "@/hooks/use-uploads-summary";
 import { Link } from "@/i18n/routing";
-
-type UploadOption = {
-  id: string;
-  filename: string;
-  size: number;
-  key?: string;
-};
-
-type UploadSummary = {
-  maxFileSizeBytes: number;
-  quotaBytes: number;
-  usedBytes: number;
-};
 
 type TargetOption = {
   key: string;
@@ -94,10 +82,13 @@ export function CommentsSection({
       suspensionExpiresAt: null,
     },
   );
-  const [uploads, setUploads] = useState<UploadOption[]>([]);
-  const [uploadSummary, setUploadSummary] = useState<UploadSummary | null>(
-    null,
-  );
+  const {
+    uploads,
+    summary: uploadSummary,
+    addUpload,
+  } = useUploadsSummary({
+    enabled: viewer.isAuthenticated,
+  });
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [selectedTeacherId, _setSelectedTeacherId] = useState<number | null>(
@@ -206,37 +197,6 @@ export function CommentsSection({
     if (initialData) return;
     void loadComments();
   }, [initialData, loadComments]);
-
-  useEffect(() => {
-    if (!viewer.isAuthenticated) {
-      setUploads([]);
-      setUploadSummary(null);
-      return;
-    }
-
-    const loadUploads = async () => {
-      try {
-        const response = await fetch("/api/uploads");
-        if (!response.ok) return;
-        const data = (await response.json()) as {
-          uploads: UploadOption[];
-          maxFileSizeBytes: number;
-          quotaBytes: number;
-          usedBytes: number;
-        };
-        setUploads(data.uploads ?? []);
-        setUploadSummary({
-          maxFileSizeBytes: data.maxFileSizeBytes,
-          quotaBytes: data.quotaBytes,
-          usedBytes: data.usedBytes,
-        });
-      } catch (error) {
-        console.error("Failed to load uploads", error);
-      }
-    };
-
-    void loadUploads();
-  }, [viewer.isAuthenticated]);
 
   const createComment = async (payload: {
     body: string;
@@ -447,10 +407,7 @@ export function CommentsSection({
           viewer={viewer}
           uploads={uploads}
           uploadSummary={uploadSummary}
-          onUploadComplete={(upload: UploadOption, summary: UploadSummary) => {
-            setUploads((current) => [upload, ...current]);
-            setUploadSummary(summary);
-          }}
+          onUploadComplete={addUpload}
           onReply={handleReply}
           onEdit={handleEdit}
           onDelete={handleDelete}
@@ -495,10 +452,7 @@ export function CommentsSection({
           viewer={viewer}
           uploads={uploads}
           uploadSummary={uploadSummary}
-          onUploadComplete={(upload: UploadOption, summary: UploadSummary) => {
-            setUploads((current) => [upload, ...current]);
-            setUploadSummary(summary);
-          }}
+          onUploadComplete={addUpload}
           onReply={handleReply}
           onEdit={handleEdit}
           onDelete={handleDelete}
@@ -543,13 +497,7 @@ export function CommentsSection({
             viewer={viewer}
             uploads={uploads}
             uploadSummary={uploadSummary}
-            onUploadComplete={(
-              upload: UploadOption,
-              summary: UploadSummary,
-            ) => {
-              setUploads((current) => [upload, ...current]);
-              setUploadSummary(summary);
-            }}
+            onUploadComplete={addUpload}
             submitLabel={t("postAction")}
             onSubmit={(payload) => createComment(payload)}
             targetOptions={
