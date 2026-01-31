@@ -37,6 +37,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { formatBytes } from "@/lib/format-bytes";
+import { UploadFlowError, uploadFileWithPresign } from "@/lib/upload-client";
 import { cn } from "@/lib/utils";
 
 type UploadItem = {
@@ -55,20 +57,6 @@ type UploadsManagerProps = {
   accessUrl: string;
 };
 
-type PresignedResponse = {
-  key: string;
-  url: string;
-  maxFileSizeBytes: number;
-  quotaBytes: number;
-  usedBytes: number;
-};
-
-type CompleteResponse = {
-  upload: UploadItem;
-  usedBytes: number;
-  quotaBytes: number;
-};
-
 type UpdateResponse = {
   upload: UploadItem;
 };
@@ -77,19 +65,6 @@ type DeleteResponse = {
   deletedId: string;
   deletedSize: number;
 };
-
-function formatBytes(bytes: number) {
-  if (!Number.isFinite(bytes)) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let value = bytes;
-  let index = 0;
-  while (value >= 1024 && index < units.length - 1) {
-    value /= 1024;
-    index += 1;
-  }
-  const digits = value >= 10 || index === 0 ? 0 : 1;
-  return `${value.toFixed(digits)} ${units[index]}`;
-}
 
 export function UploadsManager({
   initialUploads,
@@ -145,117 +120,45 @@ export function UploadsManager({
   const handleUpload = async (file: File) => {
     if (isUploading) return;
 
-    if (file.size > maxFileSizeBytes) {
-      toast({
-        title: t("toastFileTooLargeTitle"),
-        description: t("toastFileTooLargeDescription", {
-          size: formatBytes(maxFileSizeBytes),
-        }),
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSelectedFile(file);
     setIsUploading(true);
 
     try {
-      const presignResponse = await fetch("/api/uploads", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: file.name,
-          contentType: file.type || "application/octet-stream",
-          size: file.size,
-        }),
+      const { upload, summary } = await uploadFileWithPresign<UploadItem>({
+        file,
+        maxFileSizeBytes,
       });
-
-      if (!presignResponse.ok) {
-        const errorPayload = await presignResponse.json().catch(() => null);
-        const errorCode = errorPayload?.error;
-        if (errorCode === "Quota exceeded") {
-          toast({
-            title: t("toastQuotaExceededTitle"),
-            description: t("toastQuotaExceededDescription"),
-            variant: "warning",
-          });
-          return;
-        }
-
-        if (errorCode === "File too large") {
-          toast({
-            title: t("toastFileTooLargeTitle"),
-            description: t("toastFileTooLargeDescription", {
-              size: formatBytes(maxFileSizeBytes),
-            }),
-            variant: "destructive",
-          });
-          return;
-        }
-
-        throw new Error("Presign failed");
-      }
-
-      const presignData = (await presignResponse.json()) as PresignedResponse;
-
-      const uploadResponse = await fetch(presignData.url, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const completeResponse = await fetch("/api/uploads/complete", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          key: presignData.key,
-          filename: file.name,
-          contentType: file.type || "application/octet-stream",
-        }),
-      });
-
-      if (!completeResponse.ok) {
-        const errorPayload = await completeResponse.json().catch(() => null);
-        const errorCode = errorPayload?.error;
-        if (errorCode === "Quota exceeded") {
-          toast({
-            title: t("toastQuotaExceededTitle"),
-            description: t("toastQuotaExceededDescription"),
-            variant: "warning",
-          });
-          return;
-        }
-        if (errorCode === "File too large") {
-          toast({
-            title: t("toastFileTooLargeTitle"),
-            description: t("toastFileTooLargeDescription", {
-              size: formatBytes(maxFileSizeBytes),
-            }),
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error("Finalize failed");
-      }
-
-      const completeData = (await completeResponse.json()) as CompleteResponse;
-      setUploads((current) => [completeData.upload, ...current]);
-      setUsedBytes((current) => completeData.usedBytes ?? current + file.size);
+      setUploads((current) => [upload, ...current]);
+      setUsedBytes((current) => summary.usedBytes ?? current + file.size);
 
       toast({
         title: t("toastUploadSuccessTitle"),
         description: t("toastUploadSuccessDescription", {
-          name: completeData.upload.filename,
+          name: upload.filename,
         }),
         variant: "success",
       });
     } catch (error) {
+      if (error instanceof UploadFlowError) {
+        if (error.code === "Quota exceeded") {
+          toast({
+            title: t("toastQuotaExceededTitle"),
+            description: t("toastQuotaExceededDescription"),
+            variant: "warning",
+          });
+          return;
+        }
+        if (error.code === "File too large") {
+          toast({
+            title: t("toastFileTooLargeTitle"),
+            description: t("toastFileTooLargeDescription", {
+              size: formatBytes(maxFileSizeBytes),
+            }),
+            variant: "destructive",
+          });
+          return;
+        }
+      }
       console.error("Upload failed", error);
       toast({
         title: t("toastUploadErrorTitle"),

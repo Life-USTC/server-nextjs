@@ -285,10 +285,11 @@ export function BulkImportSections({
                   </p>
                   <div className="max-h-96 overflow-y-auto space-y-2 mb-4">
                     {matchedSections.map((section) => (
-                      <button
+                      <Button
                         type="button"
                         key={section.id}
-                        className="w-full flex items-start gap-3 p-3 border rounded-md hover:bg-muted cursor-pointer text-left"
+                        variant="outline"
+                        className="w-full h-auto items-start justify-start gap-3 p-3 text-left"
                         onClick={() => toggleSectionSelection(section.id)}
                       >
                         <Checkbox
@@ -322,7 +323,7 @@ export function BulkImportSections({
                               : ""}
                           </div>
                         </div>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </>

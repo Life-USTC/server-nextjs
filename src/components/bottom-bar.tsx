@@ -107,8 +107,8 @@ export default function BottomBar() {
                 value={locale}
                 onValueChange={handleLanguageChange}
               >
-                <MenuRadioItem value="en-us">English</MenuRadioItem>
-                <MenuRadioItem value="zh-cn">中文</MenuRadioItem>
+                <MenuRadioItem value="en-us">{langT("english")}</MenuRadioItem>
+                <MenuRadioItem value="zh-cn">{langT("chinese")}</MenuRadioItem>
               </MenuRadioGroup>
             </MenuPopup>
           </Menu>

@@ -97,6 +97,8 @@
 
 ## 前端交互与组件
 
+前端文案需通过 i18n（`messages/en-us.json` 与 `messages/zh-cn.json`），避免硬编码字符串。
+
 ### 评论入口
 评论区由页面引入 CommentsSection：
 - /sections/{jwId}

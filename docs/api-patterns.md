@@ -1,15 +1,15 @@
-# API Patterns
+# API 规范
 
-## Why These Patterns
-Consistent route structure and error handling make the API predictable and safe. Shared helpers keep pagination, filtering, and error responses uniform.
+## 采用原因
+统一的路由结构与错误处理可提升 API 的可预测性与安全性。共享工具确保分页、过滤与错误返回格式一致。
 
-## Route Structure
-- API routes live in `src/app/api/**/route.ts`.
-- Use REST-style resources and nested routes for associations.
-- Prefer query params for filtering and pagination.
+## 路由结构
+- API 路由位于 `src/app/api/**/route.ts`。
+- 使用 REST 风格资源，并用嵌套路由表示关联关系。
+- 过滤与分页优先使用查询参数。
 
-## Standard Route Skeleton
-Use the shared helpers in `src/lib/api-helpers.ts` and query helpers from `src/lib/query-helpers.ts`.
+## 标准路由骨架
+使用 `src/lib/api-helpers.ts` 与 `src/lib/query-helpers.ts` 的共享工具。
 
 ```typescript
 import type { Prisma } from "@prisma/client";
@@ -33,15 +33,17 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-## Pagination
-- Use `getPagination(searchParams)` to parse inputs.
-- Return `buildPaginatedResponse()` from query helpers to keep response shape consistent.
+## 分页
+- 使用 `getPagination(searchParams)` 解析输入。
+- 使用 `buildPaginatedResponse()` 统一返回结构。
 
-## Error Handling
-- Wrap handlers in `try/catch`.
-- Always return `handleRouteError("message", error)` for consistent JSON errors.
+## 错误处理
+- 处理器必须使用 `try/catch`。
+- 统一返回 `handleRouteError("message", error)`。
+- 参数校验失败需带明确状态码（如 400/404）。
+- 非 JSON 成功响应（如 `.ics`）也要用 `handleRouteError` 处理失败。
 
-## Input Validation
-- Validate all inputs before Prisma queries.
-- For numeric inputs, use `parseInt()` + `Number.isNaN()`.
-- Use Zod for complex validation.
+## 输入校验
+- Prisma 查询前必须校验输入。
+- 数值使用 `parseInt()` + `Number.isNaN()`。
+- 复杂校验使用 Zod。

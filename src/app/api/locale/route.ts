@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api-helpers";
 
 const locales = ["en-us", "zh-cn"];
 
@@ -7,7 +8,11 @@ export async function POST(request: NextRequest) {
     const { locale } = await request.json();
 
     if (!locale || !locales.includes(locale)) {
-      return NextResponse.json({ error: "Invalid locale" }, { status: 400 });
+      return handleRouteError(
+        "Invalid locale",
+        new Error("Invalid locale"),
+        400,
+      );
     }
 
     const response = NextResponse.json({ success: true });
@@ -18,10 +23,7 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch (_error) {
-    return NextResponse.json(
-      { error: "Failed to set locale" },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleRouteError("Failed to set locale", error);
   }
 }

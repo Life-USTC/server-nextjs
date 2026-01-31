@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -48,10 +49,6 @@ export async function GET() {
       buildings,
     });
   } catch (error) {
-    console.error("Error fetching metadata:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch metadata" },
-      { status: 500 },
-    );
+    return handleRouteError("Failed to fetch metadata", error);
   }
 }

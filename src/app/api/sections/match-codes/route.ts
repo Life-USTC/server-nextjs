@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +14,10 @@ export async function POST(request: NextRequest) {
     const { codes, semesterId } = body;
 
     if (!Array.isArray(codes) || codes.length === 0) {
-      return NextResponse.json(
-        { error: "codes must be a non-empty array" },
-        { status: 400 },
+      return handleRouteError(
+        "codes must be a non-empty array",
+        new Error("Invalid codes"),
+        400,
       );
     }
 
@@ -24,9 +26,10 @@ export async function POST(request: NextRequest) {
       : null;
 
     if (parsedSemesterId !== null && Number.isNaN(parsedSemesterId)) {
-      return NextResponse.json(
-        { error: "semesterId must be a valid number" },
-        { status: 400 },
+      return handleRouteError(
+        "semesterId must be a valid number",
+        new Error("Invalid semesterId"),
+        400,
       );
     }
 
@@ -45,7 +48,11 @@ export async function POST(request: NextRequest) {
         });
 
     if (!currentSemester) {
-      return NextResponse.json({ error: "No semester found" }, { status: 404 });
+      return handleRouteError(
+        "No semester found",
+        new Error("No semester"),
+        404,
+      );
     }
 
     // Find matching sections in current semester
@@ -91,10 +98,6 @@ export async function POST(request: NextRequest) {
       total: matchingSections.length,
     });
   } catch (error) {
-    console.error("Error matching section codes:", error);
-    return NextResponse.json(
-      { error: "Failed to match section codes" },
-      { status: 500 },
-    );
+    return handleRouteError("Failed to match section codes", error);
   }
 }

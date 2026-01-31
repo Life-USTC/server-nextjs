@@ -1,25 +1,26 @@
-# UI Rules
+# UI 规则
 
-## Why These Rules Exist
-The UI layer uses the Coss UI library to ensure consistent accessibility, styling, and behavior across the app. Deviating from these components breaks visual and interaction consistency.
+## 规则原因
+UI 层使用 Coss UI 组件库以确保无障碍、一致的样式与交互行为。偏离这些组件会破坏视觉与交互一致性。
 
-## Component Usage
-- Never use native HTML elements for interactive components.
-- Always use components from `@/components/ui/*` (Coss UI).
-- Do not edit anything under `src/components/ui/` (auto-generated).
+## 组件使用
+- 交互组件不要使用原生 HTML 元素。
+- 必须使用 `@/components/ui/*`（Coss UI）。
+- 不要编辑 `src/components/ui/` 下的自动生成组件。
+- 自动生成组件若提供 label/slot，需由调用方传入本地化文案。
 
-Examples:
-- Use `<Button>` instead of `<button>`.
-- Use `<Input>` instead of `<input>`.
-- Use `<Card>` instead of `<div>` when representing card UIs.
+示例：
+- 使用 `<Button>` 而不是 `<button>`。
+- 使用 `<Input>` 而不是 `<input>`。
+- 展示卡片时优先使用 `<Card>` 而不是 `<div>`。
 
-## View Patterns
-- List pages support table and card views via `?view=table` (default) or `?view=card`.
-- Use `ViewSwitcher` for switching between views.
-- Use `ClickableTableRow` for navigable rows.
-- Render missing values as `"—"`.
+## 视图规范
+- 列表页支持 `?view=table`（默认）或 `?view=card`。
+- 使用 `ViewSwitcher` 进行视图切换。
+- 可点击行使用 `ClickableTableRow`。
+- 缺失值显示为 "—"。
 
-## Toasts
-- Use `useToast()` or `toastManager.promise()` from `@/components/ui/toast`.
-- All toast messages must be localized.
-- Variants: `default`, `destructive`, `success`, `warning`, `info`.
+## Toast
+- 使用 `useToast()` 或 `toastManager.promise()`（来自 `@/components/ui/toast`）。
+- Toast 文案必须本地化。
+- 变体：`default`、`destructive`、`success`、`warning`、`info`。

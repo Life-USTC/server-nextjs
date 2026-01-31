@@ -47,6 +47,8 @@
     "types": "课程类型",
     "clearFilters": "清除筛选",
     "loading": "加载中...",
+    "somethingWentWrong": "发生错误！",
+    "tryAgain": "再试一次",
     "error": "发生错误",
     "back": "返回",
     "userNotFound": "未找到用户",
