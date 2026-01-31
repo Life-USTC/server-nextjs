@@ -1,23 +1,24 @@
-# Project Overview
+# 项目概览
 
-## Why This Project Exists
-Life@USTC Server provides course and schedule data for USTC students and staff. It exposes REST APIs and renders pages that query structured academic data from PostgreSQL via Prisma. The goal is to keep data access consistent, reliable, and internationalized across the app.
+## 为什么存在
+Life@USTC Server 为 USTC 师生提供课程与日程数据服务。它提供 REST API 并渲染页面，通过 Prisma 从 PostgreSQL 读取结构化学术数据，目标是保证数据访问一致、可靠且支持国际化。
 
-## Core Capabilities
-- Course, section, schedule, teacher, and related academic data APIs.
-- App Router pages for browsing and detail views.
-- Shared query helpers for pagination and include graphs.
-- Internationalized UI with `en-us` and `zh-cn` locales.
+## 核心能力
+- 课程、班级、日程、教师等学术数据 API。
+- App Router 页面用于浏览与详情展示。
+- 共享查询辅助工具用于分页与 include 图。
+- `en-us` 与 `zh-cn` 的国际化 UI。
+- Coss UI 组件库确保一致的 UI 行为。
 
-## Tech Stack Snapshot
-- Next.js App Router, React, TypeScript.
-- Prisma ORM + PostgreSQL.
-- Tailwind CSS v4.
-- Bun for development scripts.
+## 技术栈
+- Next.js App Router、React、TypeScript。
+- Prisma ORM + PostgreSQL。
+- Tailwind CSS v4。
+- Bun 用于脚本与开发流程。
 
-## Architecture At A Glance
-Directory highlights (non-exhaustive):
-- `src/app/` routes, pages, and server actions.
-- `src/lib/` shared helpers for API, Prisma, and queries.
-- `messages/` translation files for i18n.
-- `prisma/schema.prisma` data model definitions.
+## 架构概览
+目录要点（非完整列表）：
+- `src/app/`：路由、页面与服务端操作。
+- `src/lib/`：API/Prisma/查询相关的共享工具。
+- `messages/`：i18n 翻译文件。
+- `prisma/schema.prisma`：数据模型定义。

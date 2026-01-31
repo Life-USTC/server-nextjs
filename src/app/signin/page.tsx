@@ -3,6 +3,7 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth, signIn } from "@/auth";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -111,13 +112,14 @@ export default async function SignInPage({
                 });
               }}
             >
-              <button
+              <Button
                 type="submit"
-                className="w-full flex items-center justify-center gap-3 h-11 px-4 rounded-lg border border-border bg-background hover:bg-accent transition-colors font-medium"
+                variant="outline"
+                className="w-full justify-center gap-3 h-11"
               >
                 {provider.icon}
                 <span>{t("signInWith", { provider: provider.name })}</span>
-              </button>
+              </Button>
             </form>
           ))}
 

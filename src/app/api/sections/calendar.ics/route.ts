@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api-helpers";
 import { createMultiSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
 
@@ -14,9 +15,10 @@ export async function GET(request: NextRequest) {
     const sectionIdsParam = searchParams.get("sectionIds");
 
     if (!sectionIdsParam) {
-      return NextResponse.json(
-        { error: "sectionIds parameter is required" },
-        { status: 400 },
+      return handleRouteError(
+        "sectionIds parameter is required",
+        new Error("Missing sectionIds"),
+        400,
       );
     }
 
@@ -27,9 +29,10 @@ export async function GET(request: NextRequest) {
       .filter((id) => !Number.isNaN(id));
 
     if (sectionIds.length === 0) {
-      return NextResponse.json(
-        { error: "No valid section IDs provided" },
-        { status: 400 },
+      return handleRouteError(
+        "No valid section IDs provided",
+        new Error("Invalid section IDs"),
+        400,
       );
     }
 
@@ -65,7 +68,11 @@ export async function GET(request: NextRequest) {
     });
 
     if (sections.length === 0) {
-      return NextResponse.json({ error: "No sections found" }, { status: 404 });
+      return handleRouteError(
+        "No sections found",
+        new Error("No sections"),
+        404,
+      );
     }
 
     // Create calendar from all sections
@@ -80,13 +87,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error generating multi-section calendar:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to generate calendar",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
+    return handleRouteError("Failed to generate calendar", error);
   }
 }

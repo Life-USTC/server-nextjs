@@ -47,6 +47,8 @@
     "types": "Course Types",
     "clearFilters": "Clear Filters",
     "loading": "Loading...",
+    "somethingWentWrong": "Something went wrong!",
+    "tryAgain": "Try again",
     "error": "An error occurred",
     "back": "Back",
     "userNotFound": "User not found",

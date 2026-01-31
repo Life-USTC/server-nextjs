@@ -1,32 +1,33 @@
-# Development Workflow
+# 开发流程
 
-## Why This Workflow
-The project relies on strict TypeScript, Prisma type safety, and localized UI. This workflow keeps API contracts and UI strings consistent while minimizing regressions.
+## 为什么需要此流程
+本项目依赖严格的 TypeScript、Prisma 类型安全与本地化 UI。该流程用于保持 API 契约与 UI 文案一致，并降低回归风险。
 
-## Daily Development
-1. Start the dev server with `bun run dev`.
-2. Make changes in `src/` following existing patterns.
-3. Run `bun run check` (or let the pre-commit hook run `bun run check --write`).
-4. Use `bun run format` when you only want formatting without lint fixes.
+## 日常开发
+1. 使用 `bun run dev` 启动开发服务。
+2. 在 `src/` 中按既有模式修改代码。
+3. 运行 `bun run check`（或依赖 pre-commit 自动执行 `bun run check --write`）。
+4. 仅需要格式化时使用 `bun run format`。
 
 ## Git Hooks
-Install the pre-commit hook with `bun run hooks:install` to run Biome automatically.
+使用 `bun run hooks:install` 安装 pre-commit hook，以自动执行 Biome。
 
-## Database Work
-When you change `prisma/schema.prisma`:
-1. Generate the client with `bun run prisma:generate`.
-2. Create and apply migrations with `bun run prisma:migrate`.
-3. Use `bun run prisma:studio` for local inspection.
+## 数据库操作
+当修改 `prisma/schema.prisma` 时：
+1. 运行 `bun run prisma:generate` 生成客户端。
+2. 运行 `bun run prisma:migrate` 创建并应用迁移。
+3. 通过 `bun run prisma:studio` 检查本地数据。
 
-## Data Loading (Local)
-`bun run tools/load-from-static.ts` loads data from the Life-USTC/static repository into the database.
+## 本地数据导入
+`bun run tools/load-from-static.ts` 会从 Life-USTC/static 仓库导入数据。
 
-## Conventions That Affect Workflow
-- Use `@/` import alias for `src/`.
-- Validate numeric inputs with `parseInt()` and `Number.isNaN()`.
-- Update `messages/en-us.json` and `messages/zh-cn.json` together for any user-facing text.
-- Avoid editing auto-generated UI components in `src/components/ui/`.
+## 影响流程的约定
+- 使用 `@/` 作为 `src/` 的导入别名。
+- 数值输入使用 `parseInt()` 与 `Number.isNaN()` 校验。
+- 面向用户的文案需同时更新 `messages/en-us.json` 与 `messages/zh-cn.json`。
+- 不要修改 `src/components/ui/` 下的自动生成组件。
+- 交互元素必须使用 `@/components/ui/*`（禁止原生 button/input）。
 
-## Testing
-No test framework is currently configured.
-- Single-test runs are not available until a test runner is added.
+## 测试
+当前未配置自动化测试框架。
+- 单测运行：尚不可用，需先添加测试框架。
