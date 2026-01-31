@@ -119,6 +119,7 @@ type HomeworkPanelProps = {
   sectionId: number;
   semesterStart?: string | null;
   semesterEnd?: string | null;
+  initialData?: HomeworkResponse;
 };
 
 const EMPTY_VIEWER: ViewerSummary = {
@@ -151,16 +152,23 @@ export function HomeworkPanel({
   sectionId,
   semesterStart,
   semesterEnd,
+  initialData,
 }: HomeworkPanelProps) {
   const t = useTranslations("homeworks");
   const tComments = useTranslations("comments");
   const tDescriptions = useTranslations("descriptions");
   const locale = useLocale();
   const { toast } = useToast();
-  const [homeworks, setHomeworks] = useState<HomeworkEntry[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
-  const [viewer, setViewer] = useState<ViewerSummary>(EMPTY_VIEWER);
-  const [loading, setLoading] = useState(true);
+  const [homeworks, setHomeworks] = useState<HomeworkEntry[]>(
+    initialData?.homeworks ?? [],
+  );
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(
+    initialData?.auditLogs ?? [],
+  );
+  const [viewer, setViewer] = useState<ViewerSummary>(
+    initialData?.viewer ?? EMPTY_VIEWER,
+  );
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -330,8 +338,14 @@ export function HomeworkPanel({
   }, [loadCommentCounts, sectionId, t]);
 
   useEffect(() => {
+    if (initialData) {
+      if (initialData.homeworks?.length) {
+        void loadCommentCounts(initialData.homeworks);
+      }
+      return;
+    }
     void loadHomeworks();
-  }, [loadHomeworks]);
+  }, [initialData, loadCommentCounts, loadHomeworks]);
 
   const startEditing = (homework: HomeworkEntry) => {
     setEditingId(homework.id);
@@ -855,7 +869,11 @@ export function HomeworkPanel({
             </SheetContent>
           </Sheet>
         ) : (
-          <Button size="sm" variant="outline" render={<Link href="/signin" />}>
+          <Button
+            size="sm"
+            variant="outline"
+            render={<Link className="no-underline" href="/signin" />}
+          >
             {t("loginToCreate")}
           </Button>
         )}

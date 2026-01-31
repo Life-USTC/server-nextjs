@@ -364,6 +364,7 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 variant="outline"
                 render={
                   <Link
+                    className="no-underline"
                     href={`/sections/${target.homeworkSectionJwId}#homework-${target.homeworkId}`}
                   />
                 }
@@ -377,6 +378,7 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 variant="outline"
                 render={
                   <Link
+                    className="no-underline"
                     href={`/sections/${target.sectionTeacherSectionJwId}`}
                   />
                 }
@@ -388,7 +390,12 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  render={<Link href={`/sections/${target.sectionJwId}`} />}
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/sections/${target.sectionJwId}`}
+                    />
+                  }
                 >
                   {target.sectionCode ?? t("viewSection")}
                 </Button>
@@ -399,7 +406,10 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 size="sm"
                 variant="outline"
                 render={
-                  <Link href={`/courses/${target.sectionTeacherCourseJwId}`} />
+                  <Link
+                    className="no-underline"
+                    href={`/courses/${target.sectionTeacherCourseJwId}`}
+                  />
                 }
               >
                 {target.sectionTeacherCourseName ?? t("viewCourse")}
@@ -409,7 +419,12 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  render={<Link href={`/courses/${target.courseJwId}`} />}
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/courses/${target.courseJwId}`}
+                    />
+                  }
                 >
                   {target.courseName ?? t("viewCourse")}
                 </Button>
@@ -420,7 +435,10 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 size="sm"
                 variant="outline"
                 render={
-                  <Link href={`/teachers/${target.sectionTeacherTeacherId}`} />
+                  <Link
+                    className="no-underline"
+                    href={`/teachers/${target.sectionTeacherTeacherId}`}
+                  />
                 }
               >
                 {target.sectionTeacherTeacherName ?? t("viewTeacher")}
@@ -430,7 +448,12 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
                 <Button
                   size="sm"
                   variant="outline"
-                  render={<Link href={`/teachers/${target.teacherId}`} />}
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/teachers/${target.teacherId}`}
+                    />
+                  }
                 >
                   {target.teacherName ?? t("viewTeacher")}
                 </Button>

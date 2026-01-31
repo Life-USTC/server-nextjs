@@ -13,7 +13,7 @@
       "teacherDetail": "Teacher: {name}",
       "signIn": "Sign In",
       "profile": "Profile",
-      "subscriptions": "My Subscriptions",
+      "subscriptions": "Selected Sections",
       "uploads": "My Uploads",
       "homeworks": "My Homework"
     }
@@ -23,10 +23,10 @@
     "courses": "Courses",
     "sections": "Sections",
     "teachers": "Teachers",
-    "subscriptions": "My Subscriptions",
+    "subscriptions": "Selected Sections",
     "me": "Me",
     "browseCourses": "Browse Courses",
-    "sectionSubscriptions": "Section Subscriptions",
+    "sectionSubscriptions": "Selected Sections",
     "viewAll": "View All",
     "search": "Search",
     "clear": "Clear",
@@ -53,12 +53,12 @@
     "unknown": "Unknown"
   },
   "subscriptions": {
-    "title": "My Subscriptions",
-    "description": "Manage your course section subscriptions",
-    "noSubscriptions": "No Subscriptions",
-    "noSubscriptionsDescription": "You haven't subscribed to any course sections yet.",
+    "title": "Selected Sections",
+    "description": "Manage your selected course sections",
+    "noSubscriptions": "No selected sections",
+    "noSubscriptionsDescription": "You haven't selected any sections yet.",
     "browseCourses": "Browse Courses",
-    "subscriptionTitle": "Subscription #{id}",
+    "subscriptionTitle": "Selected Sections #{id}",
     "sectionsIncluded": "{count} sections included",
     "iCalLink": "Copy iCal Link",
     "linkCopied": "Link Copied",
@@ -68,7 +68,7 @@
     "section": "Section",
     "credits": "Credits",
     "calendarTitle": "Calendar ({count})",
-    "calendarEmpty": "No schedule or exam events in this subscription",
+    "calendarEmpty": "No schedule or exam events in this selection",
     "bulkImport": {
       "title": "Bulk Import Sections",
       "description": "Paste text containing section codes (e.g., schedule screenshots, course selection lists). The system will automatically identify and match courses from the selected semester.",
@@ -81,14 +81,14 @@
       "checkFormat": "Please check the input text format",
       "fetchFailed": "Failed to fetch course information",
       "pleaseRetry": "Please try again later",
-      "confirmTitle": "Confirm subscription to {count} sections",
-      "foundSections": "Found {count} matching sections. Select the courses to subscribe:",
+      "confirmTitle": "Confirm selection of {count} sections",
+      "foundSections": "Found {count} matching sections. Select sections to add:",
       "unmatchedCodes": "Unmatched codes ({count})",
       "cancel": "Cancel",
-      "subscribeSelected": "Subscribe to {count} selected sections",
-      "success": "Subscribed successfully",
-      "successDescription": "Successfully subscribed to {count} sections",
-      "importFailed": "Subscription failed"
+      "subscribeSelected": "Add {count} selected sections",
+      "success": "Added successfully",
+      "successDescription": "Successfully added {count} sections",
+      "importFailed": "Add failed"
     }
   },
   "uploads": {
@@ -163,12 +163,12 @@
         "description": "Check section schedules, instructors, and availability"
       },
       "mySubscriptions": {
-        "title": "My Subscriptions",
-        "description": "Manage your subscribed sections and get calendar links"
+        "title": "Selected Sections",
+        "description": "Manage your selected sections and get calendar links"
       },
       "myProfile": {
         "title": "Me",
-        "description": "View your profile, subscriptions, and account settings"
+        "description": "View your profile, selected sections, and account settings"
       },
       "browseTeachers": {
         "title": "Browse Teachers",
@@ -244,11 +244,11 @@
   },
   "myHomeworks": {
     "title": "My Homework",
-    "description": "Track homework for your subscribed sections.",
-    "noSubscriptions": "No subscribed sections",
-    "noSubscriptionsDescription": "Subscribe to sections to see homework here.",
+    "description": "Track homework for your selected sections.",
+    "noSubscriptions": "No selected sections",
+    "noSubscriptionsDescription": "Select sections to see homework here.",
     "emptyTitle": "No homework yet",
-    "emptyDescription": "Your subscribed sections haven't published homework.",
+    "emptyDescription": "Your selected sections haven't published homework.",
     "listTitle": "Homework ({count})",
     "listDescription": "Ordered by due date.",
     "course": "Course",
@@ -409,26 +409,26 @@
     "viewAllCourseSections": "View All Sections",
     "addToCalendar": "Add to Calendar",
     "calendarSheetTitle": "Add to Calendar",
-    "calendarSheetDescription": "Copy the link below and subscribe to this calendar in your calendar app",
+    "calendarSheetDescription": "Copy the link below and add this calendar in your calendar app",
     "calendarUrlLabel": "Single Section Calendar URL",
-    "subscriptionUrlLabel": "All Subscribed Sections Calendar URL",
-    "subscriptionHintLabel": "This URL includes all your subscribed sections and auto-syncs",
-    "subscribeLabel": "Subscribe to this section",
-    "unsubscribeLabel": "Unsubscribe",
+    "subscriptionUrlLabel": "Selected Sections Calendar URL",
+    "subscriptionHintLabel": "This URL includes all your selected sections and auto-syncs",
+    "subscribeLabel": "Add to selected sections",
+    "unsubscribeLabel": "Remove from selected",
     "copyToClipboard": "Copy",
     "close": "Close",
     "learnMoreAboutICalendar": "Learn more about iCalendar format",
     "copied": "Copied!",
-    "subscribing": "Subscribing...",
-    "unsubscribing": "Unsubscribing...",
+    "subscribing": "Adding...",
+    "unsubscribing": "Removing...",
     "pleaseWait": "Please wait",
-    "subscribeSuccess": "Subscribed",
-    "unsubscribeSuccess": "Unsubscribed",
-    "subscribeSuccessDescription": "This section has been added to your subscriptions",
-    "unsubscribeSuccessDescription": "This section has been removed from your subscriptions",
+    "subscribeSuccess": "Added",
+    "unsubscribeSuccess": "Removed",
+    "subscribeSuccessDescription": "This section has been added to your selected sections",
+    "unsubscribeSuccessDescription": "This section has been removed from your selected sections",
     "operationFailed": "Operation failed",
     "pleaseRetry": "Please retry",
-    "viewAllSubscriptions": "View all subscriptions",
+    "viewAllSubscriptions": "View selected sections",
     "loginRequired": "Login Required",
     "tabs": {
       "description": "Description",
@@ -436,8 +436,8 @@
       "comments": "Comments",
       "calendar": "Calendar"
     },
-    "loginRequiredDescription": "Sign in to subscribe to course sections and sync your calendar across devices.",
-    "loginToSubscribe": "Sign in to Subscribe",
+    "loginRequiredDescription": "Sign in to add selected sections and sync your calendar across devices.",
+    "loginToSubscribe": "Sign in to add",
     "calendar": "Calendar ({count})",
     "calendarEmpty": "No schedule or exam events available for this section",
     "classEvent": "Class",
@@ -464,7 +464,7 @@
     "examMode": "Exam Mode",
     "examCount": "Number of Examinees",
     "viewAllSections": "View all sections for this course",
-    "viewMySubscriptions": "View my subscriptions",
+    "viewMySubscriptions": "View my selected sections",
     "viewTeacherCourses": "View other courses taught by {teacher}",
     "weekdays": {
       "sunday": "Sunday",
@@ -495,7 +495,7 @@
   "accessibility": {
     "viewSourceOnGithub": "View source on GitHub",
     "avatarOption": "Avatar option",
-    "subscriptionCalendarUrl": "Subscription calendar URL",
+    "subscriptionCalendarUrl": "Selected sections calendar URL",
     "singleSectionCalendarUrl": "Single section calendar URL"
   },
   "profile": {
@@ -536,7 +536,7 @@
     "deleteAccount": "Delete Account",
     "deletingAccount": "Deleting...",
     "deleteAccountConfirmTitle": "Are you absolutely sure?",
-    "deleteAccountConfirmDescription": "This action cannot be undone. This will permanently delete your account, all linked accounts, subscriptions, and remove all your data from our servers.",
+    "deleteAccountConfirmDescription": "This action cannot be undone. This will permanently delete your account, all linked accounts, selected sections, and remove all your data from our servers.",
     "deleteAccountConfirmPrompt": "Type {phrase} to confirm:",
     "deleteAccountSuccess": "Account Deleted",
     "deleteAccountSuccessDescription": "Your account has been permanently deleted.",
