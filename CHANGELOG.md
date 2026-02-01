@@ -1,3 +1,17 @@
+# [0.34.0](https://github.com/Life-USTC/server-nextjs/compare/v0.33.0...v0.34.0) (2026-02-01)
+
+
+### Bug Fixes
+
+* **courses:** pass plain filter options ([f48745a](https://github.com/Life-USTC/server-nextjs/commit/f48745a95ffef15e4b7a2093f934f81aa9ee9673))
+
+
+### Features
+
+* **homeworks:** add section homework tracking ([4135add](https://github.com/Life-USTC/server-nextjs/commit/4135add9880fc37e16befa26f88803d13093974d))
+* **homeworks:** track completion status ([c860851](https://github.com/Life-USTC/server-nextjs/commit/c860851a55cc37264bdf94d754c8b39a47b6432d))
+* **ui:** rename subscriptions and preload content ([5a459e1](https://github.com/Life-USTC/server-nextjs/commit/5a459e1bc3f42d550f42869179fb3151365db38c))
+
 # [0.33.0](https://github.com/Life-USTC/server-nextjs/compare/v0.32.0...v0.33.0) (2026-01-29)
 
 
