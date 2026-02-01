@@ -226,7 +226,7 @@ export function BulkImportSections({
           </CardTitle>
         </CardHeader>
         <div className="p-6 pt-0">
-          <p className="text-small text-muted-foreground mb-4">
+          <p className="mb-4 text-muted-foreground text-small">
             {t("bulkImport.description")}
           </p>
           <Field className="mb-4">
@@ -283,13 +283,13 @@ export function BulkImportSections({
                       count: matchedSections.length,
                     })}
                   </p>
-                  <div className="max-h-96 overflow-y-auto space-y-2 mb-4">
+                  <div className="mb-4 max-h-96 space-y-2 overflow-y-auto">
                     {matchedSections.map((section) => (
                       <Button
                         type="button"
                         key={section.id}
                         variant="outline"
-                        className="w-full h-auto items-start justify-start gap-3 p-3 text-left"
+                        className="h-auto w-full items-start justify-start gap-3 p-3 text-left"
                         onClick={() => toggleSectionSelection(section.id)}
                       >
                         <Checkbox
@@ -307,7 +307,7 @@ export function BulkImportSections({
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-muted-foreground">
+                          <div className="text-muted-foreground text-sm">
                             {section.code} ·
                             {section.semester
                               ? getNamePrimary(section.semester)
@@ -329,7 +329,7 @@ export function BulkImportSections({
                 </>
               )}
               {unmatchedCodes.length > 0 && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {t("bulkImport.unmatchedCodes", {
                     count: unmatchedCodes.length,
                   })}

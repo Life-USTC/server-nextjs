@@ -130,7 +130,7 @@ export default async function TeacherPage({
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
           <div className="mt-2">
-            <h1 className="text-display mb-2">
+            <h1 className="mb-2 text-display">
               {teacher.namePrimary}
               {isEnglish && teacher.nameSecondary && (
                 <span className="ml-3 text-muted-foreground">
@@ -139,7 +139,7 @@ export default async function TeacherPage({
               )}
             </h1>
             {teacher.department && (
-              <p className="text-subtitle text-muted-foreground">
+              <p className="text-muted-foreground text-subtitle">
                 {teacher.department.namePrimary}
               </p>
             )}

@@ -82,9 +82,9 @@ Something went wrong.
 
   return (
     <main className="page-main">
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">{t("subtitle")}</p>
+      <div className="mt-8 mb-8">
+        <h1 className="mb-2 text-display">{t("title")}</h1>
+        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
       </div>
 
       <div className="space-y-8 pb-20">
@@ -98,11 +98,11 @@ Something went wrong.
                 <CardTitle>{section.title}</CardTitle>
               </CardHeader>
               <CardPanel className="space-y-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   {section.description}
                 </p>
-                <div className="relative group">
-                  <pre className="rounded-xl bg-muted p-4 text-xs font-mono overflow-x-auto border border-muted-foreground/10">
+                <div className="group relative">
+                  <pre className="overflow-x-auto rounded-xl border border-muted-foreground/10 bg-muted p-4 font-mono text-xs">
                     {section.code}
                   </pre>
                 </div>
@@ -111,11 +111,11 @@ Something went wrong.
 
             <Card className="h-full border-primary/10 bg-primary/5">
               <CardHeader>
-                <CardTitle className="text-primary/60 text-sm font-medium uppercase tracking-wider">
+                <CardTitle className="font-medium text-primary/60 text-sm uppercase tracking-wider">
                   {t("previewTitle")}
                 </CardTitle>
               </CardHeader>
-              <CardPanel className="bg-background m-4 rounded-lg border p-6 shadow-sm">
+              <CardPanel className="m-4 rounded-lg border bg-background p-6 shadow-sm">
                 <CommentMarkdown content={section.code} />
               </CardPanel>
             </Card>

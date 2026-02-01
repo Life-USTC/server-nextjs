@@ -355,7 +355,7 @@ export function CommentEditor({
             <div className="flex items-center gap-4">
               <label
                 htmlFor={anonymousId}
-                className="flex items-center gap-2 cursor-pointer select-none"
+                className="flex cursor-pointer select-none items-center gap-2"
               >
                 <Checkbox
                   id={anonymousId}
@@ -365,13 +365,13 @@ export function CommentEditor({
                     setIsAnonymous(checked === true)
                   }
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   {t("visibilityAnonymous")}
                 </span>
               </label>
               <label
                 htmlFor={loggedInId}
-                className="flex items-center gap-2 cursor-pointer select-none"
+                className="flex cursor-pointer select-none items-center gap-2"
               >
                 <Checkbox
                   id={loggedInId}
@@ -382,7 +382,7 @@ export function CommentEditor({
                     else setVisibility("public");
                   }}
                 />
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   {t("visibilityLoggedIn")}
                 </span>
               </label>
@@ -390,7 +390,7 @@ export function CommentEditor({
           )}
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           {onCancel && cancelLabel && (
             <Button
               variant="ghost"
@@ -411,7 +411,7 @@ export function CommentEditor({
               !viewer.isAuthenticated || viewer.isSuspended || isUploading
             }
           >
-            <UploadCloud className="h-3.5 w-3.5 mr-1.5" />
+            <UploadCloud className="mr-1.5 h-3.5 w-3.5" />
             <span className="text-xs">
               {isUploading ? tu("uploading") : tu("uploadAction")}
             </span>
@@ -438,7 +438,7 @@ export function CommentEditor({
                 isUploading ||
                 !content.trim()
               }
-              className="h-9 px-6 text-xs font-semibold"
+              className="h-9 px-6 font-semibold text-xs"
             >
               {isSubmitting ? t("posting") : submitLabel}
             </Button>

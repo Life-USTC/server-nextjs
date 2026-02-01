@@ -142,7 +142,7 @@ export function CommentReactions({
                 <span className="text-base leading-none">{option.emoji}</span>
                 <span>{t(`reaction.${option.labelKey}`)}</span>
                 {count > 0 && (
-                  <span className="ms-auto text-xs text-muted-foreground">
+                  <span className="ms-auto text-muted-foreground text-xs">
                     {count}
                   </span>
                 )}

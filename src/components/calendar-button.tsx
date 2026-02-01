@@ -71,7 +71,7 @@ export function CalendarButton({
               href="https://en.wikipedia.org/wiki/ICalendar"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-primary hover:underline inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1 text-primary hover:underline"
             >
               {learnMoreLabel}
             </a>
@@ -82,11 +82,11 @@ export function CalendarButton({
           <div className="space-y-3">
             <label
               htmlFor="calendar-url"
-              className="text-small font-medium block"
+              className="block font-medium text-small"
             >
               {calendarUrlLabel}
             </label>
-            <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
               <Input
                 aria-label="Disabled"
                 disabled

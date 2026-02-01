@@ -289,7 +289,7 @@ export function DescriptionPanel({
                   })}
                 </p>
               ) : (
-                <p className="text-sm font-semibold">
+                <p className="font-semibold text-sm">
                   {t("suspendedPermanent")}
                 </p>
               )}
@@ -304,7 +304,7 @@ export function DescriptionPanel({
           </div>
         ) : error ? (
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground text-sm">{error}</p>
             <Button
               variant="outline"
               size="sm"
@@ -326,7 +326,7 @@ export function DescriptionPanel({
               markdownGuideHref="/comments/guide"
               disabled={!canEdit}
             />
-            <div className="flex flex-wrap gap-2 justify-end">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button size="sm" onClick={handleSave} disabled={saving}>
                 {saving ? t("saving") : t("save")}
               </Button>
@@ -339,7 +339,7 @@ export function DescriptionPanel({
           <div className="space-y-2">
             <CommentMarkdown content={description.content} />
             {lastEditedAt && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {t("lastEdited", { date: lastEditedAt })} ·{" "}
                 {t("editedBy", { name: lastEditorName })}
               </p>
@@ -347,7 +347,7 @@ export function DescriptionPanel({
           </div>
         ) : (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">{t("empty")}</p>
+            <p className="text-muted-foreground text-sm">{t("empty")}</p>
           </div>
         )}
 
@@ -357,7 +357,7 @@ export function DescriptionPanel({
               <Button
                 variant="link"
                 size="sm"
-                className="h-auto p-0 text-sm text-muted-foreground"
+                className="h-auto p-0 text-muted-foreground text-sm"
               />
             }
           >
@@ -398,7 +398,7 @@ export function DescriptionPanel({
                         key={item.id}
                         className="rounded-xl border border-border/60 bg-muted/40 p-4"
                       >
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
                           <span className="font-medium text-foreground">
                             {editorName}
                           </span>
@@ -409,18 +409,18 @@ export function DescriptionPanel({
                         </div>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                           <div>
-                            <p className="text-xs text-muted-foreground mb-1">
+                            <p className="mb-1 text-muted-foreground text-xs">
                               {t("previousLabel")}
                             </p>
-                            <div className="max-h-40 overflow-y-auto rounded-lg border border-border/60 bg-background p-2 text-xs whitespace-pre-wrap">
+                            <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-background p-2 text-xs">
                               {previousDiff ?? t("emptyValue")}
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground mb-1">
+                            <p className="mb-1 text-muted-foreground text-xs">
                               {t("updatedLabel")}
                             </p>
-                            <div className="max-h-40 overflow-y-auto rounded-lg border border-border/60 bg-background p-2 text-xs whitespace-pre-wrap">
+                            <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-background p-2 text-xs">
                               {nextDiff ?? t("emptyValue")}
                             </div>
                           </div>

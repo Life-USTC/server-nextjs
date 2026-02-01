@@ -73,9 +73,9 @@ export default async function UploadsPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{tUploads("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">
+      <div className="mt-8 mb-8">
+        <h1 className="mb-2 text-display">{tUploads("title")}</h1>
+        <p className="text-muted-foreground text-subtitle">
           {tUploads("description")}
         </p>
       </div>

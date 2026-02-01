@@ -85,7 +85,7 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                       type="button"
                       variant="ghost"
                       onClick={() => setSelectedImage(pic)}
-                      className={`relative h-12 w-12 rounded-full overflow-hidden border-2 transition-all p-0 ${
+                      className={`relative h-12 w-12 overflow-hidden rounded-full border-2 p-0 transition-all ${
                         selectedImage === pic
                           ? "border-primary ring-2 ring-primary/30"
                           : "border-transparent hover:border-border"
@@ -125,7 +125,7 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                 pattern="[a-z0-9]{1,20}"
                 title={t("usernameValidation")}
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {t("usernameHint")}
               </p>
             </div>

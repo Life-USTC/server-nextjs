@@ -102,7 +102,7 @@ export function AccountDeletionSection() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="mb-2 text-muted-foreground text-sm">
                 {t("deleteAccountConfirmPrompt", { phrase: confirmPhrase })}
               </p>
               <Input

@@ -152,9 +152,9 @@ export default async function CoursePage({
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
           <div className="mt-2">
-            <h1 className="text-display mb-2">{course.namePrimary}</h1>
+            <h1 className="mb-2 text-display">{course.namePrimary}</h1>
             {course.nameSecondary && (
-              <p className="text-subtitle text-muted-foreground">
+              <p className="text-muted-foreground text-subtitle">
                 {course.nameSecondary}
               </p>
             )}
@@ -262,7 +262,7 @@ export default async function CoursePage({
             initialData={descriptionData}
           />
           <Collapsible className="space-y-4" defaultOpen>
-            <CollapsibleTrigger className="lg:hidden flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
+            <CollapsibleTrigger className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 font-medium text-foreground text-sm lg:hidden">
               <span>{tCourse("basicInfo")}</span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </CollapsibleTrigger>
@@ -277,7 +277,7 @@ export default async function CoursePage({
                       <span className="text-muted-foreground">
                         {tCourse("code")}
                       </span>
-                      <span className="font-medium text-foreground font-mono">
+                      <span className="font-medium font-mono text-foreground">
                         {course.code}
                       </span>
                     </div>

@@ -58,8 +58,8 @@ export function MarkdownEditor({
         onValueChange={(next) => next && setActiveTab(next)}
         className="w-full"
       >
-        <div className="flex items-end justify-between gap-2 mb-2">
-          <TabsList className="h-8 p-0.5 bg-muted/50">
+        <div className="mb-2 flex items-end justify-between gap-2">
+          <TabsList className="h-8 bg-muted/50 p-0.5">
             <TabsTab value="write" className="h-7 px-3 text-xs">
               {tabWriteLabel}
             </TabsTab>
@@ -74,7 +74,7 @@ export function MarkdownEditor({
             className="h-8 px-2"
             render={<Link className="no-underline" href={markdownGuideHref} />}
           >
-            <span className="text-xs text-muted-foreground">
+            <span className="text-muted-foreground text-xs">
               {markdownGuideLabel}
             </span>
           </Button>
@@ -82,7 +82,7 @@ export function MarkdownEditor({
 
         <div
           className={cn(
-            "rounded-xl border bg-muted/10 transition-shadow min-h-[8rem]",
+            "min-h-[8rem] rounded-xl border bg-muted/10 transition-shadow",
             activeTab === "write" &&
               "focus-within:border-primary/50 focus-within:ring-[3px] focus-within:ring-primary/10",
           )}
@@ -99,7 +99,7 @@ export function MarkdownEditor({
               disabled={disabled}
               unstyled
               className={cn(
-                "w-full bg-transparent p-4 text-sm resize-none",
+                "w-full resize-none bg-transparent p-4 text-sm",
                 isDragActive ? "bg-primary/5" : "",
               )}
               onDragOver={onDragOver}
@@ -112,7 +112,7 @@ export function MarkdownEditor({
             {value.trim() ? (
               <CommentMarkdown content={value} />
             ) : (
-              <p className="text-xs text-muted-foreground italic text-center">
+              <p className="text-center text-muted-foreground text-xs italic">
                 {previewEmptyLabel}
               </p>
             )}

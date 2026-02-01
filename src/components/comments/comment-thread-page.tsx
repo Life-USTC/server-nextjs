@@ -267,7 +267,7 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     return (
       <Card className="border-dashed">
         <CardPanel className="space-y-2">
-          <p className="text-sm text-muted-foreground">{error}</p>
+          <p className="text-muted-foreground text-sm">{error}</p>
           <Button variant="outline" onClick={() => void loadThread()}>
             {t("retry")}
           </Button>
@@ -282,8 +282,8 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
         <CardPanel className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="text-base font-semibold">{t("threadTitle")}</h3>
-              <p className="text-sm text-muted-foreground">
+              <h3 className="font-semibold text-base">{t("threadTitle")}</h3>
+              <p className="text-muted-foreground text-sm">
                 {t("threadSubtitle")}
               </p>
             </div>
