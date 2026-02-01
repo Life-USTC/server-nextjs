@@ -232,9 +232,9 @@ export default async function SubscriptionsPage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">
+      <div className="mt-8 mb-8">
+        <h1 className="mb-2 text-display">{t("title")}</h1>
+        <p className="text-muted-foreground text-subtitle">
           {t("description")}
         </p>
       </div>
@@ -267,7 +267,7 @@ export default async function SubscriptionsPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-base font-medium">
+                    <CardTitle className="font-medium text-base">
                       {t("subscriptionTitle", { id: sub.id })}
                     </CardTitle>
                     <CardDescription>
@@ -319,7 +319,7 @@ export default async function SubscriptionsPage() {
 
                     return groupedSections.map((group) => (
                       <div key={group.key} className="space-y-2">
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-sm font-medium">
+                        <div className="flex flex-wrap items-center justify-between gap-2 font-medium text-sm">
                           <span>
                             {tSection("semester")}: {group.label}
                           </span>
@@ -489,7 +489,7 @@ export default async function SubscriptionsPage() {
                     return (
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <h3 className="text-sm font-medium">
+                          <h3 className="font-medium text-sm">
                             {t("calendarTitle", {
                               count: calendarEvents.length,
                             })}

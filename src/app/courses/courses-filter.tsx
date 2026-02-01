@@ -165,7 +165,7 @@ export function CoursesFilter({
           </Select>
         </Field>
 
-        <Field className="flex-1 min-w-62.5">
+        <Field className="min-w-62.5 flex-1">
           <Input
             ref={searchInputRef}
             type="text"

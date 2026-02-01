@@ -147,13 +147,13 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <CardTitle className="text-base">{homework.title}</CardTitle>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {t("createdAt", {
                       date: formatter.format(new Date(homework.createdAt)),
                     })}
                   </p>
                   {detailParts.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       {detailParts.join(" · ")}
                     </p>
                   )}
@@ -170,7 +170,7 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
                     />
                     <Label
                       htmlFor={`homework-completed-summary-${homework.id}`}
-                      className="text-xs text-muted-foreground"
+                      className="text-muted-foreground text-xs"
                     >
                       {t("completedLabel")}
                     </Label>
@@ -188,10 +188,10 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
             <CardPanel className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {t("submissionDue")}
                   </p>
-                  <p className="text-xl font-semibold text-foreground">
+                  <p className="font-semibold text-foreground text-xl">
                     {formatDate(homework.submissionDueAt)}
                   </p>
                 </div>
@@ -200,12 +200,12 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
                 {homework.description ? (
                   <CommentMarkdown content={homework.description} />
                 ) : (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {t("descriptionEmpty")}
                   </p>
                 )}
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
                 <div className="space-y-1">
                   <p>
                     {t("submissionStart")} ·{" "}

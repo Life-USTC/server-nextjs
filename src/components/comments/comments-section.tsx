@@ -381,7 +381,7 @@ export function CommentsSection({
       return (
         <Card className="border-dashed">
           <CardPanel className="space-y-2">
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground text-sm">{error}</p>
             <Button variant="outline" onClick={() => void loadComments()}>
               {t("retry")}
             </Button>
@@ -437,7 +437,7 @@ export function CommentsSection({
       return (
         <Card className="border-dashed bg-muted/40">
           <CardPanel>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {t("selectTeacherPrompt")}
             </p>
           </CardPanel>
@@ -485,7 +485,7 @@ export function CommentsSection({
                 })}
               </p>
             ) : (
-              <p className="text-sm font-semibold">{t("suspendedPermanent")}</p>
+              <p className="font-semibold text-sm">{t("suspendedPermanent")}</p>
             )}
           </AlertDescription>
         </Alert>
@@ -519,7 +519,7 @@ export function CommentsSection({
       {hiddenCount > 0 && !viewer.isAuthenticated && (
         <Card className="border-dashed bg-muted/40">
           <CardPanel className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {t("hiddenNotice", { count: hiddenCount })}
             </p>
             <Button

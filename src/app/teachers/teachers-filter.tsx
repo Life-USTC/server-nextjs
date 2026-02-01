@@ -101,7 +101,7 @@ export function TeachersFilter({
           </Select>
         </Field>
 
-        <Field className="flex-1 min-w-75">
+        <Field className="min-w-75 flex-1">
           <Input
             ref={searchInputRef}
             type="text"
@@ -120,7 +120,7 @@ export function TeachersFilter({
             render={
               <Link
                 href="/teachers"
-                className="px-4 py-2 bg-accent hover:bg-accent/80 text-foreground rounded-lg transition-colors no-underline flex items-center"
+                className="flex items-center rounded-lg bg-accent px-4 py-2 text-foreground no-underline transition-colors hover:bg-accent/80"
               />
             }
           >

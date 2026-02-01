@@ -41,9 +41,9 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages}>
             <ToastProvider>
               <AnchoredToastProvider>
-                <div className="flex flex-col min-h-screen">
+                <div className="flex min-h-screen flex-col">
                   <div className="flex-1">
-                    <div className="fixed right-4 top-4 z-50">
+                    <div className="fixed top-4 right-4 z-50">
                       <UserMenu />
                     </div>
                     {children}

@@ -485,84 +485,18 @@ export default async function SectionPage({
 
   return (
     <main className="page-main">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/" />}>
-                {tCommon("home")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link href="/sections" />}>
-                {tCommon("sections")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{section.code}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
+      <SectionBreadcrumb sectionCode={section.code} tCommon={tCommon} />
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
-          <div className="mt-2">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <h1 className="text-display mb-2">
-                  {section.course.namePrimary}
-                </h1>
-                {section.course.nameSecondary && (
-                  <p className="text-subtitle text-muted-foreground">
-                    {section.course.nameSecondary}
-                  </p>
-                )}
-              </div>
-              <SubscriptionCalendarButton
-                sectionDatabaseId={section.id}
-                sectionJwId={section.jwId}
-                showCalendarButton={false}
-                addToCalendarLabel={t("addToCalendar")}
-                sheetTitle={t("calendarSheetTitle")}
-                sheetDescription={t("calendarSheetDescription")}
-                calendarUrlLabel={t("calendarUrlLabel")}
-                subscriptionUrlLabel={t("subscriptionUrlLabel")}
-                subscriptionHintLabel={t("subscriptionHintLabel")}
-                subscribeLabel={t("subscribeLabel")}
-                unsubscribeLabel={t("unsubscribeLabel")}
-                copyLabel={t("copyToClipboard")}
-                closeLabel={t("close")}
-                learnMoreLabel={t("learnMoreAboutICalendar")}
-                copiedLabel={t("copied")}
-                subscribingLabel={t("subscribing")}
-                unsubscribingLabel={t("unsubscribing")}
-                pleaseWaitLabel={t("pleaseWait")}
-                subscribeSuccessLabel={t("subscribeSuccess")}
-                unsubscribeSuccessLabel={t("unsubscribeSuccess")}
-                subscribeSuccessDescriptionLabel={t(
-                  "subscribeSuccessDescription",
-                )}
-                unsubscribeSuccessDescriptionLabel={t(
-                  "unsubscribeSuccessDescription",
-                )}
-                operationFailedLabel={t("operationFailed")}
-                pleaseRetryLabel={t("pleaseRetry")}
-                viewAllSubscriptionsLabel={t("viewAllSubscriptions")}
-                loginRequiredLabel={t("loginRequired")}
-                loginRequiredDescriptionLabel={t("loginRequiredDescription")}
-                loginToSubscribeLabel={t("loginToSubscribe")}
-                subscriptionCalendarUrlAriaLabel={tA11y(
-                  "subscriptionCalendarUrl",
-                )}
-                singleSectionCalendarUrlAriaLabel={tA11y(
-                  "singleSectionCalendarUrl",
-                )}
-              />
-            </div>
-          </div>
+          <SectionHeader
+            courseName={section.course.namePrimary}
+            courseNameSecondary={section.course.nameSecondary}
+            sectionId={section.id}
+            sectionJwId={section.jwId}
+            t={t}
+            tA11y={tA11y}
+          />
 
           <CommentAwareTabs
             defaultValue="homeworks"
@@ -703,412 +637,560 @@ export default async function SectionPage({
             targetId={section.id}
             initialData={descriptionData}
           />
-          <Collapsible className="space-y-4" defaultOpen>
-            <CollapsibleTrigger className="lg:hidden flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground">
-              <span>{t("basicInfo")}</span>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="lg:block">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>{t("basicInfo")}</CardTitle>
-                </CardHeader>
-                <CardPanel>
-                  <div className="grid gap-2 grid-cols-1 text-sm">
-                    {section.semester && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("semester")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {section.semester.nameCn}
-                        </span>
-                      </div>
-                    )}
-
-                    {section.code && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("sectionCode")}
-                        </span>
-                        <span className="font-medium text-foreground font-mono">
-                          {section.code}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="mt-4" />
-
-                    {section.campus && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("campus")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {section.campus.namePrimary}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {tCommon("undergraduateGraduate")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.graduateAndPostgraduate ? "✓" : "×"}
-                      </span>
-                    </div>
-
-                    {section.credits !== null && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("credits")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {section.credits}
-                        </span>
-                      </div>
-                    )}
-
-                    {section.period !== null && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("period")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {section.period}
-                          {section.actualPeriods !== null &&
-                            section.actualPeriods !== section.period &&
-                            ` (${section.actualPeriods})`}
-                        </span>
-                      </div>
-                    )}
-
-                    {section.examMode && (
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-muted-foreground">
-                          {t("examMode")}
-                        </span>
-                        <span className="font-medium text-foreground">
-                          {section.examMode.namePrimary}
-                        </span>
-                      </div>
-                    )}
-
-                    {section.remark && (
-                      <div className="mt-6">
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {t("remark")}
-                        </p>
-                        <p className="text-body text-foreground whitespace-pre-wrap">
-                          {section.remark}
-                        </p>
-                      </div>
-                    )}
-
-                    {section.teachers && section.teachers.length > 0 && (
-                      <div className="mt-6">
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {t("teachers")}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {section.teachers.map((teacher) => (
-                            <Link
-                              key={teacher.id}
-                              href={`/teachers/${teacher.id}`}
-                              className="no-underline"
-                            >
-                              <Badge
-                                variant="secondary"
-                                className="hover:bg-secondary/80 cursor-pointer"
-                              >
-                                {teacher.namePrimary}
-                                {teacher.department && (
-                                  <span className="text-muted-foreground ml-1">
-                                    ({teacher.department.namePrimary})
-                                  </span>
-                                )}
-                              </Badge>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <Collapsible className="mt-6">
-                    <CollapsibleTrigger className="flex items-center text-sm text-muted-foreground hover:underline">
-                      {t("moreDetails")} ↓
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-6">
-                      <div className="grid gap-2 grid-cols-1 text-sm">
-                        {section.teachLanguage ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("teachLanguage")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.teachLanguage.namePrimary}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.roomType ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("roomType")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.roomType.namePrimary}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.timesPerWeek ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("timesPerWeek")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.timesPerWeek}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.periodsPerWeek ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("periodsPerWeek")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.periodsPerWeek}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.theoryPeriods ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("theoryPeriods")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.theoryPeriods}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.practicePeriods ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("practicePeriods")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.practicePeriods}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.experimentPeriods ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("experimentPeriods")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.experimentPeriods}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.machinePeriods ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("machinePeriods")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.machinePeriods}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.designPeriods ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("designPeriods")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.designPeriods}
-                            </span>
-                          </div>
-                        ) : null}
-                        {section.testPeriods ? (
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-muted-foreground">
-                              {t("testPeriods")}
-                            </span>
-                            <span className="font-medium text-foreground">
-                              {section.testPeriods}
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {section.adminClasses &&
-                        section.adminClasses.length > 0 && (
-                          <div className="mt-6">
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {t("adminClasses")}
-                            </p>
-                            <div className="flex flex-wrap gap-2">
-                              {section.adminClasses.map((ac) => (
-                                <Badge key={ac.id} variant="secondary">
-                                  {ac.namePrimary}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                      {(sameSemesterOtherTeachers.length > 0 ||
-                        sameTeacherOtherSemesters.length > 0 ||
-                        otherSections.length > 0) && (
-                        <div className="mt-6 space-y-4">
-                          {sameSemesterOtherTeachers.length > 0 && (
-                            <div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {t("sameSemesterOtherTeachers")}
-                              </p>
-                              <div className="flex flex-wrap gap-x-2">
-                                {sameSemesterOtherTeachers
-                                  .slice(0, 10)
-                                  .map((otherSection) => (
-                                    <Link
-                                      key={otherSection.id}
-                                      href={`/sections/${otherSection.jwId}`}
-                                      className="no-underline"
-                                    >
-                                      <Badge
-                                        variant="outline"
-                                        className="hover:bg-accent cursor-pointer"
-                                      >
-                                        {otherSection.teachers.length > 0 ? (
-                                          <span>
-                                            {otherSection.teachers
-                                              .map((t) => t.namePrimary)
-                                              .join(", ")}
-                                          </span>
-                                        ) : (
-                                          <span>{t("noTeacher")}</span>
-                                        )}
-                                        <span className="text-muted-foreground ml-1">
-                                          {otherSection.code}
-                                        </span>
-                                      </Badge>
-                                    </Link>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {sameTeacherOtherSemesters.length > 0 && (
-                            <div>
-                              <p className="text-sm text-muted-foreground mb-2">
-                                {t("sameTeacherOtherSemesters")}
-                              </p>
-                              <div className="flex flex-wrap gap-x-2">
-                                {sameTeacherOtherSemesters
-                                  .slice(0, 10)
-                                  .map((otherSection) => (
-                                    <Link
-                                      key={otherSection.id}
-                                      href={`/sections/${otherSection.jwId}`}
-                                      className="no-underline"
-                                    >
-                                      <Badge
-                                        variant="outline"
-                                        className="hover:bg-accent cursor-pointer"
-                                      >
-                                        {otherSection.semester && (
-                                          <span>
-                                            {otherSection.semester.nameCn}
-                                          </span>
-                                        )}
-                                        <span className="text-muted-foreground ml-1">
-                                          {otherSection.code}
-                                        </span>
-                                      </Badge>
-                                    </Link>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-
-                  <div className="mt-6">
-                    <Link
-                      href={`/courses/${section.course.jwId}`}
-                      className="text-sm text-muted-foreground hover:underline"
-                    >
-                      {t("viewAllCourseSections")} ({otherSections.length + 1}){" "}
-                      {"->"}
-                    </Link>
-                  </div>
-                </CardPanel>
-              </Card>
-            </CollapsibleContent>
-          </Collapsible>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold">
-                {miniMonthLabel}
-              </CardTitle>
-            </CardHeader>
-            <CardPanel className="space-y-2">
-              <div className="grid grid-cols-7 gap-1 text-[0.65rem] text-muted-foreground">
-                {miniWeekdays.map((weekday) => (
-                  <div key={miniWeekdayLabels[weekday]} className="text-center">
-                    {miniWeekdayLabels[weekday]}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {miniDays.map((day) => {
-                  const dayKey = day.format("YYYY-MM-DD");
-                  const isCurrentMonth = day.month() === miniMonthStart.month();
-                  const hasCourse = scheduleDateKeys.has(dayKey);
-                  const hasExam = examDateKeys.has(dayKey);
-                  const isToday = dayKey === todayKey;
-
-                  return (
-                    <div
-                      key={dayKey}
-                      className={cn(
-                        "flex flex-col items-center gap-1 rounded-md p-1 text-xs",
-                        !isCurrentMonth && "text-muted-foreground/50",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          isToday &&
-                            "underline decoration-foreground underline-offset-2",
-                        )}
-                      >
-                        {day.date()}
-                      </span>
-                      {isCurrentMonth && (hasCourse || hasExam) ? (
-                        <div className="flex items-center gap-1">
-                          {hasCourse && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                          )}
-                          {hasExam && (
-                            <span className="h-1.5 w-1.5 rounded-full border border-foreground" />
-                          )}
-                        </div>
-                      ) : (
-                        <span className="h-1.5" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardPanel>
-          </Card>
+          <BasicInfoCard
+            section={section}
+            otherSections={otherSections}
+            sameSemesterOtherTeachers={sameSemesterOtherTeachers}
+            sameTeacherOtherSemesters={sameTeacherOtherSemesters}
+            t={t}
+            tCommon={tCommon}
+          />
+          <MiniCalendar
+            monthLabel={miniMonthLabel}
+            weekdayLabels={miniWeekdayLabels}
+            weekdays={miniWeekdays}
+            days={miniDays}
+            monthStart={miniMonthStart}
+            scheduleDateKeys={scheduleDateKeys}
+            examDateKeys={examDateKeys}
+            todayKey={todayKey}
+          />
         </aside>
       </div>
     </main>
+  );
+}
+
+type SectionBreadcrumbProps = {
+  sectionCode: string;
+  tCommon: (key: string) => string;
+};
+
+function SectionBreadcrumb({ sectionCode, tCommon }: SectionBreadcrumbProps) {
+  return (
+    <div className="mb-6 flex items-start justify-between gap-4">
+      <Breadcrumb>
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/" />}>
+              {tCommon("home")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link href="/sections" />}>
+              {tCommon("sections")}
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>{sectionCode}</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+    </div>
+  );
+}
+
+type SectionHeaderProps = {
+  courseName: string;
+  courseNameSecondary: string | null;
+  sectionId: number;
+  sectionJwId: number;
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
+  tA11y: (key: string) => string;
+};
+
+function SectionHeader({
+  courseName,
+  courseNameSecondary,
+  sectionId,
+  sectionJwId,
+  t,
+  tA11y,
+}: SectionHeaderProps) {
+  return (
+    <div className="mt-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <h1 className="mb-2 text-display">{courseName}</h1>
+          {courseNameSecondary && (
+            <p className="text-muted-foreground text-sm">
+              {courseNameSecondary}
+            </p>
+          )}
+        </div>
+        <SubscriptionCalendarButton
+          sectionDatabaseId={sectionId}
+          sectionJwId={sectionJwId}
+          showCalendarButton={false}
+          addToCalendarLabel={t("addToCalendar")}
+          sheetTitle={t("calendarSheetTitle")}
+          sheetDescription={t("calendarSheetDescription")}
+          calendarUrlLabel={t("calendarUrlLabel")}
+          subscriptionUrlLabel={t("subscriptionUrlLabel")}
+          subscriptionHintLabel={t("subscriptionHintLabel")}
+          subscribeLabel={t("subscribeLabel")}
+          unsubscribeLabel={t("unsubscribeLabel")}
+          copyLabel={t("copyToClipboard")}
+          closeLabel={t("close")}
+          learnMoreLabel={t("learnMoreAboutICalendar")}
+          copiedLabel={t("copied")}
+          subscribingLabel={t("subscribing")}
+          unsubscribingLabel={t("unsubscribing")}
+          pleaseWaitLabel={t("pleaseWait")}
+          subscribeSuccessLabel={t("subscribeSuccess")}
+          unsubscribeSuccessLabel={t("unsubscribeSuccess")}
+          subscribeSuccessDescriptionLabel={t("subscribeSuccessDescription")}
+          unsubscribeSuccessDescriptionLabel={t(
+            "unsubscribeSuccessDescription",
+          )}
+          operationFailedLabel={t("operationFailed")}
+          pleaseRetryLabel={t("pleaseRetry")}
+          viewAllSubscriptionsLabel={t("viewAllSubscriptions")}
+          loginRequiredLabel={t("loginRequired")}
+          loginRequiredDescriptionLabel={t("loginRequiredDescription")}
+          loginToSubscribeLabel={t("loginToSubscribe")}
+          subscriptionCalendarUrlAriaLabel={tA11y("subscriptionCalendarUrl")}
+          singleSectionCalendarUrlAriaLabel={tA11y("singleSectionCalendarUrl")}
+        />
+      </div>
+    </div>
+  );
+}
+
+type MiniCalendarProps = {
+  monthLabel: string;
+  weekdayLabels: string[];
+  weekdays: number[];
+  days: dayjs.Dayjs[];
+  monthStart: dayjs.Dayjs;
+  scheduleDateKeys: Set<string>;
+  examDateKeys: Set<string>;
+  todayKey: string;
+};
+
+function MiniCalendar({
+  monthLabel,
+  weekdayLabels,
+  weekdays,
+  days,
+  monthStart,
+  scheduleDateKeys,
+  examDateKeys,
+  todayKey,
+}: MiniCalendarProps) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="font-semibold text-sm">{monthLabel}</CardTitle>
+      </CardHeader>
+      <CardPanel className="space-y-2">
+        <div className="grid grid-cols-7 gap-1 text-[0.65rem] text-muted-foreground">
+          {weekdays.map((weekday) => (
+            <div key={weekdayLabels[weekday]} className="text-center">
+              {weekdayLabels[weekday]}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day) => {
+            const dayKey = day.format("YYYY-MM-DD");
+            const isCurrentMonth = day.month() === monthStart.month();
+            const hasCourse = scheduleDateKeys.has(dayKey);
+            const hasExam = examDateKeys.has(dayKey);
+            const isToday = dayKey === todayKey;
+
+            return (
+              <div
+                key={dayKey}
+                className={cn(
+                  "flex flex-col items-center gap-1 rounded-md p-1 text-xs",
+                  !isCurrentMonth && "text-muted-foreground/50",
+                )}
+              >
+                <span
+                  className={cn(
+                    isToday &&
+                      "underline decoration-foreground underline-offset-2",
+                  )}
+                >
+                  {day.date()}
+                </span>
+                {isCurrentMonth && (hasCourse || hasExam) ? (
+                  <div className="flex items-center gap-1">
+                    {hasCourse && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
+                    )}
+                    {hasExam && (
+                      <span className="h-1.5 w-1.5 rounded-full border border-foreground" />
+                    )}
+                  </div>
+                ) : (
+                  <span className="h-1.5" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </CardPanel>
+    </Card>
+  );
+}
+
+type BasicInfoCardProps = {
+  section: any;
+  otherSections: any[];
+  sameSemesterOtherTeachers: any[];
+  sameTeacherOtherSemesters: any[];
+  t: (key: string, params?: Record<string, string | number | Date>) => string;
+  tCommon: (key: string) => string;
+};
+
+function BasicInfoCard({
+  section,
+  otherSections,
+  sameSemesterOtherTeachers,
+  sameTeacherOtherSemesters,
+  t,
+  tCommon,
+}: BasicInfoCardProps) {
+  if (!section) return null;
+
+  return (
+    <Collapsible className="space-y-4" defaultOpen>
+      <CollapsibleTrigger className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 font-medium text-foreground text-sm lg:hidden">
+        <span>{t("basicInfo")}</span>
+        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="lg:block">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>{t("basicInfo")}</CardTitle>
+          </CardHeader>
+          <CardPanel>
+            <div className="grid grid-cols-1 gap-2 text-sm">
+              {section.semester && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t("semester")}</span>
+                  <span className="font-medium text-foreground">
+                    {section.semester.nameCn}
+                  </span>
+                </div>
+              )}
+
+              {section.code && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">
+                    {t("sectionCode")}
+                  </span>
+                  <span className="font-medium font-mono text-foreground">
+                    {section.code}
+                  </span>
+                </div>
+              )}
+
+              <div className="mt-4" />
+
+              {section.campus && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t("campus")}</span>
+                  <span className="font-medium text-foreground">
+                    {section.campus.namePrimary}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-baseline gap-2">
+                <span className="text-muted-foreground">
+                  {tCommon("undergraduateGraduate")}
+                </span>
+                <span className="font-medium text-foreground">
+                  {section.graduateAndPostgraduate ? "✓" : "×"}
+                </span>
+              </div>
+
+              {section.credits !== null && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t("credits")}</span>
+                  <span className="font-medium text-foreground">
+                    {section.credits}
+                  </span>
+                </div>
+              )}
+
+              {section.period !== null && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t("period")}</span>
+                  <span className="font-medium text-foreground">
+                    {section.period}
+                    {section.actualPeriods !== null &&
+                      section.actualPeriods !== section.period &&
+                      ` (${section.actualPeriods})`}
+                  </span>
+                </div>
+              )}
+
+              {section.examMode && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-muted-foreground">{t("examMode")}</span>
+                  <span className="font-medium text-foreground">
+                    {section.examMode.namePrimary}
+                  </span>
+                </div>
+              )}
+
+              {section.remark && (
+                <div className="mt-6">
+                  <p className="mb-1 text-muted-foreground text-sm">
+                    {t("remark")}
+                  </p>
+                  <p className="whitespace-pre-wrap text-body text-foreground">
+                    {section.remark}
+                  </p>
+                </div>
+              )}
+
+              {section.teachers && section.teachers.length > 0 && (
+                <div className="mt-6">
+                  <p className="mb-2 text-muted-foreground text-sm">
+                    {t("teachers")}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {section.teachers.map((teacher: any) => (
+                      <Link
+                        key={teacher.id}
+                        href={`/teachers/${teacher.id}`}
+                        className="no-underline"
+                      >
+                        <Badge
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-secondary/80"
+                        >
+                          {teacher.namePrimary}
+                          {teacher.department && (
+                            <span className="ml-1 text-muted-foreground">
+                              ({teacher.department.namePrimary})
+                            </span>
+                          )}
+                        </Badge>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Collapsible className="mt-6">
+              <CollapsibleTrigger className="flex items-center text-muted-foreground text-sm hover:underline">
+                {t("moreDetails")} ↓
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-6">
+                <div className="grid grid-cols-1 gap-2 text-sm">
+                  {section.teachLanguage ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("teachLanguage")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.teachLanguage.namePrimary}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.roomType ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("roomType")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.roomType.namePrimary}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.timesPerWeek ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("timesPerWeek")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.timesPerWeek}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.periodsPerWeek ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("periodsPerWeek")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.periodsPerWeek}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.theoryPeriods ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("theoryPeriods")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.theoryPeriods}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.practicePeriods ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("practicePeriods")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.practicePeriods}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.experimentPeriods ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("experimentPeriods")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.experimentPeriods}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.machinePeriods ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("machinePeriods")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.machinePeriods}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.designPeriods ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("designPeriods")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.designPeriods}
+                      </span>
+                    </div>
+                  ) : null}
+                  {section.testPeriods ? (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-muted-foreground">
+                        {t("testPeriods")}
+                      </span>
+                      <span className="font-medium text-foreground">
+                        {section.testPeriods}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+
+                {section.adminClasses && section.adminClasses.length > 0 && (
+                  <div className="mt-6">
+                    <p className="mb-2 text-muted-foreground text-sm">
+                      {t("adminClasses")}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {section.adminClasses.map((ac: any) => (
+                        <Badge key={ac.id} variant="secondary">
+                          {ac.namePrimary}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(sameSemesterOtherTeachers.length > 0 ||
+                  sameTeacherOtherSemesters.length > 0 ||
+                  otherSections.length > 0) && (
+                  <div className="mt-6 space-y-4">
+                    {sameSemesterOtherTeachers.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-muted-foreground text-sm">
+                          {t("sameSemesterOtherTeachers")}
+                        </p>
+                        <div className="flex flex-wrap gap-x-2">
+                          {sameSemesterOtherTeachers
+                            .slice(0, 10)
+                            .map((otherSection) => (
+                              <Link
+                                key={otherSection.id}
+                                href={`/sections/${otherSection.jwId}`}
+                                className="no-underline"
+                              >
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-accent"
+                                >
+                                  {otherSection.teachers.length > 0 ? (
+                                    <span>
+                                      {otherSection.teachers
+                                        .map((t: any) => t.namePrimary)
+                                        .join(", ")}
+                                    </span>
+                                  ) : (
+                                    <span>{t("noTeacher")}</span>
+                                  )}
+                                  <span className="ml-1 text-muted-foreground">
+                                    {otherSection.code}
+                                  </span>
+                                </Badge>
+                              </Link>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {sameTeacherOtherSemesters.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-muted-foreground text-sm">
+                          {t("sameTeacherOtherSemesters")}
+                        </p>
+                        <div className="flex flex-wrap gap-x-2">
+                          {sameTeacherOtherSemesters
+                            .slice(0, 10)
+                            .map((otherSection) => (
+                              <Link
+                                key={otherSection.id}
+                                href={`/sections/${otherSection.jwId}`}
+                                className="no-underline"
+                              >
+                                <Badge
+                                  variant="outline"
+                                  className="cursor-pointer hover:bg-accent"
+                                >
+                                  {otherSection.semester && (
+                                    <span>{otherSection.semester.nameCn}</span>
+                                  )}
+                                  <span className="ml-1 text-muted-foreground">
+                                    {otherSection.code}
+                                  </span>
+                                </Badge>
+                              </Link>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+
+            <div className="mt-6">
+              <Link
+                href={`/courses/${section.course.jwId}`}
+                className="text-muted-foreground text-sm hover:underline"
+              >
+                {t("viewAllCourseSections")} ({otherSections.length + 1}) {"->"}
+              </Link>
+            </div>
+          </CardPanel>
+        </Card>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

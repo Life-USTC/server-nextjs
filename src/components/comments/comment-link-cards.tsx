@@ -70,11 +70,11 @@ export function CommentLinkCards({ content }: CommentLinkCardsProps) {
       {cards.map((card) => (
         <Card key={card.href} className="gap-2 py-4">
           <CardPanel className="space-y-1">
-            <Link href={card.href} className="text-sm font-medium">
+            <Link href={card.href} className="font-medium text-sm">
               {card.label}
             </Link>
             {card.description && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {card.description}
               </p>
             )}
