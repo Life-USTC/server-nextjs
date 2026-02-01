@@ -87,7 +87,7 @@ export default async function SignInPage({
   ];
 
   return (
-    <main className="page-main flex items-center justify-center min-h-[calc(100vh-8rem)]">
+    <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">{t("title")}</CardTitle>
@@ -95,7 +95,7 @@ export default async function SignInPage({
         </CardHeader>
         <CardContent className="space-y-4">
           {params.error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+            <div className="rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
               {params.error === "OAuthAccountNotLinked"
                 ? t("errorAccountNotLinked")
                 : t("errorGeneric")}
@@ -115,7 +115,7 @@ export default async function SignInPage({
               <Button
                 type="submit"
                 variant="outline"
-                className="w-full justify-center gap-3 h-11"
+                className="h-11 w-full justify-center gap-3"
               >
                 {provider.icon}
                 <span>{t("signInWith", { provider: provider.name })}</span>
@@ -123,7 +123,7 @@ export default async function SignInPage({
             </form>
           ))}
 
-          <p className="text-xs text-center text-muted-foreground pt-4">
+          <p className="pt-4 text-center text-muted-foreground text-xs">
             {t("termsNotice")}
           </p>
         </CardContent>

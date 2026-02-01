@@ -159,9 +159,9 @@ export function EventCalendar({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-2 py-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-border/60 border-b px-2 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground">
+          <span className="font-medium text-foreground text-sm">
             {monthLabel}
           </span>
           <Button
@@ -190,20 +190,20 @@ export function EventCalendar({
       <div className="space-y-2 p-2">
         <div className="overflow-x-auto">
           <div className="min-w-[680px] space-y-2 sm:min-w-0">
-            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-px rounded-lg border border-border/60 bg-border/60 overflow-hidden">
-              <div className="flex items-center justify-center bg-muted/10 px-1 py-2 text-[0.65rem] font-medium text-muted-foreground">
+            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-lg border border-border/60 bg-border/60">
+              <div className="flex items-center justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
                 {weekLabelHeader}
               </div>
               {weekdayOrder.map((weekday) => (
                 <div
                   key={weekdayLabels[weekday]}
-                  className="flex items-center justify-center bg-muted/10 py-2 text-xs font-medium text-muted-foreground"
+                  className="flex items-center justify-center bg-muted/10 py-2 font-medium text-muted-foreground text-xs"
                 >
                   {weekdayLabels[weekday]}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-px rounded-lg border border-border/60 bg-border/60 overflow-hidden">
+            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-lg border border-border/60 bg-border/60">
               {weeks.map((week) => {
                 const weekStart = week[0];
                 const weekKey = weekStart.format("YYYY-MM-DD");
@@ -214,8 +214,8 @@ export function EventCalendar({
 
                 return (
                   <div key={weekKey} className="contents">
-                    <div className="flex items-center justify-center bg-muted/10 px-1 text-[0.65rem] font-medium text-muted-foreground">
-                      <span className="[writing-mode:vertical-rl] [text-orientation:mixed]">
+                    <div className="flex items-center justify-center bg-muted/10 px-1 font-medium text-[0.65rem] text-muted-foreground">
+                      <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
                         {weekLabel}
                       </span>
                     </div>
@@ -250,7 +250,7 @@ export function EventCalendar({
                           <div className="flex items-center justify-between">
                             <span
                               className={cn(
-                                "text-xs font-semibold",
+                                "font-semibold text-xs",
                                 isToday &&
                                   "inline-flex size-5 items-center justify-center rounded-full bg-foreground text-background",
                               )}
@@ -284,13 +284,13 @@ export function EventCalendar({
                                   <PopoverContent
                                     side="top"
                                     align="start"
-                                    className="w-64 max-h-64 overflow-auto"
+                                    className="max-h-64 w-64 overflow-auto"
                                   >
                                     <div className="space-y-2">
-                                      <p className="text-sm font-medium">
+                                      <p className="font-medium text-sm">
                                         {event.line}
                                       </p>
-                                      <div className="grid gap-1 text-xs text-muted-foreground">
+                                      <div className="grid gap-1 text-muted-foreground text-xs">
                                         {event.details.map((detail) => (
                                           <div
                                             key={`${event.id}-${detail.label}-${detail.value}`}
@@ -324,7 +324,7 @@ export function EventCalendar({
 
       {unscheduledEvents.length > 0 && (
         <div className="rounded-lg border border-border/60 bg-background p-2">
-          <div className="text-xs font-medium text-muted-foreground">
+          <div className="font-medium text-muted-foreground text-xs">
             {unscheduledLabel}
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
@@ -336,7 +336,7 @@ export function EventCalendar({
               >
                 <PopoverTrigger
                   className={cn(
-                    "rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-left text-sm text-foreground transition-colors hover:bg-muted/40",
+                    "rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-left text-foreground text-sm transition-colors hover:bg-muted/40",
                     event.tone === "inverse" &&
                       "border-foreground/80 bg-foreground text-background hover:bg-foreground/90",
                   )}
@@ -349,11 +349,11 @@ export function EventCalendar({
                   <PopoverContent
                     side="top"
                     align="start"
-                    className="w-64 max-h-64 overflow-auto"
+                    className="max-h-64 w-64 overflow-auto"
                   >
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">{event.line}</p>
-                      <div className="grid gap-1 text-xs text-muted-foreground">
+                      <p className="font-medium text-sm">{event.line}</p>
+                      <div className="grid gap-1 text-muted-foreground text-xs">
                         {event.details.map((detail) => (
                           <div
                             key={`${event.id}-${detail.label}-${detail.value}`}

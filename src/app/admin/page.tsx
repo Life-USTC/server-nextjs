@@ -54,14 +54,14 @@ export default async function AdminHomePage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">{t("subtitle")}</p>
+      <div className="mt-8 mb-8">
+        <h1 className="mb-2 text-display">{t("title")}</h1>
+        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Link href="/admin/moderation" className="no-underline">
-          <Card className="hover:bg-accent/50 transition-colors">
+          <Card className="transition-colors hover:bg-accent/50">
             <CardHeader>
               <CardTitle>{t("moderationTitle")}</CardTitle>
               <CardDescription>{t("moderationDescription")}</CardDescription>
@@ -69,7 +69,7 @@ export default async function AdminHomePage() {
           </Card>
         </Link>
         <Link href="/admin/users" className="no-underline">
-          <Card className="hover:bg-accent/50 transition-colors">
+          <Card className="transition-colors hover:bg-accent/50">
             <CardHeader>
               <CardTitle>{t("usersTitle")}</CardTitle>
               <CardDescription>{t("usersDescription")}</CardDescription>

@@ -41,6 +41,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 
 type ViewerSummary = {
   userId: string | null;
@@ -120,6 +121,126 @@ type HomeworkPanelProps = {
   semesterStart?: string | null;
   semesterEnd?: string | null;
   initialData?: HomeworkResponse;
+};
+
+type CreateHomeworkSheetProps = {
+  open: boolean;
+  canCreate: boolean;
+  isSaving: boolean;
+  newTitle: string;
+  newDescription: string;
+  newPublishedAt: string;
+  newSubmissionStartAt: string;
+  newSubmissionDueAt: string;
+  newIsMajor: boolean;
+  newRequiresTeam: boolean;
+  onTitleChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onPublishedChange: (value: string) => void;
+  onSubmissionStartChange: (value: string) => void;
+  onSubmissionDueChange: (value: string) => void;
+  onToggleMajor: (value: boolean) => void;
+  onToggleRequiresTeam: (value: boolean) => void;
+  onOpenChange: (open: boolean) => void;
+  onReset: () => void;
+  onCreate: () => void;
+  onApplyStartNow: (setter: (value: string) => void) => void;
+  onApplyWeek: (setter: (value: string) => void) => void;
+  onApplySemesterEnd: (setter: (value: string) => void) => void;
+  onApplySemesterStart: (setter: (value: string) => void) => void;
+  labels: {
+    titleLabel: string;
+    titlePlaceholder: string;
+    descriptionLabel: string;
+    descriptionPlaceholder: string;
+    tabWrite: string;
+    tabPreview: string;
+    previewEmpty: string;
+    markdownGuide: string;
+    helperNow: string;
+    helperWeek: string;
+    helperSemesterEnd: string;
+    helperSemesterStart: string;
+    publishedAt: string;
+    helperPublishNow: string;
+    helperClear: string;
+    submissionStart: string;
+    submissionDue: string;
+    tagMajor: string;
+    tagTeam: string;
+    cancel: string;
+    createAction: string;
+    showCreate: string;
+    createTitle: string;
+    saving: string;
+  };
+};
+
+type AuditLogSheetProps = {
+  auditLogs: AuditLogEntry[];
+  formatter: Intl.DateTimeFormat;
+  labels: {
+    title: string;
+    empty: string;
+    created: string;
+    deleted: string;
+    meta: (params: { name: string; date: string }) => string;
+    trigger: string;
+  };
+};
+
+type HomeworkCardHeaderProps = {
+  homework: HomeworkEntry;
+  formatter: Intl.DateTimeFormat;
+  commentCount: number;
+  canEdit: boolean;
+  isEditing: boolean;
+  onEdit: () => void;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type HomeworkCardReadOnlyProps = {
+  homework: HomeworkEntry;
+  formatter: Intl.DateTimeFormat;
+  tagBadges: React.ReactNode;
+  isAuthenticated: boolean;
+  isSavingCompletion: boolean;
+  onToggleCompletion: (nextCompleted: boolean) => void;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type HomeworkCardEditFormProps = {
+  homework: HomeworkEntry;
+  formatter: Intl.DateTimeFormat;
+  editTitle: string;
+  editDescription: string;
+  editIsMajor: boolean;
+  editRequiresTeam: boolean;
+  editPublishedAt: string;
+  editSubmissionStartAt: string;
+  editSubmissionDueAt: string;
+  canDelete: boolean;
+  isSaving: boolean;
+  descriptionHistory: {
+    loading: boolean;
+    error: string | null;
+    entries: any[];
+  };
+  onTitleChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onToggleMajor: (value: boolean) => void;
+  onToggleTeam: (value: boolean) => void;
+  onPublishedChange: (value: string) => void;
+  onSubmissionStartChange: (value: string) => void;
+  onSubmissionDueChange: (value: string) => void;
+  onLoadHistory: () => void;
+  onCancel: () => void;
+  onSave: () => void;
+  onDelete: () => void;
+  renderEditHelperActions: (target: "start" | "due") => React.ReactNode;
+  t: ReturnType<typeof useTranslations>;
+  tComments: ReturnType<typeof useTranslations>;
+  tDescriptions: ReturnType<typeof useTranslations>;
 };
 
 const EMPTY_VIEWER: ViewerSummary = {
@@ -672,21 +793,9 @@ export function HomeworkPanel({
     }
   };
 
-  const renderHelperActions = (
-    type: "create" | "edit",
-    target: "start" | "due",
-  ) => {
-    const setValue = (value: string) => {
-      if (type === "create") {
-        target === "start"
-          ? setNewSubmissionStartAt(value)
-          : setNewSubmissionDueAt(value);
-        return;
-      }
-      target === "start"
-        ? setEditSubmissionStartAt(value)
-        : setEditSubmissionDueAt(value);
-    };
+  const renderEditHelperActions = (target: "start" | "due") => {
+    const setValue =
+      target === "start" ? setEditSubmissionStartAt : setEditSubmissionDueAt;
 
     return (
       <div className="flex flex-wrap gap-2">
@@ -730,144 +839,58 @@ export function HomeworkPanel({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {canCreate ? (
-          <Sheet open={showCreate} onOpenChange={setShowCreate}>
-            <SheetTrigger render={<Button size="sm" variant="outline" />}>
-              {t("showCreate")}
-            </SheetTrigger>
-            <SheetContent side="right">
-              <SheetHeader>
-                <SheetTitle>{t("createTitle")}</SheetTitle>
-              </SheetHeader>
-              <SheetPanel className="space-y-5">
-                <div className="space-y-2">
-                  <Label htmlFor="homework-title">{t("titleLabel")}</Label>
-                  <Input
-                    id="homework-title"
-                    value={newTitle}
-                    onChange={(event) => setNewTitle(event.target.value)}
-                    placeholder={t("titlePlaceholder")}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t("descriptionLabel")}</Label>
-                  <MarkdownEditor
-                    value={newDescription}
-                    onChange={setNewDescription}
-                    placeholder={t("descriptionPlaceholder")}
-                    tabWriteLabel={tComments("tabWrite")}
-                    tabPreviewLabel={tComments("tabPreview")}
-                    previewEmptyLabel={tComments("previewEmpty")}
-                    markdownGuideLabel={tComments("markdownGuide")}
-                    markdownGuideHref="/comments/guide"
-                  />
-                </div>
-
-                <Separator />
-
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="homework-major"
-                      checked={newIsMajor}
-                      onCheckedChange={setNewIsMajor}
-                    />
-                    <Label htmlFor="homework-major">{t("tagMajor")}</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="homework-team"
-                      checked={newRequiresTeam}
-                      onCheckedChange={setNewRequiresTeam}
-                    />
-                    <Label htmlFor="homework-team">{t("tagTeam")}</Label>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="grid gap-4 lg:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="homework-published">
-                      {t("publishedAt")}
-                    </Label>
-                    <Input
-                      id="homework-published"
-                      type="datetime-local"
-                      value={newPublishedAt}
-                      onChange={(event) =>
-                        setNewPublishedAt(event.target.value)
-                      }
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() =>
-                          setNewPublishedAt(
-                            toLocalInputValue(new Date().toISOString()),
-                          )
-                        }
-                      >
-                        {t("helperPublishNow")}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setNewPublishedAt("")}
-                      >
-                        {t("helperClear")}
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="homework-start">
-                      {t("submissionStart")}
-                    </Label>
-                    <Input
-                      id="homework-start"
-                      type="datetime-local"
-                      value={newSubmissionStartAt}
-                      onChange={(event) =>
-                        setNewSubmissionStartAt(event.target.value)
-                      }
-                    />
-                    {renderHelperActions("create", "start")}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="homework-due">{t("submissionDue")}</Label>
-                    <Input
-                      id="homework-due"
-                      type="datetime-local"
-                      value={newSubmissionDueAt}
-                      onChange={(event) =>
-                        setNewSubmissionDueAt(event.target.value)
-                      }
-                    />
-                    {renderHelperActions("create", "due")}
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      resetCreateForm();
-                      setShowCreate(false);
-                    }}
-                  >
-                    {t("cancel")}
-                  </Button>
-                  <Button
-                    onClick={handleCreate}
-                    disabled={isSaving || !canCreate}
-                  >
-                    {isSaving ? t("saving") : t("createAction")}
-                  </Button>
-                </div>
-              </SheetPanel>
-            </SheetContent>
-          </Sheet>
+          <CreateHomeworkSheet
+            open={showCreate}
+            onOpenChange={setShowCreate}
+            canCreate={canCreate}
+            isSaving={isSaving}
+            newTitle={newTitle}
+            newDescription={newDescription}
+            newPublishedAt={newPublishedAt}
+            newSubmissionStartAt={newSubmissionStartAt}
+            newSubmissionDueAt={newSubmissionDueAt}
+            newIsMajor={newIsMajor}
+            newRequiresTeam={newRequiresTeam}
+            onTitleChange={setNewTitle}
+            onDescriptionChange={setNewDescription}
+            onPublishedChange={setNewPublishedAt}
+            onSubmissionStartChange={setNewSubmissionStartAt}
+            onSubmissionDueChange={setNewSubmissionDueAt}
+            onToggleMajor={setNewIsMajor}
+            onToggleRequiresTeam={setNewRequiresTeam}
+            onReset={resetCreateForm}
+            onCreate={handleCreate}
+            onApplyStartNow={applyStartNow}
+            onApplyWeek={applyDueInAWeek}
+            onApplySemesterEnd={applySemesterEnd}
+            onApplySemesterStart={applySemesterStart}
+            labels={{
+              titleLabel: t("titleLabel"),
+              titlePlaceholder: t("titlePlaceholder"),
+              descriptionLabel: t("descriptionLabel"),
+              descriptionPlaceholder: t("descriptionPlaceholder"),
+              tabWrite: tComments("tabWrite"),
+              tabPreview: tComments("tabPreview"),
+              previewEmpty: tComments("previewEmpty"),
+              markdownGuide: tComments("markdownGuide"),
+              helperNow: t("helperNow"),
+              helperWeek: t("helperWeek"),
+              helperSemesterEnd: t("helperSemesterEnd"),
+              helperSemesterStart: t("helperSemesterStart"),
+              publishedAt: t("publishedAt"),
+              helperPublishNow: t("helperPublishNow"),
+              helperClear: t("helperClear"),
+              submissionStart: t("submissionStart"),
+              submissionDue: t("submissionDue"),
+              tagMajor: t("tagMajor"),
+              tagTeam: t("tagTeam"),
+              cancel: t("cancel"),
+              createAction: t("createAction"),
+              showCreate: t("showCreate"),
+              createTitle: t("createTitle"),
+              saving: t("saving"),
+            }}
+          />
         ) : (
           <Button
             size="sm"
@@ -877,69 +900,27 @@ export function HomeworkPanel({
             {t("loginToCreate")}
           </Button>
         )}
-        <Sheet>
-          <SheetTrigger render={<Button size="sm" variant="outline" />}>
-            {t("auditTitle")}
-          </SheetTrigger>
-          <SheetContent side="right">
-            <SheetHeader>
-              <SheetTitle>{t("auditTitle")}</SheetTitle>
-            </SheetHeader>
-            <SheetPanel>
-              {auditLogs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("auditEmpty")}
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {auditLogs.map((log) => {
-                    const actorName =
-                      log.actor?.name ||
-                      log.actor?.username ||
-                      t("unknownActor");
-                    return (
-                      <div
-                        key={log.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2"
-                      >
-                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                          <Badge
-                            variant={
-                              log.action === "deleted"
-                                ? "destructive"
-                                : "secondary"
-                            }
-                          >
-                            {log.action === "deleted"
-                              ? t("auditDeleted")
-                              : t("auditCreated")}
-                          </Badge>
-                          <span className="font-medium text-foreground">
-                            {log.titleSnapshot}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {t("auditMeta", {
-                            name: actorName,
-                            date: formatter.format(new Date(log.createdAt)),
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </SheetPanel>
-          </SheetContent>
-        </Sheet>
+        <AuditLogSheet
+          auditLogs={auditLogs}
+          formatter={formatter}
+          labels={{
+            title: t("auditTitle"),
+            empty: t("auditEmpty"),
+            created: t("auditCreated"),
+            deleted: t("auditDeleted"),
+            meta: ({ name, date }: { name: string; date: string }) =>
+              t("auditMeta", { name, date }),
+            trigger: t("auditTitle"),
+          }}
+        />
       </div>
 
       {viewer.isSuspended && (
         <Card className="border-dashed bg-muted/40">
           <CardPanel className="space-y-2">
-            <p className="text-sm text-muted-foreground">{t("suspended")}</p>
+            <p className="text-muted-foreground text-sm">{t("suspended")}</p>
             {viewer.suspensionReason && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {t("suspendedReason", { reason: viewer.suspensionReason })}
               </p>
             )}
@@ -956,7 +937,7 @@ export function HomeworkPanel({
       ) : error ? (
         <Card className="border-dashed">
           <CardPanel className="space-y-2">
-            <p className="text-sm text-muted-foreground">{error}</p>
+            <p className="text-muted-foreground text-sm">{error}</p>
             <Button variant="outline" onClick={() => void loadHomeworks()}>
               {t("retry")}
             </Button>
@@ -979,400 +960,71 @@ export function HomeworkPanel({
             return (
               <Card key={homework.id} className="group border-border/60">
                 <CardHeader className="gap-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <CardTitle className="text-base">
-                        {homework.title}
-                      </CardTitle>
-                      <p className="text-xs text-muted-foreground">
-                        {t("createdAt", {
-                          date: formatter.format(new Date(homework.createdAt)),
-                        })}
-                      </p>
-                    </div>
-                    <CardAction className="flex flex-wrap gap-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                      <Sheet>
-                        <SheetTrigger
-                          render={<Button size="sm" variant="outline" />}
-                        >
-                          {t("commentsAction")} (
-                          {commentCounts[homework.id] ?? 0})
-                        </SheetTrigger>
-                        <SheetContent side="right">
-                          <SheetHeader>
-                            <SheetTitle>{t("commentsTitle")}</SheetTitle>
-                          </SheetHeader>
-                          <SheetPanel>
-                            <CommentsSection
-                              targets={[
-                                {
-                                  key: "homework",
-                                  label: t("commentsLabel"),
-                                  type: "homework",
-                                  homeworkId: homework.id,
-                                },
-                              ]}
-                            />
-                          </SheetPanel>
-                        </SheetContent>
-                      </Sheet>
-                      {canEdit && !isEditing && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => startEditing(homework)}
-                        >
-                          {t("editAction")}
-                        </Button>
-                      )}
-                    </CardAction>
-                  </div>
+                  <HomeworkCardHeader
+                    homework={homework}
+                    formatter={formatter}
+                    commentCount={commentCounts[homework.id] ?? 0}
+                    canEdit={canEdit}
+                    isEditing={isEditing}
+                    onEdit={() => startEditing(homework)}
+                    t={t}
+                  />
                 </CardHeader>
                 <CardPanel className="space-y-4">
                   {!isEditing && (
-                    <>
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground">
-                            {t("submissionDue")}
-                          </p>
-                          <p className="text-xl font-semibold text-foreground">
-                            {homework.submissionDueAt
-                              ? formatter.format(
-                                  new Date(homework.submissionDueAt),
-                                )
-                              : t("dateTBD")}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="rounded-lg border border-border/60 bg-muted/5 px-3 py-3">
-                        {homework.description?.content ? (
-                          <CommentMarkdown
-                            content={homework.description.content}
-                          />
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {t("descriptionEmpty")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <p>
-                            {t("submissionStart")} ·{" "}
-                            {homework.submissionStartAt
-                              ? formatter.format(
-                                  new Date(homework.submissionStartAt),
-                                )
-                              : t("dateTBD")}
-                          </p>
-                          <p>
-                            {t("publishedAt")} ·{" "}
-                            {homework.publishedAt
-                              ? formatter.format(new Date(homework.publishedAt))
-                              : t("dateTBD")}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                          {renderTagBadges(homework)}
-                          {viewer.isAuthenticated && (
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                id={`homework-completed-${homework.id}`}
-                                checked={Boolean(homework.completion)}
-                                onCheckedChange={(checked) =>
-                                  void handleCompletionToggle(
-                                    homework.id,
-                                    checked,
-                                  )
-                                }
-                                disabled={completionSaving[homework.id]}
-                              />
-                              <Label
-                                htmlFor={`homework-completed-${homework.id}`}
-                              >
-                                {t("completedLabel")}
-                              </Label>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
+                    <HomeworkCardReadOnly
+                      homework={homework}
+                      formatter={formatter}
+                      tagBadges={renderTagBadges(homework)}
+                      isAuthenticated={viewer.isAuthenticated}
+                      isSavingCompletion={Boolean(
+                        completionSaving[homework.id],
+                      )}
+                      onToggleCompletion={(checked: boolean) =>
+                        void handleCompletionToggle(homework.id, checked)
+                      }
+                      t={t}
+                    />
                   )}
 
                   {isEditing && (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor={`homework-edit-title-${homework.id}`}>
-                          {t("titleLabel")}
-                        </Label>
-                        <Input
-                          id={`homework-edit-title-${homework.id}`}
-                          value={editTitle}
-                          onChange={(event) => setEditTitle(event.target.value)}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>{t("descriptionLabel")}</Label>
-                        <MarkdownEditor
-                          value={editDescription}
-                          onChange={setEditDescription}
-                          placeholder={t("descriptionPlaceholder")}
-                          tabWriteLabel={tComments("tabWrite")}
-                          tabPreviewLabel={tComments("tabPreview")}
-                          previewEmptyLabel={tComments("previewEmpty")}
-                          markdownGuideLabel={tComments("markdownGuide")}
-                          markdownGuideHref="/comments/guide"
-                        />
-                      </div>
-
-                      <Separator />
-
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            id={`homework-edit-major-${homework.id}`}
-                            checked={editIsMajor}
-                            onCheckedChange={setEditIsMajor}
-                          />
-                          <Label htmlFor={`homework-edit-major-${homework.id}`}>
-                            {t("tagMajor")}
-                          </Label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            id={`homework-edit-team-${homework.id}`}
-                            checked={editRequiresTeam}
-                            onCheckedChange={setEditRequiresTeam}
-                          />
-                          <Label htmlFor={`homework-edit-team-${homework.id}`}>
-                            {t("tagTeam")}
-                          </Label>
-                        </div>
-                      </div>
-
-                      <Separator />
-
-                      <div className="grid gap-4 lg:grid-cols-3">
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor={`homework-edit-publish-${homework.id}`}
-                          >
-                            {t("publishedAt")}
-                          </Label>
-                          <Input
-                            id={`homework-edit-publish-${homework.id}`}
-                            type="datetime-local"
-                            value={editPublishedAt}
-                            onChange={(event) =>
-                              setEditPublishedAt(event.target.value)
-                            }
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() =>
-                                setEditPublishedAt(
-                                  toLocalInputValue(new Date().toISOString()),
-                                )
-                              }
-                            >
-                              {t("helperPublishNow")}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setEditPublishedAt("")}
-                            >
-                              {t("helperClear")}
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`homework-edit-start-${homework.id}`}>
-                            {t("submissionStart")}
-                          </Label>
-                          <Input
-                            id={`homework-edit-start-${homework.id}`}
-                            type="datetime-local"
-                            value={editSubmissionStartAt}
-                            onChange={(event) =>
-                              setEditSubmissionStartAt(event.target.value)
-                            }
-                          />
-                          {renderHelperActions("edit", "start")}
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor={`homework-edit-due-${homework.id}`}>
-                            {t("submissionDue")}
-                          </Label>
-                          <Input
-                            id={`homework-edit-due-${homework.id}`}
-                            type="datetime-local"
-                            value={editSubmissionDueAt}
-                            onChange={(event) =>
-                              setEditSubmissionDueAt(event.target.value)
-                            }
-                          />
-                          {renderHelperActions("edit", "due")}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap gap-2">
-                          <Sheet
-                            onOpenChange={(open) => {
-                              if (open) {
-                                void loadDescriptionHistory(homework.id);
-                              }
-                            }}
-                          >
-                            <SheetTrigger
-                              render={<Button size="sm" variant="outline" />}
-                            >
-                              {t("contentHistoryAction")}
-                            </SheetTrigger>
-                            <SheetContent side="right">
-                              <SheetHeader>
-                                <SheetTitle>
-                                  {tDescriptions("historyTitle", {
-                                    count:
-                                      descriptionHistory[homework.id]?.entries
-                                        ?.length ?? 0,
-                                  })}
-                                </SheetTitle>
-                              </SheetHeader>
-                              <SheetPanel className="space-y-4">
-                                {descriptionHistory[homework.id]?.loading ? (
-                                  <div className="space-y-3">
-                                    <Skeleton className="h-20 w-full" />
-                                    <Skeleton className="h-20 w-full" />
-                                  </div>
-                                ) : descriptionHistory[homework.id]?.error ? (
-                                  <p className="text-sm text-muted-foreground">
-                                    {descriptionHistory[homework.id]?.error}
-                                  </p>
-                                ) : descriptionHistory[homework.id]?.entries
-                                    ?.length ? (
-                                  descriptionHistory[homework.id].entries.map(
-                                    (entry) => {
-                                      const editorName =
-                                        entry.editor?.name ||
-                                        entry.editor?.username ||
-                                        tDescriptions("editorUnknown");
-                                      return (
-                                        <div
-                                          key={entry.id}
-                                          className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
-                                        >
-                                          <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                                            <span>{editorName}</span>
-                                            <span>
-                                              {formatter.format(
-                                                new Date(entry.createdAt),
-                                              )}
-                                            </span>
-                                          </div>
-                                          <div className="space-y-2 text-sm">
-                                            <p className="text-xs text-muted-foreground">
-                                              {tDescriptions("previousLabel")}
-                                            </p>
-                                            <div className="rounded-md border border-border/60 bg-background px-3 py-2">
-                                              {entry.previousContent ? (
-                                                <CommentMarkdown
-                                                  content={
-                                                    entry.previousContent
-                                                  }
-                                                />
-                                              ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                  {tDescriptions("emptyValue")}
-                                                </p>
-                                              )}
-                                            </div>
-                                          </div>
-                                          <div className="space-y-2 text-sm">
-                                            <p className="text-xs text-muted-foreground">
-                                              {tDescriptions("updatedLabel")}
-                                            </p>
-                                            <div className="rounded-md border border-border/60 bg-background px-3 py-2">
-                                              {entry.nextContent ? (
-                                                <CommentMarkdown
-                                                  content={entry.nextContent}
-                                                />
-                                              ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                  {tDescriptions("emptyValue")}
-                                                </p>
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    },
-                                  )
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">
-                                    {tDescriptions("historyEmpty")}
-                                  </p>
-                                )}
-                              </SheetPanel>
-                            </SheetContent>
-                          </Sheet>
-                          {canDelete && (
-                            <AlertDialog>
-                              <AlertDialogTrigger
-                                render={<Button size="sm" variant="ghost" />}
-                              >
-                                {t("deleteAction")}
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    {t("deleteTitle")}
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    {t("deleteDescription", {
-                                      title: homework.title,
-                                    })}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogClose
-                                    render={<Button variant="ghost" />}
-                                  >
-                                    {t("cancel")}
-                                  </AlertDialogClose>
-                                  <Button
-                                    variant="destructive"
-                                    onClick={() => void handleDelete(homework)}
-                                    disabled={isSaving}
-                                  >
-                                    {t("confirmDelete")}
-                                  </Button>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            variant="ghost"
-                            onClick={() => setEditingId(null)}
-                          >
-                            {t("cancel")}
-                          </Button>
-                          <Button
-                            onClick={() => void handleUpdate(homework)}
-                            disabled={isSaving}
-                          >
-                            {isSaving ? t("saving") : t("saveChanges")}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    <HomeworkCardEditForm
+                      homework={homework}
+                      formatter={formatter}
+                      editTitle={editTitle}
+                      editDescription={editDescription}
+                      editIsMajor={editIsMajor}
+                      editRequiresTeam={editRequiresTeam}
+                      editPublishedAt={editPublishedAt}
+                      editSubmissionStartAt={editSubmissionStartAt}
+                      editSubmissionDueAt={editSubmissionDueAt}
+                      canDelete={canDelete}
+                      isSaving={isSaving}
+                      descriptionHistory={
+                        descriptionHistory[homework.id] ?? {
+                          loading: false,
+                          error: null,
+                          entries: [],
+                        }
+                      }
+                      onTitleChange={setEditTitle}
+                      onDescriptionChange={setEditDescription}
+                      onToggleMajor={setEditIsMajor}
+                      onToggleTeam={setEditRequiresTeam}
+                      onPublishedChange={setEditPublishedAt}
+                      onSubmissionStartChange={setEditSubmissionStartAt}
+                      onSubmissionDueChange={setEditSubmissionDueAt}
+                      onLoadHistory={() =>
+                        void loadDescriptionHistory(homework.id)
+                      }
+                      onCancel={() => setEditingId(null)}
+                      onSave={() => void handleUpdate(homework)}
+                      onDelete={() => void handleDelete(homework)}
+                      renderEditHelperActions={renderEditHelperActions}
+                      t={t}
+                      tComments={tComments}
+                      tDescriptions={tDescriptions}
+                    />
                   )}
                 </CardPanel>
               </Card>
@@ -1381,5 +1033,644 @@ export function HomeworkPanel({
         </div>
       )}
     </div>
+  );
+}
+
+function CreateHomeworkSheet({
+  open,
+  onOpenChange,
+  canCreate,
+  isSaving,
+  newTitle,
+  newDescription,
+  newPublishedAt,
+  newSubmissionStartAt,
+  newSubmissionDueAt,
+  newIsMajor,
+  newRequiresTeam,
+  onTitleChange,
+  onDescriptionChange,
+  onPublishedChange,
+  onSubmissionStartChange,
+  onSubmissionDueChange,
+  onToggleMajor,
+  onToggleRequiresTeam,
+  onReset,
+  onCreate,
+  onApplyStartNow,
+  onApplyWeek,
+  onApplySemesterEnd,
+  onApplySemesterStart,
+  labels,
+}: CreateHomeworkSheetProps) {
+  const renderHelperActions = (target: "start" | "due") => {
+    const setValue =
+      target === "start" ? onSubmissionStartChange : onSubmissionDueChange;
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onApplyStartNow(setValue)}
+        >
+          {labels.helperNow}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => onApplyWeek(setValue)}>
+          {labels.helperWeek}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => onApplySemesterEnd(setValue)}
+        >
+          {labels.helperSemesterEnd}
+        </Button>
+        {target === "start" && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onApplySemesterStart(setValue)}
+          >
+            {labels.helperSemesterStart}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger render={<Button size="sm" variant="outline" />}>
+        {labels.showCreate}
+      </SheetTrigger>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>{labels.createTitle}</SheetTitle>
+        </SheetHeader>
+        <SheetPanel className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="homework-title">{labels.titleLabel}</Label>
+            <Input
+              id="homework-title"
+              value={newTitle}
+              onChange={(event) => onTitleChange(event.target.value)}
+              placeholder={labels.titlePlaceholder}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>{labels.descriptionLabel}</Label>
+            <MarkdownEditor
+              value={newDescription}
+              onChange={onDescriptionChange}
+              placeholder={labels.descriptionPlaceholder}
+              tabWriteLabel={labels.tabWrite}
+              tabPreviewLabel={labels.tabPreview}
+              previewEmptyLabel={labels.previewEmpty}
+              markdownGuideLabel={labels.markdownGuide}
+              markdownGuideHref="/comments/guide"
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="homework-major"
+                checked={newIsMajor}
+                onCheckedChange={onToggleMajor}
+              />
+              <Label htmlFor="homework-major">{labels.tagMajor}</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="homework-team"
+                checked={newRequiresTeam}
+                onCheckedChange={onToggleRequiresTeam}
+              />
+              <Label htmlFor="homework-team">{labels.tagTeam}</Label>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="homework-published">{labels.publishedAt}</Label>
+              <Input
+                id="homework-published"
+                type="datetime-local"
+                value={newPublishedAt}
+                onChange={(event) => onPublishedChange(event.target.value)}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    onPublishedChange(
+                      toLocalInputValue(new Date().toISOString()),
+                    )
+                  }
+                >
+                  {labels.helperPublishNow}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onPublishedChange("")}
+                >
+                  {labels.helperClear}
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="homework-start">{labels.submissionStart}</Label>
+              <Input
+                id="homework-start"
+                type="datetime-local"
+                value={newSubmissionStartAt}
+                onChange={(event) =>
+                  onSubmissionStartChange(event.target.value)
+                }
+              />
+              {renderHelperActions("start")}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="homework-due">{labels.submissionDue}</Label>
+              <Input
+                id="homework-due"
+                type="datetime-local"
+                value={newSubmissionDueAt}
+                onChange={(event) => onSubmissionDueChange(event.target.value)}
+              />
+              {renderHelperActions("due")}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                onReset();
+                onOpenChange(false);
+              }}
+            >
+              {labels.cancel}
+            </Button>
+            <Button onClick={onCreate} disabled={isSaving || !canCreate}>
+              {isSaving ? labels.saving : labels.createAction}
+            </Button>
+          </div>
+        </SheetPanel>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function HomeworkCardHeader({
+  homework,
+  formatter,
+  commentCount,
+  canEdit,
+  isEditing,
+  onEdit,
+  t,
+}: HomeworkCardHeaderProps) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="space-y-1">
+        <CardTitle className="text-base">{homework.title}</CardTitle>
+        <p className="text-muted-foreground text-xs">
+          {t("createdAt", {
+            date: formatter.format(new Date(homework.createdAt)),
+          })}
+        </p>
+      </div>
+      <CardAction className="flex flex-wrap gap-2 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+        <Sheet>
+          <SheetTrigger render={<Button size="sm" variant="outline" />}>
+            {t("commentsAction")} ({commentCount})
+          </SheetTrigger>
+          <SheetContent side="right">
+            <SheetHeader>
+              <SheetTitle>{t("commentsTitle")}</SheetTitle>
+            </SheetHeader>
+            <SheetPanel>
+              <CommentsSection
+                targets={[
+                  {
+                    key: "homework",
+                    label: t("commentsLabel"),
+                    type: "homework",
+                    homeworkId: homework.id,
+                  },
+                ]}
+              />
+            </SheetPanel>
+          </SheetContent>
+        </Sheet>
+        {canEdit && !isEditing && (
+          <Button size="sm" variant="outline" onClick={onEdit}>
+            {t("editAction")}
+          </Button>
+        )}
+      </CardAction>
+    </div>
+  );
+}
+
+function HomeworkCardReadOnly({
+  homework,
+  formatter,
+  tagBadges,
+  isAuthenticated,
+  isSavingCompletion,
+  onToggleCompletion,
+  t,
+}: HomeworkCardReadOnlyProps) {
+  return (
+    <>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs">{t("submissionDue")}</p>
+          <p className="font-semibold text-foreground text-xl">
+            {homework.submissionDueAt
+              ? formatter.format(new Date(homework.submissionDueAt))
+              : t("dateTBD")}
+          </p>
+        </div>
+      </div>
+      <div className="rounded-lg border border-border/60 bg-muted/5 px-3 py-3">
+        {homework.description?.content ? (
+          <CommentMarkdown content={homework.description.content} />
+        ) : (
+          <p className="text-muted-foreground text-sm">
+            {t("descriptionEmpty")}
+          </p>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
+        <div className="space-y-1 text-muted-foreground text-xs">
+          <p>
+            {t("submissionStart")} ·{" "}
+            {homework.submissionStartAt
+              ? formatter.format(new Date(homework.submissionStartAt))
+              : t("dateTBD")}
+          </p>
+          <p>
+            {t("publishedAt")} ·{" "}
+            {homework.publishedAt
+              ? formatter.format(new Date(homework.publishedAt))
+              : t("dateTBD")}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {tagBadges}
+          {isAuthenticated && (
+            <div className="flex items-center gap-2">
+              <Switch
+                id={`homework-completed-${homework.id}`}
+                checked={Boolean(homework.completion)}
+                onCheckedChange={onToggleCompletion}
+                disabled={isSavingCompletion}
+              />
+              <Label htmlFor={`homework-completed-${homework.id}`}>
+                {t("completedLabel")}
+              </Label>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function HomeworkCardEditForm({
+  homework,
+  formatter,
+  editTitle,
+  editDescription,
+  editIsMajor,
+  editRequiresTeam,
+  editPublishedAt,
+  editSubmissionStartAt,
+  editSubmissionDueAt,
+  canDelete,
+  isSaving,
+  descriptionHistory,
+  onTitleChange,
+  onDescriptionChange,
+  onToggleMajor,
+  onToggleTeam,
+  onPublishedChange,
+  onSubmissionStartChange,
+  onSubmissionDueChange,
+  onLoadHistory,
+  onCancel,
+  onSave,
+  onDelete,
+  renderEditHelperActions,
+  t,
+  tComments,
+  tDescriptions,
+}: HomeworkCardEditFormProps) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor={`homework-edit-title-${homework.id}`}>
+          {t("titleLabel")}
+        </Label>
+        <Input
+          id={`homework-edit-title-${homework.id}`}
+          value={editTitle}
+          onChange={(event) => onTitleChange(event.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>{t("descriptionLabel")}</Label>
+        <MarkdownEditor
+          value={editDescription}
+          onChange={onDescriptionChange}
+          placeholder={t("descriptionPlaceholder")}
+          tabWriteLabel={tComments("tabWrite")}
+          tabPreviewLabel={tComments("tabPreview")}
+          previewEmptyLabel={tComments("previewEmpty")}
+          markdownGuideLabel={tComments("markdownGuide")}
+          markdownGuideHref="/comments/guide"
+        />
+      </div>
+
+      <Separator />
+
+      <div className="flex flex-wrap gap-4">
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`homework-edit-major-${homework.id}`}
+            checked={editIsMajor}
+            onCheckedChange={onToggleMajor}
+          />
+          <Label htmlFor={`homework-edit-major-${homework.id}`}>
+            {t("tagMajor")}
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id={`homework-edit-team-${homework.id}`}
+            checked={editRequiresTeam}
+            onCheckedChange={onToggleTeam}
+          />
+          <Label htmlFor={`homework-edit-team-${homework.id}`}>
+            {t("tagTeam")}
+          </Label>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor={`homework-edit-publish-${homework.id}`}>
+            {t("publishedAt")}
+          </Label>
+          <Input
+            id={`homework-edit-publish-${homework.id}`}
+            type="datetime-local"
+            value={editPublishedAt}
+            onChange={(event) => onPublishedChange(event.target.value)}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                onPublishedChange(toLocalInputValue(new Date().toISOString()))
+              }
+            >
+              {t("helperPublishNow")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onPublishedChange("")}
+            >
+              {t("helperClear")}
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`homework-edit-start-${homework.id}`}>
+            {t("submissionStart")}
+          </Label>
+          <Input
+            id={`homework-edit-start-${homework.id}`}
+            type="datetime-local"
+            value={editSubmissionStartAt}
+            onChange={(event) => onSubmissionStartChange(event.target.value)}
+          />
+          {renderEditHelperActions("start")}
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`homework-edit-due-${homework.id}`}>
+            {t("submissionDue")}
+          </Label>
+          <Input
+            id={`homework-edit-due-${homework.id}`}
+            type="datetime-local"
+            value={editSubmissionDueAt}
+            onChange={(event) => onSubmissionDueChange(event.target.value)}
+          />
+          {renderEditHelperActions("due")}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Sheet
+            onOpenChange={(open) => {
+              if (open) {
+                onLoadHistory();
+              }
+            }}
+          >
+            <SheetTrigger render={<Button size="sm" variant="outline" />}>
+              {t("contentHistoryAction")}
+            </SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>
+                  {tDescriptions("historyTitle", {
+                    count: descriptionHistory.entries?.length ?? 0,
+                  })}
+                </SheetTitle>
+              </SheetHeader>
+              <SheetPanel className="space-y-4">
+                {descriptionHistory.loading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ) : descriptionHistory.error ? (
+                  <p className="text-muted-foreground text-sm">
+                    {descriptionHistory.error}
+                  </p>
+                ) : descriptionHistory.entries?.length ? (
+                  descriptionHistory.entries.map((entry) => {
+                    const editorName =
+                      entry.editor?.name ||
+                      entry.editor?.username ||
+                      tDescriptions("editorUnknown");
+                    return (
+                      <div
+                        key={entry.id}
+                        className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
+                          <span>{editorName}</span>
+                          <span>
+                            {formatter.format(new Date(entry.createdAt))}
+                          </span>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <p className="text-muted-foreground text-xs">
+                            {tDescriptions("previousLabel")}
+                          </p>
+                          <div className="rounded-md border border-border/60 bg-background px-3 py-2">
+                            {entry.previousContent ? (
+                              <CommentMarkdown
+                                content={entry.previousContent}
+                              />
+                            ) : (
+                              <p className="text-muted-foreground text-sm">
+                                {tDescriptions("emptyValue")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <p className="text-muted-foreground text-xs">
+                            {tDescriptions("updatedLabel")}
+                          </p>
+                          <div className="rounded-md border border-border/60 bg-background px-3 py-2">
+                            {entry.nextContent ? (
+                              <CommentMarkdown content={entry.nextContent} />
+                            ) : (
+                              <p className="text-muted-foreground text-sm">
+                                {tDescriptions("emptyValue")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-muted-foreground text-sm">
+                    {tDescriptions("historyEmpty")}
+                  </p>
+                )}
+              </SheetPanel>
+            </SheetContent>
+          </Sheet>
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
+                {t("deleteAction")}
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {t("deleteDescription", {
+                      title: homework.title,
+                    })}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogClose render={<Button variant="ghost" />}>
+                    {t("cancel")}
+                  </AlertDialogClose>
+                  <Button
+                    variant="destructive"
+                    onClick={onDelete}
+                    disabled={isSaving}
+                  >
+                    {t("confirmDelete")}
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={onCancel}>
+            {t("cancel")}
+          </Button>
+          <Button onClick={onSave} disabled={isSaving}>
+            {isSaving ? t("saving") : t("saveChanges")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuditLogSheet({ auditLogs, formatter, labels }: AuditLogSheetProps) {
+  return (
+    <Sheet>
+      <SheetTrigger render={<Button size="sm" variant="outline" />}>
+        {labels.trigger}
+      </SheetTrigger>
+      <SheetContent side="right">
+        <SheetHeader>
+          <SheetTitle>{labels.title}</SheetTitle>
+        </SheetHeader>
+        <SheetPanel>
+          {auditLogs.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{labels.empty}</p>
+          ) : (
+            <div className="space-y-3">
+              {auditLogs.map((log) => {
+                const actorName =
+                  log.actor?.name || log.actor?.username || labels.trigger;
+                const actionLabel =
+                  log.action === "deleted" ? labels.deleted : labels.created;
+                return (
+                  <div
+                    key={log.id}
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2",
+                      "border border-border/60 bg-muted/40",
+                    )}
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <Badge
+                        variant={
+                          log.action === "deleted" ? "destructive" : "secondary"
+                        }
+                      >
+                        {actionLabel}
+                      </Badge>
+                      <span className="font-medium text-foreground">
+                        {log.titleSnapshot}
+                      </span>
+                    </div>
+                    <div className="text-muted-foreground text-xs">
+                      {labels.meta({
+                        name: actorName,
+                        date: formatter.format(new Date(log.createdAt)),
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </SheetPanel>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -207,9 +207,9 @@ export default async function MyCommentsPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">
+      <div className="mt-8 mb-8">
+        <h1 className="mb-2 text-display">{t("title")}</h1>
+        <p className="text-muted-foreground text-subtitle">
           {t("description")}
         </p>
       </div>
@@ -226,7 +226,7 @@ export default async function MyCommentsPage({
             {comments.map((comment: CommentEntry) => (
               <Card key={comment.id}>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <CardTitle className="flex items-center gap-2 font-medium text-base">
                     <Badge variant="outline" className="font-normal">
                       {buildTargetLabel(comment)}
                     </Badge>

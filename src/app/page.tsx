@@ -29,9 +29,9 @@ export default async function Homepage() {
   return (
     <main className="page-main">
       {/* Hero Section */}
-      <section className="mb-12 md:mb-12 -mx-6 px-6 md:mx-0 md:px-0 min-h-[100dvh] md:min-h-0 flex items-center justify-center animate-in fade-in slide-in-from-left-4 duration-700">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center w-full py-12">
-          <div className="flex justify-center mb-8 md:mb-0 md:order-2 animate-in fade-in slide-in-from-right-4 duration-700 delay-200">
+      <section className="-mx-6 fade-in slide-in-from-left-4 mb-12 flex min-h-[100dvh] animate-in items-center justify-center px-6 duration-700 md:mx-0 md:mb-12 md:min-h-0 md:px-0">
+        <div className="grid w-full grid-cols-1 items-center gap-8 py-12 md:grid-cols-2 md:gap-12">
+          <div className="fade-in slide-in-from-right-4 mb-8 flex animate-in justify-center delay-200 duration-700 md:order-2 md:mb-0">
             <div className="relative animate-float">
               <Image
                 src="/images/icon.png"
@@ -52,7 +52,7 @@ export default async function Homepage() {
               </span>
             </h1>
 
-            <p className="text-subtitle text-muted-foreground max-w-lg">
+            <p className="max-w-lg text-muted-foreground text-subtitle">
               {t("subtitle")}
             </p>
 
@@ -61,7 +61,7 @@ export default async function Homepage() {
                 href="https://apps.apple.com/us/app/life-ustc/id1660437438"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-transform hover:scale-105 no-underline"
+                className="no-underline transition-transform hover:scale-105"
               >
                 <Image
                   src="/images/appstore.svg"
@@ -77,11 +77,11 @@ export default async function Homepage() {
       </section>
 
       {/* Quick Links */}
-      <section className="mb-12 animate-in fade-in duration-700 delay-300">
-        <h2 className="text-title-2 mb-6">{t("quickAccess.title")}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <section className="fade-in mb-12 animate-in delay-300 duration-700">
+        <h2 className="mb-6 text-title-2">{t("quickAccess.title")}</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link href="/sections" className="no-underline">
-            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-primary" />
@@ -89,7 +89,7 @@ export default async function Homepage() {
                 </div>
               </CardHeader>
               <CardPanel>
-                <p className="text-body text-muted-foreground line-clamp-2">
+                <p className="line-clamp-2 text-body text-muted-foreground">
                   {t("quickAccess.viewSections.description")}
                 </p>
               </CardPanel>
@@ -97,7 +97,7 @@ export default async function Homepage() {
           </Link>
 
           <Link href="/teachers" className="no-underline">
-            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Users className="h-5 w-5 text-primary" />
@@ -105,7 +105,7 @@ export default async function Homepage() {
                 </div>
               </CardHeader>
               <CardPanel>
-                <p className="text-body text-muted-foreground line-clamp-2">
+                <p className="line-clamp-2 text-body text-muted-foreground">
                   {t("quickAccess.browseTeachers.description")}
                 </p>
               </CardPanel>
@@ -113,7 +113,7 @@ export default async function Homepage() {
           </Link>
 
           <Link href="/me" className="no-underline">
-            <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <User className="h-5 w-5 text-primary" />
@@ -121,7 +121,7 @@ export default async function Homepage() {
                 </div>
               </CardHeader>
               <CardPanel>
-                <p className="text-body text-muted-foreground line-clamp-2">
+                <p className="line-clamp-2 text-body text-muted-foreground">
                   {t("quickAccess.myProfile.description")}
                 </p>
               </CardPanel>
@@ -129,7 +129,7 @@ export default async function Homepage() {
           </Link>
           {isAdmin && (
             <Link href="/admin" className="no-underline">
-              <Card className="h-full overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg">
+              <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <Shield className="h-5 w-5 text-primary" />
@@ -137,7 +137,7 @@ export default async function Homepage() {
                   </div>
                 </CardHeader>
                 <CardPanel>
-                  <p className="text-body text-muted-foreground line-clamp-2">
+                  <p className="line-clamp-2 text-body text-muted-foreground">
                     {t("quickAccess.admin.description")}
                   </p>
                 </CardPanel>

@@ -98,12 +98,12 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
           return (
             <div
               key={provider.id}
-              className="flex items-center justify-between p-4 border rounded-lg"
+              className="flex items-center justify-between rounded-lg border p-4"
             >
               <div className="flex items-center gap-3">
                 <span className="font-medium">{provider.name}</span>
                 {isConnected && (
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full dark:bg-green-900 dark:text-green-100">
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-800 text-xs dark:bg-green-900 dark:text-green-100">
                     {t("connected")}
                   </span>
                 )}
@@ -168,7 +168,7 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
           );
         })}
         {!canDisconnect && connectedProviders.length === 1 && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {t("cannotDisconnectLast")}
           </p>
         )}

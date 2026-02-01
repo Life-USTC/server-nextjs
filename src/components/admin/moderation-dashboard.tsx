@@ -49,6 +49,57 @@ const DURATION_OPTIONS = [
   { value: "custom", labelKey: "durationCustom" },
 ] as const;
 
+type CommentFiltersProps = {
+  searchQuery: string;
+  statusFilter: string;
+  onSearchChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type CommentsTableProps = {
+  comments: AdminComment[];
+  formatter: Intl.DateTimeFormat;
+  onSelect: (comment: AdminComment) => void;
+  getTargetLink: (comment: AdminComment) => { href: string; label: string };
+  t: ReturnType<typeof useTranslations>;
+};
+
+type SuspensionsTableProps = {
+  suspensions: Suspension[];
+  formatter: Intl.DateTimeFormat;
+  onLift: (suspensionId: string, userName: string) => void;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type CommentDetailDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  comment: AdminComment | null;
+  updateStatus: string;
+  updateNote: string;
+  suspendDuration: string;
+  suspendExpiresAt: string;
+  suspendReason: string;
+  onUpdateStatus: () => void;
+  onSuspendUser: () => void;
+  onStatusChange: (value: string) => void;
+  onNoteChange: (value: string) => void;
+  onDurationChange: (value: string) => void;
+  onExpiresChange: (value: string) => void;
+  onReasonChange: (value: string) => void;
+  formatter: Intl.DateTimeFormat;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type LiftDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  userName: string;
+  onConfirm: () => void;
+  t: ReturnType<typeof useTranslations>;
+};
+
 export function ModerationDashboard() {
   const t = useTranslations("moderation");
   const locale = useLocale();
@@ -59,7 +110,6 @@ export function ModerationDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>("active");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Detail Dialog State
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<AdminComment | null>(
     null,
@@ -67,12 +117,10 @@ export function ModerationDashboard() {
   const [updateStatus, setUpdateStatus] = useState("");
   const [updateNote, setUpdateNote] = useState("");
 
-  // Suspension State inside Detail Dialog
   const [suspendDuration, setSuspendDuration] = useState("3d");
   const [suspendExpiresAt, setSuspendExpiresAt] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
 
-  // Separate Lift Dialog (still needed for suspensions tab)
   const [liftDialogOpen, setLiftDialogOpen] = useState(false);
   const [liftSuspensionId, setLiftSuspensionId] = useState("");
   const [liftUserName, setLiftUserName] = useState("");
@@ -158,7 +206,6 @@ export function ModerationDashboard() {
     setSuspendDuration("3d");
     setSuspendExpiresAt("");
 
-    // Set default ban reason
     const targetLink = getTargetLink(comment);
     const date = formatter.format(new Date(comment.createdAt));
     const bodySnippet =
@@ -171,7 +218,6 @@ export function ModerationDashboard() {
       content: bodySnippet,
     });
     setSuspendReason(reason);
-
     setDetailDialogOpen(true);
   };
 
@@ -335,359 +381,441 @@ export function ModerationDashboard() {
         </TabsList>
 
         <TabsPanel value="comments">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="relative flex-1">
-              <MagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("searchPlaceholder")}
-                className="pl-9"
-              />
-            </div>
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value ?? "active")}
-              items={[
-                { value: "all", label: t("filterAll") },
-                { value: "active", label: t("filterActive") },
-                { value: "softbanned", label: t("filterSoftbanned") },
-                { value: "deleted", label: t("filterDeleted") },
-              ]}
-            >
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectPopup>
-                <SelectItem value="all">{t("filterAll")}</SelectItem>
-                <SelectItem value="active">{t("filterActive")}</SelectItem>
-                <SelectItem value="softbanned">
-                  {t("filterSoftbanned")}
-                </SelectItem>
-                <SelectItem value="deleted">{t("filterDeleted")}</SelectItem>
-              </SelectPopup>
-            </Select>
-          </div>
+          <CommentFilters
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            onSearchChange={setSearchQuery}
+            onStatusChange={(value) => setStatusFilter(value ?? "active")}
+            t={t}
+          />
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">{t("loading")}</p>
+            <p className="text-muted-foreground text-sm">{t("loading")}</p>
           ) : filteredComments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("noResults")}</p>
+            <p className="text-muted-foreground text-sm">{t("noResults")}</p>
           ) : (
             <>
-              <p className="mb-3 text-sm text-muted-foreground">
+              <p className="mb-3 text-muted-foreground text-sm">
                 {t("showingResults", { count: filteredComments.length })}
               </p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("author")}</TableHead>
-                    <TableHead>{t("content")}</TableHead>
-                    <TableHead>{t("postedIn")}</TableHead>
-                    <TableHead>{t("status")}</TableHead>
-                    <TableHead>{t("createdAt")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredComments.map((comment) => {
-                    const authorName =
-                      comment.user?.name ??
-                      comment.authorName ??
-                      t("guestLabel");
-                    const target = getTargetLink(comment);
-                    const statusLabel =
-                      comment.status === "softbanned"
-                        ? t("statusSoftbanned")
-                        : comment.status === "deleted"
-                          ? t("statusDeleted")
-                          : t("statusActive");
-
-                    return (
-                      <TableRow
-                        key={comment.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => openDetailDialog(comment)}
-                      >
-                        <TableCell className="font-medium">
-                          {authorName}
-                        </TableCell>
-                        <TableCell className="max-w-md">
-                          <p className="line-clamp-2 text-sm">{comment.body}</p>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="xs"
-                            variant="link"
-                            render={
-                              <Link
-                                className="no-underline"
-                                href={target.href}
-                              />
-                            }
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {target.label}
-                          </Button>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              comment.status === "active"
-                                ? "default"
-                                : comment.status === "softbanned"
-                                  ? "secondary"
-                                  : "outline"
-                            }
-                          >
-                            {statusLabel}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {formatter.format(new Date(comment.createdAt))}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <CommentsTable
+                comments={filteredComments}
+                formatter={formatter}
+                onSelect={openDetailDialog}
+                getTargetLink={getTargetLink}
+                t={t}
+              />
             </>
           )}
         </TabsPanel>
 
         <TabsPanel value="suspensions">
-          <div className="mb-4">
-            <div className="relative">
-              <MagnifyingGlass className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("searchPlaceholder")}
-                className="pl-9"
-              />
-            </div>
-          </div>
+          <CommentFilters
+            searchQuery={searchQuery}
+            statusFilter="all"
+            onSearchChange={setSearchQuery}
+            onStatusChange={() => null}
+            t={t}
+          />
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">{t("loading")}</p>
+            <p className="text-muted-foreground text-sm">{t("loading")}</p>
           ) : filteredSuspensions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("noResults")}</p>
+            <p className="text-muted-foreground text-sm">{t("noResults")}</p>
           ) : (
             <>
-              <p className="mb-3 text-sm text-muted-foreground">
+              <p className="mb-3 text-muted-foreground text-sm">
                 {t("showingResults", { count: filteredSuspensions.length })}
               </p>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("user")}</TableHead>
-                    <TableHead>{t("reason")}</TableHead>
-                    <TableHead>{t("createdAt")}</TableHead>
-                    <TableHead>{t("expires")}</TableHead>
-                    <TableHead>{t("status")}</TableHead>
-                    <TableHead>{t("actions")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSuspensions.map((suspension) => (
-                    <TableRow key={suspension.id}>
-                      <TableCell className="font-medium">
-                        {suspension.user?.name ?? suspension.userId}
-                      </TableCell>
-                      <TableCell>
-                        {suspension.reason ?? t("noReason")}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatter.format(new Date(suspension.createdAt))}
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {suspension.expiresAt
-                          ? formatter.format(new Date(suspension.expiresAt))
-                          : t("permanent")}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            suspension.liftedAt ? "outline" : "destructive"
-                          }
-                        >
-                          {suspension.liftedAt ? t("lifted") : t("active")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {!suspension.liftedAt && (
-                          <Button
-                            size="xs"
-                            variant="outline"
-                            onClick={() =>
-                              openLiftDialog(
-                                suspension.id,
-                                suspension.user?.name ?? suspension.userId,
-                              )
-                            }
-                          >
-                            {t("liftAction")}
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <SuspensionsTable
+                suspensions={filteredSuspensions}
+                formatter={formatter}
+                onLift={openLiftDialog}
+                t={t}
+              />
             </>
           )}
         </TabsPanel>
       </Tabs>
 
-      <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
-        <DialogPopup className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("manageComment")}</DialogTitle>
-            <DialogDescription>{t("clickToManage")}</DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[70vh] overflow-y-auto p-4">
-            {selectedComment && (
-              <div className="space-y-6">
-                <div className="rounded-md bg-muted/50 p-3">
-                  <p className="whitespace-pre-wrap text-sm">
-                    {selectedComment.body}
-                  </p>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {t("author")}:{" "}
-                    {selectedComment.user?.name ??
-                      selectedComment.authorName ??
-                      t("guestLabel")}{" "}
-                    · {formatter.format(new Date(selectedComment.createdAt))}
-                  </div>
+      <CommentDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        comment={selectedComment}
+        updateStatus={updateStatus}
+        updateNote={updateNote}
+        suspendDuration={suspendDuration}
+        suspendExpiresAt={suspendExpiresAt}
+        suspendReason={suspendReason}
+        onUpdateStatus={handleUpdateStatus}
+        onSuspendUser={handleSuspendUser}
+        onStatusChange={setUpdateStatus}
+        onNoteChange={setUpdateNote}
+        onDurationChange={(value) => setSuspendDuration(value ?? "3d")}
+        onExpiresChange={setSuspendExpiresAt}
+        onReasonChange={setSuspendReason}
+        formatter={formatter}
+        t={t}
+      />
+
+      <LiftSuspensionDialog
+        open={liftDialogOpen}
+        onOpenChange={setLiftDialogOpen}
+        userName={liftUserName}
+        onConfirm={() => void confirmLift()}
+        t={t}
+      />
+    </>
+  );
+}
+
+function CommentFilters({
+  searchQuery,
+  statusFilter,
+  onSearchChange,
+  onStatusChange,
+  t,
+}: CommentFiltersProps) {
+  return (
+    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="relative flex-1">
+        <MagnifyingGlass className="absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={t("searchPlaceholder")}
+          className="pl-9"
+        />
+      </div>
+      {statusFilter !== "all" && (
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => onStatusChange(value ?? "active")}
+          items={[
+            { value: "all", label: t("filterAll") },
+            { value: "active", label: t("filterActive") },
+            { value: "softbanned", label: t("filterSoftbanned") },
+            { value: "deleted", label: t("filterDeleted") },
+          ]}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            <SelectItem value="all">{t("filterAll")}</SelectItem>
+            <SelectItem value="active">{t("filterActive")}</SelectItem>
+            <SelectItem value="softbanned">{t("filterSoftbanned")}</SelectItem>
+            <SelectItem value="deleted">{t("filterDeleted")}</SelectItem>
+          </SelectPopup>
+        </Select>
+      )}
+    </div>
+  );
+}
+
+function CommentsTable({
+  comments,
+  formatter,
+  onSelect,
+  getTargetLink,
+  t,
+}: CommentsTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{t("author")}</TableHead>
+          <TableHead>{t("content")}</TableHead>
+          <TableHead>{t("postedIn")}</TableHead>
+          <TableHead>{t("status")}</TableHead>
+          <TableHead>{t("createdAt")}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {comments.map((comment) => {
+          const authorName =
+            comment.user?.name ?? comment.authorName ?? t("guestLabel");
+          const target = getTargetLink(comment);
+          const statusLabel =
+            comment.status === "softbanned"
+              ? t("statusSoftbanned")
+              : comment.status === "deleted"
+                ? t("statusDeleted")
+                : t("statusActive");
+
+          return (
+            <TableRow
+              key={comment.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => onSelect(comment)}
+            >
+              <TableCell className="font-medium">{authorName}</TableCell>
+              <TableCell className="max-w-md">
+                <p className="line-clamp-2 text-sm">{comment.body}</p>
+              </TableCell>
+              <TableCell>
+                <Button
+                  size="xs"
+                  variant="link"
+                  render={<Link className="no-underline" href={target.href} />}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {target.label}
+                </Button>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    comment.status === "active"
+                      ? "default"
+                      : comment.status === "softbanned"
+                        ? "secondary"
+                        : "outline"
+                  }
+                >
+                  {statusLabel}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground text-xs">
+                {formatter.format(new Date(comment.createdAt))}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+function SuspensionsTable({
+  suspensions,
+  formatter,
+  onLift,
+  t,
+}: SuspensionsTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{t("user")}</TableHead>
+          <TableHead>{t("reason")}</TableHead>
+          <TableHead>{t("createdAt")}</TableHead>
+          <TableHead>{t("expires")}</TableHead>
+          <TableHead>{t("status")}</TableHead>
+          <TableHead>{t("actions")}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {suspensions.map((suspension) => (
+          <TableRow key={suspension.id}>
+            <TableCell className="font-medium">
+              {suspension.user?.name ?? suspension.userId}
+            </TableCell>
+            <TableCell>{suspension.reason ?? t("noReason")}</TableCell>
+            <TableCell className="text-muted-foreground text-xs">
+              {formatter.format(new Date(suspension.createdAt))}
+            </TableCell>
+            <TableCell className="text-muted-foreground text-xs">
+              {suspension.expiresAt
+                ? formatter.format(new Date(suspension.expiresAt))
+                : t("permanent")}
+            </TableCell>
+            <TableCell>
+              <Badge variant={suspension.liftedAt ? "outline" : "destructive"}>
+                {suspension.liftedAt ? t("lifted") : t("active")}
+              </Badge>
+            </TableCell>
+            <TableCell>
+              {!suspension.liftedAt && (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  onClick={() =>
+                    onLift(
+                      suspension.id,
+                      suspension.user?.name ?? suspension.userId,
+                    )
+                  }
+                >
+                  {t("liftAction")}
+                </Button>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function CommentDetailDialog({
+  open,
+  onOpenChange,
+  comment,
+  updateStatus,
+  updateNote,
+  suspendDuration,
+  suspendExpiresAt,
+  suspendReason,
+  onUpdateStatus,
+  onSuspendUser,
+  onStatusChange,
+  onNoteChange,
+  onDurationChange,
+  onExpiresChange,
+  onReasonChange,
+  formatter,
+  t,
+}: CommentDetailDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPopup className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{t("manageComment")}</DialogTitle>
+          <DialogDescription>{t("clickToManage")}</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[70vh] overflow-y-auto p-4">
+          {comment && (
+            <div className="space-y-6">
+              <div className="rounded-md bg-muted/50 p-3">
+                <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
+                <div className="mt-2 text-muted-foreground text-xs">
+                  {t("author")}:{" "}
+                  {comment.user?.name ?? comment.authorName ?? t("guestLabel")}{" "}
+                  · {formatter.format(new Date(comment.createdAt))}
                 </div>
+              </div>
 
-                <div className="space-y-3">
-                  <h4 className="font-medium">{t("changeStatus")}</h4>
-                  <RadioGroup
-                    value={updateStatus}
-                    onValueChange={setUpdateStatus}
-                    className="flex flex-wrap gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="active" id="status-active" />
-                      <Label htmlFor="status-active">{t("statusActive")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem
-                        value="softbanned"
-                        id="status-softbanned"
-                      />
-                      <Label htmlFor="status-softbanned">
-                        {t("statusSoftbanned")}
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="deleted" id="status-deleted" />
-                      <Label htmlFor="status-deleted">
-                        {t("statusDeleted")}
-                      </Label>
-                    </div>
-                  </RadioGroup>
+              <div className="space-y-3">
+                <h4 className="font-medium">{t("changeStatus")}</h4>
+                <RadioGroup
+                  value={updateStatus}
+                  onValueChange={onStatusChange}
+                  className="flex flex-wrap gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="active" id="status-active" />
+                    <Label htmlFor="status-active">{t("statusActive")}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="softbanned" id="status-softbanned" />
+                    <Label htmlFor="status-softbanned">
+                      {t("statusSoftbanned")}
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="deleted" id="status-deleted" />
+                    <Label htmlFor="status-deleted">{t("statusDeleted")}</Label>
+                  </div>
+                </RadioGroup>
 
+                <div className="space-y-2">
+                  <Label>{t("noteLabel")}</Label>
+                  <Textarea
+                    value={updateNote}
+                    onChange={(event) => onNoteChange(event.target.value)}
+                    placeholder={t("moderationNote")}
+                    rows={2}
+                  />
+                </div>
+                <Button
+                  onClick={onUpdateStatus}
+                  disabled={
+                    updateStatus === comment.status &&
+                    updateNote === (comment.moderationNote ?? "")
+                  }
+                >
+                  {t("confirmButton")}
+                </Button>
+              </div>
+
+              {comment.userId && (
+                <div className="space-y-3 border-t pt-4">
+                  <h4 className="font-medium text-destructive">
+                    {t("manageSuspension")}
+                  </h4>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>{t("durationLabel")}</Label>
+                      <Select
+                        value={suspendDuration}
+                        onValueChange={(value) =>
+                          onDurationChange(value ?? "3d")
+                        }
+                        items={DURATION_OPTIONS.map((option) => ({
+                          value: option.value,
+                          label: t(option.labelKey),
+                        }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectPopup>
+                          {DURATION_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {t(option.labelKey)}
+                            </SelectItem>
+                          ))}
+                        </SelectPopup>
+                      </Select>
+                    </div>
+                    {suspendDuration === "custom" && (
+                      <div className="space-y-2">
+                        <Label>{t("suspendExpires")}</Label>
+                        <Input
+                          type="datetime-local"
+                          value={suspendExpiresAt}
+                          onChange={(event) =>
+                            onExpiresChange(event.target.value)
+                          }
+                        />
+                      </div>
+                    )}
+                  </div>
                   <div className="space-y-2">
-                    <Label>{t("noteLabel")}</Label>
-                    <Textarea
-                      value={updateNote}
-                      onChange={(e) => setUpdateNote(e.target.value)}
-                      placeholder={t("moderationNote")}
-                      rows={2}
+                    <Label>{t("reason")}</Label>
+                    <Input
+                      value={suspendReason}
+                      onChange={(event) => onReasonChange(event.target.value)}
+                      placeholder={t("suspendReason")}
                     />
                   </div>
-                  <Button
-                    onClick={handleUpdateStatus}
-                    disabled={
-                      updateStatus === selectedComment.status &&
-                      updateNote === (selectedComment.moderationNote ?? "")
-                    }
-                  >
-                    {t("confirmButton")}
+                  <Button variant="destructive" onClick={onSuspendUser}>
+                    {t("suspendAction")}
                   </Button>
                 </div>
+              )}
+            </div>
+          )}
+        </div>
+      </DialogPopup>
+    </Dialog>
+  );
+}
 
-                {selectedComment.userId && (
-                  <div className="space-y-3 border-t pt-4">
-                    <h4 className="font-medium text-destructive">
-                      {t("manageSuspension")}
-                    </h4>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>{t("durationLabel")}</Label>
-                        <Select
-                          value={suspendDuration}
-                          onValueChange={(value) =>
-                            setSuspendDuration(value ?? "3d")
-                          }
-                          items={DURATION_OPTIONS.map((opt) => ({
-                            value: opt.value,
-                            label: t(opt.labelKey),
-                          }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectPopup>
-                            {DURATION_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {t(opt.labelKey)}
-                              </SelectItem>
-                            ))}
-                          </SelectPopup>
-                        </Select>
-                      </div>
-                      {suspendDuration === "custom" && (
-                        <div className="space-y-2">
-                          <Label>{t("suspendExpires")}</Label>
-                          <Input
-                            type="datetime-local"
-                            value={suspendExpiresAt}
-                            onChange={(e) =>
-                              setSuspendExpiresAt(e.target.value)
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label>{t("reason")}</Label>
-                      <Input
-                        value={suspendReason}
-                        onChange={(e) => setSuspendReason(e.target.value)}
-                        placeholder={t("suspendReason")}
-                      />
-                    </div>
-                    <Button variant="destructive" onClick={handleSuspendUser}>
-                      {t("suspendAction")}
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </DialogPopup>
-      </Dialog>
-
-      <Dialog open={liftDialogOpen} onOpenChange={setLiftDialogOpen}>
-        <DialogPopup>
-          <DialogHeader>
-            <DialogTitle>{t("confirmLiftTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("confirmLiftMessage", { userName: liftUserName })}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose render={<Button variant="outline" />}>
-              {t("cancelButton")}
-            </DialogClose>
-            <Button onClick={() => void confirmLift()}>
-              {t("confirmButton")}
-            </Button>
-          </DialogFooter>
-        </DialogPopup>
-      </Dialog>
-    </>
+function LiftSuspensionDialog({
+  open,
+  onOpenChange,
+  userName,
+  onConfirm,
+  t,
+}: LiftDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPopup>
+        <DialogHeader>
+          <DialogTitle>{t("confirmLiftTitle")}</DialogTitle>
+          <DialogDescription>
+            {t("confirmLiftMessage", { userName })}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" />}>
+            {t("cancelButton")}
+          </DialogClose>
+          <Button onClick={onConfirm}>{t("confirmButton")}</Button>
+        </DialogFooter>
+      </DialogPopup>
+    </Dialog>
   );
 }

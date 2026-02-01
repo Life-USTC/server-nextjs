@@ -20,6 +20,26 @@ UI 层使用 Coss UI 组件库以确保无障碍、一致的样式与交互行�
 - 可点击行使用 `ClickableTableRow`。
 - 缺失值显示为 "—"。
 
+## 可复用样式片段
+以下是当前页面/组件中反复出现且推荐统一复用的 Tailwind 组合，优先沿用这些写法以保持一致性。
+
+- 页面标题块
+  - 标题：`text-display`
+  - 副标题：`text-muted-foreground text-subtitle`
+  - 容器：`mt-8 mb-8`
+- 卡片跳转态
+  - `transition-colors hover:bg-accent/50`
+- 图标圆形底座
+  - `flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary`
+- 次要说明文字
+  - `text-muted-foreground text-sm` 或 `text-muted-foreground text-xs`
+- 表格行点击态
+  - `cursor-pointer hover:bg-muted/50`
+
+### 颜色与语义类
+- 避免使用 `text-gray-*`、`bg-gray-*`、`border-gray-*`。
+- 统一使用语义类：`text-muted-foreground`、`bg-muted`、`border-border`、`bg-card` 等。
+
 ## Toast
 - 使用 `useToast()` 或 `toastManager.promise()`（来自 `@/components/ui/toast`）。
 - Toast 文案必须本地化。

@@ -252,7 +252,7 @@ function CommentItem({
               </Avatar>
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-semibold">{authorName}</span>
+                  <span className="font-semibold text-sm">{authorName}</span>
                   {comment.author?.isUstcVerified && (
                     <Badge variant="secondary" className="text-[0.65rem]">
                       {t("ustcVerified")}
@@ -274,12 +274,12 @@ function CommentItem({
                 </div>
                 <Link
                   href={`#comment-${comment.id}`}
-                  className="block text-xs text-muted-foreground hover:underline"
+                  className="block text-muted-foreground text-xs hover:underline"
                 >
                   {dateFormatter.format(new Date(comment.createdAt))}
                 </Link>
                 {comment.updatedAt !== comment.createdAt && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     {t("editedAt", {
                       date: dateFormatter.format(new Date(comment.updatedAt)),
                     })}
@@ -287,7 +287,7 @@ function CommentItem({
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 opacity-0 pointer-events-none transition-opacity group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto">
+            <div className="pointer-events-none flex flex-wrap gap-2 opacity-0 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
               {comment.canReply && (
                 <Button
                   variant="ghost"
@@ -364,7 +364,7 @@ function CommentItem({
               onCancel={() => setIsEditing(false)}
             />
           ) : comment.status === "deleted" ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {t("deletedMessage")}
             </p>
           ) : (
@@ -379,7 +379,7 @@ function CommentItem({
               {comment.attachments.map((attachment) => (
                 <Card key={attachment.id} className="gap-2 py-4">
                   <CardPanel className="space-y-1">
-                    <p className="text-sm font-medium">{attachment.filename}</p>
+                    <p className="font-medium text-sm">{attachment.filename}</p>
                     <Button
                       size="xs"
                       variant="outline"

@@ -211,7 +211,7 @@ export function AdminUsersTable({
 
   return (
     <>
-      <p className="mb-3 text-sm text-muted-foreground">
+      <p className="mb-3 text-muted-foreground text-sm">
         {t("showing", { count: users.length, total })}
       </p>
       <Table>
@@ -237,7 +237,7 @@ export function AdminUsersTable({
               <TableCell>
                 {entry.isAdmin ? t("adminRole") : t("userRole")}
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="text-muted-foreground text-sm">
                 {formatter.format(new Date(entry.createdAt))}
               </TableCell>
             </TableRow>

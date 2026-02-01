@@ -48,18 +48,18 @@ export function SearchHelpSheet({
             {examples.map((item) => (
               <div key={item.syntax} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <code className="text-small font-mono bg-muted px-2 py-1 rounded">
+                  <code className="rounded bg-muted px-2 py-1 font-mono text-small">
                     {item.syntax}
                   </code>
                 </div>
-                <div className="space-y-2 ml-6">
+                <div className="ml-6 space-y-2">
                   <p className="text-body text-muted-foreground">
                     {item.description}
                   </p>
                   {item.example && (
-                    <p className="text-small text-foreground">
+                    <p className="text-foreground text-small">
                       <strong>{exampleLabel}</strong>{" "}
-                      <code className="font-mono bg-muted px-1 rounded">
+                      <code className="rounded bg-muted px-1 font-mono">
                         {item.example}
                       </code>
                     </p>

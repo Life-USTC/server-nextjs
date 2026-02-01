@@ -66,6 +66,309 @@ type DeleteResponse = {
   deletedSize: number;
 };
 
+type UsageSummaryCardProps = {
+  usageLabel: string;
+  usagePercent: number;
+  remainingLabel: string;
+};
+
+type UploadDropzoneProps = {
+  isDragActive: boolean;
+  isUploading: boolean;
+  selectedFile: File | null;
+  inputRef: React.RefObject<HTMLInputElement | null>;
+  onPickFile: () => void;
+  onDragActiveChange: (active: boolean) => void;
+  onSelectFile: (file: File) => void;
+  labels: {
+    fileLimit: string;
+    uploadCardDescription: string;
+    uploadAction: string;
+    uploading: string;
+  };
+};
+
+type UploadsTableProps = {
+  uploads: UploadItem[];
+  editingId: string | null;
+  editingName: string;
+  isSaving: boolean;
+  isDeleting: boolean;
+  formatter: Intl.DateTimeFormat;
+  onStartRename: (item: UploadItem) => void;
+  onCancelRename: () => void;
+  onRename: (item: UploadItem) => void;
+  onEditNameChange: (value: string) => void;
+  onOpen: (item: UploadItem) => void;
+  onCopyLink: (item: UploadItem) => void;
+  onDelete: (item: UploadItem) => void;
+  labels: {
+    emptyTitle: string;
+    emptyDescription: string;
+    tableName: string;
+    tableSize: string;
+    tableUploaded: string;
+    tableActions: string;
+    saveRenameAction: string;
+    cancelRenameAction: string;
+    renameAction: string;
+    downloadAction: string;
+    copyLinkAction: string;
+    deleteAction: string;
+  };
+};
+
+type UploadDeleteDialogProps = {
+  filename: string;
+  isDeleting: boolean;
+  onConfirm: () => void;
+  cancelLabel: string;
+  confirmLabel: string;
+  title: string;
+  description: string;
+};
+
+function UsageSummaryCard({
+  usageLabel,
+  usagePercent,
+  remainingLabel,
+}: UsageSummaryCardProps) {
+  return (
+    <div className="rounded-2xl border bg-muted/10 p-5">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="font-medium text-sm">{usageLabel}</p>
+          <p className="text-sm tabular-nums">{usagePercent}%</p>
+        </div>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-input">
+          <div
+            className="h-full bg-primary transition-all duration-500"
+            style={{ width: `${usagePercent}%` }}
+          />
+        </div>
+        <p className="text-muted-foreground text-sm">{remainingLabel}</p>
+      </div>
+    </div>
+  );
+}
+
+function UploadDropzone({
+  isDragActive,
+  isUploading,
+  selectedFile,
+  inputRef,
+  onPickFile,
+  onDragActiveChange,
+  onSelectFile,
+  labels,
+}: UploadDropzoneProps) {
+  return (
+    <div className="space-y-3">
+      <Card
+        className={cn(
+          "rounded-2xl border border-dashed bg-muted/20 p-5 transition-colors",
+          isDragActive && "border-primary bg-primary/10",
+        )}
+        onDragOver={(event) => {
+          event.preventDefault();
+          onDragActiveChange(true);
+        }}
+        onDragLeave={() => onDragActiveChange(false)}
+        onDrop={(event) => {
+          event.preventDefault();
+          onDragActiveChange(false);
+          const file = event.dataTransfer.files?.[0];
+          if (file) {
+            onSelectFile(file);
+          }
+        }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-2 text-muted-foreground text-sm">
+            <span>{labels.fileLimit}</span>
+            <span>{labels.uploadCardDescription}</span>
+          </div>
+          <Button onClick={onPickFile} disabled={isUploading}>
+            <UploadCloud className="h-4 w-4" />
+            {isUploading ? labels.uploading : labels.uploadAction}
+          </Button>
+          <Input
+            id="upload-file"
+            ref={inputRef}
+            type="file"
+            className="sr-only"
+            disabled={isUploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                onSelectFile(file);
+              }
+            }}
+          />
+        </div>
+        {selectedFile && (
+          <p className="mt-3 text-muted-foreground text-sm">
+            {selectedFile.name} · {formatBytes(selectedFile.size)}
+          </p>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function UploadsTable({
+  uploads,
+  editingId,
+  editingName,
+  isSaving,
+  isDeleting,
+  formatter,
+  onStartRename,
+  onCancelRename,
+  onRename,
+  onEditNameChange,
+  onOpen,
+  onCopyLink,
+  onDelete,
+  labels,
+}: UploadsTableProps) {
+  if (uploads.length === 0) {
+    return (
+      <Empty className="border-none bg-muted/20">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <UploadCloud className="h-4 w-4" />
+          </EmptyMedia>
+          <EmptyTitle>{labels.emptyTitle}</EmptyTitle>
+          <EmptyDescription>{labels.emptyDescription}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{labels.tableName}</TableHead>
+          <TableHead>{labels.tableSize}</TableHead>
+          <TableHead>{labels.tableUploaded}</TableHead>
+          <TableHead className="text-right">{labels.tableActions}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {uploads.map((upload) => (
+          <TableRow key={upload.id}>
+            <TableCell className="font-medium">
+              {editingId === upload.id ? (
+                <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+                  <Input
+                    value={editingName}
+                    onChange={(event) => onEditNameChange(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        onRename(upload);
+                      }
+                      if (event.key === "Escape") {
+                        onCancelRename();
+                      }
+                    }}
+                    className="w-auto min-w-[12rem] max-w-[24rem] flex-none"
+                  />
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => onRename(upload)}
+                    disabled={isSaving}
+                  >
+                    {labels.saveRenameAction}
+                  </Button>
+                  <Button variant="ghost" size="xs" onClick={onCancelRename}>
+                    {labels.cancelRenameAction}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+                  <span className="whitespace-nowrap">{upload.filename}</span>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => onStartRename(upload)}
+                    aria-label={labels.renameAction}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </TableCell>
+            <TableCell>{formatBytes(upload.size)}</TableCell>
+            <TableCell>
+              {formatter.format(new Date(upload.createdAt))}
+            </TableCell>
+            <TableCell className="text-right">
+              {editingId === upload.id ? null : (
+                <div className="flex flex-nowrap justify-end gap-2 overflow-x-auto">
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => onOpen(upload)}
+                  >
+                    <ArrowUpRight className="h-4 w-4" />
+                    {labels.downloadAction}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => onCopyLink(upload)}
+                  >
+                    {labels.copyLinkAction}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="xs"
+                    onClick={() => onDelete(upload)}
+                    disabled={isDeleting}
+                  >
+                    {labels.deleteAction}
+                  </Button>
+                </div>
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+function UploadDeleteDialog({
+  filename: _filename,
+  isDeleting,
+  onConfirm,
+  cancelLabel,
+  confirmLabel,
+  title,
+  description,
+}: UploadDeleteDialogProps) {
+  return (
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{title}</AlertDialogTitle>
+        <AlertDialogDescription>{description}</AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogClose render={<Button variant="ghost" />}>
+          {cancelLabel}
+        </AlertDialogClose>
+        <Button variant="destructive" onClick={onConfirm} disabled={isDeleting}>
+          {confirmLabel}
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  );
+}
+
 export function UploadsManager({
   initialUploads,
   initialUsedBytes,
@@ -320,221 +623,73 @@ export function UploadsManager({
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid gap-6 md:grid-cols-[1fr,2fr]">
-              <div className="rounded-2xl border bg-muted/10 p-5">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">{usageLabel}</p>
-                    <p className="text-sm tabular-nums">{usagePercent}%</p>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-input">
-                    <div
-                      className="h-full bg-primary transition-all duration-500"
-                      style={{ width: `${usagePercent}%` }}
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {remainingLabel}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <Card
-                  className={cn(
-                    "rounded-2xl border border-dashed bg-muted/20 p-5 transition-colors",
-                    isDragActive && "border-primary bg-primary/10",
-                  )}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setIsDragActive(true);
-                  }}
-                  onDragLeave={() => setIsDragActive(false)}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    setIsDragActive(false);
-                    const file = event.dataTransfer.files?.[0];
-                    if (file) {
-                      void handleUpload(file);
-                    }
-                  }}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                      <span>
-                        {t("fileLimit", {
-                          size: formatBytes(maxFileSizeBytes),
-                        })}
-                      </span>
-                      <span>{t("uploadCardDescription")}</span>
-                    </div>
-                    <Button
-                      onClick={() => inputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      <UploadCloud className="h-4 w-4" />
-                      {isUploading ? t("uploading") : t("uploadAction")}
-                    </Button>
-                    <Input
-                      id="upload-file"
-                      ref={inputRef}
-                      type="file"
-                      className="sr-only"
-                      disabled={isUploading}
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          void handleUpload(file);
-                        }
-                      }}
-                    />
-                  </div>
-                  {selectedFile && (
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      {selectedFile.name} · {formatBytes(selectedFile.size)}
-                    </p>
-                  )}
-                </Card>
-              </div>
+              <UsageSummaryCard
+                usageLabel={usageLabel}
+                usagePercent={usagePercent}
+                remainingLabel={remainingLabel}
+              />
+              <UploadDropzone
+                isDragActive={isDragActive}
+                isUploading={isUploading}
+                selectedFile={selectedFile}
+                inputRef={inputRef}
+                onPickFile={() => inputRef.current?.click()}
+                onDragActiveChange={setIsDragActive}
+                onSelectFile={(file) => void handleUpload(file)}
+                labels={{
+                  fileLimit: t("fileLimit", {
+                    size: formatBytes(maxFileSizeBytes),
+                  }),
+                  uploadCardDescription: t("uploadCardDescription"),
+                  uploadAction: t("uploadAction"),
+                  uploading: t("uploading"),
+                }}
+              />
             </div>
 
             <div className="space-y-4">
-              {uploads.length === 0 ? (
-                <Empty className="border-none bg-muted/20">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <UploadCloud className="h-4 w-4" />
-                    </EmptyMedia>
-                    <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
-                    <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>{t("tableName")}</TableHead>
-                      <TableHead>{t("tableSize")}</TableHead>
-                      <TableHead>{t("tableUploaded")}</TableHead>
-                      <TableHead className="text-right">
-                        {t("tableActions")}
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {uploads.map((upload) => (
-                      <TableRow key={upload.id}>
-                        <TableCell className="font-medium">
-                          {editingId === upload.id ? (
-                            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
-                              <Input
-                                value={editingName}
-                                onChange={(event) =>
-                                  setEditingName(event.target.value)
-                                }
-                                onKeyDown={(event) => {
-                                  if (event.key === "Enter") {
-                                    event.preventDefault();
-                                    handleRename(upload);
-                                  }
-                                  if (event.key === "Escape") {
-                                    cancelRename();
-                                  }
-                                }}
-                                className="w-auto min-w-[12rem] max-w-[24rem] flex-none"
-                              />
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                onClick={() => handleRename(upload)}
-                                disabled={isSaving}
-                              >
-                                {t("saveRenameAction")}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                onClick={cancelRename}
-                              >
-                                {t("cancelRenameAction")}
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
-                              <span className="whitespace-nowrap">
-                                {upload.filename}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="xs"
-                                onClick={() => startRename(upload)}
-                                aria-label={t("renameAction")}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>{formatBytes(upload.size)}</TableCell>
-                        <TableCell>
-                          {formatter.format(new Date(upload.createdAt))}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {editingId === upload.id ? null : (
-                            <div className="flex flex-nowrap justify-end gap-2 overflow-x-auto">
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                onClick={() => handleOpen(upload)}
-                              >
-                                <ArrowUpRight className="h-4 w-4" />
-                                {t("downloadAction")}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="xs"
-                                onClick={() => handleCopyLink(upload)}
-                              >
-                                {t("copyLinkAction")}
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="xs"
-                                onClick={() => openDeleteDialog(upload)}
-                                disabled={isDeleting}
-                              >
-                                {t("deleteAction")}
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <UploadsTable
+                uploads={uploads}
+                editingId={editingId}
+                editingName={editingName}
+                isSaving={isSaving}
+                isDeleting={isDeleting}
+                formatter={formatter}
+                onStartRename={startRename}
+                onCancelRename={cancelRename}
+                onRename={handleRename}
+                onEditNameChange={setEditingName}
+                onOpen={handleOpen}
+                onCopyLink={handleCopyLink}
+                onDelete={openDeleteDialog}
+                labels={{
+                  emptyTitle: t("emptyTitle"),
+                  emptyDescription: t("emptyDescription"),
+                  tableName: t("tableName"),
+                  tableSize: t("tableSize"),
+                  tableUploaded: t("tableUploaded"),
+                  tableActions: t("tableActions"),
+                  saveRenameAction: t("saveRenameAction"),
+                  cancelRenameAction: t("cancelRenameAction"),
+                  renameAction: t("renameAction"),
+                  downloadAction: t("downloadAction"),
+                  copyLinkAction: t("copyLinkAction"),
+                  deleteAction: t("deleteAction"),
+                }}
+              />
             </div>
           </CardContent>
         </Card>
       </div>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("deleteAction")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t("deleteConfirm", { name: deleteTarget?.filename ?? "" })}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="ghost" />}>
-            {t("cancelRenameAction")}
-          </AlertDialogClose>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isDeleting}
-          >
-            {t("deleteAction")}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+      <UploadDeleteDialog
+        filename={deleteTarget?.filename ?? ""}
+        isDeleting={isDeleting}
+        onConfirm={handleDelete}
+        cancelLabel={t("cancelRenameAction")}
+        confirmLabel={t("deleteAction")}
+        title={t("deleteAction")}
+        description={t("deleteConfirm", { name: deleteTarget?.filename ?? "" })}
+      />
     </AlertDialog>
   );
 }

@@ -75,14 +75,14 @@ export default async function ProfilePage() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="mb-8 mt-8">
-        <h1 className="text-display mb-2">{t("title")}</h1>
-        <p className="text-subtitle text-muted-foreground">
+      <div className="mt-8 mb-8">
+        <h1 className="mb-2 text-display">{t("title")}</h1>
+        <p className="text-muted-foreground text-subtitle">
           {t("description")}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <ProfileEditForm user={user} />
           <AccountLinkingSection user={user} />
@@ -94,11 +94,11 @@ export default async function ProfilePage() {
             href="/me/subscriptions/sections"
             className="block no-underline"
           >
-            <Card className="hover:bg-accent/50 transition-colors">
+            <Card className="transition-colors hover:bg-accent/50">
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <Calendar className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
@@ -112,11 +112,11 @@ export default async function ProfilePage() {
             </Card>
           </Link>
           <Link href="/me/uploads" className="block no-underline">
-            <Card className="hover:bg-accent/50 transition-colors">
+            <Card className="transition-colors hover:bg-accent/50">
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <UploadCloud className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
@@ -132,11 +132,11 @@ export default async function ProfilePage() {
             </Card>
           </Link>
           <Link href="/me/comments" className="block no-underline">
-            <Card className="hover:bg-accent/50 transition-colors">
+            <Card className="transition-colors hover:bg-accent/50">
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <MessageSquare className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">
@@ -152,11 +152,11 @@ export default async function ProfilePage() {
             </Card>
           </Link>
           <Link href="/me/homeworks" className="block no-underline">
-            <Card className="hover:bg-accent/50 transition-colors">
+            <Card className="transition-colors hover:bg-accent/50">
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                       <ClipboardList className="h-5 w-5" />
                     </div>
                     <div className="space-y-1">

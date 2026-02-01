@@ -58,12 +58,12 @@ export default function BottomBar() {
   };
 
   return (
-    <nav className="border-t border-border bg-background">
+    <nav className="border-border border-t bg-background">
       <div className="mx-auto flex h-14 max-w-(--layout-content-width) items-center justify-between gap-3 px-4">
         {/* Left: Life@USTC Branding */}
         <Link
           href="/"
-          className="text-body font-medium text-foreground hover:text-primary transition-colors no-underline"
+          className="font-medium text-body text-foreground no-underline transition-colors hover:text-primary"
         >
           Life@USTC
         </Link>

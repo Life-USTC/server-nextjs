@@ -188,8 +188,8 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
 
   if (!isMounted) {
     return (
-      <div className={cn("space-y-3 text-sm text-foreground", className)}>
-        <pre className="whitespace-pre-wrap text-xs text-muted-foreground">
+      <div className={cn("space-y-3 text-foreground text-sm", className)}>
+        <pre className="whitespace-pre-wrap text-muted-foreground text-xs">
           {content}
         </pre>
       </div>
@@ -199,34 +199,34 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
   return (
     <div
       className={cn(
-        "space-y-3 text-sm text-foreground",
+        "space-y-3 text-foreground text-sm",
         // Global styles for markdown elements
         "[&_a]:text-primary [&_a]:underline-offset-4 hover:[&_a]:underline",
-        "[&_blockquote]:border-l-2 [&_blockquote]:border-muted [&_blockquote]:pl-3",
+        "[&_blockquote]:border-muted [&_blockquote]:border-l-2 [&_blockquote]:pl-3",
         "[&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_code]:py-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-muted [&_pre]:p-3",
-        "[&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4",
+        "[&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4",
         "[&_img]:max-w-full [&_img]:rounded-lg",
-        "[&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-bold",
-        "[&_table]:w-full [&_table]:border-collapse [&_table]:my-4",
+        "[&_h1]:font-bold [&_h1]:text-xl [&_h2]:font-bold [&_h2]:text-lg [&_h3]:font-bold [&_h3]:text-base",
+        "[&_table]:my-4 [&_table]:w-full [&_table]:border-collapse",
         "[&_th]:border [&_th]:border-muted [&_th]:bg-muted/30 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold",
         "[&_td]:border [&_td]:border-muted [&_td]:px-3 [&_td]:py-2",
-        "[&_sup]:text-[0.7em] [&_sub]:text-[0.7em]",
+        "[&_sub]:text-[0.7em] [&_sup]:text-[0.7em]",
         "[&_ins]:bg-green-500/10 [&_ins]:no-underline [&_mark]:bg-yellow-500/20 [&_mark]:px-0.5",
         // Directive specific styles
-        "[&_.markdown-directive]:my-4 [&_.markdown-directive]:rounded-xl [&_.markdown-directive]:p-4 [&_.markdown-directive]:border",
-        "[&_.directive-tip]:bg-green-500/5 [&_.directive-tip]:border-green-500/20 [&_.directive-tip]:before:content-['💡_Tip'] [&_.directive-tip]:before:block [&_.directive-tip]:before:font-bold [&_.directive-tip]:before:mb-2 [&_.directive-tip]:before:text-green-600",
-        "[&_.directive-warning]:bg-yellow-500/5 [&_.directive-warning]:border-yellow-500/20 [&_.directive-warning]:before:content-['⚠️_Warning'] [&_.directive-warning]:before:block [&_.directive-warning]:before:font-bold [&_.directive-warning]:before:mb-2 [&_.directive-warning]:before:text-yellow-600",
-        "[&_.directive-error]:bg-red-500/5 [&_.directive-error]:border-red-500/20 [&_.directive-error]:before:content-['🚫_Error'] [&_.directive-error]:before:block [&_.directive-error]:before:font-bold [&_.directive-error]:before:mb-2 [&_.directive-error]:before:text-red-600",
+        "[&_.markdown-directive]:my-4 [&_.markdown-directive]:rounded-xl [&_.markdown-directive]:border [&_.markdown-directive]:p-4",
+        "[&_.directive-tip]:border-green-500/20 [&_.directive-tip]:bg-green-500/5 [&_.directive-tip]:before:mb-2 [&_.directive-tip]:before:block [&_.directive-tip]:before:font-bold [&_.directive-tip]:before:text-green-600 [&_.directive-tip]:before:content-['💡_Tip']",
+        "[&_.directive-warning]:border-yellow-500/20 [&_.directive-warning]:bg-yellow-500/5 [&_.directive-warning]:before:mb-2 [&_.directive-warning]:before:block [&_.directive-warning]:before:font-bold [&_.directive-warning]:before:text-yellow-600 [&_.directive-warning]:before:content-['⚠️_Warning']",
+        "[&_.directive-error]:border-red-500/20 [&_.directive-error]:bg-red-500/5 [&_.directive-error]:before:mb-2 [&_.directive-error]:before:block [&_.directive-error]:before:font-bold [&_.directive-error]:before:text-red-600 [&_.directive-error]:before:content-['🚫_Error']",
         className,
       )}
     >
       <MarkdownErrorBoundary
         fallback={
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-            <p className="mb-2 text-xs font-semibold text-destructive">
+            <p className="mb-2 font-semibold text-destructive text-xs">
               Markdown 渲染出错，已回退到纯文本模式：
             </p>
-            <pre className="whitespace-pre-wrap text-xs text-muted-foreground">
+            <pre className="whitespace-pre-wrap text-muted-foreground text-xs">
               {content}
             </pre>
           </div>

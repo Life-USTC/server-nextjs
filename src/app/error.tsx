@@ -19,11 +19,11 @@ export default function ErrorPage({
   const t = useTranslations("common");
 
   return (
-    <div className="flex items-center justify-center min-h-[400px] p-8">
-      <div className="text-center max-w-md">
-        <h2 className="text-2xl font-bold mb-4">{t("somethingWentWrong")}</h2>
-        <p className="text-muted-foreground mb-6">{error.message}</p>
-        <div className="flex gap-4 justify-center">
+    <div className="flex min-h-[400px] items-center justify-center p-8">
+      <div className="max-w-md text-center">
+        <h2 className="mb-4 font-bold text-2xl">{t("somethingWentWrong")}</h2>
+        <p className="mb-6 text-muted-foreground">{error.message}</p>
+        <div className="flex justify-center gap-4">
           <Button onClick={reset} variant="default">
             {t("tryAgain")}
           </Button>

@@ -295,7 +295,7 @@ export function SubscriptionCalendarButton({
                 </DialogClose>
                 <Link href="/signin">
                   <Button>
-                    <LogIn className="h-4 w-4 mr-2" />
+                    <LogIn className="mr-2 h-4 w-4" />
                     {loginToSubscribeLabel}
                   </Button>
                 </Link>
@@ -323,7 +323,7 @@ export function SubscriptionCalendarButton({
                   href="https://en.wikipedia.org/wiki/ICalendar"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-primary hover:underline inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-1 text-primary hover:underline"
                 >
                   {learnMoreLabel}
                 </a>
@@ -337,11 +337,11 @@ export function SubscriptionCalendarButton({
                   <div className="space-y-3">
                     <label
                       htmlFor="subscription-url"
-                      className="text-small font-medium block"
+                      className="block font-medium text-small"
                     >
                       {subscriptionUrlLabel}
                     </label>
-                    <p className="text-small text-muted-foreground">
+                    <p className="text-muted-foreground text-small">
                       {subscriptionHintLabel}{" "}
                       <Link
                         href="/me/subscriptions/sections/"
@@ -350,7 +350,7 @@ export function SubscriptionCalendarButton({
                         {viewAllSubscriptionsLabel} →
                       </Link>
                     </p>
-                    <div className="flex gap-2 items-center">
+                    <div className="flex items-center gap-2">
                       <Input
                         id="subscription-url"
                         aria-label={subscriptionCalendarUrlAriaLabel}
@@ -389,11 +389,11 @@ export function SubscriptionCalendarButton({
                 <div className="space-y-3">
                   <label
                     htmlFor="calendar-url"
-                    className="text-small font-medium block"
+                    className="block font-medium text-small"
                   >
                     {calendarUrlLabel}
                   </label>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex items-center gap-2">
                     <Input
                       id="calendar-url"
                       aria-label={singleSectionCalendarUrlAriaLabel}
