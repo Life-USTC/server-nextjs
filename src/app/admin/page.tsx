@@ -32,14 +32,19 @@ export default async function AdminHomePage() {
     redirect("/signin");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  });
+  const isAdmin = user?.isAdmin ?? false;
   if (!isAdmin) {
     notFound();
   }
 
-  const t = await getTranslations("admin");
-  const tCommon = await getTranslations("common");
+  const [t, tCommon] = await Promise.all([
+    getTranslations("admin"),
+    getTranslations("common"),
+  ]);
 
   return (
     <main className="page-main">

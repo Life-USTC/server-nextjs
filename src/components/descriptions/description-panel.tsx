@@ -1,6 +1,5 @@
 "use client";
 
-import { type Change, diffWords } from "diff";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CommentMarkdown } from "@/components/comments/comment-markdown";
@@ -17,9 +16,9 @@ import {
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import {
   Sheet,
-  SheetContent,
   SheetHeader,
   SheetPanel,
+  SheetPopup,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -96,10 +95,40 @@ const EMPTY_VIEWER: ViewerSummary = {
   suspensionExpiresAt: null,
 };
 
-function renderDiff(previous: string | null, next: string, mode: DiffMode) {
-  const baseText = previous ?? "";
-  const segments = diffWords(baseText, next) as Change[];
-  const visibleSegments = segments.filter((segment: Change) => {
+type DiffSegment = {
+  value: string;
+  added?: boolean;
+  removed?: boolean;
+};
+
+function DiffView({
+  previous,
+  next,
+  mode,
+}: {
+  previous: string | null;
+  next: string;
+  mode: DiffMode;
+}) {
+  const [segments, setSegments] = useState<DiffSegment[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("diff").then((mod) => {
+      if (cancelled) return;
+      const result = mod.diffWords(previous ?? "", next);
+      setSegments(result as DiffSegment[]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [previous, next]);
+
+  if (!segments) {
+    return <span className="text-muted-foreground text-xs">...</span>;
+  }
+
+  const visibleSegments = segments.filter((segment) => {
     if (mode === "previous") return !segment.added;
     return !segment.removed;
   });
@@ -110,7 +139,7 @@ function renderDiff(previous: string | null, next: string, mode: DiffMode) {
 
   return (
     <span className="whitespace-pre-wrap">
-      {visibleSegments.map((segment: Change, index: number) => {
+      {visibleSegments.map((segment, index) => {
         const isAdded = Boolean(segment.added);
         const isRemoved = Boolean(segment.removed);
         const highlightClass = isAdded
@@ -363,7 +392,7 @@ export function DescriptionPanel({
           >
             {t("historyTitle", { count: history.length })}
           </SheetTrigger>
-          <SheetContent>
+          <SheetPopup>
             <SheetHeader>
               <SheetTitle>
                 {t("historyTitle", { count: history.length })}
@@ -383,16 +412,6 @@ export function DescriptionPanel({
                       item.editor?.name ||
                       item.editor?.username ||
                       t("editorUnknown");
-                    const previousDiff = renderDiff(
-                      item.previousContent,
-                      item.nextContent,
-                      "previous",
-                    );
-                    const nextDiff = renderDiff(
-                      item.previousContent,
-                      item.nextContent,
-                      "next",
-                    );
                     return (
                       <div
                         key={item.id}
@@ -413,7 +432,11 @@ export function DescriptionPanel({
                               {t("previousLabel")}
                             </p>
                             <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-background p-2 text-xs">
-                              {previousDiff ?? t("emptyValue")}
+                              <DiffView
+                                previous={item.previousContent}
+                                next={item.nextContent}
+                                mode="previous"
+                              />
                             </div>
                           </div>
                           <div>
@@ -421,7 +444,11 @@ export function DescriptionPanel({
                               {t("updatedLabel")}
                             </p>
                             <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-lg border border-border/60 bg-background p-2 text-xs">
-                              {nextDiff ?? t("emptyValue")}
+                              <DiffView
+                                previous={item.previousContent}
+                                next={item.nextContent}
+                                mode="next"
+                              />
                             </div>
                           </div>
                         </div>
@@ -431,7 +458,7 @@ export function DescriptionPanel({
                 </div>
               )}
             </SheetPanel>
-          </SheetContent>
+          </SheetPopup>
         </Sheet>
       </CardPanel>
     </Card>

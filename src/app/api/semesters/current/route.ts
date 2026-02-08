@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +23,6 @@ export async function GET() {
 
     return NextResponse.json(currentSemester);
   } catch (error) {
-    console.error("Error fetching current semester:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch current semester" },
-      { status: 500 },
-    );
+    return handleRouteError("Failed to fetch current semester", error);
   }
 }

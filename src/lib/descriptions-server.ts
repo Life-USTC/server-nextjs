@@ -43,15 +43,6 @@ export type DescriptionPayload = {
   viewer: ViewerSummary;
 };
 
-const prismaAny = prisma as typeof prisma & {
-  description: any;
-  descriptionEdit: any;
-  section: any;
-  course: any;
-  teacher: any;
-  homework: any;
-};
-
 function getTargetWhere(targetType: TargetType, targetId: number | string) {
   switch (targetType) {
     case "section":
@@ -90,7 +81,7 @@ export async function getDescriptionPayload(
     };
   }
 
-  const description = await prismaAny.description.findFirst({
+  const description = await prisma.description.findFirst({
     where: whereTarget,
     include: {
       lastEditedBy: {
@@ -100,7 +91,7 @@ export async function getDescriptionPayload(
   });
 
   const history = description
-    ? await prismaAny.descriptionEdit.findMany({
+    ? await prisma.descriptionEdit.findMany({
         where: { descriptionId: description.id },
         include: {
           editor: {

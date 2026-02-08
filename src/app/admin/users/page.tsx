@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
-import { AdminUsersTable } from "@/components/admin/admin-users-table";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,9 +12,17 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
+
+const AdminUsersTable = dynamic(() =>
+  import("@/components/admin/admin-users-table").then(
+    (mod) => mod.AdminUsersTable,
+  ),
+);
 
 const PAGE_SIZE = 30;
 
@@ -35,8 +43,11 @@ export default async function AdminUsersPage({
     redirect("/signin");
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isAdmin: true },
+  });
+  const isAdmin = user?.isAdmin ?? false;
   if (!isAdmin) {
     notFound();
   }
@@ -63,24 +74,28 @@ export default async function AdminUsersPage({
       }
     : {};
 
-  const [users, total] = await Promise.all([
+  const [users, total, t, tCommon, tAdmin] = await Promise.all([
     prisma.user.findMany({
       where,
-      include: {
-        verifiedEmails: true,
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        isAdmin: true,
+        createdAt: true,
+        verifiedEmails: { select: { email: true }, take: 1 },
       },
       orderBy: { createdAt: "desc" },
       skip,
       take: PAGE_SIZE,
     }),
     prisma.user.count({ where }),
+    getTranslations("adminUsers"),
+    getTranslations("common"),
+    getTranslations("admin"),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const t = await getTranslations("adminUsers");
-  const tCommon = await getTranslations("common");
-  const tAdmin = await getTranslations("admin");
 
   return (
     <main className="page-main">
@@ -105,17 +120,20 @@ export default async function AdminUsersPage({
         <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
       </div>
 
-      <form
+      <Form
         className="mb-6 flex flex-wrap gap-3"
         action="/admin/users"
         method="get"
       >
-        <Input
-          name="search"
-          defaultValue={search}
-          placeholder={t("searchPlaceholder")}
-          className="max-w-md"
-        />
+        <Field className="min-w-64 max-w-md flex-1">
+          <FieldLabel className="sr-only">{tCommon("search")}</FieldLabel>
+          <Input
+            name="search"
+            defaultValue={search}
+            placeholder={t("searchPlaceholder")}
+            className="w-full"
+          />
+        </Field>
         <Button type="submit" variant="outline">
           {tCommon("search")}
         </Button>
@@ -128,7 +146,7 @@ export default async function AdminUsersPage({
             {tCommon("clear")}
           </Button>
         ) : null}
-      </form>
+      </Form>
 
       <AdminUsersTable
         users={users.map((entry) => ({

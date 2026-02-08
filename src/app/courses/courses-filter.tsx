@@ -35,6 +35,9 @@ interface CoursesFilterProps {
   };
 }
 
+type CoursesFilterValues = CoursesFilterProps["defaultValues"];
+type CoursesFilterField = keyof CoursesFilterValues;
+
 export function CoursesFilter({
   educationLevels,
   categories,
@@ -50,12 +53,12 @@ export function CoursesFilter({
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const updateFilters = (name?: string, value?: string) => {
+  const updateFilters = (name?: CoursesFilterField, value?: string) => {
     const params = new URLSearchParams();
-    const currentValues = { ...defaultValues };
+    const currentValues: CoursesFilterValues = { ...defaultValues };
 
     if (name) {
-      (currentValues as any)[name] = value;
+      currentValues[name] = value;
     }
 
     if (searchInputRef.current) {

@@ -58,7 +58,10 @@ export async function PATCH(
             { status: 400 },
           );
         }
-        const existing = await prisma.user.findUnique({ where: { username } });
+        const existing = await prisma.user.findUnique({
+          where: { username },
+          select: { id: true },
+        });
         if (existing && existing.id !== id) {
           return NextResponse.json(
             { error: "Username already taken" },
@@ -76,11 +79,19 @@ export async function PATCH(
     const updated = await prisma.user.update({
       where: { id },
       data,
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        isAdmin: true,
+        createdAt: true,
+      },
     });
 
     const email = await prisma.verifiedEmail.findFirst({
       where: { userId: id },
       orderBy: { createdAt: "desc" },
+      select: { email: true },
     });
 
     return NextResponse.json({

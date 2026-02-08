@@ -9,15 +9,6 @@ export const dynamic = "force-dynamic";
 const TARGET_TYPES = ["section", "course", "teacher", "homework"] as const;
 type TargetType = (typeof TARGET_TYPES)[number];
 
-const prismaAny = prisma as typeof prisma & {
-  description: any;
-  descriptionEdit: any;
-  section: any;
-  course: any;
-  teacher: any;
-  homework: any;
-};
-
 function parseIntParam(value: string | null) {
   if (!value) return null;
   const parsed = parseInt(value, 10);
@@ -43,28 +34,31 @@ async function ensureTargetExists(
   targetType: TargetType,
   targetId: number | string,
 ) {
-  if (targetType === "section") {
-    return prismaAny.section.findUnique({
+  if (targetType === "section" && typeof targetId === "number") {
+    return prisma.section.findUnique({
       where: { id: targetId },
       select: { id: true },
     });
   }
-  if (targetType === "course") {
-    return prismaAny.course.findUnique({
+  if (targetType === "course" && typeof targetId === "number") {
+    return prisma.course.findUnique({
       where: { id: targetId },
       select: { id: true },
     });
   }
-  if (targetType === "teacher") {
-    return prismaAny.teacher.findUnique({
+  if (targetType === "teacher" && typeof targetId === "number") {
+    return prisma.teacher.findUnique({
       where: { id: targetId },
       select: { id: true },
     });
   }
-  return prismaAny.homework.findUnique({
-    where: { id: targetId },
-    select: { id: true },
-  });
+  if (targetType === "homework" && typeof targetId === "string") {
+    return prisma.homework.findUnique({
+      where: { id: targetId },
+      select: { id: true },
+    });
+  }
+  return null;
 }
 
 export async function GET(request: Request) {
@@ -92,7 +86,7 @@ export async function GET(request: Request) {
   try {
     const [viewer, description] = await Promise.all([
       getViewerContext({ includeAdmin: false }),
-      prismaAny.description.findFirst({
+      prisma.description.findFirst({
         where: whereTarget,
         include: {
           lastEditedBy: {
@@ -103,7 +97,7 @@ export async function GET(request: Request) {
     ]);
 
     const history = description
-      ? await prismaAny.descriptionEdit.findMany({
+      ? await prisma.descriptionEdit.findMany({
           where: { descriptionId: description.id },
           include: {
             editor: {
@@ -211,9 +205,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Target not found" }, { status: 404 });
     }
 
-    const result = await prismaAny.$transaction(async (tx) => {
-      const txAny = tx as typeof prismaAny;
-      const existing = await txAny.description.findFirst({
+    const result = await prisma.$transaction(async (tx) => {
+      const existing = await tx.description.findFirst({
         where: whereTarget,
       });
       if (existing && existing.content === content) {
@@ -221,7 +214,7 @@ export async function POST(request: Request) {
       }
 
       const description = existing
-        ? await txAny.description.update({
+        ? await tx.description.update({
             where: { id: existing.id },
             data: {
               content,
@@ -229,7 +222,7 @@ export async function POST(request: Request) {
               lastEditedById: userId,
             },
           })
-        : await txAny.description.create({
+        : await tx.description.create({
             data: {
               content,
               lastEditedAt: new Date(),
@@ -238,7 +231,7 @@ export async function POST(request: Request) {
             },
           });
 
-      await txAny.descriptionEdit.create({
+      await tx.descriptionEdit.create({
         data: {
           descriptionId: description.id,
           editorId: userId,

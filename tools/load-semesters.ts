@@ -1,4 +1,4 @@
-import type { PrismaClient, Semester } from "@prisma/client";
+import type { PrismaClient, Semester } from "../src/generated/prisma/client";
 
 interface SemesterInterface {
   id: number;

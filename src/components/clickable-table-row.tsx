@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import type * as React from "react";
+import * as React from "react";
 import { TableRow } from "@/components/ui/table";
+import { Link } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 
 interface ClickableTableRowProps extends React.ComponentProps<typeof TableRow> {
   href: string;
@@ -14,24 +15,34 @@ export function ClickableTableRow({
   className,
   ...props
 }: ClickableTableRowProps) {
-  const router = useRouter();
-
-  const handleClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on a link or button inside the row
-    const target = e.target as HTMLElement;
-    if (target.tagName === "A" || target.closest("a")) {
-      return;
+  const linkedChildren = React.Children.map(children, (child) => {
+    if (!React.isValidElement(child)) {
+      return child;
     }
-    router.push(href);
-  };
+
+    const typedChild = child as React.ReactElement<{
+      children?: React.ReactNode;
+    }>;
+
+    const childProps = typedChild.props as {
+      children?: React.ReactNode;
+    };
+
+    return React.cloneElement(typedChild, {
+      children: (
+        <Link
+          href={href}
+          className="block h-full w-full px-2 py-2 text-inherit no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+        >
+          {childProps.children}
+        </Link>
+      ),
+    });
+  });
 
   return (
-    <TableRow
-      className={`cursor-pointer ${className || ""}`}
-      onClick={handleClick}
-      {...props}
-    >
-      {children}
+    <TableRow className={cn("[&_td]:p-0", className)} {...props}>
+      {linkedChildren}
     </TableRow>
   );
 }

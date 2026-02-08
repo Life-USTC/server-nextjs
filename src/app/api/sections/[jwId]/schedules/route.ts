@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -9,8 +10,17 @@ export async function GET(
 ) {
   try {
     const { jwId } = await context.params;
+    const parsedJwId = parseInt(jwId, 10);
+
+    if (Number.isNaN(parsedJwId)) {
+      return NextResponse.json(
+        { error: "Invalid section ID" },
+        { status: 400 },
+      );
+    }
+
     const section = await prisma.section.findUnique({
-      where: { jwId: parseInt(jwId, 10) },
+      where: { jwId: parsedJwId },
       include: {
         schedules: {
           include: {
@@ -33,18 +43,15 @@ export async function GET(
           },
           orderBy: [{ date: "asc" }, { startTime: "asc" }],
         },
-        scheduleGroups: {
-          orderBy: [{ isDefault: "desc" }, { no: "asc" }],
-        },
       },
     });
 
-    return NextResponse.json(section?.schedules);
+    if (!section) {
+      return NextResponse.json({ error: "Section not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(section.schedules);
   } catch (error) {
-    console.error("Error fetching section schedules:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch section schedules" },
-      { status: 500 },
-    );
+    return handleRouteError("Failed to fetch section schedules", error);
   }
 }

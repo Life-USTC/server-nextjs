@@ -1,4 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@/generated/prisma/client";
+import {
+  buildPaginatedResponse,
+  getPagination,
+  handleRouteError,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -6,9 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "30", 10);
-    const skip = (page - 1) * limit;
+    const pagination = getPagination(searchParams);
 
     const sectionId = searchParams.get("sectionId");
     const teacherId = searchParams.get("teacherId");
@@ -17,7 +21,7 @@ export async function GET(request: NextRequest) {
     const dateTo = searchParams.get("dateTo");
     const weekday = searchParams.get("weekday");
 
-    const whereClause: any = {};
+    const whereClause: Prisma.ScheduleWhereInput = {};
     if (sectionId) whereClause.sectionId = parseInt(sectionId, 10);
     if (teacherId) {
       whereClause.teachers = {
@@ -27,18 +31,18 @@ export async function GET(request: NextRequest) {
       };
     }
     if (roomId) whereClause.roomId = parseInt(roomId, 10);
-    if (dateFrom)
-      whereClause.date = { ...whereClause.date, gte: new Date(dateFrom) };
-    if (dateTo)
-      whereClause.date = { ...whereClause.date, lte: new Date(dateTo) };
+    const dateFilter: Prisma.DateTimeFilter = {};
+    if (dateFrom) dateFilter.gte = new Date(dateFrom);
+    if (dateTo) dateFilter.lte = new Date(dateTo);
+    if (dateFrom || dateTo) whereClause.date = dateFilter;
     if (weekday !== null && weekday !== undefined)
       whereClause.weekday = parseInt(weekday, 10);
 
     const [schedules, total] = await Promise.all([
       prisma.schedule.findMany({
         where: whereClause,
-        skip,
-        take: limit,
+        skip: pagination.skip,
+        take: pagination.pageSize,
         include: {
           room: {
             include: {
@@ -67,20 +71,15 @@ export async function GET(request: NextRequest) {
       prisma.schedule.count({ where: whereClause }),
     ]);
 
-    return NextResponse.json({
-      data: schedules,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Error fetching schedules:", error);
     return NextResponse.json(
-      { error: "Failed to fetch schedules" },
-      { status: 500 },
+      buildPaginatedResponse(
+        schedules,
+        pagination.page,
+        pagination.pageSize,
+        total,
+      ),
     );
+  } catch (error) {
+    return handleRouteError("Failed to fetch schedules", error);
   }
 }

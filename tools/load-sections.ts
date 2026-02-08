@@ -14,7 +14,7 @@ import type {
   Section,
   Teacher,
   TeachLanguage,
-} from "@prisma/client";
+} from "../src/generated/prisma/client";
 
 interface CourseInterface {
   id: number;

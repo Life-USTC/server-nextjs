@@ -1,6 +1,5 @@
 "use client";
 
-import type { Campus, Course, Semester, Teacher } from "@prisma/client";
 import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -28,6 +27,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toastManager } from "@/components/ui/toast";
+import type {
+  Campus,
+  Course,
+  Semester,
+  Teacher,
+} from "@/generated/prisma/client";
 
 type SectionData = {
   id: number;

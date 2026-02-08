@@ -5,7 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../src/generated/prisma/client";
 import { loadExams } from "./load-exams";
 import { loadSchedules } from "./load-schedules";
 import { loadSections } from "./load-sections";

@@ -10,7 +10,7 @@ import type {
   Teacher,
   TeacherLessonType,
   TeacherTitle,
-} from "@prisma/client";
+} from "../src/generated/prisma/client";
 
 interface ContactInfoInterface {
   email: string | null;
