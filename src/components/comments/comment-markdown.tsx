@@ -9,6 +9,7 @@ import remarkDirective from "remark-directive";
 import remarkEmoji from "remark-emoji";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import remarkSupersub from "remark-supersub";
 import { visit } from "unist-util-visit";
 import { cn } from "@/lib/utils";
 import "katex/dist/katex.min.css";
@@ -142,6 +143,49 @@ function rehypeAttributes() {
   };
 }
 
+function rehypeInsMark() {
+  return (tree: any) => {
+    visit(tree, "text", (node: any, index: number | undefined, parent: any) => {
+      if (!parent || typeof index !== "number") return;
+      if (parent.tagName === "code" || parent.tagName === "pre") return;
+
+      const parts: any[] = [];
+      const pattern = /(\+\+|==)(.+?)\1/g;
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+
+      while ((match = pattern.exec(node.value)) !== null) {
+        if (match.index > lastIndex) {
+          parts.push({
+            type: "text",
+            value: node.value.slice(lastIndex, match.index),
+          });
+        }
+
+        const delimiter = match[1];
+        const content = match[2];
+        parts.push({
+          type: "element",
+          tagName: delimiter === "++" ? "ins" : "mark",
+          properties: {},
+          children: [{ type: "text", value: content }],
+        });
+
+        lastIndex = match.index + match[0].length;
+      }
+
+      if (parts.length === 0) return;
+
+      if (lastIndex < node.value.length) {
+        parts.push({ type: "text", value: node.value.slice(lastIndex) });
+      }
+
+      parent.children.splice(index, 1, ...parts);
+      return index + parts.length;
+    });
+  };
+}
+
 /**
  * Plugin to transform remark-directive nodes into HAST nodes.
  */
@@ -236,12 +280,14 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
           remarkPlugins={[
             remarkGfm,
             remarkMath,
+            remarkSupersub,
             remarkDirective,
             [remarkEmoji, { emoticon: true }],
             directivePlugin,
           ]}
           rehypePlugins={[
             rehypeAttributes,
+            rehypeInsMark,
             rehypeKatex,
             [rehypeSanitize, customSchema],
           ]}
