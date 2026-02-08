@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import type { CommentVisibility } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import { getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prismaAny = prisma as typeof prisma & {
-  comment: any;
-  commentAttachment: any;
-  commentReaction: any;
-  upload: any;
-};
 
 function findComment(nodes: any[], id: string): any | null {
   for (const node of nodes) {
@@ -30,31 +24,51 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const comment = await prismaAny.comment.findUnique({
+    const comment = await prisma.comment.findUnique({
       where: { id },
-      include: {
+      select: {
+        sectionId: true,
+        courseId: true,
+        teacherId: true,
+        sectionTeacherId: true,
+        rootId: true,
+        id: true,
         homework: {
-          include: {
+          select: {
+            id: true,
+            title: true,
             section: {
-              include: {
-                course: true,
-              },
+              select: { jwId: true, code: true },
             },
           },
         },
         sectionTeacher: {
-          include: {
+          select: {
+            sectionId: true,
+            teacherId: true,
             section: {
-              include: {
-                course: true,
+              select: {
+                jwId: true,
+                code: true,
+                course: {
+                  select: { jwId: true, nameCn: true },
+                },
               },
             },
-            teacher: true,
+            teacher: {
+              select: { nameCn: true },
+            },
           },
         },
-        section: true,
-        course: true,
-        teacher: true,
+        section: {
+          select: { jwId: true, code: true },
+        },
+        course: {
+          select: { jwId: true, nameCn: true },
+        },
+        teacher: {
+          select: { nameCn: true },
+        },
       },
     });
 
@@ -65,20 +79,39 @@ export async function GET(
     const viewer = await getViewerContext({ includeAdmin: false });
     const threadKey = comment.rootId ?? comment.id;
 
-    const threadComments = await prismaAny.comment.findMany({
+    const threadComments = await prisma.comment.findMany({
       where: {
         OR: [{ id: threadKey }, { rootId: threadKey }],
       },
       include: {
         user: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            isAdmin: true,
             accounts: {
               select: { provider: true },
             },
           },
         },
-        attachments: { include: { upload: true } },
-        reactions: true,
+        attachments: {
+          include: {
+            upload: {
+              select: {
+                filename: true,
+                contentType: true,
+                size: true,
+              },
+            },
+          },
+        },
+        reactions: {
+          select: {
+            type: true,
+            userId: true,
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -152,7 +185,9 @@ export async function PATCH(
   }
 
   const visibility =
-    typeof body.visibility === "string" ? body.visibility : undefined;
+    typeof body.visibility === "string"
+      ? (body.visibility as CommentVisibility)
+      : undefined;
   const isAnonymous =
     typeof body.isAnonymous === "boolean" ? body.isAnonymous : undefined;
 
@@ -168,8 +203,9 @@ export async function PATCH(
     }
 
     const viewer = await getViewerContext();
-    const comment = await prismaAny.comment.findUnique({
+    const comment = await prisma.comment.findUnique({
       where: { id },
+      select: { id: true, status: true, userId: true },
     });
 
     if (!comment) {
@@ -185,7 +221,7 @@ export async function PATCH(
     }
 
     if (hasAttachmentUpdate) {
-      const uploads = await prismaAny.upload.findMany({
+      const uploads = await prisma.upload.findMany({
         where: {
           id: { in: attachmentIds },
           userId: session.user.id,
@@ -202,8 +238,7 @@ export async function PATCH(
     }
 
     await prisma.$transaction(async (tx) => {
-      const txAny = tx as typeof prismaAny;
-      await txAny.comment.update({
+      await tx.comment.update({
         where: { id },
         data: {
           body: content,
@@ -217,14 +252,14 @@ export async function PATCH(
       }
 
       if (attachmentIds.length > 0) {
-        await txAny.commentAttachment.deleteMany({
+        await tx.commentAttachment.deleteMany({
           where: {
             commentId: id,
             uploadId: { notIn: attachmentIds },
           },
         });
 
-        await txAny.commentAttachment.createMany({
+        await tx.commentAttachment.createMany({
           data: attachmentIds.map((uploadId) => ({
             uploadId,
             commentId: id,
@@ -232,7 +267,7 @@ export async function PATCH(
           skipDuplicates: true,
         });
       } else {
-        await txAny.commentAttachment.deleteMany({
+        await tx.commentAttachment.deleteMany({
           where: {
             commentId: id,
           },
@@ -240,20 +275,43 @@ export async function PATCH(
       }
     });
 
-    const updatedComment = await prismaAny.comment.findUnique({
+    const updatedComment = await prisma.comment.findUnique({
       where: { id },
       include: {
         user: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            isAdmin: true,
             accounts: {
               select: { provider: true },
             },
           },
         },
-        attachments: { include: { upload: true } },
-        reactions: true,
+        attachments: {
+          include: {
+            upload: {
+              select: {
+                filename: true,
+                contentType: true,
+                size: true,
+              },
+            },
+          },
+        },
+        reactions: {
+          select: {
+            type: true,
+            userId: true,
+          },
+        },
       },
     });
+
+    if (!updatedComment) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
     const { roots } = buildCommentNodes([updatedComment], viewer);
 
@@ -275,8 +333,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const comment = await prismaAny.comment.findUnique({
+    const comment = await prisma.comment.findUnique({
       where: { id },
+      select: { id: true, userId: true },
     });
 
     if (!comment) {
@@ -287,7 +346,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prismaAny.comment.update({
+    await prisma.comment.update({
       where: { id },
       data: {
         status: "deleted",

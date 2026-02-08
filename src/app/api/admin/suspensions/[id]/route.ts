@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const prismaAny = prisma as typeof prisma & { userSuspension: any };
-
 export async function PATCH(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -19,7 +17,7 @@ export async function PATCH(
   const { id } = await params;
 
   try {
-    const suspension = await prismaAny.userSuspension.update({
+    const suspension = await prisma.userSuspension.update({
       where: { id },
       data: {
         liftedAt: new Date(),

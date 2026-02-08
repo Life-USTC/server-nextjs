@@ -37,8 +37,44 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 
-type AdminComment = any;
-type Suspension = any;
+type AdminComment = {
+  id: string;
+  body: string;
+  status: string;
+  isAnonymous: boolean;
+  authorName: string | null;
+  userId: string | null;
+  createdAt: string;
+  moderationNote: string | null;
+  user: { name: string | null } | null;
+  section: { jwId: number | null; code: string | null } | null;
+  course: {
+    jwId: number;
+    code: string;
+    nameCn: string;
+  } | null;
+  teacher: { id: number; nameCn: string } | null;
+  homework: {
+    id: string;
+    title: string;
+    section: { code: string | null } | null;
+  } | null;
+  sectionTeacher: {
+    section: { jwId: number | null; code: string | null } | null;
+    teacher: { nameCn: string } | null;
+  } | null;
+};
+
+type Suspension = {
+  id: string;
+  userId: string;
+  createdAt: string;
+  reason: string | null;
+  note: string | null;
+  expiresAt: string | null;
+  liftedAt: string | null;
+  user: { id: string; name: string | null };
+};
 
 const DURATION_OPTIONS = [
   { value: "1d", labelKey: "duration1Day" },
@@ -184,7 +220,7 @@ export function ModerationDashboard() {
       label = `${comment.sectionTeacher.section.code} · ${comment.sectionTeacher.teacher?.nameCn ?? ""}`;
     } else if (comment.section?.jwId) {
       url = `/sections/${comment.section.jwId}`;
-      label = comment.section.code;
+      label = comment.section.code ?? t("unknownTarget");
     } else if (comment.course?.jwId) {
       url = `/courses/${comment.course.jwId}`;
       label = comment.course.code ?? comment.course.nameCn;
@@ -341,21 +377,15 @@ export function ModerationDashboard() {
   };
 
   const filteredComments = useMemo(() => {
-    let filtered = comments;
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((c) => c.status === statusFilter);
-    }
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (c) =>
-          c.body?.toLowerCase().includes(query) ||
-          c.user?.name?.toLowerCase().includes(query) ||
-          c.authorName?.toLowerCase().includes(query),
-      );
-    }
-    return filtered;
-  }, [comments, statusFilter, searchQuery]);
+    if (!searchQuery.trim()) return comments;
+    const query = searchQuery.toLowerCase();
+    return comments.filter(
+      (c) =>
+        c.body?.toLowerCase().includes(query) ||
+        c.user?.name?.toLowerCase().includes(query) ||
+        c.authorName?.toLowerCase().includes(query),
+    );
+  }, [comments, searchQuery]);
 
   const filteredSuspensions = useMemo(() => {
     if (!searchQuery.trim()) return suspensions;
