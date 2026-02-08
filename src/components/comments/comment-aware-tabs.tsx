@@ -7,18 +7,21 @@ import { Tabs } from "@/components/ui/tabs";
 type CommentAwareTabsProps = {
   defaultValue: string;
   commentValue: string;
-  hashMappings?: { prefix: string; value: string }[];
-  tabValues?: string[];
+  hashMappings?: readonly { prefix: string; value: string }[];
+  tabValues?: readonly string[];
   tabHashPrefix?: string;
   className?: string;
   children: React.ReactNode;
 };
 
+const EMPTY_HASH_MAPPINGS: readonly { prefix: string; value: string }[] = [];
+const EMPTY_TAB_VALUES: readonly string[] = [];
+
 export function CommentAwareTabs({
   defaultValue,
   commentValue,
-  hashMappings = [],
-  tabValues = [],
+  hashMappings = EMPTY_HASH_MAPPINGS,
+  tabValues = EMPTY_TAB_VALUES,
   tabHashPrefix = "#tab-",
   className,
   children,

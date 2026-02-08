@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
 import { buildCommentNodes } from "@/lib/comment-serialization";
-import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
+import {
+  findActiveSuspension,
+  getViewerContext,
+  resolveSectionTeacherId,
+} from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -19,18 +23,6 @@ const TARGET_TYPES = [
 type TargetType = (typeof TARGET_TYPES)[number];
 type Visibility = (typeof VISIBILITY_VALUES)[number];
 
-const prismaAny = prisma as typeof prisma & {
-  comment: any;
-  commentAttachment: any;
-  commentReaction: any;
-  sectionTeacher: any;
-  upload: any;
-  section: any;
-  course: any;
-  teacher: any;
-  homework: any;
-};
-
 function parseIntParam(value: string | null) {
   if (!value) return null;
   const parsed = parseInt(value, 10);
@@ -46,33 +38,6 @@ function normalizeId(value: unknown) {
     return Number.isNaN(parsed) ? null : parsed;
   }
   return null;
-}
-
-async function resolveSectionTeacherId(sectionId: number, teacherId: number) {
-  const section = await prismaAny.section.findFirst({
-    where: {
-      id: sectionId,
-      teachers: {
-        some: { id: teacherId },
-      },
-    },
-    select: { id: true },
-  });
-
-  if (!section) return null;
-
-  const sectionTeacher = await prismaAny.sectionTeacher.upsert({
-    where: {
-      sectionId_teacherId: {
-        sectionId,
-        teacherId,
-      },
-    },
-    update: {},
-    create: { sectionId, teacherId },
-  });
-
-  return sectionTeacher.id as number;
 }
 
 export async function GET(request: Request) {
@@ -122,11 +87,15 @@ export async function GET(request: Request) {
 
     const [viewer, comments] = await Promise.all([
       getViewerContext({ includeAdmin: false }),
-      prismaAny.comment.findMany({
+      prisma.comment.findMany({
         where: whereTarget,
         include: {
           user: {
-            include: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              isAdmin: true,
               accounts: {
                 select: {
                   provider: true,
@@ -136,10 +105,21 @@ export async function GET(request: Request) {
           },
           attachments: {
             include: {
-              upload: true,
+              upload: {
+                select: {
+                  filename: true,
+                  contentType: true,
+                  size: true,
+                },
+              },
             },
           },
-          reactions: true,
+          reactions: {
+            select: {
+              type: true,
+              userId: true,
+            },
+          },
         },
         orderBy: { createdAt: "asc" },
       }),
@@ -210,21 +190,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (userId) {
-    const suspension = await findActiveSuspension(userId);
-    if (suspension) {
-      return NextResponse.json(
-        {
-          error: "Suspended",
-          reason: suspension.reason ?? null,
-        },
-        { status: 403 },
-      );
-    }
-  }
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const suspension = await findActiveSuspension(userId);
+  if (suspension) {
+    return NextResponse.json(
+      {
+        error: "Suspended",
+        reason: suspension.reason ?? null,
+      },
+      { status: 403 },
+    );
   }
 
   try {
@@ -267,7 +241,7 @@ export async function POST(request: Request) {
     let parentId: string | null = null;
     let rootId: string | null = null;
     if (body.parentId) {
-      const parent = await prismaAny.comment.findUnique({
+      const parent = await prisma.comment.findUnique({
         where: { id: body.parentId },
       });
       if (!parent) {
@@ -278,7 +252,7 @@ export async function POST(request: Request) {
       }
 
       const sameTarget = Object.entries(targetData).every(
-        ([key, value]) => parent[key] === value,
+        ([key, value]) => parent[key as keyof typeof parent] === value,
       );
       if (!sameTarget) {
         return NextResponse.json(
@@ -290,7 +264,7 @@ export async function POST(request: Request) {
       rootId = parent.rootId ?? parent.id;
     }
 
-    const comment = await prismaAny.comment.create({
+    const comment = await prisma.comment.create({
       data: {
         body: content,
         visibility,
@@ -305,7 +279,7 @@ export async function POST(request: Request) {
     });
 
     if (!rootId) {
-      await prismaAny.comment.update({
+      await prisma.comment.update({
         where: { id: comment.id },
         data: { rootId: comment.id },
       });
@@ -316,14 +290,7 @@ export async function POST(request: Request) {
       : [];
 
     if (attachmentIds.length > 0) {
-      if (!userId) {
-        return NextResponse.json(
-          { error: "Login required for attachments" },
-          { status: 401 },
-        );
-      }
-
-      const uploads = await prismaAny.upload.findMany({
+      const uploads = await prisma.upload.findMany({
         where: {
           id: { in: attachmentIds },
           userId,
@@ -338,7 +305,7 @@ export async function POST(request: Request) {
         );
       }
 
-      await prismaAny.commentAttachment.createMany({
+      await prisma.commentAttachment.createMany({
         data: attachmentIds.map((uploadId) => ({
           uploadId,
           commentId: comment.id,

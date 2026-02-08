@@ -134,7 +134,7 @@
 - 表情反应增删
 
 ## 我的评论页
-/me/comments 页面只展示本人评论列表：
+/dashboard/comments 页面只展示本人评论列表：
 - 当前显示 active + softbanned
 - 删除评论不展示
 - 点击行跳转到目标锚点

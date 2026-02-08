@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
@@ -6,8 +7,6 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const STATUS_FILTERS = ["active", "softbanned", "deleted"] as const;
-
-const prismaAny = prisma as typeof prisma & { comment: any };
 
 function parseLimit(value: string | null) {
   if (!value) return 50;
@@ -29,29 +28,44 @@ export async function GET(request: Request) {
   const where = STATUS_FILTERS.includes(
     status as (typeof STATUS_FILTERS)[number],
   )
-    ? { status }
+    ? { status: status as CommentStatus }
     : {};
 
   try {
-    const comments = await prismaAny.comment.findMany({
+    const comments = await prisma.comment.findMany({
       where,
       include: {
-        user: true,
-        section: true,
-        course: true,
-        teacher: true,
+        user: {
+          select: { name: true },
+        },
+        section: {
+          select: { jwId: true, code: true },
+        },
+        course: {
+          select: { jwId: true, code: true, nameCn: true },
+        },
+        teacher: {
+          select: { id: true, nameCn: true },
+        },
         homework: {
-          include: {
-            section: true,
+          select: {
+            id: true,
+            title: true,
+            section: {
+              select: { code: true },
+            },
           },
         },
         sectionTeacher: {
-          include: {
-            section: { include: { course: true } },
-            teacher: true,
+          select: {
+            section: {
+              select: { jwId: true, code: true },
+            },
+            teacher: {
+              select: { nameCn: true },
+            },
           },
         },
-        moderatedBy: true,
       },
       orderBy: { createdAt: "desc" },
       take: limit,

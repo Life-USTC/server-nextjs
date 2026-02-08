@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import type { CommentReactionType } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
 import { findActiveSuspension } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
@@ -16,11 +17,6 @@ const REACTION_TYPES = [
   "rocket",
   "eyes",
 ] as const;
-
-const prismaAny = prisma as typeof prisma & {
-  comment: any;
-  commentReaction: any;
-};
 
 export async function POST(
   request: Request,
@@ -57,7 +53,7 @@ export async function POST(
   }
 
   try {
-    const comment = await prismaAny.comment.findUnique({
+    const comment = await prisma.comment.findUnique({
       where: { id },
       select: { id: true },
     });
@@ -66,19 +62,19 @@ export async function POST(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    await prismaAny.commentReaction.upsert({
+    await prisma.commentReaction.upsert({
       where: {
         commentId_userId_type: {
           commentId: id,
           userId: session.user.id,
-          type,
+          type: type as CommentReactionType,
         },
       },
       update: {},
       create: {
         commentId: id,
         userId: session.user.id,
-        type,
+        type: type as CommentReactionType,
       },
     });
 
@@ -111,11 +107,11 @@ export async function DELETE(
   }
 
   try {
-    await prismaAny.commentReaction.deleteMany({
+    await prisma.commentReaction.deleteMany({
       where: {
         commentId: id,
         userId: session.user.id,
-        type,
+        type: type as CommentReactionType,
       },
     });
 
