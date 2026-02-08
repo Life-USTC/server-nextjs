@@ -1,4 +1,9 @@
-import type { Exam, ExamBatch, PrismaClient, Section } from "@prisma/client";
+import type {
+  Exam,
+  ExamBatch,
+  PrismaClient,
+  Section,
+} from "../src/generated/prisma/client";
 
 interface ExamBatchInterface {
   id: number;

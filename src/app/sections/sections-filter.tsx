@@ -1,6 +1,5 @@
 "use client";
 
-import type { Semester } from "@prisma/client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import * as React from "react";
@@ -18,13 +17,18 @@ import {
 } from "@/components/ui/select";
 import { Link } from "@/i18n/routing";
 
+type SemesterOption = { id: number; nameCn: string };
+
 interface SectionsFilterProps {
-  semesters: Semester[];
+  semesters: SemesterOption[];
   defaultValues: {
     search?: string;
     semesterId?: string;
   };
 }
+
+type SectionsFilterValues = SectionsFilterProps["defaultValues"];
+type SectionsFilterField = keyof SectionsFilterValues;
 
 export function SectionsFilter({
   semesters,
@@ -38,12 +42,12 @@ export function SectionsFilter({
   const currentView = searchParams.get("view");
   const searchInputRef = React.useRef<HTMLInputElement>(null);
 
-  const updateFilters = (name?: string, value?: string) => {
+  const updateFilters = (name?: SectionsFilterField, value?: string) => {
     const params = new URLSearchParams();
-    const currentValues = { ...defaultValues };
+    const currentValues: SectionsFilterValues = { ...defaultValues };
 
     if (name) {
-      (currentValues as any)[name] = value;
+      currentValues[name] = value;
     }
 
     if (searchInputRef.current) {
@@ -63,7 +67,7 @@ export function SectionsFilter({
     updateFilters();
   };
 
-  const getSelectItems = (options: Semester[], allLabel: string) => {
+  const getSelectItems = (options: SemesterOption[], allLabel: string) => {
     return [
       { label: allLabel, value: "" },
       ...options.map((opt) => ({

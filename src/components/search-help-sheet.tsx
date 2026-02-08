@@ -4,10 +4,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetContent,
   SheetDescription,
   SheetHeader,
   SheetPanel,
+  SheetPopup,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -38,7 +38,7 @@ export function SearchHelpSheet({
       <SheetTrigger render={<Button variant="outline" size="default" />}>
         {trigger}
       </SheetTrigger>
-      <SheetContent>
+      <SheetPopup>
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
@@ -69,7 +69,7 @@ export function SearchHelpSheet({
             ))}
           </div>
         </SheetPanel>
-      </SheetContent>
+      </SheetPopup>
     </Sheet>
   );
 }

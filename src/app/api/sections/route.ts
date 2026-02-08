@@ -1,6 +1,6 @@
-import type { Prisma } from "@prisma/client";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import type { Prisma } from "@/generated/prisma/client";
 import { getPagination, handleRouteError } from "@/lib/api-helpers";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 

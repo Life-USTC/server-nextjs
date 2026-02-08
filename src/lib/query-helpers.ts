@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   buildPaginatedResponse,
   normalizePagination,
@@ -112,9 +112,22 @@ export function paginatedCourseQuery(
 }
 
 /**
- * Helper to build common include objects for teachers
+ * Lightweight include for teacher list pages (no sections data, only count)
  */
-export const teacherInclude = {
+export const teacherListInclude = {
+  department: true,
+  teacherTitle: true,
+  _count: {
+    select: {
+      sections: true,
+    },
+  },
+} satisfies Prisma.TeacherInclude;
+
+/**
+ * Full include for teacher detail pages (includes all sections)
+ */
+export const teacherDetailInclude = {
   department: true,
   teacherTitle: true,
   sections: {
@@ -150,7 +163,7 @@ export function paginatedTeacherQuery(
         where,
         skip,
         take,
-        include: teacherInclude,
+        include: teacherListInclude,
         orderBy,
       }),
     () => prisma.teacher.count({ where }),

@@ -253,19 +253,47 @@ export function AdminUsersTable({
                 <PaginationPrevious href={buildUrl(page - 1)} />
               </PaginationItem>
             )}
-            {Array.from({ length: totalPages }, (_, index) => index + 1)
-              .slice(0, 7)
-              .map((pageNum) => (
-                <PaginationItem key={pageNum}>
-                  <PaginationLink
-                    href={buildUrl(pageNum)}
-                    isActive={pageNum === page}
-                  >
-                    {pageNum}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-            {totalPages > 7 && <PaginationEllipsis />}
+            {(() => {
+              const maxVisible = 7;
+              const half = Math.floor(maxVisible / 2);
+              let start = Math.max(1, page - half);
+              const end = Math.min(totalPages, start + maxVisible - 1);
+              start = Math.max(1, end - maxVisible + 1);
+              const pages: number[] = [];
+              for (let i = start; i <= end; i++) pages.push(i);
+              return (
+                <>
+                  {start > 1 && (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink href={buildUrl(1)}>1</PaginationLink>
+                      </PaginationItem>
+                      {start > 2 && <PaginationEllipsis />}
+                    </>
+                  )}
+                  {pages.map((pageNum) => (
+                    <PaginationItem key={pageNum}>
+                      <PaginationLink
+                        href={buildUrl(pageNum)}
+                        isActive={pageNum === page}
+                      >
+                        {pageNum}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  {end < totalPages && (
+                    <>
+                      {end < totalPages - 1 && <PaginationEllipsis />}
+                      <PaginationItem>
+                        <PaginationLink href={buildUrl(totalPages)}>
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                </>
+              );
+            })()}
             {page < totalPages && (
               <PaginationItem>
                 <PaginationNext href={buildUrl(page + 1)} />
