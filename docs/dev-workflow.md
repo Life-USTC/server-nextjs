@@ -29,5 +29,7 @@
 - 交互元素必须使用 `@/components/ui/*`（禁止原生 button/input）。
 
 ## 测试
-当前未配置自动化测试框架。
-- 单测运行：尚不可用，需先添加测试框架。
+项目使用 Playwright 进行 E2E 测试。
+1. 首次执行：`bun run test:e2e:install`
+2. 常规执行：`bun run test:e2e`
+3. 调试可用：`bun run test:e2e:headed` 或 `bun run test:e2e:ui`
