@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@/generated/prisma/client";
 
 const connectionString = `${process.env.DATABASE_URL}`;
 
@@ -77,8 +77,21 @@ const localizedNamesExtension = (locale: string) =>
 
 export const adapter = new PrismaPg({ connectionString });
 export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter });
-export const getPrisma = (locale: string) =>
+
+const _makeExtendedClient = (locale: string) =>
   prisma.$extends(localizedNamesExtension(locale));
+
+type ExtendedPrismaClient = ReturnType<typeof _makeExtendedClient>;
+
+const extendedClientCache = new Map<string, ExtendedPrismaClient>();
+
+export const getPrisma = (locale: string): ExtendedPrismaClient => {
+  const cached = extendedClientCache.get(locale);
+  if (cached) return cached;
+  const extended = _makeExtendedClient(locale);
+  extendedClientCache.set(locale, extended);
+  return extended;
+};
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

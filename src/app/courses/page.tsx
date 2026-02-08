@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
@@ -34,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 import { CoursesFilter } from "./courses-filter";
@@ -133,7 +133,7 @@ export default async function CoursesPage({
   const classTypeId = searchP.classTypeId;
   const view = searchP.view || "table";
 
-  const [data, filterOptions] = await Promise.all([
+  const [data, filterOptions, t, tCommon] = await Promise.all([
     fetchCourses(
       page,
       search,
@@ -143,13 +143,12 @@ export default async function CoursesPage({
       locale,
     ),
     fetchFilterOptions(locale),
+    getTranslations("courses"),
+    getTranslations("common"),
   ]);
   const { data: courses, pagination } = data;
   const { page: currentPage, total, totalPages } = pagination;
   const { educationLevels, categories, classTypes } = filterOptions;
-
-  const t = await getTranslations("courses");
-  const tCommon = await getTranslations("common");
 
   const buildUrl = (page: number) => {
     const params = new URLSearchParams({

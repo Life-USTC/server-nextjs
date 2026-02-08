@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
@@ -34,7 +33,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getPrisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
 
@@ -305,9 +305,9 @@ async function fetchSections(
   return paginatedSectionQuery(page, where, orderBy, locale);
 }
 
-async function fetchSemesters(locale: string) {
-  const prisma = getPrisma(locale);
+async function fetchSemesters() {
   const semesters = await prisma.semester.findMany({
+    select: { id: true, nameCn: true },
     take: 100,
     orderBy: { jwId: "desc" },
   });
@@ -340,9 +340,11 @@ export default async function SectionsPage({
   const search = searchP.search;
   const view = searchP.view || "table";
 
-  const [data, semesters] = await Promise.all([
+  const [data, semesters, t, tCommon] = await Promise.all([
     fetchSections(page, semesterId, search, locale),
-    fetchSemesters(locale),
+    fetchSemesters(),
+    getTranslations("sections"),
+    getTranslations("common"),
   ]);
 
   const { data: sections, pagination } = data;
@@ -350,9 +352,6 @@ export default async function SectionsPage({
   const selectedSemester = semesters.find(
     (s) => s.id.toString() === semesterId,
   );
-
-  const t = await getTranslations("sections");
-  const tCommon = await getTranslations("common");
 
   const buildUrl = (page: number) => {
     const params = new URLSearchParams({

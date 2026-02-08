@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { CommentAwareTabs } from "@/components/comments/comment-aware-tabs";
 import { CommentsSection } from "@/components/comments/comments-section";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -24,9 +26,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { Link } from "@/i18n/routing";
-import { getPrisma } from "@/lib/prisma";
+import { getViewerContext } from "@/lib/comment-utils";
+import { getCommentsPayload } from "@/lib/comments-server";
+import { getDescriptionPayload } from "@/lib/descriptions-server";
+import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 
 export async function generateMetadata({
   params,
@@ -45,13 +50,17 @@ export async function generateMetadata({
 
   const teacher = await prisma.teacher.findUnique({
     where: { id: parsedId },
+    select: { nameCn: true, nameEn: true },
   });
 
   if (!teacher) {
     return { title: t("pages.teachers") };
   }
 
-  const teacherName = teacher.namePrimary;
+  const teacherName =
+    locale === "en-us" && teacher.nameEn?.trim()
+      ? teacher.nameEn.trim()
+      : teacher.nameCn;
 
   return {
     title: t("pages.teacherDetail", {
@@ -84,7 +93,6 @@ export default async function TeacherPage({
         include: {
           course: true,
           semester: true,
-          campus: true,
         },
         orderBy: [
           { semester: { jwId: "desc" } },
@@ -98,12 +106,14 @@ export default async function TeacherPage({
     notFound();
   }
 
-  const t = await getTranslations("teacherDetail");
-  const tCommon = await getTranslations("common");
-  const tComments = await getTranslations("comments");
-  const commentCount = await prisma.comment.count({
-    where: { teacherId: teacher.id, status: { not: "deleted" } },
-  });
+  const [t, tCommon, tComments, commentCount] = await Promise.all([
+    getTranslations("teacherDetail"),
+    getTranslations("common"),
+    getTranslations("comments"),
+    basePrisma.comment.count({
+      where: { teacherId: teacher.id, status: { not: "deleted" } },
+    }),
+  ]);
 
   return (
     <main className="page-main">
@@ -127,7 +137,7 @@ export default async function TeacherPage({
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <div className="space-y-8">
           <div className="mt-2">
             <h1 className="mb-2 text-display">
@@ -152,14 +162,14 @@ export default async function TeacherPage({
             className="space-y-6"
           >
             <TabsList className="w-full" variant="underline">
-              <TabsTrigger value="sections">
+              <TabsTab value="sections">
                 {t("teachingSections", { count: teacher.sections.length })}
-              </TabsTrigger>
-              <TabsTrigger value="comments">
+              </TabsTab>
+              <TabsTab value="comments">
                 {tComments("title")} ({commentCount})
-              </TabsTrigger>
+              </TabsTab>
             </TabsList>
-            <TabsContent value="sections" keepMounted>
+            <TabsPanel value="sections" keepMounted>
               {teacher.sections.length > 0 ? (
                 <div>
                   <Table>
@@ -205,24 +215,24 @@ export default async function TeacherPage({
                   </EmptyHeader>
                 </Empty>
               )}
-            </TabsContent>
-            <TabsContent value="comments" keepMounted>
-              <CommentsSection
-                targets={[
-                  {
-                    key: "teacher",
-                    label: tComments("tabTeacher"),
-                    type: "teacher",
-                    targetId: teacher.id,
-                  },
-                ]}
-              />
-            </TabsContent>
+            </TabsPanel>
+            <TabsPanel value="comments" keepMounted>
+              <div className="space-y-4">
+                <Suspense fallback={<CommentsSkeleton />}>
+                  <TeacherCommentsLoader
+                    teacherId={teacher.id}
+                    tabTeacherLabel={tComments("tabTeacher")}
+                  />
+                </Suspense>
+              </div>
+            </TabsPanel>
           </CommentAwareTabs>
         </div>
 
-        <aside className="space-y-4">
-          <DescriptionPanel targetType="teacher" targetId={teacher.id} />
+        <aside className="lg:-order-1 space-y-4">
+          <Suspense fallback={<DescriptionSkeleton />}>
+            <DescriptionLoader targetType="teacher" targetId={teacher.id} />
+          </Suspense>
           <Card>
             <CardHeader>
               <CardTitle>{t("basicInfo")}</CardTitle>
@@ -300,5 +310,89 @@ export default async function TeacherPage({
         </aside>
       </div>
     </main>
+  );
+}
+
+// --- Suspense Skeleton Fallbacks ---
+
+function CommentsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <Skeleton className="h-24 w-full" />
+      <Skeleton className="h-24 w-full" />
+    </div>
+  );
+}
+
+function DescriptionSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-6 w-2/3" />
+      </CardHeader>
+      <CardPanel>
+        <Skeleton className="h-20 w-full" />
+      </CardPanel>
+    </Card>
+  );
+}
+
+// --- Async Server Component Loaders (streamed via Suspense) ---
+
+async function TeacherCommentsLoader({
+  teacherId,
+  tabTeacherLabel,
+}: {
+  teacherId: number;
+  tabTeacherLabel: string;
+}) {
+  const viewer = await getViewerContext({ includeAdmin: false });
+  const commentsData = await getCommentsPayload(
+    { type: "teacher", targetId: teacherId },
+    viewer,
+  );
+
+  const commentsInitialData = {
+    commentMap: { teacher: commentsData.comments },
+    hiddenMap: { teacher: commentsData.hiddenCount },
+    hiddenCount: commentsData.hiddenCount,
+    viewer: commentsData.viewer,
+  };
+
+  return (
+    <CommentsSection
+      targets={[
+        {
+          key: "teacher",
+          label: tabTeacherLabel,
+          type: "teacher",
+          targetId: teacherId,
+        },
+      ]}
+      initialData={commentsInitialData}
+    />
+  );
+}
+
+async function DescriptionLoader({
+  targetType,
+  targetId,
+}: {
+  targetType: "section" | "course" | "teacher" | "homework";
+  targetId: number | string;
+}) {
+  const viewer = await getViewerContext({ includeAdmin: false });
+  const descriptionData = await getDescriptionPayload(
+    targetType,
+    targetId,
+    viewer,
+  );
+
+  return (
+    <DescriptionPanel
+      targetType={targetType}
+      targetId={targetId}
+      initialData={descriptionData}
+    />
   );
 }

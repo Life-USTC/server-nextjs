@@ -16,7 +16,6 @@ export async function GET() {
       examModes,
       teachLanguages,
       campuses,
-      buildings,
     ] = await Promise.all([
       prisma.educationLevel.findMany({ orderBy: { nameCn: "asc" } }),
       prisma.courseCategory.findMany({ orderBy: { nameCn: "asc" } }),
@@ -30,10 +29,6 @@ export async function GET() {
         orderBy: { nameCn: "asc" },
         include: { buildings: true },
       }),
-      prisma.building.findMany({
-        orderBy: { nameCn: "asc" },
-        include: { campus: true },
-      }),
     ]);
 
     return NextResponse.json({
@@ -46,7 +41,6 @@ export async function GET() {
       examModes,
       teachLanguages,
       campuses,
-      buildings,
     });
   } catch (error) {
     return handleRouteError("Failed to fetch metadata", error);

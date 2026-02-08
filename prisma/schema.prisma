@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -322,6 +323,7 @@ model ScheduleGroup {
   schedules Schedule[]
 
   @@index([jwId])
+  @@index([sectionId])
 }
 
 model Section {
@@ -396,6 +398,7 @@ model Section {
   @@index([campusId])
   @@index([openDepartmentId])
   @@index([roomTypeId])
+  @@index([teachLanguageId])
 }
 
 model Exam {
@@ -497,6 +500,7 @@ model Teacher {
   @@index([nameCn])
   @@index([nameEn])
   @@index([teacherTitleId])
+  @@index([departmentId])
 }
 
 model Description {
@@ -563,6 +567,8 @@ model Homework {
   @@index([publishedAt])
   @@index([submissionDueAt])
   @@index([deletedAt])
+  @@index([createdById])
+  @@index([sectionId, deletedAt])
 }
 
 model HomeworkCompletion {
@@ -712,6 +718,8 @@ model CalendarSubscription {
 
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model User {
@@ -821,6 +829,10 @@ model Comment {
   @@index([homeworkId])
   @@index([status])
   @@index([visibility])
+  @@index([userId, status])
+  @@index([sectionId, status])
+  @@index([courseId, status])
+  @@index([teacherId, status])
 }
 
 model CommentAttachment {
@@ -875,6 +887,7 @@ model UserSuspension {
   @@index([createdById])
   @@index([liftedAt])
   @@index([expiresAt])
+  @@index([userId, liftedAt])
 }
 
 model UploadPending {
@@ -892,6 +905,7 @@ model UploadPending {
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([userId, expiresAt])
 }
 
 model VerifiedEmail {
@@ -927,6 +941,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -937,6 +952,8 @@ model Session {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model VerificationToken {
