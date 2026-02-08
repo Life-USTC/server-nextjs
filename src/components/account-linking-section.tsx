@@ -7,9 +7,9 @@ import { unlinkAccount } from "@/app/actions/user";
 import { Button } from "./ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "./ui/card";
 import {
@@ -46,7 +46,7 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
   const canDisconnect = connectedProviders.length > 1;
 
   const handleLink = (providerId: string) => {
-    signIn(providerId, { callbackUrl: "/me" });
+    signIn(providerId, { callbackUrl: "/settings/accounts" });
   };
 
   const handleUnlink = async (providerId: string) => {
@@ -90,7 +90,7 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
         <CardTitle>{t("linkedAccounts")}</CardTitle>
         <CardDescription>{t("linkedAccountsDescription")}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardPanel className="space-y-4">
         {providers.map((provider) => {
           const isConnected = connectedProviders.includes(provider.id);
           const isCurrentlyUnlinking = isUnlinking === provider.id;
@@ -172,7 +172,7 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
             {t("cannotDisconnectLast")}
           </p>
         )}
-      </CardContent>
+      </CardPanel>
     </Card>
   );
 }

@@ -1,4 +1,3 @@
-import type { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -20,9 +19,9 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "@/components/ui/card";
 import {
@@ -33,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { getPrisma } from "@/lib/prisma";
@@ -54,10 +54,12 @@ export default async function SubscriptionsPage() {
     redirect("/signin");
   }
 
-  const t = await getTranslations("subscriptions");
-  const tCommon = await getTranslations("common");
-  const tProfile = await getTranslations("profile");
-  const tSection = await getTranslations("sectionDetail");
+  const [t, tCommon, tMe, tSection] = await Promise.all([
+    getTranslations("subscriptions"),
+    getTranslations("common"),
+    getTranslations("meDashboard"),
+    getTranslations("sectionDetail"),
+  ]);
   const weekLabelTemplate = tSection("weekNumber", { week: "{week}" });
 
   type SubscriptionSchedule = Prisma.ScheduleGetPayload<{
@@ -138,45 +140,58 @@ export default async function SubscriptionsPage() {
       .toDate();
   };
 
-  const subscriptions = await prisma.calendarSubscription.findMany({
-    where: {
-      userId: session.user.id,
-    },
-    include: {
-      sections: {
-        include: {
-          course: true,
-          semester: true,
-          teachers: true,
-          schedules: {
-            include: {
-              room: {
-                include: {
-                  building: {
-                    include: {
-                      campus: true,
+  const [subscriptions, semesters] = await Promise.all([
+    prisma.calendarSubscription.findMany({
+      where: {
+        userId: session.user.id,
+      },
+      include: {
+        sections: {
+          include: {
+            course: true,
+            semester: true,
+            teachers: true,
+            schedules: {
+              include: {
+                room: {
+                  include: {
+                    building: {
+                      include: {
+                        campus: true,
+                      },
                     },
                   },
                 },
+                teachers: true,
               },
-              teachers: true,
+              orderBy: [{ date: "asc" }, { startTime: "asc" }],
             },
-            orderBy: [{ date: "asc" }, { startTime: "asc" }],
-          },
-          exams: {
-            include: {
-              examBatch: true,
-              examRooms: true,
+            exams: {
+              include: {
+                examBatch: true,
+                examRooms: true,
+              },
+              orderBy: { examDate: "asc" },
             },
-            orderBy: { examDate: "asc" },
           },
         },
       },
-    },
-    orderBy: {
-      id: "desc",
-    },
-  });
+      orderBy: {
+        id: "desc",
+      },
+    }),
+    prisma.semester.findMany({
+      select: {
+        id: true,
+        nameCn: true,
+        startDate: true,
+        endDate: true,
+      },
+      orderBy: {
+        startDate: "asc",
+      },
+    }),
+  ]);
 
   // Generate tokens for each subscription
   const subscriptionsWithTokens = await Promise.all(
@@ -185,18 +200,6 @@ export default async function SubscriptionsPage() {
       token: await generateCalendarSubscriptionJWT(sub.id),
     })),
   );
-
-  const semesters = await prisma.semester.findMany({
-    select: {
-      id: true,
-      nameCn: true,
-      startDate: true,
-      endDate: true,
-    },
-    orderBy: {
-      startDate: "asc",
-    },
-  });
 
   const now = new Date();
   const currentSemesterId =
@@ -221,8 +224,8 @@ export default async function SubscriptionsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/me" />}>
-              {tProfile("title")}
+            <BreadcrumbLink render={<Link href="/dashboard" />}>
+              {tMe("title")}
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -253,13 +256,13 @@ export default async function SubscriptionsPage() {
                 {t("noSubscriptionsDescription")}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardPanel>
               <Button
                 render={<Link className="no-underline" href="/courses" />}
               >
                 {t("browseCourses")}
               </Button>
-            </CardContent>
+            </CardPanel>
           </Card>
         ) : (
           subscriptionsWithTokens.map((sub) => (
@@ -276,7 +279,7 @@ export default async function SubscriptionsPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardPanel>
                 <div className="space-y-6">
                   {(() => {
                     const groups = sub.sections.reduce(
@@ -329,8 +332,8 @@ export default async function SubscriptionsPage() {
                             })}
                           </span>
                         </div>
-                        <div className="rounded-md border">
-                          <Table className="table-fixed">
+                        <div className="overflow-x-auto rounded-md border">
+                          <Table className="min-w-[720px] table-fixed">
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-1/4">
@@ -518,7 +521,7 @@ export default async function SubscriptionsPage() {
                     );
                   })()}
                 </div>
-              </CardContent>
+              </CardPanel>
             </Card>
           ))
         )}

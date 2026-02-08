@@ -33,7 +33,9 @@ export async function POST(request: Request) {
         },
       },
       include: {
-        sections: true,
+        sections: {
+          select: { id: true },
+        },
       },
     });
 

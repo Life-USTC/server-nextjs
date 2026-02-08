@@ -6,11 +6,12 @@ import { auth, signIn } from "@/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -25,8 +26,7 @@ export default async function SignInPage({
 }: {
   searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
-  const session = await auth();
-  const params = await searchParams;
+  const [session, params] = await Promise.all([auth(), searchParams]);
 
   // If already signed in, redirect to callback URL or home
   if (session?.user) {
@@ -34,6 +34,7 @@ export default async function SignInPage({
   }
 
   const t = await getTranslations("signIn");
+  const isDev = process.env.NODE_ENV === "development";
 
   const providers = [
     {
@@ -84,6 +85,15 @@ export default async function SignInPage({
         </svg>
       ),
     },
+    ...(isDev
+      ? [
+          {
+            id: "dev-debug",
+            name: t("devDebugProvider"),
+            icon: <span aria-hidden="true">🧪</span>,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -93,7 +103,7 @@ export default async function SignInPage({
           <CardTitle className="text-2xl">{t("title")}</CardTitle>
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardPanel className="space-y-4">
           {params.error && (
             <div className="rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
               {params.error === "OAuthAccountNotLinked"
@@ -103,7 +113,7 @@ export default async function SignInPage({
           )}
 
           {providers.map((provider) => (
-            <form
+            <Form
               key={provider.id}
               action={async () => {
                 "use server";
@@ -120,13 +130,19 @@ export default async function SignInPage({
                 {provider.icon}
                 <span>{t("signInWith", { provider: provider.name })}</span>
               </Button>
-            </form>
+            </Form>
           ))}
 
-          <p className="pt-4 text-center text-muted-foreground text-xs">
+          {isDev && (
+            <p className="text-center text-muted-foreground text-xs">
+              {t("devDebugHint")}
+            </p>
+          )}
+
+          <p className="pt-2 text-center text-muted-foreground text-xs">
             {t("termsNotice")}
           </p>
-        </CardContent>
+        </CardPanel>
       </Card>
     </main>
   );
