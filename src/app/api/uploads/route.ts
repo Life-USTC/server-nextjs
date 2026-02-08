@@ -1,8 +1,8 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { buildUploadKey, s3Bucket, s3Client } from "@/lib/storage";
@@ -84,6 +84,13 @@ export async function GET() {
       prisma.upload.findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          key: true,
+          filename: true,
+          size: true,
+          createdAt: true,
+        },
       }),
       prisma.upload.aggregate({
         where: { userId },

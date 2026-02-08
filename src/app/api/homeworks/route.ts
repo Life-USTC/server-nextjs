@@ -1,19 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const prismaAny = prisma as typeof prisma & {
-  homework: any;
-  homeworkAuditLog: any;
-  description: any;
-  descriptionEdit: any;
-  section: any;
-  user: any;
-};
 
 function parseIntParam(value: string | null) {
   if (!value) return null;
@@ -41,7 +33,7 @@ export async function GET(request: Request) {
 
   try {
     const viewer = await getViewerContext({ includeAdmin: true });
-    const homeworkInclude: Record<string, unknown> = {
+    const homeworkInclude = {
       description: true,
       createdBy: {
         select: { id: true, name: true, username: true, image: true },
@@ -60,10 +52,10 @@ export async function GET(request: Request) {
             },
           }
         : {}),
-    };
+    } satisfies Prisma.HomeworkInclude;
 
     const [homeworks, auditLogs] = await Promise.all([
-      prismaAny.homework.findMany({
+      prisma.homework.findMany({
         where: {
           sectionId,
           ...(includeDeleted ? {} : { deletedAt: null }),
@@ -71,7 +63,7 @@ export async function GET(request: Request) {
         include: homeworkInclude,
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       }),
-      prismaAny.homeworkAuditLog.findMany({
+      prisma.homeworkAuditLog.findMany({
         where: { sectionId },
         include: {
           actor: {
@@ -83,15 +75,13 @@ export async function GET(request: Request) {
       }),
     ]);
 
-    const responseHomeworks = homeworks.map(
-      (homework: { homeworkCompletions?: Array<{ completedAt: Date }> }) => {
-        const { homeworkCompletions, ...rest } = homework;
-        return {
-          ...rest,
-          completion: homeworkCompletions?.[0] ?? null,
-        };
-      },
-    );
+    const responseHomeworks = homeworks.map((homework) => {
+      const { homeworkCompletions, ...rest } = homework;
+      return {
+        ...rest,
+        completion: homeworkCompletions?.[0] ?? null,
+      };
+    });
 
     return NextResponse.json({
       viewer,
@@ -198,7 +188,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const section = await prismaAny.section.findUnique({
+    const section = await prisma.section.findUnique({
       where: { id: sectionId },
       select: { id: true },
     });
@@ -207,9 +197,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
-    const result = await prismaAny.$transaction(async (tx) => {
-      const txAny = tx as typeof prismaAny;
-      const homework = await txAny.homework.create({
+    const result = await prisma.$transaction(async (tx) => {
+      const homework = await tx.homework.create({
         data: {
           sectionId,
           title,
@@ -224,7 +213,7 @@ export async function POST(request: Request) {
       });
 
       if (description) {
-        const descriptionRecord = await txAny.description.create({
+        const descriptionRecord = await tx.description.create({
           data: {
             content: description,
             lastEditedAt: new Date(),
@@ -233,7 +222,7 @@ export async function POST(request: Request) {
           },
         });
 
-        await txAny.descriptionEdit.create({
+        await tx.descriptionEdit.create({
           data: {
             descriptionId: descriptionRecord.id,
             editorId: userId,
@@ -243,7 +232,7 @@ export async function POST(request: Request) {
         });
       }
 
-      await txAny.homeworkAuditLog.create({
+      await tx.homeworkAuditLog.create({
         data: {
           action: "created",
           sectionId,

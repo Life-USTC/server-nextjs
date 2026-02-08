@@ -46,6 +46,7 @@ export async function PATCH(
   try {
     const upload = await prisma.upload.findFirst({
       where: { id, userId: session.user.id },
+      select: { id: true },
     });
 
     if (!upload) {
@@ -55,6 +56,13 @@ export async function PATCH(
     const updated = await prisma.upload.update({
       where: { id: upload.id },
       data: { filename: trimmed },
+      select: {
+        id: true,
+        key: true,
+        filename: true,
+        size: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json({
@@ -88,6 +96,7 @@ export async function DELETE(
   try {
     const upload = await prisma.upload.findFirst({
       where: { id, userId: session.user.id },
+      select: { id: true, key: true, size: true },
     });
 
     if (!upload) {

@@ -8,14 +8,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 interface ProfileEditFormProps {
@@ -66,11 +66,11 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
         <CardTitle>{t("editProfile")}</CardTitle>
         <CardDescription>{t("editProfileDescription")}</CardDescription>
       </CardHeader>
-      <form action={onSubmit}>
-        <CardContent className="space-y-6">
+      <Form action={onSubmit}>
+        <CardPanel className="space-y-6">
           {/* Profile Picture Selection */}
-          <div className="space-y-4">
-            <Label>{t("profilePicture")}</Label>
+          <Field className="space-y-4">
+            <FieldLabel>{t("profilePicture")}</FieldLabel>
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={selectedImage} />
@@ -83,11 +83,11 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                     <Button
                       key={pic}
                       type="button"
-                      variant="ghost"
+                      size={"icon-lg"}
                       onClick={() => setSelectedImage(pic)}
-                      className={`relative h-12 w-12 overflow-hidden rounded-full border-2 p-0 transition-all ${
+                      className={`relative h-12 w-12 overflow-hidden rounded-full p-0 ${
                         selectedImage === pic
-                          ? "border-primary ring-2 ring-primary/30"
+                          ? "border-3 border-primary ring-2 ring-primary/30"
                           : "border-transparent hover:border-border"
                       }`}
                     >
@@ -103,20 +103,20 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                 </div>
               )}
             </div>
-          </div>
+          </Field>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">{t("name")}</Label>
+            <Field>
+              <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
               <Input
                 id="name"
                 name="name"
                 defaultValue={user.name || ""}
                 placeholder={t("namePlaceholder")}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="username">{t("username")}</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="username">{t("username")}</FieldLabel>
               <Input
                 id="username"
                 name="username"
@@ -125,18 +125,13 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                 pattern="[a-z0-9]{1,20}"
                 title={t("usernameValidation")}
               />
-              <p className="text-muted-foreground text-xs">
-                {t("usernameHint")}
-              </p>
-            </div>
+            </Field>
           </div>
-        </CardContent>
-        <CardFooter>
           <Button type="submit" disabled={loading}>
             {loading ? t("saving") : t("save")}
           </Button>
-        </CardFooter>
-      </form>
+        </CardPanel>
+      </Form>
     </Card>
   );
 }
