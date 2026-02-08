@@ -14,13 +14,13 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
-import { getPrisma } from "@/lib/prisma";
+import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 
 type HomeworkWithSection = {
   id: string;
@@ -36,8 +36,8 @@ type HomeworkWithSection = {
   section: {
     jwId: number | null;
     code: string | null;
-    course: { namePrimary: string | null } | null;
-    semester: { namePrimary: string | null } | null;
+    course: { namePrimary: string; nameSecondary: string | null } | null;
+    semester: { nameCn: string } | null;
   } | null;
 };
 
@@ -51,25 +51,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MyHomeworksPage() {
   const locale = await getLocale();
-  const prisma = getPrisma(locale);
-  const prismaAny = prisma as typeof prisma & {
-    calendarSubscription: any;
-    homework: any;
-  };
+  const localizedPrisma = getPrisma(locale);
   const session = await auth();
 
   if (!session?.user?.id) {
     redirect("/signin");
   }
 
-  const tCommon = await getTranslations("common");
-  const tProfile = await getTranslations("profile");
-  const tMyHomeworks = await getTranslations("myHomeworks");
-
-  const subscriptions = await prismaAny.calendarSubscription.findMany({
-    where: { userId: session.user.id },
-    include: { sections: { select: { id: true } } },
-  });
+  const [tCommon, tMe, tMyHomeworks, subscriptions] = await Promise.all([
+    getTranslations("common"),
+    getTranslations("meDashboard"),
+    getTranslations("myHomeworks"),
+    basePrisma.calendarSubscription.findMany({
+      where: { userId: session.user.id },
+      include: { sections: { select: { id: true } } },
+    }),
+  ]);
 
   const sectionIds = Array.from(
     new Set(
@@ -80,7 +77,7 @@ export default async function MyHomeworksPage() {
   );
 
   const homeworks: HomeworkWithSection[] = sectionIds.length
-    ? await prismaAny.homework.findMany({
+    ? await localizedPrisma.homework.findMany({
         where: { sectionId: { in: sectionIds }, deletedAt: null },
         include: {
           description: { select: { content: true } },
@@ -117,7 +114,7 @@ export default async function MyHomeworksPage() {
           jwId: homework.section.jwId ?? null,
           code: homework.section.code ?? null,
           courseName: homework.section.course?.namePrimary ?? null,
-          semesterName: homework.section.semester?.namePrimary ?? null,
+          semesterName: homework.section.semester?.nameCn ?? null,
         }
       : null,
   }));
@@ -131,7 +128,7 @@ export default async function MyHomeworksPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/me">{tProfile("title")}</BreadcrumbLink>
+            <BreadcrumbLink href="/dashboard">{tMe("title")}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -155,11 +152,11 @@ export default async function MyHomeworksPage() {
               {tMyHomeworks("noSubscriptionsDescription")}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardPanel>
             <Button render={<Link className="no-underline" href="/courses" />}>
               {tCommon("browseCourses")}
             </Button>
-          </CardContent>
+          </CardPanel>
         </Card>
       ) : homeworks.length === 0 ? (
         <Card>

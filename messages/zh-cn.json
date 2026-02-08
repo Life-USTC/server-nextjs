@@ -13,6 +13,9 @@
       "teacherDetail": "教师：{name}",
       "signIn": "登录",
       "profile": "个人资料",
+      "meDashboard": "仪表盘",
+      "settings": "设置",
+      "userProfile": "{username} 的主页",
       "subscriptions": "已选课班级",
       "uploads": "我的上传",
       "homeworks": "我的作业"
@@ -260,6 +263,134 @@
     "published": "发布时间",
     "tags": "标签"
   },
+  "meDashboard": {
+    "title": "仪表盘",
+    "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
+    "descriptionV2": "你好，{name}。先看现在该做什么，再看接下来一周的节奏。",
+    "viewAll": "查看全部",
+    "quickActions": "快捷入口",
+    "focus": {
+      "currentClass": "当前课程",
+      "nextClass": "下一节课",
+      "todayStatus": "今日状态",
+      "noCurrentClass": "当前没有进行中的课程",
+      "noNextClass": "接下来没有课程安排",
+      "remainingToday": "今天剩余课程",
+      "tomorrowCount": "明天共 {count} 节课程"
+    },
+    "today": {
+      "title": "今天还要上什么",
+      "description": "按时间顺序查看今天剩余与全部课程。",
+      "empty": "今天没有课程安排。"
+    },
+    "tomorrow": {
+      "title": "明天预览",
+      "description": "提前看看明天第一节课与全天安排。",
+      "empty": "明天暂无课程安排。"
+    },
+    "week": {
+      "title": "本周课表总览",
+      "description": "按周查看每天课程数量与忙碌程度。",
+      "descriptionTable": "按时间段与周一到周日查看完整课表。",
+      "empty": "本周暂无课程安排。",
+      "time": "时间",
+      "classCount": "{count} 节课",
+      "more": "还有 {count} 节"
+    },
+    "homeworks": {
+      "title": "作业总览",
+      "titleV2": "未完成作业",
+      "descriptionV2": "优先处理今天与近期截止的作业。",
+      "dueToday": "今天截止 {count}",
+      "dueSoon": "3 天内截止 {count}",
+      "empty": "没有未完成作业。",
+      "noDue": "未设置截止时间",
+      "openAll": "打开全部作业"
+    },
+    "links": {
+      "subscriptions": "查看已选课班级",
+      "homeworks": "查看全部作业",
+      "settings": "打开设置",
+      "publicProfile": "公开主页",
+      "publicProfileId": "公开主页（ID）",
+      "publicProfileSetup": "设置公开主页",
+      "fullSchedule": "完整课程安排"
+    },
+    "radar": {
+      "title": "考试与截止雷达",
+      "description": "未来 7 天重点关注。",
+      "empty": "未来 7 天没有考试安排。"
+    },
+    "termSelection": {
+      "title": "本学期还没有选课",
+      "noAnySelection": "你还没有添加任何已选班级，先去添加课程后再查看 dashboard。",
+      "noCurrentTerm": "你有历史已选班级，但当前学期（{term}）暂无已选班级，请先更新本学期课程。",
+      "openSelection": "去管理已选班级",
+      "browseCourses": "去浏览课程"
+    },
+    "devDate": {
+      "title": "开发调试：切换“今天”",
+      "description": "当前 dashboard 计算日期：{date}",
+      "previous": "前一天",
+      "today": "回到真实今天",
+      "next": "后一天",
+      "busiest": "跳到最忙日期",
+      "busiestNoData": "无可用课表数据",
+      "reset": "清除调试日期"
+    }
+  },
+  "publicProfile": {
+    "idLabel": "用户 ID",
+    "joinedAt": "加入时间：{date}",
+    "stats": {
+      "sections": "已选班级",
+      "comments": "评论",
+      "uploads": "上传",
+      "homeworks": "创建作业"
+    },
+    "contribution": {
+      "title": "最近一年贡献（{count}）",
+      "description": "统计评论、上传、作业创建与作业完成行为。",
+      "cell": "{date}：{count} 条记录",
+      "less": "少",
+      "more": "多",
+      "empty": "最近一年暂无可展示的贡献记录。"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "description": "在这里管理账号、内容和安全选项。",
+    "nav": {
+      "profile": {
+        "title": "个人资料",
+        "description": "姓名、用户名和头像"
+      },
+      "accounts": {
+        "title": "关联账户",
+        "description": "连接或断开登录提供商"
+      },
+      "content": {
+        "title": "内容管理",
+        "description": "上传资料与我的评论"
+      },
+      "danger": {
+        "title": "危险操作",
+        "description": "删除账户等不可恢复操作"
+      }
+    },
+    "content": {
+      "title": "内容管理",
+      "description": "将常用的个人内容入口集中在此页面。",
+      "uploads": {
+        "title": "我的上传",
+        "description": "管理文件、配额和分享链接。"
+      },
+      "comments": {
+        "title": "我的评论",
+        "description": "查看并跳转到你发布过的讨论。"
+      }
+    }
+  },
   "courses": {
     "title": "所有课程",
     "subtitle": "浏览和搜索所有可用课程",
@@ -475,7 +606,14 @@
       "wednesday": "星期三",
       "thursday": "星期四",
       "friday": "星期五",
-      "saturday": "星期六"
+      "saturday": "星期六",
+      "shortSunday": "日",
+      "shortMonday": "一",
+      "shortTuesday": "二",
+      "shortWednesday": "三",
+      "shortThursday": "四",
+      "shortFriday": "五",
+      "shortSaturday": "六"
     }
   },
   "notFound": {
@@ -498,7 +636,8 @@
     "viewSourceOnGithub": "在 GitHub 上查看源码",
     "avatarOption": "头像选项",
     "subscriptionCalendarUrl": "已选课班级日历链接",
-    "singleSectionCalendarUrl": "单个班级日历链接"
+    "singleSectionCalendarUrl": "单个班级日历链接",
+    "skipToMainContent": "跳转到主要内容"
   },
   "profile": {
     "title": "个人资料",
@@ -511,6 +650,9 @@
     "username": "用户名",
     "usernamePlaceholder": "用户名",
     "usernameHint": "这是您的公开显示名称。",
+    "publicProfileHint": "公开主页链接",
+    "publicProfileMissing": "设置用户名后即可启用公开主页。",
+    "publicProfileIdHint": "使用 ID 的公开主页",
     "usernameValidation": "仅限小写字母和数字，最多 20 个字符",
     "save": "保存更改",
     "saving": "保存中...",
@@ -599,6 +741,8 @@
     "title": "登录",
     "description": "选择一个服务提供商登录您的账户",
     "signInWith": "使用 {provider} 登录",
+    "devDebugProvider": "调试用户（开发）",
+    "devDebugHint": "开发模式下可一键进入调试用户，用于验证登录后功能。",
     "errorAccountNotLinked": "此账户已关联到其他用户。请使用其他账户登录。",
     "errorGeneric": "登录过程中发生错误。请重试。",
     "termsNotice": "登录即表示您同意我们的服务条款和隐私政策。"

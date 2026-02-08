@@ -7,9 +7,9 @@ import { deleteAccount } from "@/app/actions/user";
 import { Button } from "./ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "./ui/card";
 import {
@@ -81,7 +81,7 @@ export function AccountDeletionSection() {
         </CardTitle>
         <CardDescription>{t("deleteAccountDescription")}</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardPanel>
         <Dialog
           open={dialogOpen}
           onOpenChange={(open) => {
@@ -126,7 +126,7 @@ export function AccountDeletionSection() {
             </DialogFooter>
           </DialogPopup>
         </Dialog>
-      </CardContent>
+      </CardPanel>
     </Card>
   );
 }

@@ -5,11 +5,6 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const prismaAny = prisma as typeof prisma & {
-  homework: any;
-  homeworkCompletion: any;
-};
-
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -37,7 +32,7 @@ export async function PUT(
   }
 
   try {
-    const homework = await prismaAny.homework.findUnique({
+    const homework = await prisma.homework.findUnique({
       where: { id },
       select: { id: true, deletedAt: true },
     });
@@ -47,7 +42,7 @@ export async function PUT(
     }
 
     if (body.completed) {
-      const completion = await prismaAny.homeworkCompletion.upsert({
+      const completion = await prisma.homeworkCompletion.upsert({
         where: { userId_homeworkId: { userId, homeworkId: id } },
         update: { completedAt: new Date() },
         create: { userId, homeworkId: id },
@@ -59,7 +54,7 @@ export async function PUT(
       });
     }
 
-    await prismaAny.homeworkCompletion.deleteMany({
+    await prisma.homeworkCompletion.deleteMany({
       where: { userId, homeworkId: id },
     });
 

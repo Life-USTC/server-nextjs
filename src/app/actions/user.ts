@@ -10,6 +10,11 @@ export async function updateProfile(formData: FormData) {
     return { error: "Not authenticated" };
   }
 
+  const currentUser = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { username: true },
+  });
+
   const name = formData.get("name") as string;
   const username = (formData.get("username") as string)?.trim() || null;
   const image = formData.get("image") as string;
@@ -23,9 +28,14 @@ export async function updateProfile(formData: FormData) {
       };
     }
 
+    if (username === "id") {
+      return { error: "Username is reserved" };
+    }
+
     // Check uniqueness
     const existing = await prisma.user.findUnique({
       where: { username },
+      select: { id: true },
     });
     if (existing && existing.id !== session.user.id) {
       return { error: "Username already taken" };
@@ -45,17 +55,34 @@ export async function updateProfile(formData: FormData) {
   }
 
   try {
-    const data: any = {};
-    if (name) data.name = name;
-    if (username) data.username = username;
-    if (image) data.image = image;
+    const data: {
+      name?: string | null;
+      username?: string | null;
+      image?: string | null;
+    } = {};
+    if (name !== undefined) data.name = name || null;
+    if (username !== undefined) data.username = username;
+    if (image !== undefined) data.image = image || null;
+
+    const oldProfileUsername = currentUser?.username ?? null;
 
     await prisma.user.update({
       where: { id: session.user.id },
       data,
     });
 
+    const newProfileUsername = username ?? oldProfileUsername;
+
     revalidatePath("/me");
+    revalidatePath("/dashboard");
+    revalidatePath("/settings");
+    revalidatePath("/settings/profile");
+    if (oldProfileUsername) {
+      revalidatePath(`/u/${oldProfileUsername}`);
+    }
+    if (newProfileUsername && newProfileUsername !== oldProfileUsername) {
+      revalidatePath(`/u/${newProfileUsername}`);
+    }
     return { success: true };
   } catch (error) {
     console.error("Failed to update profile:", error);
@@ -113,6 +140,9 @@ export async function unlinkAccount(provider: string) {
     });
 
     revalidatePath("/me");
+    revalidatePath("/dashboard");
+    revalidatePath("/settings");
+    revalidatePath("/settings/accounts");
     return { success: true };
   } catch (error) {
     console.error("Failed to unlink account:", error);

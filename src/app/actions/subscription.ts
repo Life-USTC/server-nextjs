@@ -110,6 +110,9 @@ export async function addSectionToSubscription(
 
   const token = await generateCalendarSubscriptionJWT(subscription.id);
 
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/homeworks");
+  revalidatePath("/dashboard/subscriptions/sections");
   revalidatePath("/me/subscriptions/sections");
 
   return {
@@ -182,6 +185,9 @@ export async function addSectionsToSubscription(
 
   const token = await generateCalendarSubscriptionJWT(subscription.id);
 
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/homeworks");
+  revalidatePath("/dashboard/subscriptions/sections");
   revalidatePath("/me/subscriptions/sections");
 
   return {
@@ -244,6 +250,9 @@ export async function removeSectionFromSubscription(
 
   const token = await generateCalendarSubscriptionJWT(updatedSubscription.id);
 
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/homeworks");
+  revalidatePath("/dashboard/subscriptions/sections");
   revalidatePath("/me/subscriptions/sections");
 
   return {

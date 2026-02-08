@@ -224,7 +224,7 @@ export function SubscriptionCalendarButton({
           actionProps: {
             children: viewAllSubscriptionsLabel,
             onClick: () => {
-              router.push("/me/subscriptions/sections/");
+              router.push("/dashboard/subscriptions/sections/");
             },
           },
         };
@@ -344,7 +344,7 @@ export function SubscriptionCalendarButton({
                     <p className="text-muted-foreground text-small">
                       {subscriptionHintLabel}{" "}
                       <Link
-                        href="/me/subscriptions/sections/"
+                        href="/dashboard/subscriptions/sections/"
                         className="text-primary hover:underline"
                       >
                         {viewAllSubscriptionsLabel} →

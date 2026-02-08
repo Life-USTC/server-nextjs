@@ -13,6 +13,9 @@
       "teacherDetail": "Teacher: {name}",
       "signIn": "Sign In",
       "profile": "Profile",
+      "meDashboard": "Dashboard",
+      "settings": "Settings",
+      "userProfile": "{username}'s Profile",
       "subscriptions": "Selected Sections",
       "uploads": "My Uploads",
       "homeworks": "My Homework"
@@ -260,6 +263,134 @@
     "published": "Published",
     "tags": "Tags"
   },
+  "meDashboard": {
+    "title": "Dashboard",
+    "description": "Hi {name}, this dashboard brings together your courses, homework, and schedule.",
+    "descriptionV2": "Hi {name}, start with what to do now, then plan the rest of your week.",
+    "viewAll": "View all",
+    "quickActions": "Quick actions",
+    "focus": {
+      "currentClass": "Current class",
+      "nextClass": "Next class",
+      "todayStatus": "Today's status",
+      "noCurrentClass": "No class is in progress now",
+      "noNextClass": "No upcoming class scheduled",
+      "remainingToday": "Classes left today",
+      "tomorrowCount": "{count} classes tomorrow"
+    },
+    "today": {
+      "title": "What is left today",
+      "description": "See all classes for today in time order.",
+      "empty": "No classes scheduled for today."
+    },
+    "tomorrow": {
+      "title": "Tomorrow preview",
+      "description": "Look ahead to your first class and full day.",
+      "empty": "No classes scheduled for tomorrow."
+    },
+    "week": {
+      "title": "Weekly schedule overview",
+      "description": "Review class load and busy level day by day.",
+      "descriptionTable": "View your full timetable by time slots from Monday to Sunday.",
+      "empty": "No classes scheduled this week.",
+      "time": "Time",
+      "classCount": "{count} classes",
+      "more": "{count} more"
+    },
+    "homeworks": {
+      "title": "Homework overview",
+      "titleV2": "Incomplete homework",
+      "descriptionV2": "Prioritize what's due today and soon.",
+      "dueToday": "Due today {count}",
+      "dueSoon": "Due in 3 days {count}",
+      "empty": "No incomplete homework.",
+      "noDue": "No due date",
+      "openAll": "Open all homework"
+    },
+    "links": {
+      "subscriptions": "Open selected sections",
+      "homeworks": "Open all homework",
+      "settings": "Open settings",
+      "publicProfile": "Public profile",
+      "publicProfileId": "Public profile (ID)",
+      "publicProfileSetup": "Set public profile",
+      "fullSchedule": "Full schedule"
+    },
+    "radar": {
+      "title": "Exam and deadline radar",
+      "description": "Key items within the next 7 days.",
+      "empty": "No exams in the next 7 days."
+    },
+    "termSelection": {
+      "title": "No classes selected for this term",
+      "noAnySelection": "You haven't added any selected sections yet. Add your classes first to unlock the dashboard.",
+      "noCurrentTerm": "You have historical selected sections, but none in the current semester ({term}). Update your current-term selection first.",
+      "openSelection": "Manage selected sections",
+      "browseCourses": "Browse courses"
+    },
+    "devDate": {
+      "title": "Dev Debug: Override \"Today\"",
+      "description": "Current dashboard reference date: {date}",
+      "previous": "Previous day",
+      "today": "Use real today",
+      "next": "Next day",
+      "busiest": "Jump to busiest day",
+      "busiestNoData": "No schedule data",
+      "reset": "Clear override"
+    }
+  },
+  "publicProfile": {
+    "idLabel": "User ID",
+    "joinedAt": "Joined on {date}",
+    "stats": {
+      "sections": "Selected sections",
+      "comments": "Comments",
+      "uploads": "Uploads",
+      "homeworks": "Created homework"
+    },
+    "contribution": {
+      "title": "Last year contributions ({count})",
+      "description": "Counts comments, uploads, homework creation, and homework completion activity.",
+      "cell": "{count} activities on {date}",
+      "less": "Less",
+      "more": "More",
+      "empty": "No contribution activity available in the last year."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage account, content, and safety options here.",
+    "nav": {
+      "profile": {
+        "title": "Profile",
+        "description": "Name, username, and avatar"
+      },
+      "accounts": {
+        "title": "Linked accounts",
+        "description": "Connect or disconnect sign-in providers"
+      },
+      "content": {
+        "title": "Content",
+        "description": "Uploads and my comments"
+      },
+      "danger": {
+        "title": "Danger zone",
+        "description": "Irreversible actions like deleting account"
+      }
+    },
+    "content": {
+      "title": "Content",
+      "description": "Keep your personal content entry points in one place.",
+      "uploads": {
+        "title": "My uploads",
+        "description": "Manage files, quota, and share links."
+      },
+      "comments": {
+        "title": "My comments",
+        "description": "Review and jump to the discussions you posted."
+      }
+    }
+  },
   "courses": {
     "title": "All Courses",
     "subtitle": "Browse and search through all available courses",
@@ -475,7 +606,14 @@
       "wednesday": "Wednesday",
       "thursday": "Thursday",
       "friday": "Friday",
-      "saturday": "Saturday"
+      "saturday": "Saturday",
+      "shortSunday": "Sun",
+      "shortMonday": "Mon",
+      "shortTuesday": "Tue",
+      "shortWednesday": "Wed",
+      "shortThursday": "Thu",
+      "shortFriday": "Fri",
+      "shortSaturday": "Sat"
     }
   },
   "notFound": {
@@ -498,7 +636,8 @@
     "viewSourceOnGithub": "View source on GitHub",
     "avatarOption": "Avatar option",
     "subscriptionCalendarUrl": "Selected sections calendar URL",
-    "singleSectionCalendarUrl": "Single section calendar URL"
+    "singleSectionCalendarUrl": "Single section calendar URL",
+    "skipToMainContent": "Skip to main content"
   },
   "profile": {
     "title": "Profile",
@@ -511,6 +650,9 @@
     "username": "Username",
     "usernamePlaceholder": "username",
     "usernameHint": "This is your public display name.",
+    "publicProfileHint": "Public profile link",
+    "publicProfileMissing": "Set a username to enable your public profile.",
+    "publicProfileIdHint": "Public profile by ID",
     "usernameValidation": "Lowercase letters and numbers only, max 20 chars",
     "save": "Save changes",
     "saving": "Saving...",
@@ -599,6 +741,8 @@
     "title": "Sign In",
     "description": "Choose a provider to sign in to your account",
     "signInWith": "Sign in with {provider}",
+    "devDebugProvider": "Debug User (Dev)",
+    "devDebugHint": "In development mode, use one click to sign in as a debug user for authenticated feature testing.",
     "errorAccountNotLinked": "This account is already linked to another user. Please sign in with a different account.",
     "errorGeneric": "An error occurred during sign in. Please try again.",
     "termsNotice": "By signing in, you agree to our Terms of Service and Privacy Policy."

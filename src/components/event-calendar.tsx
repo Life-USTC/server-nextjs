@@ -6,11 +6,7 @@ import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export interface CalendarEventDetail {
@@ -281,7 +277,7 @@ export function EventCalendar({
                                   {event.line}
                                 </PopoverTrigger>
                                 {event.details && event.details.length > 0 && (
-                                  <PopoverContent
+                                  <PopoverPopup
                                     side="top"
                                     align="start"
                                     className="max-h-64 w-64 overflow-auto"
@@ -306,7 +302,7 @@ export function EventCalendar({
                                         ))}
                                       </div>
                                     </div>
-                                  </PopoverContent>
+                                  </PopoverPopup>
                                 )}
                               </Popover>
                             ))}
@@ -346,7 +342,7 @@ export function EventCalendar({
                   {event.line}
                 </PopoverTrigger>
                 {event.details && event.details.length > 0 && (
-                  <PopoverContent
+                  <PopoverPopup
                     side="top"
                     align="start"
                     className="max-h-64 w-64 overflow-auto"
@@ -369,7 +365,7 @@ export function EventCalendar({
                         ))}
                       </div>
                     </div>
-                  </PopoverContent>
+                  </PopoverPopup>
                 )}
               </Popover>
             ))}

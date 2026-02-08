@@ -23,7 +23,9 @@ export async function GET() {
         id: "desc",
       },
       include: {
-        sections: true,
+        sections: {
+          select: { id: true },
+        },
       },
     });
 

@@ -124,6 +124,7 @@ export async function PATCH(
     // First check if subscription exists
     const existingSubscription = await prisma.calendarSubscription.findUnique({
       where: { id: subscriptionId },
+      select: { id: true },
     });
 
     if (!existingSubscription) {
@@ -153,7 +154,9 @@ export async function PATCH(
         },
       },
       include: {
-        sections: true,
+        sections: {
+          select: { id: true },
+        },
       },
     });
 

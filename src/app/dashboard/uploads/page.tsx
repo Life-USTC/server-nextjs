@@ -11,6 +11,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { UploadsManager } from "@/components/uploads-manager";
+import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
 import { uploadConfig } from "@/lib/upload-config";
 
@@ -28,9 +29,6 @@ export default async function UploadsPage() {
     redirect("/signin");
   }
 
-  const tCommon = await getTranslations("common");
-  const tProfile = await getTranslations("profile");
-  const tUploads = await getTranslations("uploads");
   const accessUrl = process.env.R2_ACCESS_URL ?? "";
 
   const now = new Date();
@@ -38,20 +36,31 @@ export default async function UploadsPage() {
     where: { userId: session.user.id, expiresAt: { lt: now } },
   });
 
-  const [uploads, usage, pendingUsage] = await Promise.all([
-    prisma.upload.findMany({
-      where: { userId: session.user.id },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.upload.aggregate({
-      where: { userId: session.user.id },
-      _sum: { size: true },
-    }),
-    prisma.uploadPending.aggregate({
-      where: { userId: session.user.id, expiresAt: { gt: now } },
-      _sum: { size: true },
-    }),
-  ]);
+  const [tCommon, tMe, tUploads, uploads, usage, pendingUsage] =
+    await Promise.all([
+      getTranslations("common"),
+      getTranslations("meDashboard"),
+      getTranslations("uploads"),
+      prisma.upload.findMany({
+        where: { userId: session.user.id },
+        select: {
+          id: true,
+          key: true,
+          filename: true,
+          size: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.upload.aggregate({
+        where: { userId: session.user.id },
+        _sum: { size: true },
+      }),
+      prisma.uploadPending.aggregate({
+        where: { userId: session.user.id, expiresAt: { gt: now } },
+        _sum: { size: true },
+      }),
+    ]);
 
   const usedBytes = (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
 
@@ -60,11 +69,15 @@ export default async function UploadsPage() {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
+            <BreadcrumbLink render={<Link href="/" />}>
+              {tCommon("home")}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/me">{tProfile("title")}</BreadcrumbLink>
+            <BreadcrumbLink render={<Link href="/dashboard" />}>
+              {tMe("title")}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

@@ -12,7 +12,7 @@ import {
   MenuSeparator,
   MenuTrigger,
 } from "@/components/ui/menu";
-import { useRouter } from "@/i18n/routing";
+import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 type UserMenuProps = {
@@ -21,8 +21,9 @@ type UserMenuProps = {
 
 export function UserMenu({ className }: UserMenuProps) {
   const tProfile = useTranslations("profile");
+  const tMe = useTranslations("meDashboard");
+  const tSettings = useTranslations("settings");
   const tCommon = useTranslations("common");
-  const router = useRouter();
   const { data: session } = useSession();
 
   const menuLabel = session ? tProfile("title") : tCommon("signIn");
@@ -60,9 +61,23 @@ export function UserMenu({ className }: UserMenuProps) {
                 {session.user?.name || tProfile("title")}
               </MenuItem>
               <MenuSeparator />
-              <MenuItem onClick={() => router.push("/me")}>
-                {tProfile("title")}
+              <MenuItem render={<Link href="/dashboard" />}>
+                {tCommon("me")}
               </MenuItem>
+              <MenuItem render={<Link href="/settings/profile" />}>
+                {tSettings("title")}
+              </MenuItem>
+              {session.user?.username ? (
+                <MenuItem
+                  render={<Link href={`/u/${session.user.username}`} />}
+                >
+                  {tMe("links.publicProfile")}
+                </MenuItem>
+              ) : (
+                <MenuItem render={<Link href={`/u/id/${session.user.id}`} />}>
+                  {tMe("links.publicProfileId")}
+                </MenuItem>
+              )}
               <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
                 {tProfile("signOut")}
               </MenuItem>

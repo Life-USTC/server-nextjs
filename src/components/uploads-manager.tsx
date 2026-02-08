@@ -6,18 +6,18 @@ import { useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogPopup,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "@/components/ui/card";
 import {
@@ -142,7 +142,7 @@ function UsageSummaryCard({
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-input">
           <div
-            className="h-full bg-primary transition-all duration-500"
+            className="h-full bg-primary transition-[width] duration-500"
             style={{ width: `${usagePercent}%` }}
           />
         </div>
@@ -352,7 +352,7 @@ function UploadDeleteDialog({
   description,
 }: UploadDeleteDialogProps) {
   return (
-    <AlertDialogContent>
+    <AlertDialogPopup>
       <AlertDialogHeader>
         <AlertDialogTitle>{title}</AlertDialogTitle>
         <AlertDialogDescription>{description}</AlertDialogDescription>
@@ -365,7 +365,7 @@ function UploadDeleteDialog({
           {confirmLabel}
         </Button>
       </AlertDialogFooter>
-    </AlertDialogContent>
+    </AlertDialogPopup>
   );
 }
 
@@ -621,7 +621,7 @@ export function UploadsManager({
             <CardTitle>{t("uploadCardTitle")}</CardTitle>
             <CardDescription>{t("description")}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardPanel className="space-y-6">
             <div className="grid gap-6 md:grid-cols-[1fr,2fr]">
               <UsageSummaryCard
                 usageLabel={usageLabel}
@@ -678,7 +678,7 @@ export function UploadsManager({
                 }}
               />
             </div>
-          </CardContent>
+          </CardPanel>
         </Card>
       </div>
       <UploadDeleteDialog

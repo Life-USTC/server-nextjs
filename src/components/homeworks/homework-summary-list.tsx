@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CommentMarkdown } from "@/components/comments/comment-markdown";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,10 +50,14 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
   const [completionSaving, setCompletionSaving] = useState<
     Record<string, boolean>
   >({});
-  const formatter = new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  const formatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    [locale],
+  );
 
   useEffect(() => {
     setItems(homeworks);

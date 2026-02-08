@@ -1,14 +1,33 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import NextAuth from "next-auth";
 import type { Adapter, AdapterUser } from "next-auth/adapters";
+import type { JWT } from "next-auth/jwt";
+import Credentials from "next-auth/providers/credentials";
 import GitHub from "next-auth/providers/github";
 import Google from "next-auth/providers/google";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
+type OAuthProfile = {
+  email?: string | null;
+  image?: string | null;
+  picture?: string | null;
+  avatar_url?: string | null;
+  name?: string | null;
+};
+
 const isDev = process.env.NODE_ENV === "development";
+const DEV_DEBUG_PROVIDER_ID = "dev-debug";
+const DEV_DEBUG_USERNAME =
+  process.env.DEV_DEBUG_USERNAME?.trim().toLowerCase() || "dev-user";
+const DEV_DEBUG_NAME = process.env.DEV_DEBUG_NAME?.trim() || "Dev Debug User";
+
+const prismaAdapter = PrismaAdapter(
+  prisma as unknown as Parameters<typeof PrismaAdapter>[0],
+);
 
 const adapter: Adapter = {
-  ...PrismaAdapter(prisma),
+  ...prismaAdapter,
   createUser: async (adapterUser: AdapterUser) => {
     const { email, emailVerified, ...userData } = adapterUser;
     const user = await prisma.user.create({ data: userData });
@@ -42,6 +61,9 @@ const adapter: Adapter = {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter,
+  session: {
+    strategy: isDev ? "jwt" : "database",
+  },
   pages: {
     signIn: "/signin",
   },
@@ -52,6 +74,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       allowDangerousEmailAccountLinking: false,
     }),
+    ...(isDev
+      ? [
+          Credentials({
+            id: DEV_DEBUG_PROVIDER_ID,
+            name: "Dev Debug",
+            credentials: {},
+            authorize: async () => {
+              const user = await prisma.user.upsert({
+                where: { username: DEV_DEBUG_USERNAME },
+                update: {
+                  name: DEV_DEBUG_NAME,
+                },
+                create: {
+                  username: DEV_DEBUG_USERNAME,
+                  name: DEV_DEBUG_NAME,
+                  image:
+                    "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev",
+                },
+              });
+
+              return {
+                id: user.id,
+                name: user.name,
+                image: user.image,
+                isAdmin: user.isAdmin,
+                username: user.username,
+              };
+            },
+          }),
+        ]
+      : []),
     {
       id: "oidc",
       name: "USTC",
@@ -85,6 +138,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account, profile }) {
       if (!account || !user.id) return true;
+      if (account.provider === DEV_DEBUG_PROVIDER_ID) {
+        return isDev;
+      }
 
       if (isDev) {
         console.log(
@@ -134,14 +190,59 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       return true;
     },
-    session: ({ session, user }) => ({
-      ...session,
-      user: {
-        ...session.user,
-        id: user.id,
-        isAdmin: (user as AdapterUser & { isAdmin?: boolean }).isAdmin ?? false,
-      },
-    }),
+    async jwt({ token, user }) {
+      const nextToken = token as JWT & {
+        isAdmin?: boolean;
+        username?: string | null;
+      };
+
+      if (user) {
+        const typedUser = user as AdapterUser & {
+          isAdmin?: boolean;
+          username?: string | null;
+        };
+        nextToken.sub = user.id;
+        nextToken.isAdmin = typedUser.isAdmin ?? false;
+        nextToken.username = typedUser.username ?? null;
+        return nextToken;
+      }
+
+      if (
+        isDev &&
+        typeof nextToken.sub === "string" &&
+        (nextToken.isAdmin === undefined || nextToken.username === undefined)
+      ) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: nextToken.sub },
+          select: { isAdmin: true, username: true },
+        });
+        nextToken.isAdmin = dbUser?.isAdmin ?? false;
+        nextToken.username = dbUser?.username ?? null;
+      }
+
+      return nextToken;
+    },
+    session: ({ session, user, token }) => {
+      const typedToken = token as
+        | (JWT & { isAdmin?: boolean; username?: string | null })
+        | undefined;
+      const typedUser = user as
+        | (AdapterUser & { isAdmin?: boolean; username?: string | null })
+        | undefined;
+      const resolvedId =
+        typedUser?.id ??
+        (typeof typedToken?.sub === "string" ? typedToken.sub : "");
+
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: resolvedId,
+          isAdmin: typedUser?.isAdmin ?? typedToken?.isAdmin ?? false,
+          username: typedUser?.username ?? typedToken?.username ?? null,
+        },
+      };
+    },
   },
   events: {
     async linkAccount({ user, account, profile }) {
@@ -210,13 +311,13 @@ async function updateUserProfileFromProvider(
     image: string | null;
     profilePictures: string[];
   },
-  profile: any,
+  profile: OAuthProfile | null | undefined,
 ) {
   try {
     const image = profile?.image || profile?.picture || profile?.avatar_url;
     const name = profile?.name;
 
-    const updates: any = {};
+    const updates: Prisma.UserUpdateInput = {};
     let shouldUpdate = false;
 
     if (image) {

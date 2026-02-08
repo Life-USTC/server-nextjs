@@ -1,7 +1,7 @@
 import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
+import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import BottomBar from "@/components/bottom-bar";
 import { Providers } from "@/components/providers";
 import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
@@ -32,11 +32,21 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   // Get messages for the current locale (determined by middleware)
-  const messages = await getMessages();
+  const [messages, a11yT, locale] = await Promise.all([
+    getMessages(),
+    getTranslations("accessibility"),
+    getLocale(),
+  ]);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${spaceGrotesk.className} antialiased`}>
+        <a
+          href="#main-content"
+          className="sr-only fixed top-4 left-4 z-[60] rounded-md bg-background px-3 py-2 text-sm shadow-sm focus:not-sr-only focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {a11yT("skipToMainContent")}
+        </a>
         <Providers>
           <NextIntlClientProvider messages={messages}>
             <ToastProvider>
@@ -46,7 +56,7 @@ export default async function RootLayout({
                     <div className="fixed top-4 right-4 z-50">
                       <UserMenu />
                     </div>
-                    {children}
+                    <div id="main-content">{children}</div>
                   </div>
                   <BottomBar />
                 </div>

@@ -9,10 +9,10 @@ import { MarkdownEditor } from "@/components/comments/markdown-editor";
 import {
   AlertDialog,
   AlertDialogClose,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogPopup,
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
@@ -31,9 +31,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
-  SheetContent,
   SheetHeader,
   SheetPanel,
+  SheetPopup,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -123,57 +123,23 @@ type HomeworkPanelProps = {
   initialData?: HomeworkResponse;
 };
 
+type CreateHomeworkFormData = {
+  title: string;
+  description: string;
+  publishedAt: string;
+  submissionStartAt: string;
+  submissionDueAt: string;
+  isMajor: boolean;
+  requiresTeam: boolean;
+};
+
 type CreateHomeworkSheetProps = {
-  open: boolean;
   canCreate: boolean;
-  isSaving: boolean;
-  newTitle: string;
-  newDescription: string;
-  newPublishedAt: string;
-  newSubmissionStartAt: string;
-  newSubmissionDueAt: string;
-  newIsMajor: boolean;
-  newRequiresTeam: boolean;
-  onTitleChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onPublishedChange: (value: string) => void;
-  onSubmissionStartChange: (value: string) => void;
-  onSubmissionDueChange: (value: string) => void;
-  onToggleMajor: (value: boolean) => void;
-  onToggleRequiresTeam: (value: boolean) => void;
-  onOpenChange: (open: boolean) => void;
-  onReset: () => void;
-  onCreate: () => void;
-  onApplyStartNow: (setter: (value: string) => void) => void;
-  onApplyWeek: (setter: (value: string) => void) => void;
-  onApplySemesterEnd: (setter: (value: string) => void) => void;
-  onApplySemesterStart: (setter: (value: string) => void) => void;
-  labels: {
-    titleLabel: string;
-    titlePlaceholder: string;
-    descriptionLabel: string;
-    descriptionPlaceholder: string;
-    tabWrite: string;
-    tabPreview: string;
-    previewEmpty: string;
-    markdownGuide: string;
-    helperNow: string;
-    helperWeek: string;
-    helperSemesterEnd: string;
-    helperSemesterStart: string;
-    publishedAt: string;
-    helperPublishNow: string;
-    helperClear: string;
-    submissionStart: string;
-    submissionDue: string;
-    tagMajor: string;
-    tagTeam: string;
-    cancel: string;
-    createAction: string;
-    showCreate: string;
-    createTitle: string;
-    saving: string;
-  };
+  semesterStartDate: Date | null;
+  semesterEndDate: Date | null;
+  onSubmit: (data: CreateHomeworkFormData) => Promise<boolean>;
+  t: ReturnType<typeof useTranslations>;
+  tComments: ReturnType<typeof useTranslations>;
 };
 
 type AuditLogSheetProps = {
@@ -212,32 +178,24 @@ type HomeworkCardReadOnlyProps = {
 type HomeworkCardEditFormProps = {
   homework: HomeworkEntry;
   formatter: Intl.DateTimeFormat;
-  editTitle: string;
-  editDescription: string;
-  editIsMajor: boolean;
-  editRequiresTeam: boolean;
-  editPublishedAt: string;
-  editSubmissionStartAt: string;
-  editSubmissionDueAt: string;
   canDelete: boolean;
-  isSaving: boolean;
-  descriptionHistory: {
-    loading: boolean;
-    error: string | null;
-    entries: any[];
-  };
-  onTitleChange: (value: string) => void;
-  onDescriptionChange: (value: string) => void;
-  onToggleMajor: (value: boolean) => void;
-  onToggleTeam: (value: boolean) => void;
-  onPublishedChange: (value: string) => void;
-  onSubmissionStartChange: (value: string) => void;
-  onSubmissionDueChange: (value: string) => void;
-  onLoadHistory: () => void;
+  semesterStartDate: Date | null;
+  semesterEndDate: Date | null;
+  onUpdate: (
+    homeworkId: string,
+    data: {
+      title: string;
+      description: string;
+      publishedAt: string;
+      submissionStartAt: string;
+      submissionDueAt: string;
+      isMajor: boolean;
+      requiresTeam: boolean;
+    },
+    currentDescription: string,
+  ) => Promise<boolean>;
+  onDelete: (homeworkId: string) => Promise<boolean>;
   onCancel: () => void;
-  onSave: () => void;
-  onDelete: () => void;
-  renderEditHelperActions: (target: "start" | "due") => React.ReactNode;
   t: ReturnType<typeof useTranslations>;
   tComments: ReturnType<typeof useTranslations>;
   tDescriptions: ReturnType<typeof useTranslations>;
@@ -291,36 +249,8 @@ export function HomeworkPanel({
   );
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const [newTitle, setNewTitle] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [newPublishedAt, setNewPublishedAt] = useState("");
-  const [newSubmissionStartAt, setNewSubmissionStartAt] = useState("");
-  const [newSubmissionDueAt, setNewSubmissionDueAt] = useState("");
-  const [newIsMajor, setNewIsMajor] = useState(false);
-  const [newRequiresTeam, setNewRequiresTeam] = useState(false);
-
-  const [editTitle, setEditTitle] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editPublishedAt, setEditPublishedAt] = useState("");
-  const [editSubmissionStartAt, setEditSubmissionStartAt] = useState("");
-  const [editSubmissionDueAt, setEditSubmissionDueAt] = useState("");
-  const [editIsMajor, setEditIsMajor] = useState(false);
-  const [editRequiresTeam, setEditRequiresTeam] = useState(false);
-
-  const [descriptionHistory, setDescriptionHistory] = useState<
-    Record<
-      string,
-      {
-        loading: boolean;
-        error: string | null;
-        entries: DescriptionHistoryEntry[];
-      }
-    >
-  >({});
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
     {},
   );
@@ -468,268 +398,6 @@ export function HomeworkPanel({
     void loadHomeworks();
   }, [initialData, loadCommentCounts, loadHomeworks]);
 
-  const startEditing = (homework: HomeworkEntry) => {
-    setEditingId(homework.id);
-    setEditTitle(homework.title ?? "");
-    setEditDescription(homework.description?.content ?? "");
-    setEditPublishedAt(toLocalInputValue(homework.publishedAt));
-    setEditSubmissionStartAt(toLocalInputValue(homework.submissionStartAt));
-    setEditSubmissionDueAt(toLocalInputValue(homework.submissionDueAt));
-    setEditIsMajor(Boolean(homework.isMajor));
-    setEditRequiresTeam(Boolean(homework.requiresTeam));
-  };
-
-  const resetCreateForm = () => {
-    setNewTitle("");
-    setNewDescription("");
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    setNewPublishedAt(toLocalInputValue(today.toISOString()));
-    setNewSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
-    setNewSubmissionDueAt("");
-    setNewIsMajor(false);
-    setNewRequiresTeam(false);
-  };
-
-  useEffect(() => {
-    if (!showCreate) return;
-    if (!newPublishedAt) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      setNewPublishedAt(toLocalInputValue(today.toISOString()));
-    }
-    if (!newSubmissionStartAt) {
-      setNewSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
-    }
-  }, [newPublishedAt, newSubmissionStartAt, showCreate]);
-
-  const applyDueInAWeek = (setter: (value: string) => void) => {
-    const now = new Date();
-    now.setDate(now.getDate() + 7);
-    setter(toLocalInputValue(endOfDay(now).toISOString()));
-  };
-
-  const applySemesterEnd = (setter: (value: string) => void) => {
-    if (!semesterEndDate || Number.isNaN(semesterEndDate.getTime())) return;
-    setter(toLocalInputValue(endOfDay(semesterEndDate).toISOString()));
-  };
-
-  const applyStartNow = (setter: (value: string) => void) => {
-    setter(toLocalInputValue(new Date().toISOString()));
-  };
-
-  const applySemesterStart = (setter: (value: string) => void) => {
-    if (!semesterStartDate || Number.isNaN(semesterStartDate.getTime())) return;
-    setter(toLocalInputValue(semesterStartDate.toISOString()));
-  };
-
-  const handleCreate = async () => {
-    if (!newTitle.trim()) {
-      toast({
-        title: t("titleRequired"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/homeworks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sectionId,
-          title: newTitle.trim(),
-          description: newDescription.trim(),
-          publishedAt: newPublishedAt || null,
-          submissionStartAt: newSubmissionStartAt || null,
-          submissionDueAt: newSubmissionDueAt || null,
-          isMajor: newIsMajor,
-          requiresTeam: newRequiresTeam,
-        }),
-      });
-
-      if (!response.ok) {
-        const message = await getResponseErrorMessage(response);
-        toast({
-          title: t("createFailed"),
-          description: message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: t("createSuccess"),
-        variant: "success",
-      });
-      resetCreateForm();
-      setShowCreate(false);
-      await loadHomeworks();
-    } catch (err) {
-      console.error("Failed to create homework", err);
-      toast({
-        title: t("createFailed"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleUpdate = async (homework: HomeworkEntry) => {
-    if (!editTitle.trim()) {
-      toast({
-        title: t("titleRequired"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/homeworks/${homework.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: editTitle.trim(),
-          publishedAt: editPublishedAt || null,
-          submissionStartAt: editSubmissionStartAt || null,
-          submissionDueAt: editSubmissionDueAt || null,
-          isMajor: editIsMajor,
-          requiresTeam: editRequiresTeam,
-        }),
-      });
-
-      if (!response.ok) {
-        const message = await getResponseErrorMessage(response);
-        toast({
-          title: t("updateFailed"),
-          description: message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const nextDescription = editDescription.trim();
-      const currentDescription = homework.description?.content?.trim() ?? "";
-      if (nextDescription !== currentDescription) {
-        const descriptionResponse = await fetch("/api/descriptions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            targetType: "homework",
-            targetId: homework.id,
-            content: nextDescription,
-          }),
-        });
-
-        if (!descriptionResponse.ok) {
-          const message = await getResponseErrorMessage(descriptionResponse);
-          toast({
-            title: t("updateFailed"),
-            description: message,
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      toast({
-        title: t("updateSuccess"),
-        variant: "success",
-      });
-      setEditingId(null);
-      await loadHomeworks();
-    } catch (err) {
-      console.error("Failed to update homework", err);
-      toast({
-        title: t("updateFailed"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDelete = async (homework: HomeworkEntry) => {
-    setIsSaving(true);
-    try {
-      const response = await fetch(`/api/homeworks/${homework.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const message = await getResponseErrorMessage(response);
-        toast({
-          title: t("deleteFailed"),
-          description: message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: t("deleteSuccess"),
-        variant: "success",
-      });
-      setEditingId(null);
-      await loadHomeworks();
-    } catch (err) {
-      console.error("Failed to delete homework", err);
-      toast({
-        title: t("deleteFailed"),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const loadDescriptionHistory = useCallback(
-    async (homeworkId: string) => {
-      setDescriptionHistory((prev) => ({
-        ...prev,
-        [homeworkId]: {
-          loading: true,
-          error: null,
-          entries: prev[homeworkId]?.entries ?? [],
-        },
-      }));
-
-      try {
-        const params = new URLSearchParams({
-          targetType: "homework",
-          targetId: homeworkId,
-        });
-        const response = await fetch(`/api/descriptions?${params.toString()}`);
-        if (!response.ok) {
-          throw new Error("Failed to load description history");
-        }
-        const data = (await response.json()) as DescriptionHistoryResponse;
-        setDescriptionHistory((prev) => ({
-          ...prev,
-          [homeworkId]: {
-            loading: false,
-            error: null,
-            entries: data.history ?? [],
-          },
-        }));
-      } catch (err) {
-        console.error("Failed to load description history", err);
-        setDescriptionHistory((prev) => ({
-          ...prev,
-          [homeworkId]: {
-            loading: false,
-            error: t("loadFailed"),
-            entries: prev[homeworkId]?.entries ?? [],
-          },
-        }));
-      }
-    },
-    [t],
-  );
-
   const renderTagBadges = (homework: HomeworkEntry) => (
     <div className="flex flex-wrap gap-2">
       {homework.completion && (
@@ -793,103 +461,57 @@ export function HomeworkPanel({
     }
   };
 
-  const renderEditHelperActions = (target: "start" | "due") => {
-    const setValue =
-      target === "start" ? setEditSubmissionStartAt : setEditSubmissionDueAt;
-
-    return (
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => applyStartNow(setValue)}
-        >
-          {t("helperNow")}
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => applyDueInAWeek(setValue)}
-        >
-          {t("helperWeek")}
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => applySemesterEnd(setValue)}
-          disabled={!semesterEndDate}
-        >
-          {t("helperSemesterEnd")}
-        </Button>
-        {target === "start" && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => applySemesterStart(setValue)}
-            disabled={!semesterStartDate}
-          >
-            {t("helperSemesterStart")}
-          </Button>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-end gap-2">
         {canCreate ? (
           <CreateHomeworkSheet
-            open={showCreate}
-            onOpenChange={setShowCreate}
             canCreate={canCreate}
-            isSaving={isSaving}
-            newTitle={newTitle}
-            newDescription={newDescription}
-            newPublishedAt={newPublishedAt}
-            newSubmissionStartAt={newSubmissionStartAt}
-            newSubmissionDueAt={newSubmissionDueAt}
-            newIsMajor={newIsMajor}
-            newRequiresTeam={newRequiresTeam}
-            onTitleChange={setNewTitle}
-            onDescriptionChange={setNewDescription}
-            onPublishedChange={setNewPublishedAt}
-            onSubmissionStartChange={setNewSubmissionStartAt}
-            onSubmissionDueChange={setNewSubmissionDueAt}
-            onToggleMajor={setNewIsMajor}
-            onToggleRequiresTeam={setNewRequiresTeam}
-            onReset={resetCreateForm}
-            onCreate={handleCreate}
-            onApplyStartNow={applyStartNow}
-            onApplyWeek={applyDueInAWeek}
-            onApplySemesterEnd={applySemesterEnd}
-            onApplySemesterStart={applySemesterStart}
-            labels={{
-              titleLabel: t("titleLabel"),
-              titlePlaceholder: t("titlePlaceholder"),
-              descriptionLabel: t("descriptionLabel"),
-              descriptionPlaceholder: t("descriptionPlaceholder"),
-              tabWrite: tComments("tabWrite"),
-              tabPreview: tComments("tabPreview"),
-              previewEmpty: tComments("previewEmpty"),
-              markdownGuide: tComments("markdownGuide"),
-              helperNow: t("helperNow"),
-              helperWeek: t("helperWeek"),
-              helperSemesterEnd: t("helperSemesterEnd"),
-              helperSemesterStart: t("helperSemesterStart"),
-              publishedAt: t("publishedAt"),
-              helperPublishNow: t("helperPublishNow"),
-              helperClear: t("helperClear"),
-              submissionStart: t("submissionStart"),
-              submissionDue: t("submissionDue"),
-              tagMajor: t("tagMajor"),
-              tagTeam: t("tagTeam"),
-              cancel: t("cancel"),
-              createAction: t("createAction"),
-              showCreate: t("showCreate"),
-              createTitle: t("createTitle"),
-              saving: t("saving"),
+            semesterStartDate={semesterStartDate}
+            semesterEndDate={semesterEndDate}
+            onSubmit={async (data) => {
+              try {
+                const response = await fetch("/api/homeworks", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    sectionId,
+                    ...data,
+                    title: data.title.trim(),
+                    description: data.description.trim(),
+                    publishedAt: data.publishedAt || null,
+                    submissionStartAt: data.submissionStartAt || null,
+                    submissionDueAt: data.submissionDueAt || null,
+                  }),
+                });
+
+                if (!response.ok) {
+                  const message = await getResponseErrorMessage(response);
+                  toast({
+                    title: t("createFailed"),
+                    description: message,
+                    variant: "destructive",
+                  });
+                  return false;
+                }
+
+                toast({
+                  title: t("createSuccess"),
+                  variant: "success",
+                });
+                await loadHomeworks();
+                return true;
+              } catch (err) {
+                console.error("Failed to create homework", err);
+                toast({
+                  title: t("createFailed"),
+                  variant: "destructive",
+                });
+                return false;
+              }
             }}
+            t={t}
+            tComments={tComments}
           />
         ) : (
           <Button
@@ -966,7 +588,7 @@ export function HomeworkPanel({
                     commentCount={commentCounts[homework.id] ?? 0}
                     canEdit={canEdit}
                     isEditing={isEditing}
-                    onEdit={() => startEditing(homework)}
+                    onEdit={() => setEditingId(homework.id)}
                     t={t}
                   />
                 </CardHeader>
@@ -991,36 +613,133 @@ export function HomeworkPanel({
                     <HomeworkCardEditForm
                       homework={homework}
                       formatter={formatter}
-                      editTitle={editTitle}
-                      editDescription={editDescription}
-                      editIsMajor={editIsMajor}
-                      editRequiresTeam={editRequiresTeam}
-                      editPublishedAt={editPublishedAt}
-                      editSubmissionStartAt={editSubmissionStartAt}
-                      editSubmissionDueAt={editSubmissionDueAt}
                       canDelete={canDelete}
-                      isSaving={isSaving}
-                      descriptionHistory={
-                        descriptionHistory[homework.id] ?? {
-                          loading: false,
-                          error: null,
-                          entries: [],
+                      semesterStartDate={semesterStartDate}
+                      semesterEndDate={semesterEndDate}
+                      onUpdate={async (
+                        homeworkId,
+                        data,
+                        currentDescription,
+                      ) => {
+                        if (!data.title.trim()) {
+                          toast({
+                            title: t("titleRequired"),
+                            variant: "destructive",
+                          });
+                          return false;
                         }
-                      }
-                      onTitleChange={setEditTitle}
-                      onDescriptionChange={setEditDescription}
-                      onToggleMajor={setEditIsMajor}
-                      onToggleTeam={setEditRequiresTeam}
-                      onPublishedChange={setEditPublishedAt}
-                      onSubmissionStartChange={setEditSubmissionStartAt}
-                      onSubmissionDueChange={setEditSubmissionDueAt}
-                      onLoadHistory={() =>
-                        void loadDescriptionHistory(homework.id)
-                      }
+
+                        try {
+                          const response = await fetch(
+                            `/api/homeworks/${homeworkId}`,
+                            {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({
+                                title: data.title.trim(),
+                                publishedAt: data.publishedAt || null,
+                                submissionStartAt:
+                                  data.submissionStartAt || null,
+                                submissionDueAt: data.submissionDueAt || null,
+                                isMajor: data.isMajor,
+                                requiresTeam: data.requiresTeam,
+                              }),
+                            },
+                          );
+
+                          if (!response.ok) {
+                            const message =
+                              await getResponseErrorMessage(response);
+                            toast({
+                              title: t("updateFailed"),
+                              description: message,
+                              variant: "destructive",
+                            });
+                            return false;
+                          }
+
+                          const nextDescription = data.description.trim();
+                          if (nextDescription !== currentDescription) {
+                            const descriptionResponse = await fetch(
+                              "/api/descriptions",
+                              {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  targetType: "homework",
+                                  targetId: homeworkId,
+                                  content: nextDescription,
+                                }),
+                              },
+                            );
+
+                            if (!descriptionResponse.ok) {
+                              const message =
+                                await getResponseErrorMessage(
+                                  descriptionResponse,
+                                );
+                              toast({
+                                title: t("updateFailed"),
+                                description: message,
+                                variant: "destructive",
+                              });
+                              return false;
+                            }
+                          }
+
+                          toast({
+                            title: t("updateSuccess"),
+                            variant: "success",
+                          });
+                          setEditingId(null);
+                          await loadHomeworks();
+                          return true;
+                        } catch (err) {
+                          console.error("Failed to update homework", err);
+                          toast({
+                            title: t("updateFailed"),
+                            variant: "destructive",
+                          });
+                          return false;
+                        }
+                      }}
+                      onDelete={async (homeworkId) => {
+                        try {
+                          const response = await fetch(
+                            `/api/homeworks/${homeworkId}`,
+                            {
+                              method: "DELETE",
+                            },
+                          );
+
+                          if (!response.ok) {
+                            const message =
+                              await getResponseErrorMessage(response);
+                            toast({
+                              title: t("deleteFailed"),
+                              description: message,
+                              variant: "destructive",
+                            });
+                            return false;
+                          }
+
+                          toast({
+                            title: t("deleteSuccess"),
+                            variant: "success",
+                          });
+                          setEditingId(null);
+                          await loadHomeworks();
+                          return true;
+                        } catch (err) {
+                          console.error("Failed to delete homework", err);
+                          toast({
+                            title: t("deleteFailed"),
+                            variant: "destructive",
+                          });
+                          return false;
+                        }
+                      }}
                       onCancel={() => setEditingId(null)}
-                      onSave={() => void handleUpdate(homework)}
-                      onDelete={() => void handleDelete(homework)}
-                      renderEditHelperActions={renderEditHelperActions}
                       t={t}
                       tComments={tComments}
                       tDescriptions={tDescriptions}
@@ -1037,62 +756,122 @@ export function HomeworkPanel({
 }
 
 function CreateHomeworkSheet({
-  open,
-  onOpenChange,
   canCreate,
-  isSaving,
-  newTitle,
-  newDescription,
-  newPublishedAt,
-  newSubmissionStartAt,
-  newSubmissionDueAt,
-  newIsMajor,
-  newRequiresTeam,
-  onTitleChange,
-  onDescriptionChange,
-  onPublishedChange,
-  onSubmissionStartChange,
-  onSubmissionDueChange,
-  onToggleMajor,
-  onToggleRequiresTeam,
-  onReset,
-  onCreate,
-  onApplyStartNow,
-  onApplyWeek,
-  onApplySemesterEnd,
-  onApplySemesterStart,
-  labels,
+  semesterStartDate,
+  semesterEndDate,
+  onSubmit,
+  t,
+  tComments,
 }: CreateHomeworkSheetProps) {
+  const [open, setOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [publishedAt, setPublishedAt] = useState("");
+  const [submissionStartAt, setSubmissionStartAt] = useState("");
+  const [submissionDueAt, setSubmissionDueAt] = useState("");
+  const [isMajor, setIsMajor] = useState(false);
+  const [requiresTeam, setRequiresTeam] = useState(false);
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    setPublishedAt(toLocalInputValue(today.toISOString()));
+    setSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
+    setSubmissionDueAt("");
+    setIsMajor(false);
+    setRequiresTeam(false);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    if (!publishedAt) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      setPublishedAt(toLocalInputValue(today.toISOString()));
+    }
+    if (!submissionStartAt) {
+      setSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
+    }
+  }, [open, publishedAt, submissionStartAt]);
+
+  const handleCreate = async () => {
+    if (!title.trim()) return;
+    setIsSaving(true);
+    const success = await onSubmit({
+      title,
+      description,
+      publishedAt,
+      submissionStartAt,
+      submissionDueAt,
+      isMajor,
+      requiresTeam,
+    });
+    setIsSaving(false);
+    if (success) {
+      resetForm();
+      setOpen(false);
+    }
+  };
+
+  const applyStartNow = (setter: (value: string) => void) => {
+    setter(toLocalInputValue(new Date().toISOString()));
+  };
+
+  const applyDueInAWeek = (setter: (value: string) => void) => {
+    const now = new Date();
+    now.setDate(now.getDate() + 7);
+    setter(toLocalInputValue(endOfDay(now).toISOString()));
+  };
+
+  const applySemesterEnd = (setter: (value: string) => void) => {
+    if (!semesterEndDate || Number.isNaN(semesterEndDate.getTime())) return;
+    setter(toLocalInputValue(endOfDay(semesterEndDate).toISOString()));
+  };
+
+  const applySemesterStart = (setter: (value: string) => void) => {
+    if (!semesterStartDate || Number.isNaN(semesterStartDate.getTime())) return;
+    setter(toLocalInputValue(semesterStartDate.toISOString()));
+  };
+
   const renderHelperActions = (target: "start" | "due") => {
     const setValue =
-      target === "start" ? onSubmissionStartChange : onSubmissionDueChange;
+      target === "start" ? setSubmissionStartAt : setSubmissionDueAt;
 
     return (
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onApplyStartNow(setValue)}
+          onClick={() => applyStartNow(setValue)}
         >
-          {labels.helperNow}
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => onApplyWeek(setValue)}>
-          {labels.helperWeek}
+          {t("helperNow")}
         </Button>
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => onApplySemesterEnd(setValue)}
+          onClick={() => applyDueInAWeek(setValue)}
         >
-          {labels.helperSemesterEnd}
+          {t("helperWeek")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => applySemesterEnd(setValue)}
+          disabled={!semesterEndDate}
+        >
+          {t("helperSemesterEnd")}
         </Button>
         {target === "start" && (
           <Button
             size="sm"
             variant="ghost"
-            onClick={() => onApplySemesterStart(setValue)}
+            onClick={() => applySemesterStart(setValue)}
+            disabled={!semesterStartDate}
           >
-            {labels.helperSemesterStart}
+            {t("helperSemesterStart")}
           </Button>
         )}
       </div>
@@ -1100,35 +879,35 @@ function CreateHomeworkSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger render={<Button size="sm" variant="outline" />}>
-        {labels.showCreate}
+        {t("showCreate")}
       </SheetTrigger>
-      <SheetContent side="right">
+      <SheetPopup side="right">
         <SheetHeader>
-          <SheetTitle>{labels.createTitle}</SheetTitle>
+          <SheetTitle>{t("createTitle")}</SheetTitle>
         </SheetHeader>
         <SheetPanel className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="homework-title">{labels.titleLabel}</Label>
+            <Label htmlFor="homework-title">{t("titleLabel")}</Label>
             <Input
               id="homework-title"
-              value={newTitle}
-              onChange={(event) => onTitleChange(event.target.value)}
-              placeholder={labels.titlePlaceholder}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder={t("titlePlaceholder")}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>{labels.descriptionLabel}</Label>
+            <Label>{t("descriptionLabel")}</Label>
             <MarkdownEditor
-              value={newDescription}
-              onChange={onDescriptionChange}
-              placeholder={labels.descriptionPlaceholder}
-              tabWriteLabel={labels.tabWrite}
-              tabPreviewLabel={labels.tabPreview}
-              previewEmptyLabel={labels.previewEmpty}
-              markdownGuideLabel={labels.markdownGuide}
+              value={description}
+              onChange={setDescription}
+              placeholder={t("descriptionPlaceholder")}
+              tabWriteLabel={tComments("tabWrite")}
+              tabPreviewLabel={tComments("tabPreview")}
+              previewEmptyLabel={tComments("previewEmpty")}
+              markdownGuideLabel={tComments("markdownGuide")}
               markdownGuideHref="/comments/guide"
             />
           </div>
@@ -1139,18 +918,18 @@ function CreateHomeworkSheet({
             <div className="flex items-center gap-2">
               <Switch
                 id="homework-major"
-                checked={newIsMajor}
-                onCheckedChange={onToggleMajor}
+                checked={isMajor}
+                onCheckedChange={setIsMajor}
               />
-              <Label htmlFor="homework-major">{labels.tagMajor}</Label>
+              <Label htmlFor="homework-major">{t("tagMajor")}</Label>
             </div>
             <div className="flex items-center gap-2">
               <Switch
                 id="homework-team"
-                checked={newRequiresTeam}
-                onCheckedChange={onToggleRequiresTeam}
+                checked={requiresTeam}
+                onCheckedChange={setRequiresTeam}
               />
-              <Label htmlFor="homework-team">{labels.tagTeam}</Label>
+              <Label htmlFor="homework-team">{t("tagTeam")}</Label>
             </div>
           </div>
 
@@ -1158,53 +937,49 @@ function CreateHomeworkSheet({
 
           <div className="grid gap-4 lg:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="homework-published">{labels.publishedAt}</Label>
+              <Label htmlFor="homework-published">{t("publishedAt")}</Label>
               <Input
                 id="homework-published"
                 type="datetime-local"
-                value={newPublishedAt}
-                onChange={(event) => onPublishedChange(event.target.value)}
+                value={publishedAt}
+                onChange={(event) => setPublishedAt(event.target.value)}
               />
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    onPublishedChange(
-                      toLocalInputValue(new Date().toISOString()),
-                    )
+                    setPublishedAt(toLocalInputValue(new Date().toISOString()))
                   }
                 >
-                  {labels.helperPublishNow}
+                  {t("helperPublishNow")}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => onPublishedChange("")}
+                  onClick={() => setPublishedAt("")}
                 >
-                  {labels.helperClear}
+                  {t("helperClear")}
                 </Button>
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="homework-start">{labels.submissionStart}</Label>
+              <Label htmlFor="homework-start">{t("submissionStart")}</Label>
               <Input
                 id="homework-start"
                 type="datetime-local"
-                value={newSubmissionStartAt}
-                onChange={(event) =>
-                  onSubmissionStartChange(event.target.value)
-                }
+                value={submissionStartAt}
+                onChange={(event) => setSubmissionStartAt(event.target.value)}
               />
               {renderHelperActions("start")}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="homework-due">{labels.submissionDue}</Label>
+              <Label htmlFor="homework-due">{t("submissionDue")}</Label>
               <Input
                 id="homework-due"
                 type="datetime-local"
-                value={newSubmissionDueAt}
-                onChange={(event) => onSubmissionDueChange(event.target.value)}
+                value={submissionDueAt}
+                onChange={(event) => setSubmissionDueAt(event.target.value)}
               />
               {renderHelperActions("due")}
             </div>
@@ -1214,18 +989,21 @@ function CreateHomeworkSheet({
             <Button
               variant="ghost"
               onClick={() => {
-                onReset();
-                onOpenChange(false);
+                resetForm();
+                setOpen(false);
               }}
             >
-              {labels.cancel}
+              {t("cancel")}
             </Button>
-            <Button onClick={onCreate} disabled={isSaving || !canCreate}>
-              {isSaving ? labels.saving : labels.createAction}
+            <Button
+              onClick={() => void handleCreate()}
+              disabled={isSaving || !canCreate}
+            >
+              {isSaving ? t("saving") : t("createAction")}
             </Button>
           </div>
         </SheetPanel>
-      </SheetContent>
+      </SheetPopup>
     </Sheet>
   );
 }
@@ -1254,7 +1032,7 @@ function HomeworkCardHeader({
           <SheetTrigger render={<Button size="sm" variant="outline" />}>
             {t("commentsAction")} ({commentCount})
           </SheetTrigger>
-          <SheetContent side="right">
+          <SheetPopup side="right">
             <SheetHeader>
               <SheetTitle>{t("commentsTitle")}</SheetTitle>
             </SheetHeader>
@@ -1270,7 +1048,7 @@ function HomeworkCardHeader({
                 ]}
               />
             </SheetPanel>
-          </SheetContent>
+          </SheetPopup>
         </Sheet>
         {canEdit && !isEditing && (
           <Button size="sm" variant="outline" onClick={onEdit}>
@@ -1351,32 +1129,155 @@ function HomeworkCardReadOnly({
 function HomeworkCardEditForm({
   homework,
   formatter,
-  editTitle,
-  editDescription,
-  editIsMajor,
-  editRequiresTeam,
-  editPublishedAt,
-  editSubmissionStartAt,
-  editSubmissionDueAt,
   canDelete,
-  isSaving,
-  descriptionHistory,
-  onTitleChange,
-  onDescriptionChange,
-  onToggleMajor,
-  onToggleTeam,
-  onPublishedChange,
-  onSubmissionStartChange,
-  onSubmissionDueChange,
-  onLoadHistory,
-  onCancel,
-  onSave,
+  semesterStartDate,
+  semesterEndDate,
+  onUpdate,
   onDelete,
-  renderEditHelperActions,
+  onCancel,
   t,
   tComments,
   tDescriptions,
 }: HomeworkCardEditFormProps) {
+  const [editTitle, setEditTitle] = useState(homework.title);
+  const [editDescription, setEditDescription] = useState(
+    homework.description?.content ?? "",
+  );
+  const [editPublishedAt, setEditPublishedAt] = useState(
+    toLocalInputValue(homework.publishedAt),
+  );
+  const [editSubmissionStartAt, setEditSubmissionStartAt] = useState(
+    toLocalInputValue(homework.submissionStartAt),
+  );
+  const [editSubmissionDueAt, setEditSubmissionDueAt] = useState(
+    toLocalInputValue(homework.submissionDueAt),
+  );
+  const [editIsMajor, setEditIsMajor] = useState(homework.isMajor);
+  const [editRequiresTeam, setEditRequiresTeam] = useState(
+    homework.requiresTeam,
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [descriptionHistory, setDescriptionHistory] = useState<{
+    entries: DescriptionHistoryEntry[];
+    loading: boolean;
+    error: string | null;
+  }>({ entries: [], loading: false, error: null });
+
+  const currentDescription = homework.description?.content ?? "";
+
+  const loadDescriptionHistory = async () => {
+    setDescriptionHistory((prev) => ({ ...prev, loading: true, error: null }));
+    try {
+      const params = new URLSearchParams({
+        targetType: "homework",
+        targetId: homework.id,
+      });
+      const response = await fetch(`/api/descriptions?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to load history");
+      }
+      const data = (await response.json()) as DescriptionHistoryResponse;
+      setDescriptionHistory({
+        entries: data.history ?? [],
+        loading: false,
+        error: null,
+      });
+    } catch (err) {
+      console.error("Failed to load description history", err);
+      setDescriptionHistory((prev) => ({
+        ...prev,
+        loading: false,
+        error: tDescriptions("historyError"),
+      }));
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    await onUpdate(
+      homework.id,
+      {
+        title: editTitle,
+        description: editDescription,
+        publishedAt: editPublishedAt,
+        submissionStartAt: editSubmissionStartAt,
+        submissionDueAt: editSubmissionDueAt,
+        isMajor: editIsMajor,
+        requiresTeam: editRequiresTeam,
+      },
+      currentDescription,
+    );
+    setIsSaving(false);
+  };
+
+  const handleDelete = async () => {
+    setIsSaving(true);
+    await onDelete(homework.id);
+    setIsSaving(false);
+  };
+
+  const applyStartNow = (setter: (value: string) => void) => {
+    setter(toLocalInputValue(new Date().toISOString()));
+  };
+
+  const applyDueInAWeek = (setter: (value: string) => void) => {
+    const now = new Date();
+    now.setDate(now.getDate() + 7);
+    setter(toLocalInputValue(endOfDay(now).toISOString()));
+  };
+
+  const applySemesterEnd = (setter: (value: string) => void) => {
+    if (!semesterEndDate || Number.isNaN(semesterEndDate.getTime())) return;
+    setter(toLocalInputValue(endOfDay(semesterEndDate).toISOString()));
+  };
+
+  const applySemesterStart = (setter: (value: string) => void) => {
+    if (!semesterStartDate || Number.isNaN(semesterStartDate.getTime())) return;
+    setter(toLocalInputValue(semesterStartDate.toISOString()));
+  };
+
+  const renderHelperActions = (target: "start" | "due") => {
+    const setValue =
+      target === "start" ? setEditSubmissionStartAt : setEditSubmissionDueAt;
+
+    return (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => applyStartNow(setValue)}
+        >
+          {t("helperNow")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => applyDueInAWeek(setValue)}
+        >
+          {t("helperWeek")}
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => applySemesterEnd(setValue)}
+          disabled={!semesterEndDate}
+        >
+          {t("helperSemesterEnd")}
+        </Button>
+        {target === "start" && (
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => applySemesterStart(setValue)}
+            disabled={!semesterStartDate}
+          >
+            {t("helperSemesterStart")}
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -1386,7 +1287,7 @@ function HomeworkCardEditForm({
         <Input
           id={`homework-edit-title-${homework.id}`}
           value={editTitle}
-          onChange={(event) => onTitleChange(event.target.value)}
+          onChange={(event) => setEditTitle(event.target.value)}
         />
       </div>
 
@@ -1394,7 +1295,7 @@ function HomeworkCardEditForm({
         <Label>{t("descriptionLabel")}</Label>
         <MarkdownEditor
           value={editDescription}
-          onChange={onDescriptionChange}
+          onChange={setEditDescription}
           placeholder={t("descriptionPlaceholder")}
           tabWriteLabel={tComments("tabWrite")}
           tabPreviewLabel={tComments("tabPreview")}
@@ -1411,7 +1312,7 @@ function HomeworkCardEditForm({
           <Switch
             id={`homework-edit-major-${homework.id}`}
             checked={editIsMajor}
-            onCheckedChange={onToggleMajor}
+            onCheckedChange={setEditIsMajor}
           />
           <Label htmlFor={`homework-edit-major-${homework.id}`}>
             {t("tagMajor")}
@@ -1421,7 +1322,7 @@ function HomeworkCardEditForm({
           <Switch
             id={`homework-edit-team-${homework.id}`}
             checked={editRequiresTeam}
-            onCheckedChange={onToggleTeam}
+            onCheckedChange={setEditRequiresTeam}
           />
           <Label htmlFor={`homework-edit-team-${homework.id}`}>
             {t("tagTeam")}
@@ -1440,14 +1341,14 @@ function HomeworkCardEditForm({
             id={`homework-edit-publish-${homework.id}`}
             type="datetime-local"
             value={editPublishedAt}
-            onChange={(event) => onPublishedChange(event.target.value)}
+            onChange={(event) => setEditPublishedAt(event.target.value)}
           />
           <div className="flex flex-wrap gap-2">
             <Button
               size="sm"
               variant="ghost"
               onClick={() =>
-                onPublishedChange(toLocalInputValue(new Date().toISOString()))
+                setEditPublishedAt(toLocalInputValue(new Date().toISOString()))
               }
             >
               {t("helperPublishNow")}
@@ -1455,7 +1356,7 @@ function HomeworkCardEditForm({
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => onPublishedChange("")}
+              onClick={() => setEditPublishedAt("")}
             >
               {t("helperClear")}
             </Button>
@@ -1469,9 +1370,9 @@ function HomeworkCardEditForm({
             id={`homework-edit-start-${homework.id}`}
             type="datetime-local"
             value={editSubmissionStartAt}
-            onChange={(event) => onSubmissionStartChange(event.target.value)}
+            onChange={(event) => setEditSubmissionStartAt(event.target.value)}
           />
-          {renderEditHelperActions("start")}
+          {renderHelperActions("start")}
         </div>
         <div className="space-y-2">
           <Label htmlFor={`homework-edit-due-${homework.id}`}>
@@ -1481,9 +1382,9 @@ function HomeworkCardEditForm({
             id={`homework-edit-due-${homework.id}`}
             type="datetime-local"
             value={editSubmissionDueAt}
-            onChange={(event) => onSubmissionDueChange(event.target.value)}
+            onChange={(event) => setEditSubmissionDueAt(event.target.value)}
           />
-          {renderEditHelperActions("due")}
+          {renderHelperActions("due")}
         </div>
       </div>
 
@@ -1492,14 +1393,14 @@ function HomeworkCardEditForm({
           <Sheet
             onOpenChange={(open) => {
               if (open) {
-                onLoadHistory();
+                void loadDescriptionHistory();
               }
             }}
           >
             <SheetTrigger render={<Button size="sm" variant="outline" />}>
               {t("contentHistoryAction")}
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetPopup side="right">
               <SheetHeader>
                 <SheetTitle>
                   {tDescriptions("historyTitle", {
@@ -1518,69 +1419,71 @@ function HomeworkCardEditForm({
                     {descriptionHistory.error}
                   </p>
                 ) : descriptionHistory.entries?.length ? (
-                  descriptionHistory.entries.map((entry) => {
-                    const editorName =
-                      entry.editor?.name ||
-                      entry.editor?.username ||
-                      tDescriptions("editorUnknown");
-                    return (
-                      <div
-                        key={entry.id}
-                        className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
-                          <span>{editorName}</span>
-                          <span>
-                            {formatter.format(new Date(entry.createdAt))}
-                          </span>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <p className="text-muted-foreground text-xs">
-                            {tDescriptions("previousLabel")}
-                          </p>
-                          <div className="rounded-md border border-border/60 bg-background px-3 py-2">
-                            {entry.previousContent ? (
-                              <CommentMarkdown
-                                content={entry.previousContent}
-                              />
-                            ) : (
-                              <p className="text-muted-foreground text-sm">
-                                {tDescriptions("emptyValue")}
-                              </p>
-                            )}
+                  descriptionHistory.entries.map(
+                    (entry: DescriptionHistoryEntry) => {
+                      const editorName =
+                        entry.editor?.name ||
+                        entry.editor?.username ||
+                        tDescriptions("editorUnknown");
+                      return (
+                        <div
+                          key={entry.id}
+                          className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
+                            <span>{editorName}</span>
+                            <span>
+                              {formatter.format(new Date(entry.createdAt))}
+                            </span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <p className="text-muted-foreground text-xs">
+                              {tDescriptions("previousLabel")}
+                            </p>
+                            <div className="rounded-md border border-border/60 bg-background px-3 py-2">
+                              {entry.previousContent ? (
+                                <CommentMarkdown
+                                  content={entry.previousContent}
+                                />
+                              ) : (
+                                <p className="text-muted-foreground text-sm">
+                                  {tDescriptions("emptyValue")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <p className="text-muted-foreground text-xs">
+                              {tDescriptions("updatedLabel")}
+                            </p>
+                            <div className="rounded-md border border-border/60 bg-background px-3 py-2">
+                              {entry.nextContent ? (
+                                <CommentMarkdown content={entry.nextContent} />
+                              ) : (
+                                <p className="text-muted-foreground text-sm">
+                                  {tDescriptions("emptyValue")}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="space-y-2 text-sm">
-                          <p className="text-muted-foreground text-xs">
-                            {tDescriptions("updatedLabel")}
-                          </p>
-                          <div className="rounded-md border border-border/60 bg-background px-3 py-2">
-                            {entry.nextContent ? (
-                              <CommentMarkdown content={entry.nextContent} />
-                            ) : (
-                              <p className="text-muted-foreground text-sm">
-                                {tDescriptions("emptyValue")}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
+                      );
+                    },
+                  )
                 ) : (
                   <p className="text-muted-foreground text-sm">
                     {tDescriptions("historyEmpty")}
                   </p>
                 )}
               </SheetPanel>
-            </SheetContent>
+            </SheetPopup>
           </Sheet>
           {canDelete && (
             <AlertDialog>
               <AlertDialogTrigger render={<Button size="sm" variant="ghost" />}>
                 {t("deleteAction")}
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogPopup>
                 <AlertDialogHeader>
                   <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -1595,13 +1498,13 @@ function HomeworkCardEditForm({
                   </AlertDialogClose>
                   <Button
                     variant="destructive"
-                    onClick={onDelete}
+                    onClick={() => void handleDelete()}
                     disabled={isSaving}
                   >
                     {t("confirmDelete")}
                   </Button>
                 </AlertDialogFooter>
-              </AlertDialogContent>
+              </AlertDialogPopup>
             </AlertDialog>
           )}
         </div>
@@ -1609,7 +1512,7 @@ function HomeworkCardEditForm({
           <Button variant="ghost" onClick={onCancel}>
             {t("cancel")}
           </Button>
-          <Button onClick={onSave} disabled={isSaving}>
+          <Button onClick={() => void handleSave()} disabled={isSaving}>
             {isSaving ? t("saving") : t("saveChanges")}
           </Button>
         </div>
@@ -1624,7 +1527,7 @@ function AuditLogSheet({ auditLogs, formatter, labels }: AuditLogSheetProps) {
       <SheetTrigger render={<Button size="sm" variant="outline" />}>
         {labels.trigger}
       </SheetTrigger>
-      <SheetContent side="right">
+      <SheetPopup side="right">
         <SheetHeader>
           <SheetTitle>{labels.title}</SheetTitle>
         </SheetHeader>
@@ -1670,7 +1573,7 @@ function AuditLogSheet({ auditLogs, formatter, labels }: AuditLogSheetProps) {
             </div>
           )}
         </SheetPanel>
-      </SheetContent>
+      </SheetPopup>
     </Sheet>
   );
 }

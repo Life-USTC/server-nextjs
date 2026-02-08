@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
-  CardContent,
   CardDescription,
   CardHeader,
+  CardPanel,
   CardTitle,
 } from "@/components/ui/card";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
@@ -32,7 +32,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Link } from "@/i18n/routing";
-import { getPrisma } from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 20;
 
@@ -54,8 +54,6 @@ export default async function MyCommentsPage({
   }
 
   const locale = await getLocale();
-  const prisma = getPrisma(locale);
-  const prismaAny = prisma as typeof prisma & { comment: any };
   type CommentEntry = {
     id: string;
     body: string;
@@ -75,48 +73,75 @@ export default async function MyCommentsPage({
     course: {
       jwId: number | null;
       code: string | null;
-      namePrimary?: string | null;
+      nameCn: string;
+      nameEn: string | null;
     } | null;
     teacher: {
       id: number;
-      namePrimary?: string | null;
+      nameCn: string;
+      nameEn: string | null;
     } | null;
     sectionTeacher: {
       section: {
         jwId: number | null;
         code: string | null;
         course: {
-          namePrimary?: string | null;
+          nameCn: string;
+          nameEn: string | null;
         } | null;
       } | null;
       teacher: {
-        namePrimary?: string | null;
+        nameCn: string;
+        nameEn: string | null;
       } | null;
     } | null;
   };
+
+  const localizedName = (item: { nameCn: string; nameEn: string | null }) =>
+    locale === "en-us" ? (item.nameEn ?? item.nameCn) : item.nameCn;
   const searchP = await searchParams;
   const page = Math.max(parseInt(searchP.page ?? "1", 10) || 1, 1);
   const skip = (page - 1) * PAGE_SIZE;
 
-  const [comments, total] = await Promise.all([
-    prismaAny.comment.findMany({
+  const [comments, total, t, tCommon, tMe] = await Promise.all([
+    prisma.comment.findMany({
       where: {
         userId: session.user.id,
         status: { in: ["active", "softbanned"] },
       },
       include: {
         homework: {
-          include: {
-            section: true,
+          select: {
+            id: true,
+            title: true,
+            section: {
+              select: { jwId: true, code: true },
+            },
           },
         },
-        section: true,
-        course: true,
-        teacher: true,
+        section: {
+          select: { jwId: true, code: true },
+        },
+        course: {
+          select: { jwId: true, code: true, nameCn: true, nameEn: true },
+        },
+        teacher: {
+          select: { id: true, nameCn: true, nameEn: true },
+        },
         sectionTeacher: {
-          include: {
-            section: { include: { course: true } },
-            teacher: true,
+          select: {
+            section: {
+              select: {
+                jwId: true,
+                code: true,
+                course: {
+                  select: { nameCn: true, nameEn: true },
+                },
+              },
+            },
+            teacher: {
+              select: { nameCn: true, nameEn: true },
+            },
           },
         },
       },
@@ -130,12 +155,12 @@ export default async function MyCommentsPage({
         status: { in: ["active", "softbanned"] },
       },
     }),
+    getTranslations("myComments"),
+    getTranslations("common"),
+    getTranslations("meDashboard"),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-  const t = await getTranslations("myComments");
-  const tCommon = await getTranslations("common");
 
   const buildTargetLabel = (comment: CommentEntry) => {
     if (comment.homework?.id) {
@@ -144,18 +169,20 @@ export default async function MyCommentsPage({
       return [sectionCode, title].filter(Boolean).join(" · ");
     }
     if (comment.sectionTeacher?.section?.jwId) {
-      return `${comment.sectionTeacher.section.code} · ${comment.sectionTeacher.teacher?.namePrimary ?? ""}`;
+      return `${comment.sectionTeacher.section.code} · ${comment.sectionTeacher.teacher ? localizedName(comment.sectionTeacher.teacher) : ""}`;
     }
     if (comment.section?.jwId) {
       return comment.section.code ?? tCommon("unknown");
     }
     if (comment.course?.jwId) {
       return (
-        comment.course.code ?? comment.course.namePrimary ?? tCommon("unknown")
+        comment.course.code ??
+        localizedName(comment.course) ??
+        tCommon("unknown")
       );
     }
     if (comment.teacher?.id) {
-      return comment.teacher.namePrimary ?? tCommon("unknown");
+      return localizedName(comment.teacher) ?? tCommon("unknown");
     }
     return tCommon("unknown");
   };
@@ -186,7 +213,7 @@ export default async function MyCommentsPage({
       params.set("page", String(nextPage));
     }
     const query = params.toString();
-    return query ? `/me/comments?${query}` : "/me/comments";
+    return query ? `/dashboard/comments?${query}` : "/dashboard/comments";
   };
 
   return (
@@ -194,11 +221,15 @@ export default async function MyCommentsPage({
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
+            <BreadcrumbLink render={<Link href="/" />}>
+              {tCommon("home")}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/me">{tCommon("me")}</BreadcrumbLink>
+            <BreadcrumbLink render={<Link href="/dashboard" />}>
+              {tMe("title")}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -248,9 +279,9 @@ export default async function MyCommentsPage({
                     </Button>
                   </CardAction>
                 </CardHeader>
-                <CardContent>
+                <CardPanel>
                   <CommentMarkdown content={comment.body} />
-                </CardContent>
+                </CardPanel>
               </Card>
             ))}
           </div>
@@ -263,19 +294,49 @@ export default async function MyCommentsPage({
                     <PaginationPrevious href={buildUrl(page - 1)} />
                   </PaginationItem>
                 )}
-                {Array.from({ length: totalPages }, (_, index) => index + 1)
-                  .slice(0, 7)
-                  .map((pageNum) => (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        href={buildUrl(pageNum)}
-                        isActive={pageNum === page}
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                {totalPages > 7 && <PaginationEllipsis />}
+                {(() => {
+                  const maxVisible = 7;
+                  const half = Math.floor(maxVisible / 2);
+                  let start = Math.max(1, page - half);
+                  const end = Math.min(totalPages, start + maxVisible - 1);
+                  start = Math.max(1, end - maxVisible + 1);
+                  const pages: number[] = [];
+                  for (let i = start; i <= end; i++) pages.push(i);
+                  return (
+                    <>
+                      {start > 1 && (
+                        <>
+                          <PaginationItem>
+                            <PaginationLink href={buildUrl(1)}>
+                              1
+                            </PaginationLink>
+                          </PaginationItem>
+                          {start > 2 && <PaginationEllipsis />}
+                        </>
+                      )}
+                      {pages.map((pageNum) => (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            href={buildUrl(pageNum)}
+                            isActive={pageNum === page}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      {end < totalPages && (
+                        <>
+                          {end < totalPages - 1 && <PaginationEllipsis />}
+                          <PaginationItem>
+                            <PaginationLink href={buildUrl(totalPages)}>
+                              {totalPages}
+                            </PaginationLink>
+                          </PaginationItem>
+                        </>
+                      )}
+                    </>
+                  );
+                })()}
                 {page < totalPages && (
                   <PaginationItem>
                     <PaginationNext href={buildUrl(page + 1)} />

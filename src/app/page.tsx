@@ -16,14 +16,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Homepage() {
-  const t = await getTranslations("homepage");
-  const session = await auth();
+  const [t, session] = await Promise.all([getTranslations("homepage"), auth()]);
   let isAdmin = false;
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
+      select: { isAdmin: true },
     });
-    isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+    isAdmin = user?.isAdmin ?? false;
   }
 
   return (
@@ -81,7 +81,7 @@ export default async function Homepage() {
         <h2 className="mb-6 text-title-2">{t("quickAccess.title")}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Link href="/sections" className="no-underline">
-            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Calendar className="h-5 w-5 text-primary" />
@@ -97,7 +97,7 @@ export default async function Homepage() {
           </Link>
 
           <Link href="/teachers" className="no-underline">
-            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Users className="h-5 w-5 text-primary" />
@@ -112,8 +112,8 @@ export default async function Homepage() {
             </Card>
           </Link>
 
-          <Link href="/me" className="no-underline">
-            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
+          <Link href="/dashboard" className="no-underline">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <User className="h-5 w-5 text-primary" />
@@ -129,7 +129,7 @@ export default async function Homepage() {
           </Link>
           {isAdmin && (
             <Link href="/admin" className="no-underline">
-              <Card className="hover:-translate-y-1 h-full overflow-hidden transition-all hover:shadow-lg">
+              <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <Shield className="h-5 w-5 text-primary" />

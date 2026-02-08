@@ -6,11 +6,6 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const prismaAny = prisma as typeof prisma & {
-  homework: any;
-  homeworkAuditLog: any;
-};
-
 function parseDateValue(value: unknown) {
   if (value === null || value === undefined) return null;
   if (typeof value !== "string") return undefined;
@@ -107,8 +102,9 @@ export async function PATCH(
   }
 
   try {
-    const homework = await prismaAny.homework.findUnique({
+    const homework = await prisma.homework.findUnique({
       where: { id },
+      select: { id: true, deletedAt: true },
     });
 
     if (!homework) {
@@ -139,7 +135,7 @@ export async function PATCH(
       return NextResponse.json({ error: "No changes" }, { status: 400 });
     }
 
-    await prismaAny.homework.update({
+    await prisma.homework.update({
       where: { id },
       data: updates,
     });
@@ -172,7 +168,7 @@ export async function DELETE(
 
   try {
     const viewer = await getViewerContext({ includeAdmin: true });
-    const homework = await prismaAny.homework.findUnique({
+    const homework = await prisma.homework.findUnique({
       where: { id },
       select: { id: true, title: true, createdById: true, sectionId: true },
     });
@@ -185,9 +181,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await prismaAny.$transaction(async (tx) => {
-      const txAny = tx as typeof prismaAny;
-      await txAny.homework.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.homework.update({
         where: { id },
         data: {
           deletedAt: new Date(),
@@ -196,7 +191,7 @@ export async function DELETE(
         },
       });
 
-      await txAny.homeworkAuditLog.create({
+      await tx.homeworkAuditLog.create({
         data: {
           action: "deleted",
           sectionId: homework.sectionId,

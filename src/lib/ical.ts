@@ -1,10 +1,10 @@
-import type { Prisma } from "@prisma/client";
 import dayjs from "dayjs";
 import {
   ICalCalendar,
   ICalCategory,
   ICalEventBusyStatus,
 } from "ical-generator";
+import type { Prisma } from "@/generated/prisma/client";
 import { getBuildingImagePath, getLocationGeo } from "@/lib/location-utils";
 
 /**
