@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useCommentUpload } from "@/hooks/use-comment-upload";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "@/i18n/routing";
 
 type UploadOption = {
   id: string;
@@ -60,7 +61,7 @@ type CommentEditorProps = {
   placeholder?: string;
   compact?: boolean;
   initialBody?: string;
-  initialAttachments?: string[];
+  initialAttachments?: readonly string[];
   initialVisibility?: string;
   initialIsAnonymous?: boolean;
   targetOptions?: Array<{ value: string; label: string }>;
@@ -68,6 +69,8 @@ type CommentEditorProps = {
   onTargetChange?: (value: string) => void;
   hideVisibility?: boolean;
 };
+
+const EMPTY_ATTACHMENTS: readonly string[] = [];
 
 export function CommentEditor({
   viewer,
@@ -81,7 +84,7 @@ export function CommentEditor({
   placeholder,
   compact,
   initialBody = "",
-  initialAttachments = [],
+  initialAttachments = EMPTY_ATTACHMENTS,
   initialVisibility = "public",
   initialIsAnonymous = false,
   targetOptions,
@@ -99,8 +102,9 @@ export function CommentEditor({
   const [isAnonymous, setIsAnonymous] = useState(
     initialIsAnonymous || initialVisibility === "anonymous",
   );
-  const [selectedAttachments, setSelectedAttachments] =
-    useState<string[]>(initialAttachments);
+  const [selectedAttachments, setSelectedAttachments] = useState<string[]>([
+    ...initialAttachments,
+  ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragActive, setIsDragActive] = useState(false);
   const [targetDialogOpen, setTargetDialogOpen] = useState(false);
@@ -134,13 +138,9 @@ export function CommentEditor({
   };
 
   const handleUpload = async (file: File) => {
-    // Insert placeholder
-    const placeholderText = `![Uploading ${file.name}...]()`;
-    insertMarkdown(placeholderText);
-
-    // Find where we inserted it to replace later
-    const token = `![Uploading ${file.name}...](${Date.now()})`;
-    setContent((prev) => prev.replace(placeholderText, token));
+    // Use a unique token from the start to avoid collisions with same-name files
+    const token = `![Uploading ${file.name}...](upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)})`;
+    insertMarkdown(token);
 
     const uploaded = await uploadFile(file);
 
@@ -421,9 +421,7 @@ export function CommentEditor({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                window.location.href = "/signin";
-              }}
+              render={<Link href="/signin" />}
               className="h-9 px-4 text-xs"
             >
               {t("loginToComment")}

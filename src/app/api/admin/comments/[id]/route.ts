@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
@@ -6,8 +7,6 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 const STATUS_VALUES = ["active", "softbanned", "deleted"] as const;
-
-const prismaAny = prisma as typeof prisma & { comment: any };
 
 export async function PATCH(
   request: Request,
@@ -33,10 +32,10 @@ export async function PATCH(
   }
 
   try {
-    const updated = await prismaAny.comment.update({
+    const updated = await prisma.comment.update({
       where: { id },
       data: {
-        status,
+        status: status as CommentStatus,
         moderationNote: body.moderationNote ?? null,
         moderatedAt: new Date(),
         moderatedById: admin.userId,

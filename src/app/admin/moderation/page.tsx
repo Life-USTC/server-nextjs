@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
-import { ModerationDashboard } from "@/components/admin/moderation-dashboard";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,6 +12,12 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { prisma } from "@/lib/prisma";
+
+const ModerationDashboard = dynamic(() =>
+  import("@/components/admin/moderation-dashboard").then(
+    (mod) => mod.ModerationDashboard,
+  ),
+);
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("moderation");
@@ -28,16 +34,19 @@ export default async function ModerationPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
+    select: { isAdmin: true },
   });
 
-  const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  const isAdmin = user?.isAdmin ?? false;
   if (!isAdmin) {
     notFound();
   }
 
-  const t = await getTranslations("moderation");
-  const tCommon = await getTranslations("common");
-  const tAdmin = await getTranslations("admin");
+  const [t, tCommon, tAdmin] = await Promise.all([
+    getTranslations("moderation"),
+    getTranslations("common"),
+    getTranslations("admin"),
+  ]);
 
   return (
     <main className="page-main">

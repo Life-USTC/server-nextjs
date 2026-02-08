@@ -94,6 +94,7 @@ export function MarkdownEditor({
               ref={textareaRef}
               value={value}
               onChange={(event) => onChange(event.target.value)}
+              aria-label={placeholder}
               placeholder={placeholder}
               rows={resolvedRows}
               disabled={disabled}

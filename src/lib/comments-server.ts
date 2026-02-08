@@ -4,7 +4,7 @@ import type {
   CommentViewer,
 } from "@/components/comments/comment-types";
 import { buildCommentNodes } from "@/lib/comment-serialization";
-import { getViewerContext } from "@/lib/comment-utils";
+import { getViewerContext, resolveSectionTeacherId } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 type CommentsPayload = {
@@ -12,39 +12,6 @@ type CommentsPayload = {
   hiddenCount: number;
   viewer: CommentViewer;
 };
-
-const prismaAny = prisma as typeof prisma & {
-  comment: any;
-  sectionTeacher: any;
-  section: any;
-};
-
-async function resolveSectionTeacherId(sectionId: number, teacherId: number) {
-  const section = await prismaAny.section.findFirst({
-    where: {
-      id: sectionId,
-      teachers: {
-        some: { id: teacherId },
-      },
-    },
-    select: { id: true },
-  });
-
-  if (!section) return null;
-
-  const sectionTeacher = await prismaAny.sectionTeacher.upsert({
-    where: {
-      sectionId_teacherId: {
-        sectionId,
-        teacherId,
-      },
-    },
-    update: {},
-    create: { sectionId, teacherId },
-  });
-
-  return sectionTeacher.id as number;
-}
 
 export async function getCommentsPayload(
   target: CommentTarget,
@@ -95,11 +62,15 @@ export async function getCommentsPayload(
     return { comments: [], hiddenCount: 0, viewer };
   }
 
-  const comments = await prismaAny.comment.findMany({
+  const comments = await prisma.comment.findMany({
     where: whereTarget,
     include: {
       user: {
-        include: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          isAdmin: true,
           accounts: {
             select: {
               provider: true,
@@ -109,10 +80,21 @@ export async function getCommentsPayload(
       },
       attachments: {
         include: {
-          upload: true,
+          upload: {
+            select: {
+              filename: true,
+              contentType: true,
+              size: true,
+            },
+          },
         },
       },
-      reactions: true,
+      reactions: {
+        select: {
+          type: true,
+          userId: true,
+        },
+      },
     },
     orderBy: { createdAt: "asc" },
   });

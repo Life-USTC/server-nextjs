@@ -7,6 +7,7 @@ export async function requireAdmin() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
+    select: { id: true, isAdmin: true },
   });
 
   const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;

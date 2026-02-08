@@ -12,16 +12,21 @@ import type {
   CommentNode,
   CommentViewer,
 } from "@/components/comments/comment-types";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/menu";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import type { UploadOption, UploadSummary } from "@/hooks/use-comment-upload";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useToast } from "@/hooks/use-toast";
@@ -53,7 +58,6 @@ type CommentThreadProps = {
     },
   ) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
-  onReact: (commentId: string, type: string, remove: boolean) => Promise<void>;
   highlightId?: string | null;
 };
 
@@ -66,7 +70,6 @@ export function CommentThread({
   onReply,
   onEdit,
   onDelete,
-  onReact,
   highlightId: initialHighlightId,
 }: CommentThreadProps) {
   const [highlightedId, setHighlightedId] = useState<string | null>(
@@ -124,7 +127,6 @@ export function CommentThread({
           onReply={onReply}
           onEdit={onEdit}
           onDelete={onDelete}
-          onReact={onReact}
           highlightId={highlightedId}
         />
       ))}
@@ -157,7 +159,6 @@ type CommentItemProps = {
     },
   ) => Promise<void>;
   onDelete: (commentId: string) => Promise<void>;
-  onReact: (commentId: string, type: string, remove: boolean) => Promise<void>;
   depth?: number;
   highlightId?: string | null;
 };
@@ -171,7 +172,6 @@ function CommentItem({
   onReply,
   onEdit,
   onDelete,
-  onReact,
   depth = 0,
   highlightId,
 }: CommentItemProps) {
@@ -308,34 +308,36 @@ function CommentItem({
                   {t("editAction")}
                 </Button>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger
+              <Menu>
+                <MenuTrigger
                   render={
-                    <Button variant="ghost" size="xs" className="h-6 w-6 p-0">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      className="h-6 w-6 p-0"
+                      aria-label={t("moreActions")}
+                    >
                       <DotsThree className="h-4 w-4" />
                     </Button>
                   }
                 />
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleCopyLink}>
+                <MenuPopup align="end">
+                  <MenuItem onClick={handleCopyLink}>
                     <Link2 className="mr-2 h-4 w-4" />
                     {t("copyLinkAction")}
-                  </DropdownMenuItem>
+                  </MenuItem>
                   {(comment.canModerate || comment.isAuthor) && (
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => void onDelete(comment.id)}
-                    >
-                      <Trash className="mr-2 h-4 w-4" />
-                      {t("deleteAction")}
-                    </DropdownMenuItem>
+                    <DeleteCommentMenuItem
+                      commentId={comment.id}
+                      onDelete={onDelete}
+                    />
                   )}
-                  <DropdownMenuItem>
+                  <MenuItem disabled>
                     <Warning className="mr-2 h-4 w-4" />
                     {t("reportAction")}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </MenuItem>
+                </MenuPopup>
+              </Menu>
             </div>
           </div>
 
@@ -441,7 +443,6 @@ function CommentItem({
               onReply={onReply}
               onEdit={onEdit}
               onDelete={onDelete}
-              onReact={onReact}
               depth={depth + 1}
               highlightId={highlightId}
             />
@@ -449,5 +450,50 @@ function CommentItem({
         </div>
       )}
     </div>
+  );
+}
+
+function DeleteCommentMenuItem({
+  commentId,
+  onDelete,
+}: {
+  commentId: string;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const t = useTranslations("comments");
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger
+        render={
+          <MenuItem
+            className="text-destructive focus:text-destructive"
+            onSelect={(e) => e.preventDefault()}
+          >
+            <Trash className="mr-2 h-4 w-4" />
+            {t("deleteAction")}
+          </MenuItem>
+        }
+      />
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
+          <AlertDialogDescription>
+            {t("deleteConfirmDescription")}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogClose render={<Button variant="ghost" />}>
+            {t("cancelAction")}
+          </AlertDialogClose>
+          <AlertDialogClose
+            render={<Button variant="destructive" />}
+            onClick={() => void onDelete(commentId)}
+          >
+            {t("deleteAction")}
+          </AlertDialogClose>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
   );
 }

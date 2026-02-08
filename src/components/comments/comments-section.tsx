@@ -34,7 +34,7 @@ type TeacherOption = {
 
 type CommentsSectionProps = {
   targets: TargetOption[];
-  teacherOptions?: TeacherOption[];
+  teacherOptions?: readonly TeacherOption[];
   showAllTargets?: boolean;
   initialData?: {
     commentMap: Record<string, CommentNode[]>;
@@ -44,6 +44,8 @@ type CommentsSectionProps = {
   };
 };
 
+const EMPTY_TEACHER_OPTIONS: readonly TeacherOption[] = [];
+
 type CommentsResponse = {
   comments: CommentNode[];
   hiddenCount: number;
@@ -52,7 +54,7 @@ type CommentsResponse = {
 
 export function CommentsSection({
   targets,
-  teacherOptions = [],
+  teacherOptions = EMPTY_TEACHER_OPTIONS,
   showAllTargets = false,
   initialData,
 }: CommentsSectionProps) {
@@ -60,16 +62,10 @@ export function CommentsSection({
   const locale = useLocale();
   const [activeKey] = useState(targets[0]?.key ?? "");
   const [postTargetKey, setPostTargetKey] = useState(targets[0]?.key ?? "");
-  const [comments, setComments] = useState<CommentNode[]>(
-    initialData?.commentMap[targets[0]?.key ?? ""] ?? [],
-  );
   const [commentMap, setCommentMap] = useState<Record<string, CommentNode[]>>(
     initialData?.commentMap ?? {},
   );
   const [hiddenCount, setHiddenCount] = useState(initialData?.hiddenCount ?? 0);
-  const [, setHiddenMap] = useState<Record<string, number>>(
-    initialData?.hiddenMap ?? {},
-  );
   const [viewer, setViewer] = useState<CommentViewer>(
     initialData?.viewer ?? {
       userId: null,
@@ -113,6 +109,8 @@ export function CommentsSection({
     [activeKey, showAllTargets, targets],
   );
 
+  const comments = commentMap[activeKey] ?? [];
+
   const loadComments = useCallback(async () => {
     if (!activeTarget) return;
     setLoading(true);
@@ -122,10 +120,8 @@ export function CommentsSection({
       activeTarget.type === "section-teacher" &&
       !selectedTeacherId
     ) {
-      setComments([]);
-      setHiddenCount(0);
       setCommentMap({});
-      setHiddenMap({});
+      setHiddenCount(0);
       setLoading(false);
       return;
     }
@@ -176,10 +172,6 @@ export function CommentsSection({
       }
 
       setCommentMap(nextMap);
-      setHiddenMap(nextHidden);
-      if (activeTarget) {
-        setComments(nextMap[activeTarget.key] ?? []);
-      }
       setHiddenCount(totalHidden);
       const latestViewer = responses[0]?.data.viewer;
       if (latestViewer) {
@@ -290,68 +282,10 @@ export function CommentsSection({
         });
       };
 
-      setComments((prev) => updateNodes(prev));
-    }
-  };
-
-  const handleReact = async (
-    commentId: string,
-    type: string,
-    remove: boolean,
-  ) => {
-    const method = remove ? "DELETE" : "POST";
-    const response = await fetch(`/api/comments/${commentId}/reactions`, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to update reaction");
-    }
-
-    const { success } = await response.json();
-    if (success) {
-      const updateNodes = (nodes: CommentNode[]): CommentNode[] =>
-        nodes.map((node) => {
-          if (node.id === commentId) {
-            const existing = node.reactions.find((r) => r.type === type);
-            const nextReactions = [...node.reactions];
-            if (remove) {
-              if (existing && existing.count > 1) {
-                const idx = nextReactions.indexOf(existing);
-                nextReactions[idx] = {
-                  ...existing,
-                  count: existing.count - 1,
-                  viewerHasReacted: false,
-                };
-              } else {
-                return {
-                  ...node,
-                  reactions: nextReactions.filter((r) => r.type !== type),
-                };
-              }
-            } else {
-              if (existing) {
-                const idx = nextReactions.indexOf(existing);
-                nextReactions[idx] = {
-                  ...existing,
-                  count: existing.count + 1,
-                  viewerHasReacted: true,
-                };
-              } else {
-                nextReactions.push({ type, count: 1, viewerHasReacted: true });
-              }
-            }
-            return { ...node, reactions: nextReactions };
-          }
-          if (node.replies && node.replies.length > 0) {
-            return { ...node, replies: updateNodes(node.replies) };
-          }
-          return node;
-        });
-
-      setComments((prev) => updateNodes(prev));
+      setCommentMap((prev) => ({
+        ...prev,
+        [activeKey]: updateNodes(prev[activeKey] ?? []),
+      }));
     }
   };
 
@@ -411,7 +345,6 @@ export function CommentsSection({
           onReply={handleReply}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onReact={handleReact}
         />
       );
     }
@@ -456,7 +389,6 @@ export function CommentsSection({
           onReply={handleReply}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          onReact={handleReact}
         />
       </div>
     );

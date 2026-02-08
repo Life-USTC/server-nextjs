@@ -180,68 +180,6 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     await loadThread();
   };
 
-  const handleReact = async (
-    commentIdValue: string,
-    type: string,
-    remove: boolean,
-  ) => {
-    const method = remove ? "DELETE" : "POST";
-    const response = await fetch(`/api/comments/${commentIdValue}/reactions`, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to update reaction");
-    }
-
-    const { success } = await response.json();
-    if (success) {
-      const updateReactions = (nodes: CommentNode[]): CommentNode[] => {
-        return nodes.map((node) => {
-          if (node.id === commentIdValue) {
-            const existing = node.reactions.find((r) => r.type === type);
-            const nextReactions = [...node.reactions];
-            if (remove) {
-              if (existing && existing.count > 1) {
-                const idx = nextReactions.indexOf(existing);
-                nextReactions[idx] = {
-                  ...existing,
-                  count: existing.count - 1,
-                  viewerHasReacted: false,
-                };
-              } else {
-                return {
-                  ...node,
-                  reactions: nextReactions.filter((r) => r.type !== type),
-                };
-              }
-            } else {
-              if (existing) {
-                const idx = nextReactions.indexOf(existing);
-                nextReactions[idx] = {
-                  ...existing,
-                  count: existing.count + 1,
-                  viewerHasReacted: true,
-                };
-              } else {
-                nextReactions.push({ type, count: 1, viewerHasReacted: true });
-              }
-            }
-            return { ...node, reactions: nextReactions };
-          }
-          if (node.replies && node.replies.length > 0) {
-            return { ...node, replies: updateReactions(node.replies) };
-          }
-          return node;
-        });
-      };
-
-      setThread((prev) => updateReactions(prev));
-    }
-  };
-
   const handleDelete = async (commentIdValue: string) => {
     const response = await fetch(`/api/comments/${commentIdValue}`, {
       method: "DELETE",
@@ -426,7 +364,6 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
         onReply={(parentId, payload) => createReply({ ...payload, parentId })}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        onReact={handleReact}
         highlightId={focusId}
       />
     </div>

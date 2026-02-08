@@ -1,7 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   CommentReaction,
   CommentViewer,
@@ -28,6 +28,12 @@ type CommentReactionsProps = {
   viewer: CommentViewer;
 };
 
+type OptimisticUpdate = {
+  type: string;
+  delta: number;
+  toggled: boolean;
+};
+
 export function CommentReactions({
   commentId,
   reactions,
@@ -35,12 +41,37 @@ export function CommentReactions({
 }: CommentReactionsProps) {
   const t = useTranslations("comments");
   const { toast } = useToast();
-  const [items, setItems] = useState<CommentReaction[]>(reactions);
+  const [optimistic, setOptimistic] = useState<OptimisticUpdate | null>(null);
   const [pendingType, setPendingType] = useState<string | null>(null);
+  const lastReactionsRef = useRef(reactions);
 
   useEffect(() => {
-    setItems(reactions);
+    if (reactions !== lastReactionsRef.current) {
+      lastReactionsRef.current = reactions;
+      setOptimistic(null);
+    }
   }, [reactions]);
+
+  // Derive items from prop + optimistic overlay
+  const items: CommentReaction[] = reactions.map((reaction) => {
+    if (optimistic && reaction.type === optimistic.type) {
+      return {
+        ...reaction,
+        count: Math.max(0, reaction.count + optimistic.delta),
+        viewerHasReacted: optimistic.toggled,
+      };
+    }
+    return reaction;
+  });
+
+  // Handle case where optimistic adds a new reaction type
+  if (optimistic && !reactions.some((r) => r.type === optimistic.type)) {
+    items.push({
+      type: optimistic.type,
+      count: Math.max(0, optimistic.delta),
+      viewerHasReacted: optimistic.toggled,
+    });
+  }
 
   const toggleReaction = async (type: string) => {
     if (!viewer.isAuthenticated) {
@@ -69,15 +100,10 @@ export function CommentReactions({
         throw new Error("Reaction failed");
       }
 
-      setItems((current) => {
-        const next = current.map((item) => ({ ...item }));
-        const target = next.find((item) => item.type === type);
-        if (target) {
-          target.count = Math.max(0, target.count + (shouldRemove ? -1 : 1));
-          target.viewerHasReacted = !shouldRemove;
-          return next;
-        }
-        return [...next, { type, count: 1, viewerHasReacted: true }];
+      setOptimistic({
+        type,
+        delta: shouldRemove ? -1 : 1,
+        toggled: !shouldRemove,
       });
     } catch (error) {
       console.error("Reaction failed", error);

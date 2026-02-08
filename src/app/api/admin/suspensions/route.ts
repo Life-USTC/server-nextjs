@@ -5,8 +5,6 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const prismaAny = prisma as typeof prisma & { userSuspension: any };
-
 function parseDate(value: string | null) {
   if (!value) return null;
   const parsed = new Date(value);
@@ -20,11 +18,11 @@ export async function GET() {
   }
 
   try {
-    const suspensions = await prismaAny.userSuspension.findMany({
+    const suspensions = await prisma.userSuspension.findMany({
       include: {
-        user: true,
-        createdBy: true,
-        liftedBy: true,
+        user: {
+          select: { id: true, name: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -60,12 +58,15 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const suspension = await prismaAny.userSuspension.create({
+    const suspension = await prisma.userSuspension.create({
       data: {
         userId,
         createdById: admin.userId,

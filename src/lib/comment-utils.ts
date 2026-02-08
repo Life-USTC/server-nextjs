@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -19,11 +20,37 @@ export type ViewerContext = {
   suspensionExpiresAt: string | null;
 };
 
+/**
+ * Internal per-request cached viewer data fetcher.
+ * Deduplicates auth() + user lookup + suspension check within a single request.
+ */
+const getViewerData = cache(async () => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  const [user, suspension] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, name: true, image: true, isAdmin: true },
+    }),
+    findActiveSuspension(session.user.id),
+  ]);
+
+  if (!user) {
+    return null;
+  }
+
+  return { user, suspension };
+});
+
 export async function getViewerContext(
   options: { includeAdmin?: boolean } = {},
 ): Promise<ViewerContext> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const data = await getViewerData();
+
+  if (!data) {
     return {
       userId: null,
       name: null,
@@ -36,32 +63,14 @@ export async function getViewerContext(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
-  const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  const { user, suspension } = data;
   const shouldExposeAdmin = options.includeAdmin === true;
-
-  if (!user) {
-    return {
-      userId: null,
-      name: null,
-      image: null,
-      isAdmin: false,
-      isAuthenticated: false,
-      isSuspended: false,
-      suspensionReason: null,
-      suspensionExpiresAt: null,
-    };
-  }
-
-  const suspension = await findActiveSuspension(user.id);
 
   return {
     userId: user.id,
-    name: (user as { name?: string | null }).name ?? null,
-    image: (user as { image?: string | null }).image ?? null,
-    isAdmin: shouldExposeAdmin ? isAdmin : false,
+    name: user.name ?? null,
+    image: user.image ?? null,
+    isAdmin: shouldExposeAdmin ? (user.isAdmin ?? false) : false,
     isAuthenticated: true,
     isSuspended: Boolean(suspension),
     suspensionReason: suspension?.reason ?? null,
@@ -78,9 +87,8 @@ export function buildUploadUrl(key: string | null | undefined) {
 }
 
 export async function findActiveSuspension(userId: string) {
-  const prismaAny = prisma as typeof prisma & { userSuspension: any };
   const now = new Date();
-  return prismaAny.userSuspension.findFirst({
+  return prisma.userSuspension.findFirst({
     where: {
       userId,
       liftedAt: null,
@@ -88,4 +96,34 @@ export async function findActiveSuspension(userId: string) {
     },
     orderBy: { createdAt: "desc" },
   });
+}
+
+export async function resolveSectionTeacherId(
+  sectionId: number,
+  teacherId: number,
+) {
+  const section = await prisma.section.findFirst({
+    where: {
+      id: sectionId,
+      teachers: {
+        some: { id: teacherId },
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!section) return null;
+
+  const sectionTeacher = await prisma.sectionTeacher.upsert({
+    where: {
+      sectionId_teacherId: {
+        sectionId,
+        teacherId,
+      },
+    },
+    update: {},
+    create: { sectionId, teacherId },
+  });
+
+  return sectionTeacher.id as number;
 }
