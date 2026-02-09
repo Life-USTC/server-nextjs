@@ -75,7 +75,10 @@ async function fetchDepartments(locale: string) {
     orderBy: { nameCn: "asc" },
   });
 
-  return departments;
+  return departments.map((department) => ({
+    id: department.id,
+    namePrimary: department.namePrimary,
+  }));
 }
 
 export async function generateMetadata(): Promise<Metadata> {
