@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "./utils/auth";
 
 test("首页快速入口可跳转到 sections", async ({ page }) => {
   await page.goto("/");
@@ -29,5 +30,18 @@ test("sections 页面面包屑可跳转回首页", async ({ page }) => {
   await page.locator('a[href="/"]').first().click();
 
   await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator("#main-content")).toBeVisible();
+});
+
+test("登录后可在 dashboard 与 settings 关键页面间跳转", async ({ page }) => {
+  await signInAsDebugUser(page, "/dashboard");
+
+  await page.locator('a[href="/settings/profile"]').first().click();
+  await expect(page).toHaveURL(/\/settings\/profile$/);
+  await expect(page.locator("input#name")).toBeVisible();
+
+  await page.goto("/settings/content");
+  await page.locator('a[href="/dashboard/comments"]').first().click();
+  await expect(page).toHaveURL(/\/dashboard\/comments(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
 });

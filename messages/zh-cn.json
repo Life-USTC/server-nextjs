@@ -955,6 +955,7 @@
     "replyAction": "回复",
     "editAction": "编辑",
     "deleteAction": "删除",
+    "moreActions": "更多操作",
     "copyLinkAction": "复制链接",
     "linkCopied": "链接已复制到剪贴板",
     "postedIn": "发布于",

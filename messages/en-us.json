@@ -955,6 +955,7 @@
     "replyAction": "Reply",
     "editAction": "Edit",
     "deleteAction": "Delete",
+    "moreActions": "More actions",
     "copyLinkAction": "Copy link",
     "linkCopied": "Link copied to clipboard",
     "postedIn": "Posted in",
