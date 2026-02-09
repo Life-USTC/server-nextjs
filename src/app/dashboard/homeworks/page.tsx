@@ -2,15 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { DashboardShell } from "@/components/dashboard-shell";
 import { HomeworkSummaryList } from "@/components/homeworks/homework-summary-list";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -58,7 +51,7 @@ export default async function MyHomeworksPage() {
     redirect("/signin");
   }
 
-  const [tCommon, tMe, tMyHomeworks, subscriptions] = await Promise.all([
+  const [tCommon, tDashboard, tMyHomeworks, subscriptions] = await Promise.all([
     getTranslations("common"),
     getTranslations("meDashboard"),
     getTranslations("myHomeworks"),
@@ -120,30 +113,12 @@ export default async function MyHomeworksPage() {
   }));
 
   return (
-    <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard">{tMe("title")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tMyHomeworks("title")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{tMyHomeworks("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">
-          {tMyHomeworks("description")}
-        </p>
-      </div>
-
+    <DashboardShell
+      homeLabel={tCommon("home")}
+      dashboardLabel={tDashboard("title")}
+      title={tMyHomeworks("title")}
+      description={tMyHomeworks("description")}
+    >
       {sectionIds.length === 0 ? (
         <Card>
           <CardHeader>
@@ -168,8 +143,11 @@ export default async function MyHomeworksPage() {
           </CardHeader>
         </Card>
       ) : (
-        <HomeworkSummaryList homeworks={homeworkSummaries} />
+        <HomeworkSummaryList
+          homeworks={homeworkSummaries}
+          addHomeworkHref="/dashboard/subscriptions/sections"
+        />
       )}
-    </main>
+    </DashboardShell>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { CommentMarkdown } from "@/components/comments/comment-markdown";
@@ -40,13 +41,20 @@ type HomeworkSummary = {
 
 type HomeworkSummaryListProps = {
   homeworks: HomeworkSummary[];
+  addHomeworkHref: string;
 };
 
-export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
+type HomeworkFilter = "all" | "incomplete" | "completed";
+
+export function HomeworkSummaryList({
+  homeworks,
+  addHomeworkHref,
+}: HomeworkSummaryListProps) {
   const t = useTranslations("homeworks");
   const locale = useLocale();
   const { toast } = useToast();
   const [items, setItems] = useState(homeworks);
+  const [filter, setFilter] = useState<HomeworkFilter>("incomplete");
   const [completionSaving, setCompletionSaving] = useState<
     Record<string, boolean>
   >({});
@@ -62,6 +70,16 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
   useEffect(() => {
     setItems(homeworks);
   }, [homeworks]);
+
+  const filteredItems = useMemo(() => {
+    if (filter === "completed") {
+      return items.filter((homework) => Boolean(homework.completion));
+    }
+    if (filter === "incomplete") {
+      return items.filter((homework) => !homework.completion);
+    }
+    return items;
+  }, [filter, items]);
 
   const formatDate = (value: string | null) => {
     if (!value) return t("dateTBD");
@@ -134,7 +152,51 @@ export function HomeworkSummaryList({ homeworks }: HomeworkSummaryListProps) {
 
   return (
     <div className="space-y-4">
-      {items.map((homework) => {
+      <Card className="border-border/60">
+        <CardHeader className="gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex rounded-md border border-border/70 p-1">
+              <Button
+                size="sm"
+                variant={filter === "incomplete" ? "secondary" : "ghost"}
+                onClick={() => setFilter("incomplete")}
+              >
+                {t("filterIncomplete")}
+              </Button>
+              <Button
+                size="sm"
+                variant={filter === "completed" ? "secondary" : "ghost"}
+                onClick={() => setFilter("completed")}
+              >
+                {t("filterCompleted")}
+              </Button>
+              <Button
+                size="sm"
+                variant={filter === "all" ? "secondary" : "ghost"}
+                onClick={() => setFilter("all")}
+              >
+                {t("filterAll")}
+              </Button>
+            </div>
+            <Button
+              render={<Link className="no-underline" href={addHomeworkHref} />}
+            >
+              <Plus className="h-4 w-4" />
+              {t("addButton")}
+            </Button>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {filteredItems.length === 0 ? (
+        <Card className="border-border/60">
+          <CardHeader>
+            <CardTitle className="text-base">{t("filterEmptyTitle")}</CardTitle>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      {filteredItems.map((homework) => {
         const section = homework.section;
         const detailParts = [
           section?.courseName ?? "",

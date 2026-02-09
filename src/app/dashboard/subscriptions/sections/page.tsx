@@ -6,16 +6,9 @@ import { auth } from "@/auth";
 import { BulkImportSections } from "@/components/bulk-import-sections";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
+import { DashboardShell } from "@/components/dashboard-shell";
 import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -54,7 +47,7 @@ export default async function SubscriptionsPage() {
     redirect("/signin");
   }
 
-  const [t, tCommon, tMe, tSection] = await Promise.all([
+  const [t, tCommon, tDashboard, tSection] = await Promise.all([
     getTranslations("subscriptions"),
     getTranslations("common"),
     getTranslations("meDashboard"),
@@ -213,33 +206,50 @@ export default async function SubscriptionsPage() {
     semesters.at(-1)?.id ??
     null;
 
-  return (
-    <main className="page-main">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>
-              {tCommon("home")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/dashboard" />}>
-              {tMe("title")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t("title")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+  const totalSections = subscriptionsWithTokens.reduce(
+    (count, subscription) => count + subscription.sections.length,
+    0,
+  );
+  const semesterCount = new Set(
+    subscriptionsWithTokens.flatMap((subscription) =>
+      subscription.sections
+        .map((section) => section.semester?.id)
+        .filter((id): id is number => id !== null),
+    ),
+  ).size;
 
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">
-          {t("description")}
-        </p>
+  return (
+    <DashboardShell
+      homeLabel={tCommon("home")}
+      dashboardLabel={tDashboard("title")}
+      title={t("title")}
+      description={t("description")}
+    >
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>{t("summary.subscriptions")}</CardDescription>
+            <CardTitle className="font-semibold text-2xl">
+              {subscriptionsWithTokens.length}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>{t("summary.sections")}</CardDescription>
+            <CardTitle className="font-semibold text-2xl">
+              {totalSections}
+            </CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>{t("summary.semesters")}</CardDescription>
+            <CardTitle className="font-semibold text-2xl">
+              {semesterCount}
+            </CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
       <BulkImportSections
@@ -247,7 +257,7 @@ export default async function SubscriptionsPage() {
         defaultSemesterId={currentSemesterId}
       />
 
-      <div className="grid gap-6">
+      <div className="grid min-w-0 max-w-5xl gap-6">
         {subscriptionsWithTokens.length === 0 ? (
           <Card>
             <CardHeader>
@@ -266,7 +276,7 @@ export default async function SubscriptionsPage() {
           </Card>
         ) : (
           subscriptionsWithTokens.map((sub) => (
-            <Card key={sub.id}>
+            <Card key={sub.id} className="min-w-0">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -279,8 +289,8 @@ export default async function SubscriptionsPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardPanel>
-                <div className="space-y-6">
+              <CardPanel className="min-w-0">
+                <div className="min-w-0 space-y-6">
                   {(() => {
                     const groups = sub.sections.reduce(
                       (acc, section) => {
@@ -333,7 +343,7 @@ export default async function SubscriptionsPage() {
                           </span>
                         </div>
                         <div className="overflow-x-auto rounded-md border">
-                          <Table className="min-w-[720px] table-fixed">
+                          <Table className="min-w-[640px] table-fixed">
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-1/4">
@@ -490,7 +500,7 @@ export default async function SubscriptionsPage() {
                       getCalendarMonthStart(calendarEvents);
 
                     return (
-                      <div className="space-y-3">
+                      <div className="min-w-0 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <h3 className="font-medium text-sm">
                             {t("calendarTitle", {
@@ -504,19 +514,21 @@ export default async function SubscriptionsPage() {
                             copiedDescription={t("linkCopiedDescription")}
                           />
                         </div>
-                        <EventCalendar
-                          events={calendarEvents}
-                          emptyLabel={t("calendarEmpty")}
-                          monthStart={calendarMonthStart}
-                          previousMonthLabel={tSection("previousMonth")}
-                          nextMonthLabel={tSection("nextMonth")}
-                          semesters={semesters}
-                          weekLabelHeader={tSection("weekLabel")}
-                          weekLabelTemplate={weekLabelTemplate}
-                          weekdayLabels={weekdayLabels}
-                          weekStartsOn={0}
-                          unscheduledLabel={tSection("dateTBD")}
-                        />
+                        <div className="min-w-0 max-w-full">
+                          <EventCalendar
+                            events={calendarEvents}
+                            emptyLabel={t("calendarEmpty")}
+                            monthStart={calendarMonthStart}
+                            previousMonthLabel={tSection("previousMonth")}
+                            nextMonthLabel={tSection("nextMonth")}
+                            semesters={semesters}
+                            weekLabelHeader={tSection("weekLabel")}
+                            weekLabelTemplate={weekLabelTemplate}
+                            weekdayLabels={weekdayLabels}
+                            weekStartsOn={0}
+                            unscheduledLabel={tSection("dateTBD")}
+                          />
+                        </div>
                       </div>
                     );
                   })()}
@@ -526,6 +538,6 @@ export default async function SubscriptionsPage() {
           ))
         )}
       </div>
-    </main>
+    </DashboardShell>
   );
 }

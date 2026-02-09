@@ -60,6 +60,11 @@
   "subscriptions": {
     "title": "Selected Sections",
     "description": "Manage your selected course sections",
+    "summary": {
+      "subscriptions": "Calendar subscriptions",
+      "sections": "Total sections",
+      "semesters": "Covered semesters"
+    },
     "noSubscriptions": "No selected sections",
     "noSubscriptionsDescription": "You haven't selected any sections yet.",
     "browseCourses": "Browse Courses",
@@ -267,6 +272,21 @@
     "title": "Dashboard",
     "description": "Hi {name}, this dashboard brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi {name}, start with what to do now, then plan the rest of your week.",
+    "nav": {
+      "ariaLabel": "Dashboard section switcher",
+      "overview": {
+        "title": "Overview",
+        "description": "Today's classes, homework, and weekly table"
+      },
+      "subscriptions": {
+        "title": "Section Management",
+        "description": "Bulk import and maintain selected sections"
+      },
+      "homeworks": {
+        "title": "All Homework",
+        "description": "Review and organize by completion status"
+      }
+    },
     "viewAll": "View all",
     "quickActions": "Quick actions",
     "focus": {
@@ -896,7 +916,12 @@
     "auditMeta": "{name} · {date}",
     "unknownActor": "Unknown user",
     "deleteSuccess": "Homework deleted",
-    "deleteFailed": "Homework deletion failed"
+    "deleteFailed": "Homework deletion failed",
+    "filterIncomplete": "Incomplete",
+    "filterCompleted": "Completed",
+    "filterAll": "All",
+    "filterEmptyTitle": "No homework under this filter",
+    "addButton": "Add homework"
   },
   "comments": {
     "title": "Comments",

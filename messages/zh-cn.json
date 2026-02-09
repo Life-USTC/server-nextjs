@@ -60,6 +60,11 @@
   "subscriptions": {
     "title": "已选课班级",
     "description": "管理您的已选课班级",
+    "summary": {
+      "subscriptions": "订阅日历",
+      "sections": "已选班级总数",
+      "semesters": "涉及学期"
+    },
     "noSubscriptions": "暂无已选课班级",
     "noSubscriptionsDescription": "您尚未选课任何班级。",
     "browseCourses": "浏览课程",
@@ -267,6 +272,21 @@
     "title": "仪表盘",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}。先看现在该做什么，再看接下来一周的节奏。",
+    "nav": {
+      "ariaLabel": "仪表盘页面切换",
+      "overview": {
+        "title": "总览",
+        "description": "今日课程、作业与本周课表"
+      },
+      "subscriptions": {
+        "title": "选课管理",
+        "description": "批量导入并维护已选班级"
+      },
+      "homeworks": {
+        "title": "全部作业",
+        "description": "按完成状态查看和整理作业"
+      }
+    },
     "viewAll": "查看全部",
     "quickActions": "快捷入口",
     "focus": {
@@ -896,7 +916,12 @@
     "auditMeta": "{name} · {date}",
     "unknownActor": "未知用户",
     "deleteSuccess": "作业已删除",
-    "deleteFailed": "作业删除失败"
+    "deleteFailed": "作业删除失败",
+    "filterIncomplete": "未完成",
+    "filterCompleted": "已完成",
+    "filterAll": "全部",
+    "filterEmptyTitle": "当前筛选下暂无作业",
+    "addButton": "添加作业"
   },
   "comments": {
     "title": "评论",
