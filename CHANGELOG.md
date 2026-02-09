@@ -1,3 +1,11 @@
+# [0.35.0](https://github.com/Life-USTC/server-nextjs/compare/v0.34.0...v0.35.0) (2026-02-09)
+
+
+### Features
+
+* **app:** add dashboard/settings routes and profile flows ([fbe23a2](https://github.com/Life-USTC/server-nextjs/commit/fbe23a2f490e4898831b0e3ac77d1997b3772732))
+* **comments:** streamline moderation and thread rendering ([e56d20a](https://github.com/Life-USTC/server-nextjs/commit/e56d20a4485d1c64a35752e68dbb564557cb1723))
+
 # [0.34.0](https://github.com/Life-USTC/server-nextjs/compare/v0.33.0...v0.34.0) (2026-02-01)
 
 
