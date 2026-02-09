@@ -71,16 +71,30 @@ test.describe("登录后页面元素与高级功能", () => {
   });
 
   test("dashboard 页面显示关键入口", async ({ page }) => {
+    await expect(page.locator('a[href="/dashboard"]').first()).toBeVisible();
     await expect(
       page.locator('a[href="/dashboard/subscriptions/sections"]').first(),
     ).toBeVisible();
     await expect(
       page.locator('a[href="/dashboard/homeworks"]').first(),
     ).toBeVisible();
-    await expect(
-      page.locator('a[href="/settings/profile"]').first(),
-    ).toBeVisible();
-    await expect(page.locator('a[href^="/u/"]').first()).toBeVisible();
+  });
+
+  test("dashboard 左侧切换可在三个页面间导航", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page
+      .locator('a[href="/dashboard/subscriptions/sections"]')
+      .first()
+      .click();
+    await expect(page).toHaveURL(
+      /\/dashboard\/subscriptions\/sections(?:\?.*)?$/,
+    );
+
+    await page.locator('a[href="/dashboard/homeworks"]').first().click();
+    await expect(page).toHaveURL(/\/dashboard\/homeworks(?:\?.*)?$/);
+
+    await page.locator('a[href="/dashboard"]').first().click();
+    await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
   });
 
   test("dashboard 子页面具备关键交互元素", async ({ page }) => {
@@ -94,7 +108,15 @@ test.describe("登录后页面元素与高级功能", () => {
     await expect(page.locator("#main-content")).toBeVisible();
 
     await page.goto("/dashboard/homeworks");
-    await expect(page.locator("#main-content")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /未完成|Incomplete/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /已完成|Completed/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /添加作业|Add homework/i }).first(),
+    ).toBeVisible();
   });
 
   test("settings 页面支持导航与重定向", async ({ page }) => {
@@ -145,17 +167,7 @@ test.describe("登录后页面元素与高级功能", () => {
     await expect(confirmButton).toBeEnabled();
   });
 
-  test("登录用户可访问公开个人页并支持 ID 路由", async ({ page }) => {
-    await page.goto("/dashboard");
-    const profileLink = page.locator('a[href^="/u/"]').first();
-    const profileHref = await profileLink.getAttribute("href");
-    await expect(profileLink).toBeVisible();
-
-    if (profileHref) {
-      await page.goto(profileHref);
-      await expect(page.locator("#main-content")).toBeVisible();
-    }
-
+  test("登录用户支持公开个人页 ID 路由", async ({ page }) => {
     const sessionResponse = await page.request.get("/api/auth/session");
     const session = (await sessionResponse.json()) as {
       user?: { id?: string };

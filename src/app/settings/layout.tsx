@@ -50,11 +50,13 @@ export default async function SettingsLayout({
         </p>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[272px_minmax(0,1fr)] lg:items-start">
         <aside className="lg:sticky lg:top-20">
           <SettingsNav />
         </aside>
-        <section className="space-y-4">{children}</section>
+        <section className="w-full min-w-0 max-w-5xl space-y-5">
+          {children}
+        </section>
       </div>
     </main>
   );

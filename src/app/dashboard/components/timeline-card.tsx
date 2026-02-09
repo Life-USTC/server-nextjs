@@ -21,20 +21,18 @@ export function TimelineCard({
 }: TimelineCardProps) {
   const hasTodayPanel = todaySessions.length > 0;
   const hasTomorrowPanel = tomorrowSessions.length > 0;
-  const hasTimelineData = hasTodayPanel || hasTomorrowPanel;
 
-  if (!hasTimelineData) return null;
+  if (!hasTodayPanel && !hasTomorrowPanel) return null;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>{t("today.title")}</CardTitle>
-        <CardDescription>{t("today.description")}</CardDescription>
-      </CardHeader>
-      <CardPanel className="space-y-4">
-        {hasTodayPanel ? (
-          <div className="space-y-2">
-            <p className="font-medium text-sm">{t("today.title")}</p>
+    <div className="grid gap-4 md:grid-cols-2">
+      {hasTodayPanel ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>{t("today.title")}</CardTitle>
+            <CardDescription>{t("today.description")}</CardDescription>
+          </CardHeader>
+          <CardPanel className="space-y-2">
             {todaySessions.map((item) => (
               <div
                 key={item.id}
@@ -58,16 +56,17 @@ export function TimelineCard({
                 </div>
               </div>
             ))}
-          </div>
-        ) : null}
+          </CardPanel>
+        </Card>
+      ) : null}
 
-        {hasTodayPanel && hasTomorrowPanel ? (
-          <div className="h-px bg-border" />
-        ) : null}
-
-        {hasTomorrowPanel ? (
-          <div className="space-y-2">
-            <p className="font-medium text-sm">{t("tomorrow.title")}</p>
+      {hasTomorrowPanel ? (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle>{t("tomorrow.title")}</CardTitle>
+            <CardDescription>{t("tomorrow.description")}</CardDescription>
+          </CardHeader>
+          <CardPanel className="space-y-2">
             {tomorrowSessions.map((item) => (
               <div key={item.id} className="rounded-md border px-3 py-2">
                 <p className="font-medium text-sm">{item.courseName}</p>
@@ -77,9 +76,9 @@ export function TimelineCard({
                 </p>
               </div>
             ))}
-          </div>
-        ) : null}
-      </CardPanel>
-    </Card>
+          </CardPanel>
+        </Card>
+      ) : null}
+    </div>
   );
 }
