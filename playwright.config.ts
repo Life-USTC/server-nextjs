@@ -10,11 +10,12 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:3000",
     trace: "on-first-retry",
+    screenshot: "on",
   },
   webServer: {
     command: "bun run dev -- --port 3000",
     url: "http://127.0.0.1:3000",
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     stdout: "ignore",
     stderr: "pipe",
     timeout: 120 * 1000,

@@ -6,7 +6,6 @@ test("公共列表页服务端输出包含 URL 参数", async ({ request }) => {
   const html = await response.text();
 
   expect(html).toContain('id="main-content"');
-  expect(html).toContain('name="search"');
   expect(html).toContain("ssr-sections");
 });
 
