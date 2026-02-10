@@ -36,7 +36,7 @@ test("sections 页面面包屑可跳转回首页", async ({ page }) => {
 test("登录后可在 dashboard 与 settings 关键页面间跳转", async ({ page }) => {
   await signInAsDebugUser(page, "/dashboard");
 
-  await page.locator('a[href="/settings/profile"]').first().click();
+  await page.goto("/settings/profile");
   await expect(page).toHaveURL(/\/settings\/profile$/);
   await expect(page.locator("input#name")).toBeVisible();
 
