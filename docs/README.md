@@ -9,6 +9,7 @@
 - `docs/ui-rules.md`：UI 组件与交互规范。
 - `docs/testing.md`：当前测试策略。
 - `docs/comments-system.md`：评论系统业务逻辑。
+- `docs/page-api-design.md`：页面与 API 设计提炼及优化方向。
 
 ## 路由文档
 - `docs/urls.md`：应用页面路由清单。
