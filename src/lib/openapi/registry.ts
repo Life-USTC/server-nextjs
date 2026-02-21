@@ -5,6 +5,8 @@ import {
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 import {
+  descriptionUpsertRequestSchema,
+  homeworkCreateRequestSchema,
   matchSectionCodesRequestSchema,
   openApiErrorSchema,
   sectionCodeSchema,
@@ -35,6 +37,15 @@ const currentSemesterResponseSchema = z.object({
   code: z.string().nullable(),
   startDate: z.string().datetime().nullable(),
   endDate: z.string().datetime().nullable(),
+});
+
+const homeworkCreateResponseSchema = z.object({
+  id: z.string(),
+});
+
+const descriptionUpsertResponseSchema = z.object({
+  id: z.string(),
+  updated: z.boolean(),
 });
 
 registry.registerPath({
@@ -103,6 +114,124 @@ registry.registerPath({
     },
   },
   tags: ["Semesters"],
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/homeworks",
+  summary: "Create homework for one section",
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: homeworkCreateRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Homework created",
+      content: {
+        "application/json": {
+          schema: homeworkCreateResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Invalid request payload",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+    403: {
+      description: "Suspended",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Section not found",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+  },
+  tags: ["Homeworks"],
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/descriptions",
+  summary: "Create or update description for a target",
+  request: {
+    body: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: descriptionUpsertRequestSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Description upsert result",
+      content: {
+        "application/json": {
+          schema: descriptionUpsertResponseSchema,
+        },
+      },
+    },
+    400: {
+      description: "Invalid request payload",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+    401: {
+      description: "Unauthorized",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+    403: {
+      description: "Suspended",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+    404: {
+      description: "Target not found",
+      content: {
+        "application/json": {
+          schema: openApiErrorSchema,
+        },
+      },
+    },
+  },
+  tags: ["Descriptions"],
 });
 
 export function buildOpenApiDocument() {

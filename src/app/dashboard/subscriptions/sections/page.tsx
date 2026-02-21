@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { BulkImportSections } from "@/components/bulk-import-sections";
@@ -23,81 +22,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
 import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { getPrisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
-
-type SubscriptionSchedule = Prisma.ScheduleGetPayload<{
-  include: {
-    room: {
-      include: {
-        building: {
-          include: {
-            campus: true;
-          };
-        };
-      };
-    };
-    teachers: true;
-  };
-}> & {
-  room: {
-    namePrimary: string;
-    building: {
-      namePrimary: string;
-      campus: { namePrimary: string } | null;
-    } | null;
-  } | null;
-  teachers: Array<{ namePrimary: string }>;
-};
-
-const formatDetailValue = (value: string | number | null | undefined) => {
-  if (value === null || value === undefined) return null;
-  const text = String(value).trim();
-  return text.length > 0 ? text : null;
-};
-
-const formatScheduleLocation = (schedule: SubscriptionSchedule) => {
-  if (schedule.customPlace) return schedule.customPlace;
-  if (!schedule.room) return "—";
-
-  const parts = [schedule.room.namePrimary];
-  if (schedule.room.building) {
-    parts.push(schedule.room.building.namePrimary);
-    if (schedule.room.building.campus) {
-      parts.push(schedule.room.building.campus.namePrimary);
-    }
-  }
-
-  return parts.join(" · ");
-};
-
-const getCalendarMonthStart = (events: CalendarEvent[]) => {
-  if (events.length === 0) {
-    return dayjs().startOf("month").toDate();
-  }
-
-  const datedEvents = events
-    .filter((event): event is CalendarEvent & { date: Date } =>
-      Boolean(event.date),
-    )
-    .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-  const today = dayjs().startOf("day");
-  const firstEventDate = datedEvents[0]?.date ?? today.toDate();
-  const lastEventDate = datedEvents.at(-1)?.date ?? today.toDate();
-  const isOngoing =
-    !today.isBefore(dayjs(firstEventDate).startOf("day")) &&
-    !today.isAfter(dayjs(lastEventDate).startOf("day"));
-  const fallbackStartDate = firstEventDate ?? today.toDate();
-
-  return dayjs(isOngoing ? today : fallbackStartDate)
-    .startOf("month")
-    .toDate();
-};
+import {
+  countDistinctSemesterIds,
+  formatDetailValue,
+  formatScheduleLocation,
+  getCalendarMonthStart,
+  groupSectionsBySemester,
+} from "./sections-page-helpers";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -198,13 +135,7 @@ export default async function SubscriptionsPage() {
     (count, subscription) => count + subscription.sections.length,
     0,
   );
-  const semesterCount = new Set(
-    subscriptionsWithTokens.flatMap((subscription) =>
-      subscription.sections
-        .map((section) => section.semester?.id)
-        .filter((id): id is number => id !== null),
-    ),
-  ).size;
+  const semesterCount = countDistinctSemesterIds(subscriptionsWithTokens);
 
   return (
     <DashboardShell
@@ -280,42 +211,8 @@ export default async function SubscriptionsPage() {
               <CardPanel className="min-w-0">
                 <div className="min-w-0 space-y-6">
                   {(() => {
-                    const groups = sub.sections.reduce(
-                      (acc, section) => {
-                        const key =
-                          section.semester?.id?.toString() ?? "unknown";
-                        const label = section.semester?.nameCn ?? "—";
-                        const startDate = section.semester?.startDate ?? null;
-                        const existing = acc.get(key) ?? {
-                          key,
-                          label,
-                          startDate,
-                          sections: [],
-                        };
-                        existing.sections.push(section);
-                        acc.set(key, existing);
-                        return acc;
-                      },
-                      new Map<
-                        string,
-                        {
-                          key: string;
-                          label: string;
-                          startDate: Date | null;
-                          sections: typeof sub.sections;
-                        }
-                      >(),
-                    );
-
-                    const groupedSections = Array.from(groups.values()).sort(
-                      (a, b) => {
-                        if (a.startDate && b.startDate) {
-                          return b.startDate.getTime() - a.startDate.getTime();
-                        }
-                        if (a.startDate) return -1;
-                        if (b.startDate) return 1;
-                        return b.label.localeCompare(a.label);
-                      },
+                    const groupedSections = groupSectionsBySemester(
+                      sub.sections,
                     );
 
                     return groupedSections.map((group) => (

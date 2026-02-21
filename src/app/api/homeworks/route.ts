@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import { homeworkCreateRequestSchema } from "@/lib/api-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -88,16 +89,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: {
-    sectionId?: number;
-    title?: string;
-    description?: string;
-    publishedAt?: string | null;
-    submissionStartAt?: string | null;
-    submissionDueAt?: string | null;
-    isMajor?: boolean;
-    requiresTeam?: boolean;
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -105,32 +97,23 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid homework request", error, 400);
   }
 
-  const sectionId = parseOptionalInt(body.sectionId);
+  const parsedBody = homeworkCreateRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid homework request", parsedBody.error, 400);
+  }
+
+  const sectionId = parseOptionalInt(parsedBody.data.sectionId);
 
   if (!sectionId) {
     return NextResponse.json({ error: "Invalid section" }, { status: 400 });
   }
 
-  const title = typeof body.title === "string" ? body.title.trim() : "";
-  if (!title) {
-    return NextResponse.json({ error: "Title required" }, { status: 400 });
-  }
-  if (title.length > 200) {
-    return NextResponse.json({ error: "Title too long" }, { status: 400 });
-  }
+  const title = parsedBody.data.title;
+  const description = (parsedBody.data.description ?? "").trim();
 
-  const description =
-    typeof body.description === "string" ? body.description.trim() : "";
-  if (description.length > 4000) {
-    return NextResponse.json(
-      { error: "Description too long" },
-      { status: 400 },
-    );
-  }
-
-  const publishedAt = parseDateValue(body.publishedAt);
-  const submissionStartAt = parseDateValue(body.submissionStartAt);
-  const submissionDueAt = parseDateValue(body.submissionDueAt);
+  const publishedAt = parseDateValue(parsedBody.data.publishedAt);
+  const submissionStartAt = parseDateValue(parsedBody.data.submissionStartAt);
+  const submissionDueAt = parseDateValue(parsedBody.data.submissionDueAt);
 
   if (publishedAt === undefined) {
     return NextResponse.json(
@@ -191,8 +174,8 @@ export async function POST(request: Request) {
         data: {
           sectionId,
           title,
-          isMajor: body.isMajor === true,
-          requiresTeam: body.requiresTeam === true,
+          isMajor: parsedBody.data.isMajor === true,
+          requiresTeam: parsedBody.data.requiresTeam === true,
           publishedAt,
           submissionStartAt,
           submissionDueAt,
