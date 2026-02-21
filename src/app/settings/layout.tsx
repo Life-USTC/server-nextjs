@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { auth } from "@/auth";
 import { SettingsNav } from "@/components/settings-nav";
 import {
   Breadcrumb,
@@ -11,6 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +18,7 @@ export default async function SettingsLayout({
 }: {
   children: ReactNode;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  await requireSignedInUserId();
 
   const [tCommon, tSettings] = await Promise.all([
     getTranslations("common"),

@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { HomeworkSummaryList } from "@/components/homeworks/homework-summary-list";
 import { Button } from "@/components/ui/button";
@@ -13,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 
 type HomeworkWithSection = {
@@ -45,18 +44,14 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MyHomeworksPage() {
   const locale = await getLocale();
   const localizedPrisma = getPrisma(locale);
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const [tCommon, tDashboard, tMyHomeworks, subscriptions] = await Promise.all([
     getTranslations("common"),
     getTranslations("meDashboard"),
     getTranslations("myHomeworks"),
     basePrisma.calendarSubscription.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       include: { sections: { select: { id: true } } },
     }),
   ]);
@@ -75,7 +70,7 @@ export default async function MyHomeworksPage() {
         include: {
           description: { select: { content: true } },
           homeworkCompletions: {
-            where: { userId: session.user.id },
+            where: { userId },
             select: { completedAt: true },
           },
           section: {

@@ -1,8 +1,6 @@
 import dayjs from "dayjs";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import { BulkImportSections } from "@/components/bulk-import-sections";
 import { ClickableTableRow } from "@/components/clickable-table-row";
 import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
@@ -27,7 +25,9 @@ import {
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
+import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { getPrisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 
@@ -42,10 +42,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SubscriptionsPage() {
   const locale = await getLocale();
   const prisma = getPrisma(locale);
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const [t, tCommon, tDashboard, tSection] = await Promise.all([
     getTranslations("subscriptions"),
@@ -136,7 +133,7 @@ export default async function SubscriptionsPage() {
   const [subscriptions, semesters] = await Promise.all([
     prisma.calendarSubscription.findMany({
       where: {
-        userId: session.user.id,
+        userId,
       },
       include: {
         sections: {
@@ -194,17 +191,8 @@ export default async function SubscriptionsPage() {
     })),
   );
 
-  const now = new Date();
   const currentSemesterId =
-    semesters.find(
-      (semester) =>
-        semester.startDate &&
-        semester.endDate &&
-        semester.startDate <= now &&
-        semester.endDate >= now,
-    )?.id ??
-    semesters.at(-1)?.id ??
-    null;
+    selectCurrentSemesterFromList(semesters, new Date())?.id ?? null;
 
   const totalSections = subscriptionsWithTokens.reduce(
     (count, subscription) => count + subscription.sections.length,

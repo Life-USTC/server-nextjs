@@ -1,3 +1,4 @@
+import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -18,13 +19,7 @@ async function checkSectionCodes() {
     console.log("Checking section codes in database...\n");
 
     // Get current semester based on today's date
-    const now = new Date();
-    const currentSemester = await prisma.semester.findFirst({
-      where: {
-        startDate: { lte: now },
-        endDate: { gte: now },
-      },
-    });
+    const currentSemester = await findCurrentSemester(prisma.semester);
 
     console.log(
       `Current semester: ${currentSemester?.nameCn} (ID: ${currentSemester?.id})\n`,

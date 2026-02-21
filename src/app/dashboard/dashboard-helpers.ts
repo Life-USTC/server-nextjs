@@ -12,32 +12,6 @@ import type {
   TimeSlot,
 } from "./types";
 
-export const selectCurrentSemester = (
-  semesters: SemesterSummary[],
-  referenceDate: Date,
-): SemesterSummary | null => {
-  const unfinished = semesters
-    .filter(
-      (semester) => !semester.endDate || semester.endDate >= referenceDate,
-    )
-    .sort((a, b) => {
-      const aStart = a.startDate ? dayjs(a.startDate).valueOf() : -Infinity;
-      const bStart = b.startDate ? dayjs(b.startDate).valueOf() : -Infinity;
-      if (aStart !== bStart) return aStart - bStart;
-      const aEnd = a.endDate ? dayjs(a.endDate).valueOf() : Infinity;
-      const bEnd = b.endDate ? dayjs(b.endDate).valueOf() : Infinity;
-      return aEnd - bEnd;
-    });
-
-  const startedUnfinished = unfinished.filter(
-    (semester) => !semester.startDate || semester.startDate <= referenceDate,
-  );
-
-  return (
-    startedUnfinished.at(-1) ?? unfinished.at(-1) ?? semesters.at(-1) ?? null
-  );
-};
-
 export const extractSections = (subscriptions: SubscriptionWithSections[]) => {
   const allSections = subscriptions.flatMap(
     (subscription) => subscription.sections,
