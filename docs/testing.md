@@ -37,6 +37,7 @@
 - `tests/unit/api-helpers.test.ts`：整数解析与列表解析边界。
 - `tests/unit/current-semester.test.ts`：当前学期推断策略与回退逻辑。
 - `tests/unit/api-schemas.test.ts`：match-codes 请求体 schema 校验边界。
+- `tests/unit/sections-page-helpers.test.ts`：订阅页分组与学期统计逻辑。
 
 ## 配置说明
 - Playwright 配置文件：`playwright.config.ts`
