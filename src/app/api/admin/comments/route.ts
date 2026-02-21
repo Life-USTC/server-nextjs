@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -9,9 +9,8 @@ export const dynamic = "force-dynamic";
 const STATUS_FILTERS = ["active", "softbanned", "deleted"] as const;
 
 function parseLimit(value: string | null) {
-  if (!value) return 50;
-  const parsed = parseInt(value, 10);
-  if (Number.isNaN(parsed)) return 50;
+  const parsed = parseOptionalInt(value);
+  if (!parsed) return 50;
   return Math.min(Math.max(parsed, 1), 200);
 }
 

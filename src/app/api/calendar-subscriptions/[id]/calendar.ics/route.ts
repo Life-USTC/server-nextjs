@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
+import { invalidParamResponse, parseInteger } from "@/lib/api-helpers";
 import {
   extractToken,
   verifyCalendarSubscriptionJWT,
@@ -17,13 +18,10 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const subscriptionId = Number.parseInt(id, 10);
+  const subscriptionId = parseInteger(id);
 
-  if (Number.isNaN(subscriptionId)) {
-    return NextResponse.json(
-      { error: "Invalid subscription ID" },
-      { status: 400 },
-    );
+  if (subscriptionId === null) {
+    return invalidParamResponse("subscription ID");
   }
 
   // Extract and verify token

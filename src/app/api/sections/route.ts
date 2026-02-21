@@ -1,7 +1,12 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
-import { getPagination, handleRouteError } from "@/lib/api-helpers";
+import {
+  getPagination,
+  handleRouteError,
+  parseIntegerList,
+  parseOptionalInt,
+} from "@/lib/api-helpers";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -18,22 +23,26 @@ export async function GET(request: NextRequest) {
   const idsParam = searchParams.get("ids");
 
   const where: Prisma.SectionWhereInput = {};
-  if (courseId) where.courseId = parseInt(courseId, 10);
-  if (semesterId) where.semesterId = parseInt(semesterId, 10);
-  if (campusId) where.campusId = parseInt(campusId, 10);
-  if (departmentId) where.openDepartmentId = parseInt(departmentId, 10);
+  const parsedCourseId = parseOptionalInt(courseId);
+  if (parsedCourseId !== null) where.courseId = parsedCourseId;
+  const parsedSemesterId = parseOptionalInt(semesterId);
+  if (parsedSemesterId !== null) where.semesterId = parsedSemesterId;
+  const parsedCampusId = parseOptionalInt(campusId);
+  if (parsedCampusId !== null) where.campusId = parsedCampusId;
+  const parsedDepartmentId = parseOptionalInt(departmentId);
+  if (parsedDepartmentId !== null) where.openDepartmentId = parsedDepartmentId;
   if (teacherId) {
-    where.teachers = {
-      some: {
-        id: parseInt(teacherId, 10),
-      },
-    };
+    const parsedTeacherId = parseOptionalInt(teacherId);
+    if (parsedTeacherId !== null) {
+      where.teachers = {
+        some: {
+          id: parsedTeacherId,
+        },
+      };
+    }
   }
   if (idsParam) {
-    const ids = idsParam
-      .split(",")
-      .map((id) => parseInt(id.trim(), 10))
-      .filter((id) => !Number.isNaN(id));
+    const ids = parseIntegerList(idsParam);
     if (ids.length > 0) {
       where.id = { in: ids };
     }

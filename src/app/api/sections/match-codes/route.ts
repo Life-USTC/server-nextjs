@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseInteger } from "@/lib/api-helpers";
+import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/prisma";
+import { sectionCompactInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -22,10 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const parsedSemesterId = semesterId
-      ? Number.parseInt(String(semesterId), 10)
+      ? parseInteger(String(semesterId))
       : null;
 
-    if (parsedSemesterId !== null && Number.isNaN(parsedSemesterId)) {
+    if (semesterId && parsedSemesterId === null) {
       return handleRouteError(
         "semesterId must be a valid number",
         new Error("Invalid semesterId"),
@@ -40,12 +42,7 @@ export async function POST(request: NextRequest) {
             id: parsedSemesterId,
           },
         })
-      : await prisma.semester.findFirst({
-          where: {
-            startDate: { lte: now },
-            endDate: { gte: now },
-          },
-        });
+      : await findCurrentSemester(prisma.semester, now);
 
     if (!currentSemester) {
       return handleRouteError(
@@ -63,22 +60,7 @@ export async function POST(request: NextRequest) {
         },
         semesterId: currentSemester.id,
       },
-      include: {
-        course: {
-          include: {
-            educationLevel: true,
-            category: true,
-            classify: true,
-            classType: true,
-            gradation: true,
-            type: true,
-          },
-        },
-        semester: true,
-        campus: true,
-        openDepartment: true,
-        teachers: true,
-      },
+      include: sectionCompactInclude,
       orderBy: {
         code: "asc",
       },

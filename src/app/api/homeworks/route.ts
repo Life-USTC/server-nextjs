@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-function parseIntParam(value: string | null) {
-  if (!value) return null;
-  const parsed = parseInt(value, 10);
-  return Number.isNaN(parsed) ? null : parsed;
-}
 
 function parseDateValue(value: unknown) {
   if (value === null || value === undefined) return null;
@@ -24,7 +18,7 @@ function parseDateValue(value: unknown) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const sectionId = parseIntParam(searchParams.get("sectionId"));
+  const sectionId = parseOptionalInt(searchParams.get("sectionId"));
   const includeDeleted = searchParams.get("includeDeleted") === "true";
 
   if (!sectionId) {
@@ -111,14 +105,9 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid homework request", error, 400);
   }
 
-  const sectionId =
-    typeof body.sectionId === "number"
-      ? body.sectionId
-      : typeof body.sectionId === "string"
-        ? parseInt(body.sectionId, 10)
-        : null;
+  const sectionId = parseOptionalInt(body.sectionId);
 
-  if (!sectionId || Number.isNaN(sectionId)) {
+  if (!sectionId) {
     return NextResponse.json({ error: "Invalid section" }, { status: 400 });
   }
 

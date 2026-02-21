@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { invalidParamResponse, parseInteger } from "@/lib/api-helpers";
 import { createSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
 
@@ -14,13 +15,10 @@ export async function GET(
 ) {
   try {
     const { jwId } = await context.params;
-    const sectionJwId = Number.parseInt(jwId, 10);
+    const sectionJwId = parseInteger(jwId);
 
-    if (Number.isNaN(sectionJwId)) {
-      return NextResponse.json(
-        { error: "Invalid section JW ID" },
-        { status: 400 },
-      );
+    if (sectionJwId === null) {
+      return invalidParamResponse("section JW ID");
     }
 
     const section = await prisma.section.findUnique({

@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
-import { getPagination, handleRouteError } from "@/lib/api-helpers";
+import {
+  getPagination,
+  handleRouteError,
+  parseOptionalInt,
+} from "@/lib/api-helpers";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +20,8 @@ export async function GET(request: NextRequest) {
   const where: Prisma.TeacherWhereInput = {};
 
   if (departmentId) {
-    const parsedDepartmentId = parseInt(departmentId, 10);
-    if (!Number.isNaN(parsedDepartmentId)) {
+    const parsedDepartmentId = parseOptionalInt(departmentId);
+    if (parsedDepartmentId !== null) {
       where.departmentId = parsedDepartmentId;
     }
   }

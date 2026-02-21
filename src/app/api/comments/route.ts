@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import {
   findActiveSuspension,
@@ -23,23 +23,6 @@ const TARGET_TYPES = [
 type TargetType = (typeof TARGET_TYPES)[number];
 type Visibility = (typeof VISIBILITY_VALUES)[number];
 
-function parseIntParam(value: string | null) {
-  if (!value) return null;
-  const parsed = parseInt(value, 10);
-  return Number.isNaN(parsed) ? null : parsed;
-}
-
-function normalizeId(value: unknown) {
-  if (typeof value === "number") {
-    return Number.isNaN(value) ? null : value;
-  }
-  if (typeof value === "string") {
-    const parsed = parseInt(value, 10);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
-  return null;
-}
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const targetType = searchParams.get("targetType") as TargetType | null;
@@ -49,9 +32,9 @@ export async function GET(request: Request) {
   }
 
   const targetIdParam = searchParams.get("targetId");
-  const targetId = parseIntParam(targetIdParam);
-  const sectionId = parseIntParam(searchParams.get("sectionId"));
-  const teacherId = parseIntParam(searchParams.get("teacherId"));
+  const targetId = parseOptionalInt(targetIdParam);
+  const sectionId = parseOptionalInt(searchParams.get("sectionId"));
+  const teacherId = parseOptionalInt(searchParams.get("teacherId"));
 
   try {
     let whereTarget: Record<string, number | string> | null = null;
@@ -202,13 +185,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    const normalizedTargetId = normalizeId(body.targetId);
+    const normalizedTargetId = parseOptionalInt(body.targetId);
     const normalizedHomeworkId =
       typeof body.targetId === "string" && body.targetId.trim().length > 0
         ? body.targetId.trim()
         : null;
-    const normalizedSectionId = normalizeId(body.sectionId);
-    const normalizedTeacherId = normalizeId(body.teacherId);
+    const normalizedSectionId = parseOptionalInt(body.sectionId);
+    const normalizedTeacherId = parseOptionalInt(body.teacherId);
     let targetData: Record<string, number | string> | null = null;
     let resolvedSectionTeacherId: number | null = null;
 

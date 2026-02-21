@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  handleRouteError,
+  invalidParamResponse,
+  parseInteger,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
+import { sectionInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -10,37 +15,19 @@ export async function GET(
 ) {
   try {
     const { jwId } = await context.params;
-    const parsedJwId = parseInt(jwId, 10);
+    const parsedJwId = parseInteger(jwId);
 
-    if (Number.isNaN(parsedJwId)) {
-      return NextResponse.json(
-        { error: "Invalid section ID" },
-        { status: 400 },
-      );
+    if (parsedJwId === null) {
+      return invalidParamResponse("section ID");
     }
 
     const section = await prisma.section.findUnique({
       where: { jwId: parsedJwId },
       include: {
-        course: {
-          include: {
-            category: true,
-            classType: true,
-            classify: true,
-            educationLevel: true,
-            gradation: true,
-            type: true,
-          },
-        },
-        semester: true,
-        campus: true,
-        examMode: true,
-        openDepartment: true,
-        teachLanguage: true,
+        ...sectionInclude,
         roomType: true,
         schedules: true,
         scheduleGroups: true,
-        adminClasses: true,
         teachers: {
           include: {
             department: true,
