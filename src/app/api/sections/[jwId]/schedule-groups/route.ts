@@ -1,5 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  handleRouteError,
+  invalidParamResponse,
+  parseInteger,
+} from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +14,10 @@ export async function GET(
 ) {
   try {
     const { jwId } = await context.params;
-    const parsedJwId = parseInt(jwId, 10);
+    const parsedJwId = parseInteger(jwId);
 
-    if (Number.isNaN(parsedJwId)) {
-      return NextResponse.json(
-        { error: "Invalid section ID" },
-        { status: 400 },
-      );
+    if (parsedJwId === null) {
+      return invalidParamResponse("section ID");
     }
 
     const section = await prisma.section.findUnique({

@@ -31,6 +31,26 @@ export async function paginatedQuery<TData>(
 }
 
 /**
+ * Lightweight section include for list/match scenarios
+ */
+export const sectionCompactInclude = {
+  course: {
+    include: {
+      educationLevel: true,
+      category: true,
+      classify: true,
+      classType: true,
+      gradation: true,
+      type: true,
+    },
+  },
+  semester: true,
+  campus: true,
+  openDepartment: true,
+  teachers: true,
+} satisfies Prisma.SectionInclude;
+
+/**
  * Helper to build common include objects for sections
  */
 export const sectionInclude = {

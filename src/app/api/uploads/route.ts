@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 import { buildUploadKey, s3Bucket, s3Client } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
@@ -52,12 +52,7 @@ async function runSerializableTransaction<T>(
 }
 
 function parseFileSize(value: unknown) {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const parsed = parseInt(value, 10);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
-  return null;
+  return parseOptionalInt(value);
 }
 
 function normalizeContentType(value: unknown) {

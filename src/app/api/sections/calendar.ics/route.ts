@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseIntegerList } from "@/lib/api-helpers";
 import { createMultiSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
 
@@ -23,10 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Parse section IDs from comma-separated string
-    const sectionIds = sectionIdsParam
-      .split(",")
-      .map((id) => Number.parseInt(id.trim(), 10))
-      .filter((id) => !Number.isNaN(id));
+    const sectionIds = parseIntegerList(sectionIdsParam);
 
     if (sectionIds.length === 0) {
       return handleRouteError(

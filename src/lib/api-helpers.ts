@@ -37,8 +37,8 @@ export function normalizePagination(input: PaginationInput = {}) {
  */
 export function getPagination(searchParams: URLSearchParams) {
   return normalizePagination({
-    page: parseInt(searchParams.get("page") || "", 10) || undefined,
-    pageSize: parseInt(searchParams.get("limit") || "", 10) || undefined,
+    page: parseOptionalInt(searchParams.get("page")) ?? undefined,
+    pageSize: parseOptionalInt(searchParams.get("limit")) ?? undefined,
     maxPageSize: 100,
   });
 }
@@ -70,4 +70,46 @@ export function handleRouteError(
 ) {
   console.error(message, error);
   return NextResponse.json({ error: message }, { status });
+}
+
+export function parseInteger(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) ? value : null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized || !/^-?\d+$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+export function parseOptionalInt(value: unknown): number | null {
+  return parseInteger(value);
+}
+
+export function parseRequiredInt(value: unknown): number | null {
+  const parsed = parseInteger(value);
+  return parsed === null ? null : parsed;
+}
+
+export function parseIntegerList(value: unknown, separator = ","): number[] {
+  if (typeof value !== "string") {
+    return [];
+  }
+
+  return value
+    .split(separator)
+    .map((entry) => parseInteger(entry))
+    .filter((entry): entry is number => entry !== null);
+}
+
+export function invalidParamResponse(paramName: string) {
+  return NextResponse.json({ error: `Invalid ${paramName}` }, { status: 400 });
 }

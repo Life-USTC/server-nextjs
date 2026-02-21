@@ -4,6 +4,7 @@ import {
   buildPaginatedResponse,
   getPagination,
   handleRouteError,
+  parseOptionalInt,
 } from "@/lib/api-helpers";
 import { prisma } from "@/lib/prisma";
 
@@ -22,21 +23,30 @@ export async function GET(request: NextRequest) {
     const weekday = searchParams.get("weekday");
 
     const whereClause: Prisma.ScheduleWhereInput = {};
-    if (sectionId) whereClause.sectionId = parseInt(sectionId, 10);
+    const parsedSectionId = parseOptionalInt(sectionId);
+    if (parsedSectionId !== null) whereClause.sectionId = parsedSectionId;
     if (teacherId) {
-      whereClause.teachers = {
-        some: {
-          id: parseInt(teacherId, 10),
-        },
-      };
+      const parsedTeacherId = parseOptionalInt(teacherId);
+      if (parsedTeacherId !== null) {
+        whereClause.teachers = {
+          some: {
+            id: parsedTeacherId,
+          },
+        };
+      }
     }
-    if (roomId) whereClause.roomId = parseInt(roomId, 10);
+    const parsedRoomId = parseOptionalInt(roomId);
+    if (parsedRoomId !== null) whereClause.roomId = parsedRoomId;
     const dateFilter: Prisma.DateTimeFilter = {};
     if (dateFrom) dateFilter.gte = new Date(dateFrom);
     if (dateTo) dateFilter.lte = new Date(dateTo);
     if (dateFrom || dateTo) whereClause.date = dateFilter;
-    if (weekday !== null && weekday !== undefined)
-      whereClause.weekday = parseInt(weekday, 10);
+    if (weekday !== null && weekday !== undefined) {
+      const parsedWeekday = parseOptionalInt(weekday);
+      if (parsedWeekday !== null) {
+        whereClause.weekday = parsedWeekday;
+      }
+    }
 
     const [schedules, total] = await Promise.all([
       prisma.schedule.findMany({

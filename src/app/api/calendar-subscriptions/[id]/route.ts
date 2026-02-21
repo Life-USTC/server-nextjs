@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  handleRouteError,
+  invalidParamResponse,
+  parseInteger,
+} from "@/lib/api-helpers";
 import {
   extractToken,
   verifyCalendarSubscriptionJWT,
@@ -33,6 +37,18 @@ async function verifyAccess(
   return null; // Access granted
 }
 
+async function parseSubscriptionId(context: {
+  params: Promise<{ id: string }>;
+}): Promise<number | NextResponse> {
+  const { id } = await context.params;
+  const subscriptionId = parseInteger(id);
+  if (subscriptionId === null) {
+    return invalidParamResponse("ID");
+  }
+
+  return subscriptionId;
+}
+
 /**
  * GET /api/calendar-subscriptions/[id]
  * Get subscription details (requires valid token)
@@ -42,12 +58,8 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await context.params;
-    const subscriptionId = parseInt(id, 10);
-
-    if (Number.isNaN(subscriptionId)) {
-      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
-    }
+    const subscriptionId = await parseSubscriptionId(context);
+    if (subscriptionId instanceof NextResponse) return subscriptionId;
 
     // Verify access
     const accessError = await verifyAccess(request, subscriptionId);
@@ -99,13 +111,8 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await context.params;
-
-    const subscriptionId = parseInt(id, 10);
-
-    if (Number.isNaN(subscriptionId)) {
-      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
-    }
+    const subscriptionId = await parseSubscriptionId(context);
+    if (subscriptionId instanceof NextResponse) return subscriptionId;
 
     // Verify access
     const accessError = await verifyAccess(request, subscriptionId);
@@ -175,13 +182,8 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const { id } = await context.params;
-
-    const subscriptionId = parseInt(id, 10);
-
-    if (Number.isNaN(subscriptionId)) {
-      return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
-    }
+    const subscriptionId = await parseSubscriptionId(context);
+    if (subscriptionId instanceof NextResponse) return subscriptionId;
 
     // Verify access
     const accessError = await verifyAccess(request, subscriptionId);

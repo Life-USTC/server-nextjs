@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -8,12 +8,6 @@ export const dynamic = "force-dynamic";
 
 const TARGET_TYPES = ["section", "course", "teacher", "homework"] as const;
 type TargetType = (typeof TARGET_TYPES)[number];
-
-function parseIntParam(value: string | null) {
-  if (!value) return null;
-  const parsed = parseInt(value, 10);
-  return Number.isNaN(parsed) ? null : parsed;
-}
 
 function getTargetWhere(targetType: TargetType, targetId: number | string) {
   switch (targetType) {
@@ -68,7 +62,7 @@ export async function GET(request: Request) {
   const targetId =
     targetType === "homework"
       ? targetIdParam
-      : parseIntParam(searchParams.get("targetId"));
+      : parseOptionalInt(searchParams.get("targetId"));
 
   if (!targetType || !TARGET_TYPES.includes(targetType)) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
@@ -162,13 +156,9 @@ export async function POST(request: Request) {
       ? typeof body.targetId === "string"
         ? body.targetId.trim()
         : null
-      : typeof body.targetId === "number"
-        ? body.targetId
-        : typeof body.targetId === "string"
-          ? parseInt(body.targetId, 10)
-          : null;
+      : parseOptionalInt(body.targetId);
 
-  if (!targetId || (typeof targetId === "number" && Number.isNaN(targetId))) {
+  if (!targetId) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
   }
 
