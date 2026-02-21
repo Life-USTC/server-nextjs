@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import { descriptionUpsertRequestSchema } from "@/lib/api-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -134,11 +135,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: {
-    targetType?: TargetType;
-    targetId?: number | string;
-    content?: string;
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -146,29 +143,30 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid description request", error, 400);
   }
 
-  const targetType = body.targetType;
-  if (!targetType || !TARGET_TYPES.includes(targetType)) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+  const parsedBody = descriptionUpsertRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError(
+      "Invalid description request",
+      parsedBody.error,
+      400,
+    );
   }
+
+  const targetType = parsedBody.data.targetType;
+  const rawTargetId = parsedBody.data.targetId;
 
   const targetId =
     targetType === "homework"
-      ? typeof body.targetId === "string"
-        ? body.targetId.trim()
+      ? typeof rawTargetId === "string"
+        ? rawTargetId.trim()
         : null
-      : parseOptionalInt(body.targetId);
+      : parseOptionalInt(rawTargetId);
 
   if (!targetId) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
   }
 
-  const content = typeof body.content === "string" ? body.content.trim() : null;
-  if (content === null) {
-    return NextResponse.json({ error: "Content required" }, { status: 400 });
-  }
-  if (content.length > 4000) {
-    return NextResponse.json({ error: "Content too long" }, { status: 400 });
-  }
+  const content = parsedBody.data.content.trim();
 
   const session = await auth();
   const userId = session?.user?.id ?? null;
