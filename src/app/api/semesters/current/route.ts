@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { handleRouteError } from "@/lib/api-helpers";
+import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -8,11 +9,7 @@ export async function GET() {
   try {
     const now = new Date();
 
-    const currentSemester = await prisma.semester.findFirst({
-      where: {
-        AND: [{ startDate: { lte: now } }, { endDate: { gte: now } }],
-      },
-    });
+    const currentSemester = await findCurrentSemester(prisma.semester, now);
 
     if (!currentSemester) {
       return NextResponse.json(

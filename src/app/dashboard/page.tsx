@@ -1,9 +1,9 @@
 import dayjs from "dayjs";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
+import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { createWeekDayFormatter, getWeekStartMonday } from "@/lib/date-utils";
 import { getPrisma } from "@/lib/prisma";
 import { DebugDateCard } from "./components/debug-date-card";
@@ -21,7 +21,6 @@ import {
   filterSessionsByDay,
   findBusiestDate,
   resolveDashboardSections,
-  selectCurrentSemester,
   selectWeeklySessions,
   sortSessionsByStart,
 } from "./dashboard-helpers";
@@ -42,10 +41,7 @@ export default async function DashboardPage({
 }: {
   searchParams: Promise<{ debugDate?: string; debugTools?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const locale = await getLocale();
   const prisma = getPrisma(locale);
@@ -72,11 +68,11 @@ export default async function DashboardPage({
     getTranslations("meDashboard"),
     getTranslations("common"),
     prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       select: { id: true, name: true, username: true },
     }),
     prisma.calendarSubscription.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       include: {
         sections: {
           include: {
@@ -115,13 +111,16 @@ export default async function DashboardPage({
 
   if (!user) {
     console.error("Authenticated user not found in database", {
-      userId: session.user.id,
+      userId,
     });
     return <div>{tCommon("userNotFound")}</div>;
   }
 
   const { allSections } = extractSections(subscriptions);
-  const currentSemester = selectCurrentSemester(semesters, referenceDate);
+  const currentSemester = selectCurrentSemesterFromList(
+    semesters,
+    referenceDate,
+  );
   const {
     hasAnySelection,
     hasCurrentTermSelection,
@@ -136,7 +135,7 @@ export default async function DashboardPage({
         where: { sectionId: { in: dashboardSectionIds }, deletedAt: null },
         include: {
           homeworkCompletions: {
-            where: { userId: session.user.id },
+            where: { userId },
             select: { completedAt: true },
           },
           section: { include: { course: true } },

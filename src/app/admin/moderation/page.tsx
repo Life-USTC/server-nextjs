@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -11,6 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 const ModerationDashboard = dynamic(() =>
@@ -27,13 +27,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ModerationPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { isAdmin: true },
   });
 

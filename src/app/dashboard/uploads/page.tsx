@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,6 +10,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { UploadsManager } from "@/components/uploads-manager";
 import { Link } from "@/i18n/routing";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { uploadConfig } from "@/lib/upload-config";
 
@@ -24,16 +23,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function UploadsPage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const accessUrl = process.env.R2_ACCESS_URL ?? "";
 
   const now = new Date();
   await prisma.uploadPending.deleteMany({
-    where: { userId: session.user.id, expiresAt: { lt: now } },
+    where: { userId, expiresAt: { lt: now } },
   });
 
   const [tCommon, tMe, tUploads, uploads, usage, pendingUsage] =
@@ -42,7 +38,7 @@ export default async function UploadsPage() {
       getTranslations("meDashboard"),
       getTranslations("uploads"),
       prisma.upload.findMany({
-        where: { userId: session.user.id },
+        where: { userId },
         select: {
           id: true,
           key: true,
@@ -53,11 +49,11 @@ export default async function UploadsPage() {
         orderBy: { createdAt: "desc" },
       }),
       prisma.upload.aggregate({
-        where: { userId: session.user.id },
+        where: { userId },
         _sum: { size: true },
       }),
       prisma.uploadPending.aggregate({
-        where: { userId: session.user.id, expiresAt: { gt: now } },
+        where: { userId, expiresAt: { gt: now } },
         _sum: { size: true },
       }),
     ]);

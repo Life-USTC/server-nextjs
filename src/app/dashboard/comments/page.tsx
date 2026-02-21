@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import { CommentMarkdown } from "@/components/comments/comment-markdown";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,6 +30,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Link } from "@/i18n/routing";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 const PAGE_SIZE = 20;
@@ -48,10 +47,7 @@ export default async function MyCommentsPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const locale = await getLocale();
   type CommentEntry = {
@@ -106,7 +102,7 @@ export default async function MyCommentsPage({
   const [comments, total, t, tCommon, tMe] = await Promise.all([
     prisma.comment.findMany({
       where: {
-        userId: session.user.id,
+        userId,
         status: { in: ["active", "softbanned"] },
       },
       include: {
@@ -151,7 +147,7 @@ export default async function MyCommentsPage({
     }) as Promise<CommentEntry[]>,
     prisma.comment.count({
       where: {
-        userId: session.user.id,
+        userId,
         status: { in: ["active", "softbanned"] },
       },
     }),

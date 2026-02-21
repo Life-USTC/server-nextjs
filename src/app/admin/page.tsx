@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { auth } from "@/auth";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -17,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,13 +27,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminHomePage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { isAdmin: true },
   });
   const isAdmin = user?.isAdmin ?? false;

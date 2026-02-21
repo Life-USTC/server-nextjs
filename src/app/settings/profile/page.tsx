@@ -1,18 +1,15 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { ProfileEditForm } from "@/components/profile-edit-form";
+import { requireSignedInUserId } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsProfilePage() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect("/signin");
-  }
+  const userId = await requireSignedInUserId();
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: {
       id: true,
       name: true,
