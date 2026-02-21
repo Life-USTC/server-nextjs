@@ -45,5 +45,10 @@ export async function GET(request: NextRequest) {
 
 ## 输入校验
 - Prisma 查询前必须校验输入。
-- 数值使用 `parseInt()` + `Number.isNaN()`。
-- 复杂校验使用 Zod。
+- 数值统一使用 `parseInteger()` / `parseOptionalInt()` / `parseIntegerList()`。
+- 参数错误推荐使用 `invalidParamResponse()` 返回 400。
+- 复杂请求体使用 Zod schema（`safeParse`）后再进入业务逻辑。
+
+## 契约文档
+- 提供 `GET /api/openapi` 输出 OpenAPI 3.1 文档。
+- 新增 API 时同步补充 OpenAPI registry，保证接口契约可追踪。

@@ -41,3 +41,7 @@
 - docs/README.md
 - docs/cossui.md
 - docs/cossui/*.md
+- docs/page-api-design.md
+
+## API utility routes
+- /api/openapi

@@ -1,7 +1,13 @@
 # 测试
 
 ## 当前状态
-已接入 Playwright E2E 测试，覆盖公开页面、受保护页面、动态路由与关键页面跳转链路。
+已接入 Playwright E2E 测试与 Vitest 单测。
+- Playwright 覆盖公开页面、受保护页面、动态路由、页面跳转链路与部分 API 边界。
+- Vitest 覆盖纯业务逻辑与工具函数（参数解析、当前学期推断、schema 校验）。
+
+## 单测运行
+1. 执行一次性单测：`bun run test`
+2. 监听模式：`bun run test:watch`
 
 ## E2E 运行
 1. 首次安装浏览器：`bun run test:e2e:install`
@@ -25,8 +31,15 @@
 - `tests/e2e/auth-redirect.spec.ts`：验证未登录访问 `/admin*`、`/dashboard*`、`/settings*` 全部受保护页面时会重定向到 `/signin`。
 - `tests/e2e/dynamic-routes.spec.ts`：验证 `/comments/[id]`、`/u/[username]`、`/u/id/[uid]` 及详情页动态路由在无效参数下返回 404。
 - `tests/e2e/navigation-flow.spec.ts`：验证首页快速入口跳转与列表页面包屑返回首页等跨页面导航逻辑。
+- `tests/e2e/api-routes.spec.ts`：验证 OpenAPI 接口、match-codes 输入边界与 calendar 参数非法场景。
+
+## 当前单测
+- `tests/unit/api-helpers.test.ts`：整数解析与列表解析边界。
+- `tests/unit/current-semester.test.ts`：当前学期推断策略与回退逻辑。
+- `tests/unit/api-schemas.test.ts`：match-codes 请求体 schema 校验边界。
 
 ## 配置说明
 - Playwright 配置文件：`playwright.config.ts`
 - 默认通过 `bun run dev -- --port 3000` 启动被测服务。
+- 可通过 `PLAYWRIGHT_PORT` 指定端口；可通过 `PLAYWRIGHT_REUSE_SERVER=1` 复用已运行服务。
 - `CI` 环境下自动启用重试并限制 worker 数。
