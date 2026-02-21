@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const playwrightPort = process.env.PLAYWRIGHT_PORT ?? "3000";
+const playwrightBaseUrl = `http://127.0.0.1:${playwrightPort}`;
+const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === "1";
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
@@ -8,14 +12,14 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["html"], ["github"]] : [["list"], ["html"]],
   use: {
-    baseURL: "http://127.0.0.1:3000",
+    baseURL: playwrightBaseUrl,
     trace: "on-first-retry",
     screenshot: "on",
   },
   webServer: {
-    command: "bun run dev -- --port 3000",
-    url: "http://127.0.0.1:3000",
-    reuseExistingServer: false,
+    command: `bun run dev -- --port ${playwrightPort}`,
+    url: playwrightBaseUrl,
+    reuseExistingServer,
     stdout: "ignore",
     stderr: "pipe",
     timeout: 120 * 1000,
