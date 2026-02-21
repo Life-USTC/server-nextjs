@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleRouteError, parseInteger } from "@/lib/api-helpers";
+import { matchSectionCodesRequestSchema } from "@/lib/api-schemas";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/prisma";
 import { sectionCompactInclude } from "@/lib/query-helpers";
@@ -13,15 +14,16 @@ export const dynamic = "force-dynamic";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { codes, semesterId } = body;
-
-    if (!Array.isArray(codes) || codes.length === 0) {
+    const parsedBody = matchSectionCodesRequestSchema.safeParse(body);
+    if (!parsedBody.success) {
       return handleRouteError(
-        "codes must be a non-empty array",
-        new Error("Invalid codes"),
+        "Invalid match-codes payload",
+        parsedBody.error,
         400,
       );
     }
+
+    const { codes, semesterId } = parsedBody.data;
 
     const parsedSemesterId = semesterId
       ? parseInteger(String(semesterId))
