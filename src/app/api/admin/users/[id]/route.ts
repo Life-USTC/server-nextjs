@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
-import { adminUpdateUserRequestSchema } from "@/lib/api-schemas";
+import {
+  adminUpdateUserRequestSchema,
+  resourceIdPathParamsSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 function normalizeName(value: unknown) {
@@ -17,6 +20,25 @@ function normalizeUsername(value: unknown) {
   return trimmed ? trimmed : null;
 }
 
+async function parseUserId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
+
+/**
+ * Update one user.
+ * @pathParams resourceIdPathParamsSchema
+ * @body adminUpdateUserRequestSchema
+ * @response adminUserResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -26,7 +48,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const parsed = await parseUserId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   let body: unknown = {};
 
   try {

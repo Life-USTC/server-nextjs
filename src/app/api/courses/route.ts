@@ -2,11 +2,17 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPagination, handleRouteError } from "@/lib/api-helpers";
-import { coursesQuerySchema } from "@/lib/api-schemas";
+import { coursesQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * List courses with search and pagination.
+ * @params coursesQuerySchema
+ * @response paginatedCourseResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parsedQuery = coursesQuerySchema.safeParse({

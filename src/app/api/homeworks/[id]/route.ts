@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
-import { homeworkUpdateRequestSchema } from "@/lib/api-schemas";
+import {
+  homeworkUpdateRequestSchema,
+  resourceIdPathParamsSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+
+async function parseHomeworkId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid homework ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
 
 function parseDateValue(value: unknown) {
   if (value === null || value === undefined) return null;
@@ -16,11 +31,22 @@ function parseDateValue(value: unknown) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+/**
+ * Update one homework.
+ * @pathParams resourceIdPathParamsSchema
+ * @body homeworkUpdateRequestSchema
+ * @response successResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const parsed = await parseHomeworkId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   let body: unknown = {};
 
   try {
@@ -144,11 +170,21 @@ export async function PATCH(
   }
 }
 
+/**
+ * Soft delete one homework.
+ * @pathParams resourceIdPathParamsSchema
+ * @response successResponseSchema
+ * @response 404:openApiErrorSchema
+ */
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const parsed = await parseHomeworkId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   const session = await auth();
   const userId = session?.user?.id ?? null;
 

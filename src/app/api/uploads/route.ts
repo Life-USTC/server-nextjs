@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
-import { uploadCreateRequestSchema } from "@/lib/api-schemas";
+import { uploadCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { buildUploadKey, s3Bucket, s3Client } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
@@ -62,6 +62,10 @@ function normalizeContentType(value: unknown) {
   return trimmed.length > 0 ? trimmed : "application/octet-stream";
 }
 
+/**
+ * List uploads of current user.
+ * @response uploadsListResponseSchema
+ */
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
@@ -117,6 +121,12 @@ export async function GET() {
   }
 }
 
+/**
+ * Create a signed upload URL.
+ * @body uploadCreateRequestSchema
+ * @response uploadCreateResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {

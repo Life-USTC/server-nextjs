@@ -1,4 +1,3 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
 import {
   AdminClassModelSchema,
@@ -37,271 +36,29 @@ import {
   UserModelSchema,
   UserSuspensionModelSchema,
 } from "@/generated/zod/schemas/variants/pure";
-import { parseOptionalInt } from "@/lib/api-helpers";
+import type {
+  descriptionUpsertRequestSchema,
+  homeworkCreateRequestSchema,
+  matchSectionCodesRequestSchema,
+} from "@/lib/api-schemas/request-schemas";
 
-extendZodWithOpenApi(z);
-
-const parseOptionalIntLike = (value: unknown) => {
-  if (value === null || value === undefined || value === "") {
-    return undefined;
-  }
-
-  if (typeof value === "number") {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    return value.trim();
-  }
-
-  return value;
-};
-
-export const sectionCodeSchema = z
-  .string()
-  .trim()
-  .min(1)
-  .max(64)
-  .regex(/^[A-Za-z0-9_.-]+$/);
-
-export const matchSectionCodesRequestSchema = z.object({
-  codes: z.array(sectionCodeSchema).min(1).max(500),
-  semesterId: z
-    .preprocess(parseOptionalIntLike, z.union([z.string(), z.number()]))
-    .optional(),
-});
-
-export const homeworkCreateRequestSchema = z.object({
-  sectionId: z.union([z.string(), z.number()]),
-  title: z.string().trim().min(1).max(200),
-  description: z.string().max(4000).optional(),
-  publishedAt: z.union([z.string(), z.null()]).optional(),
-  submissionStartAt: z.union([z.string(), z.null()]).optional(),
-  submissionDueAt: z.union([z.string(), z.null()]).optional(),
-  isMajor: z.boolean().optional(),
-  requiresTeam: z.boolean().optional(),
-});
-
-export const descriptionTargetTypeSchema = z.enum([
-  "section",
-  "course",
-  "teacher",
-  "homework",
-]);
-
-export const descriptionUpsertRequestSchema = z
-  .object({
-    targetType: descriptionTargetTypeSchema,
-    targetId: z.union([z.string(), z.number()]),
-    content: z.string().max(4000),
-  })
-  .superRefine((input, ctx) => {
-    if (input.targetType === "homework") {
-      if (
-        typeof input.targetId !== "string" ||
-        input.targetId.trim().length === 0
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Homework targetId must be a non-empty string",
-          path: ["targetId"],
-        });
-      }
-      return;
-    }
-
-    const parsed = parseOptionalInt(input.targetId);
-    if (!parsed) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "targetId must be a valid integer for numeric targets",
-        path: ["targetId"],
-      });
-    }
-  });
-
-export const uploadCreateRequestSchema = z.object({
-  filename: z.string().trim().min(1),
-  contentType: z.string().optional(),
-  size: z.union([z.string(), z.number()]),
-});
-
-export const uploadCompleteRequestSchema = z.object({
-  key: z.string().trim().min(1),
-  filename: z.string().trim().min(1),
-  contentType: z.string().optional(),
-});
-
-export const uploadRenameRequestSchema = z.object({
-  filename: z.string().trim().min(1).max(255),
-});
-
-export const calendarSubscriptionCreateRequestSchema = z.object({
-  sectionIds: z.array(z.number().int().positive()).optional(),
-});
-
-export const calendarSubscriptionUpdateRequestSchema = z.object({
-  sectionIds: z.array(z.number().int().positive()),
-});
-
-export const commentVisibilitySchema = z.enum([
-  "public",
-  "logged_in_only",
-  "anonymous",
-]);
-
-export const commentTargetTypeSchema = z.enum([
-  "section",
-  "course",
-  "teacher",
-  "section-teacher",
-  "homework",
-]);
-
-export const commentCreateRequestSchema = z.object({
-  targetType: commentTargetTypeSchema,
-  targetId: z.union([z.string(), z.number()]).optional(),
-  sectionId: z.union([z.string(), z.number()]).optional(),
-  teacherId: z.union([z.string(), z.number()]).optional(),
-  body: z.string().trim().min(1).max(8000),
-  visibility: commentVisibilitySchema.optional(),
-  isAnonymous: z.boolean().optional(),
-  parentId: z.string().optional().nullable(),
-  attachmentIds: z.array(z.string()).optional(),
-});
-
-export const commentUpdateRequestSchema = z.object({
-  body: z.string().trim().min(1).max(8000),
-  visibility: commentVisibilitySchema.optional(),
-  isAnonymous: z.boolean().optional(),
-  attachmentIds: z.array(z.string()).optional(),
-});
-
-export const commentReactionRequestSchema = z.object({
-  type: z.enum([
-    "upvote",
-    "downvote",
-    "heart",
-    "laugh",
-    "hooray",
-    "confused",
-    "rocket",
-    "eyes",
-  ]),
-});
-
-export const adminModerateCommentRequestSchema = z.object({
-  status: z.enum(["active", "softbanned", "deleted"]),
-  moderationNote: z.string().optional().nullable(),
-});
-
-export const homeworkCompletionRequestSchema = z.object({
-  completed: z.boolean(),
-});
-
-export const homeworkUpdateRequestSchema = z.object({
-  title: z.string().trim().min(1).max(200).optional(),
-  publishedAt: z.union([z.string(), z.null()]).optional(),
-  submissionStartAt: z.union([z.string(), z.null()]).optional(),
-  submissionDueAt: z.union([z.string(), z.null()]).optional(),
-  isMajor: z.boolean().optional(),
-  requiresTeam: z.boolean().optional(),
-});
-
-export const adminCreateSuspensionRequestSchema = z.object({
-  userId: z.string().trim().min(1),
-  reason: z.string().optional(),
-  note: z.string().optional(),
-  expiresAt: z.union([z.string(), z.null()]).optional(),
-});
-
-export const adminUpdateUserRequestSchema = z.object({
-  name: z.union([z.string(), z.null()]).optional(),
-  username: z.union([z.string(), z.null()]).optional(),
-  isAdmin: z.boolean().optional(),
-});
-
-export const localeUpdateRequestSchema = z.object({
-  locale: z.enum(["en-us", "zh-cn"]),
-});
-
-const integerStringSchema = z
-  .string()
-  .trim()
-  .regex(/^-?\d+$/);
-
-export const sectionsQuerySchema = z.object({
-  courseId: integerStringSchema.optional(),
-  semesterId: integerStringSchema.optional(),
-  campusId: integerStringSchema.optional(),
-  departmentId: integerStringSchema.optional(),
-  teacherId: integerStringSchema.optional(),
-  ids: z.string().trim().optional(),
-  page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
-});
-
-export const schedulesQuerySchema = z.object({
-  sectionId: integerStringSchema.optional(),
-  teacherId: integerStringSchema.optional(),
-  roomId: integerStringSchema.optional(),
-  weekday: integerStringSchema.optional(),
-  dateFrom: z.string().trim().datetime().optional(),
-  dateTo: z.string().trim().datetime().optional(),
-  page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
-});
-
-export const teachersQuerySchema = z.object({
-  departmentId: integerStringSchema.optional(),
-  search: z.string().trim().optional(),
-  page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
-});
-
-export const coursesQuerySchema = z.object({
-  search: z.string().trim().optional(),
-  page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
-});
-
-export const adminUsersQuerySchema = z.object({
-  search: z.string().trim().optional(),
-  page: integerStringSchema.optional(),
-  limit: integerStringSchema.optional(),
-});
-
-export const adminCommentsQuerySchema = z.object({
-  status: z.enum(["active", "softbanned", "deleted"]).optional(),
-  limit: integerStringSchema.optional(),
-});
-
-export const commentsQuerySchema = z.object({
-  targetType: commentTargetTypeSchema,
-  targetId: z.string().optional(),
-  sectionId: integerStringSchema.optional(),
-  teacherId: integerStringSchema.optional(),
-});
-
-export const descriptionsQuerySchema = z.object({
-  targetType: descriptionTargetTypeSchema,
-  targetId: z.string().trim().min(1),
-});
-
-export const homeworksQuerySchema = z.object({
-  sectionId: integerStringSchema,
-  includeDeleted: z.enum(["true", "false"]).optional(),
-});
-
-export const sectionsCalendarQuerySchema = z.object({
-  sectionIds: z.string().trim().min(1),
-});
-
-export const openApiErrorSchema = z.object({
-  error: z.string(),
-});
+export * from "@/lib/api-schemas/request-schemas";
 
 const dateTimeSchema = z.string().datetime();
+
+const dateTimePlacePersonTextSchema = z
+  .object({ room: z.string().optional() })
+  .passthrough()
+  .nullable();
+
+const suggestScheduleWeeksSchema = z.array(z.number().int()).nullable();
+
+const scheduleJsonParamsSchema = z
+  .object({ weeks: z.number().int().optional() })
+  .passthrough()
+  .nullable();
+
+const teacherAssignmentWeekIndicesSchema = z.array(z.number().int()).nullable();
 
 export const campusSchema = CampusModelSchema.omit({
   buildings: true,
@@ -454,6 +211,10 @@ export const sectionBaseSchema = SectionModelSchema.omit({
   description: true,
   homeworks: true,
   homeworkAuditLogs: true,
+}).extend({
+  dateTimePlacePersonText: dateTimePlacePersonTextSchema,
+  suggestScheduleWeeks: suggestScheduleWeeksSchema,
+  scheduleJsonParams: scheduleJsonParamsSchema,
 });
 
 export const sectionCompactSchema = sectionBaseSchema.extend({
@@ -532,6 +293,7 @@ export const teacherAssignmentSchema = TeacherAssignmentModelSchema.omit({
   section: true,
   teacherLessonType: true,
 }).extend({
+  weekIndices: teacherAssignmentWeekIndicesSchema,
   teacher: teacherSchema,
   teacherLessonType: teacherLessonTypeSchema.nullable(),
 });
@@ -580,28 +342,26 @@ export const commentReactionSummarySchema = z.object({
   viewerHasReacted: z.boolean(),
 });
 
-export const commentNodeSchema: z.ZodTypeAny = z.lazy(() =>
-  z.object({
-    id: z.string(),
-    body: z.string(),
-    visibility: z.string(),
-    status: z.string(),
-    author: commentAuthorSummarySchema.nullable(),
-    authorHidden: z.boolean(),
-    isAnonymous: z.boolean(),
-    isAuthor: z.boolean(),
-    createdAt: dateTimeSchema,
-    updatedAt: dateTimeSchema,
-    parentId: z.string().nullable(),
-    rootId: z.string().nullable(),
-    replies: z.array(commentNodeSchema),
-    attachments: z.array(commentAttachmentSummarySchema),
-    reactions: z.array(commentReactionSummarySchema),
-    canReply: z.boolean(),
-    canEdit: z.boolean(),
-    canModerate: z.boolean(),
-  }),
-);
+export const commentNodeSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  visibility: z.string(),
+  status: z.string(),
+  author: commentAuthorSummarySchema.nullable(),
+  authorHidden: z.boolean(),
+  isAnonymous: z.boolean(),
+  isAuthor: z.boolean(),
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+  parentId: z.string().nullable(),
+  rootId: z.string().nullable(),
+  replies: z.array(z.unknown()),
+  attachments: z.array(commentAttachmentSummarySchema),
+  reactions: z.array(commentReactionSummarySchema),
+  canReply: z.boolean(),
+  canEdit: z.boolean(),
+  canModerate: z.boolean(),
+});
 
 export const viewerContextSchema = z.object({
   userId: z.string().nullable(),
@@ -795,30 +555,49 @@ export const paginationMetaSchema = z.object({
   totalPages: z.number().int(),
 });
 
-export const paginatedCourseResponseSchema = z.object({
-  data: z.array(courseSchema),
-  pagination: paginationMetaSchema,
-});
+const createPaginatedResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    data: z.array(itemSchema),
+    pagination: paginationMetaSchema,
+  });
 
-export const paginatedSectionResponseSchema = z.object({
-  data: z.array(sectionListSchema),
-  pagination: paginationMetaSchema,
-});
+const createCollectionResponseSchema = <
+  Key extends string,
+  ItemSchema extends z.ZodTypeAny,
+>(
+  key: Key,
+  itemSchema: ItemSchema,
+) =>
+  z.object({
+    [key]: z.array(itemSchema),
+  } as Record<Key, z.ZodArray<ItemSchema>>);
 
-export const paginatedTeacherResponseSchema = z.object({
-  data: z.array(teacherListSchema),
-  pagination: paginationMetaSchema,
-});
+const createEntityResponseSchema = <
+  Key extends string,
+  EntitySchema extends z.ZodTypeAny,
+>(
+  key: Key,
+  entitySchema: EntitySchema,
+) =>
+  z.object({
+    [key]: entitySchema,
+  } as Record<Key, EntitySchema>);
 
-export const paginatedScheduleResponseSchema = z.object({
-  data: z.array(scheduleWithRelationsSchema),
-  pagination: paginationMetaSchema,
-});
+export const paginatedCourseResponseSchema =
+  createPaginatedResponseSchema(courseSchema);
 
-export const paginatedSemesterResponseSchema = z.object({
-  data: z.array(semesterSchema),
-  pagination: paginationMetaSchema,
-});
+export const paginatedSectionResponseSchema =
+  createPaginatedResponseSchema(sectionListSchema);
+
+export const paginatedTeacherResponseSchema =
+  createPaginatedResponseSchema(teacherListSchema);
+
+export const paginatedScheduleResponseSchema = createPaginatedResponseSchema(
+  scheduleWithRelationsSchema,
+);
+
+export const paginatedSemesterResponseSchema =
+  createPaginatedResponseSchema(semesterSchema);
 
 const adminUserBaseSchema = UserModelSchema.pick({
   id: true,
@@ -834,14 +613,14 @@ export const adminUserListItemSchema = adminUserBaseSchema.extend({
   email: z.string().nullable(),
 });
 
-export const adminUsersResponseSchema = z.object({
-  data: z.array(adminUserListItemSchema),
-  pagination: paginationMetaSchema,
-});
+export const adminUsersResponseSchema = createPaginatedResponseSchema(
+  adminUserListItemSchema,
+);
 
-export const adminUserResponseSchema = z.object({
-  user: adminUserListItemSchema,
-});
+export const adminUserResponseSchema = createEntityResponseSchema(
+  "user",
+  adminUserListItemSchema,
+);
 
 export const adminCommentUserSchema = UserModelSchema.pick({ name: true });
 
@@ -892,11 +671,16 @@ export const adminCommentSchema = adminCommentBaseSchema.extend({
     .nullable(),
 });
 
-export const adminCommentsResponseSchema = z.object({
-  comments: z.array(adminCommentSchema),
-});
+export const adminCommentsResponseSchema = createCollectionResponseSchema(
+  "comments",
+  adminCommentSchema,
+);
 
 export const adminModeratedCommentSchema = adminCommentBaseSchema;
+
+export const adminModeratedCommentResponseSchema = z.object({
+  comment: adminModeratedCommentSchema,
+});
 
 export const adminSuspensionUserSchema = UserModelSchema.pick({
   id: true,
@@ -917,13 +701,15 @@ export const adminSuspensionSchema = adminSuspensionBaseSchema.extend({
   user: adminSuspensionUserSchema.nullable(),
 });
 
-export const adminSuspensionsResponseSchema = z.object({
-  suspensions: z.array(adminSuspensionSchema),
-});
+export const adminSuspensionsResponseSchema = createCollectionResponseSchema(
+  "suspensions",
+  adminSuspensionSchema,
+);
 
-export const adminSuspensionResponseSchema = z.object({
-  suspension: adminSuspensionSchema,
-});
+export const adminSuspensionResponseSchema = createEntityResponseSchema(
+  "suspension",
+  adminSuspensionSchema,
+);
 
 const uploadSummarySchema = UploadModelSchema.pick({
   id: true,
@@ -956,9 +742,10 @@ export const uploadCompleteResponseSchema = z.object({
   quotaBytes: z.number().int(),
 });
 
-export const uploadRenameResponseSchema = z.object({
-  upload: uploadSummarySchema,
-});
+export const uploadRenameResponseSchema = createEntityResponseSchema(
+  "upload",
+  uploadSummarySchema,
+);
 
 export const calendarSubscriptionSchema = z.object({
   id: z.number().int(),
@@ -990,6 +777,63 @@ export const metadataResponseSchema = z.object({
   campuses: z.array(
     campusSchema.extend({ buildings: z.array(buildingSchema) }),
   ),
+});
+
+export const successResponseSchema = z.object({
+  success: z.boolean(),
+});
+
+export const idResponseSchema = z.object({
+  id: z.string(),
+});
+
+export const descriptionUpsertResponseSchema = z.object({
+  id: z.string(),
+  updated: z.boolean(),
+});
+
+export const matchSectionCodesResponseSchema = z.object({
+  semester: z.object({
+    id: z.number().int(),
+    nameCn: z.string().nullable(),
+    code: z.string().nullable(),
+  }),
+  matchedCodes: z.array(z.string()),
+  unmatchedCodes: z.array(z.string()),
+  sections: z.array(sectionCompactSchema),
+  total: z.number().int().nonnegative(),
+});
+
+export const commentUpdateResponseSchema = z.object({
+  success: z.boolean(),
+  comment: commentNodeSchema,
+});
+
+export const uploadDeleteResponseSchema = z.object({
+  deletedId: z.string(),
+  deletedSize: z.number().int(),
+});
+
+export const calendarSubscriptionCreateResponseSchema = z.object({
+  subscription: calendarSubscriptionSummarySchema,
+  token: z.string(),
+});
+
+export const currentCalendarSubscriptionResponseSchema = z.union([
+  z.object({ subscription: z.null() }),
+  z.object({
+    subscription: calendarSubscriptionSummarySchema,
+    token: z.string(),
+  }),
+]);
+
+export const openApiDocumentResponseSchema = z.object({
+  openapi: z.string(),
+  info: z.object({
+    title: z.string(),
+    version: z.string(),
+  }),
+  paths: z.record(z.string(), z.unknown()),
 });
 
 export type MatchSectionCodesRequest = z.infer<

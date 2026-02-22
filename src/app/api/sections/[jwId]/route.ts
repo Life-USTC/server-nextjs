@@ -4,17 +4,30 @@ import {
   invalidParamResponse,
   parseInteger,
 } from "@/lib/api-helpers";
+import { jwIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { sectionInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Get section detail by JW ID.
+ * @pathParams jwIdPathParamsSchema
+ * @response sectionDetailSchema
+ * @response 404:openApiErrorSchema
+ */
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ jwId: string }> },
 ) {
   try {
-    const { jwId } = await context.params;
+    const rawParams = await context.params;
+    const parsedParams = jwIdPathParamsSchema.safeParse(rawParams);
+    if (!parsedParams.success) {
+      return invalidParamResponse("section ID");
+    }
+
+    const { jwId } = parsedParams.data;
     const parsedJwId = parseInteger(jwId);
 
     if (parsedJwId === null) {

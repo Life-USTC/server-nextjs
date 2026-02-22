@@ -4,7 +4,10 @@ import {
   invalidParamResponse,
   parseInteger,
 } from "@/lib/api-helpers";
-import { calendarSubscriptionUpdateRequestSchema } from "@/lib/api-schemas";
+import {
+  calendarSubscriptionIdPathParamsSchema,
+  calendarSubscriptionUpdateRequestSchema,
+} from "@/lib/api-schemas/request-schemas";
 import {
   extractToken,
   verifyCalendarSubscriptionJWT,
@@ -41,7 +44,13 @@ async function verifyAccess(
 async function parseSubscriptionId(context: {
   params: Promise<{ id: string }>;
 }): Promise<number | NextResponse> {
-  const { id } = await context.params;
+  const raw = await context.params;
+  const parsedParams = calendarSubscriptionIdPathParamsSchema.safeParse(raw);
+  if (!parsedParams.success) {
+    return invalidParamResponse("ID");
+  }
+
+  const { id } = parsedParams.data;
   const subscriptionId = parseInteger(id);
   if (subscriptionId === null) {
     return invalidParamResponse("ID");
@@ -51,8 +60,10 @@ async function parseSubscriptionId(context: {
 }
 
 /**
- * GET /api/calendar-subscriptions/[id]
- * Get subscription details (requires valid token)
+ * Get subscription detail.
+ * @pathParams calendarSubscriptionIdPathParamsSchema
+ * @response calendarSubscriptionSchema
+ * @response 404:openApiErrorSchema
  */
 export async function GET(
   request: Request,
@@ -103,9 +114,11 @@ export async function GET(
 }
 
 /**
- * PATCH /api/calendar-subscriptions/[id]
- * Update subscription sections (requires valid token)
- * Body: { sectionIds: number[] }
+ * Update sections in one subscription.
+ * @pathParams calendarSubscriptionIdPathParamsSchema
+ * @body calendarSubscriptionUpdateRequestSchema
+ * @response calendarSubscriptionSummarySchema
+ * @response 400:openApiErrorSchema
  */
 export async function PATCH(
   request: Request,
@@ -177,8 +190,10 @@ export async function PATCH(
 }
 
 /**
- * DELETE /api/calendar-subscriptions/[id]
- * Delete subscription (requires valid token)
+ * Delete one subscription.
+ * @pathParams calendarSubscriptionIdPathParamsSchema
+ * @response successResponseSchema
+ * @response 404:openApiErrorSchema
  */
 export async function DELETE(
   request: Request,

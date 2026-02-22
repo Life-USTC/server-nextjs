@@ -2,11 +2,33 @@ import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
-import { adminModerateCommentRequestSchema } from "@/lib/api-schemas";
+import {
+  adminModerateCommentRequestSchema,
+  resourceIdPathParamsSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+async function parseCommentId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
+
+/**
+ * Moderate one comment.
+ * @pathParams resourceIdPathParamsSchema
+ * @body adminModerateCommentRequestSchema
+ * @response adminModeratedCommentResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -16,7 +38,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const parsed = await parseCommentId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   let body: unknown = {};
 
   try {

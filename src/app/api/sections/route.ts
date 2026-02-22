@@ -7,11 +7,17 @@ import {
   parseIntegerList,
   parseOptionalInt,
 } from "@/lib/api-helpers";
-import { sectionsQuerySchema } from "@/lib/api-schemas";
+import { sectionsQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * List sections with filters and pagination.
+ * @params sectionsQuerySchema
+ * @response paginatedSectionResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parsedQuery = sectionsQuerySchema.safeParse({

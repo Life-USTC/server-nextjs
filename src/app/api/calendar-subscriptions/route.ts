@@ -1,16 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
-import { calendarSubscriptionCreateRequestSchema } from "@/lib/api-schemas";
+import { calendarSubscriptionCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/calendar-subscriptions
- * Create a new calendar subscription (requires authentication)
- * Body: { sectionIds?: number[] }
+ * Create a calendar subscription.
+ * @body calendarSubscriptionCreateRequestSchema
+ * @response calendarSubscriptionCreateResponseSchema
+ * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
   try {

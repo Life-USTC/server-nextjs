@@ -25,7 +25,7 @@ export function SwaggerViewer() {
 
       container.innerHTML = "";
       window.SwaggerUIBundle({
-        url: "/api/openapi",
+        url: "/openapi.generated.json",
         dom_id: "#swagger-ui",
         deepLinking: true,
         presets: window.SwaggerUIBundle.presets

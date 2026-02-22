@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
-import { uploadCompleteRequestSchema } from "@/lib/api-schemas";
+import { uploadCompleteRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
@@ -55,6 +55,12 @@ function normalizeContentType(value: unknown) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/**
+ * Finalize one upload after S3 put.
+ * @body uploadCompleteRequestSchema
+ * @response uploadCompleteResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {

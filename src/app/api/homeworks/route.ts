@@ -5,7 +5,7 @@ import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import {
   homeworkCreateRequestSchema,
   homeworksQuerySchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api-schemas/request-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -20,6 +20,12 @@ function parseDateValue(value: unknown) {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+/**
+ * List homeworks by section.
+ * @params homeworksQuerySchema
+ * @response homeworksListResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = homeworksQuerySchema.safeParse({
@@ -99,6 +105,12 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * Create one homework.
+ * @body homeworkCreateRequestSchema
+ * @response idResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   let body: unknown = {};
 

@@ -1,16 +1,42 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
-import { homeworkCompletionRequestSchema } from "@/lib/api-schemas";
+import {
+  homeworkCompletionRequestSchema,
+  resourceIdPathParamsSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+async function parseHomeworkId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid homework ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
+
+/**
+ * Update completion state for one homework.
+ * @pathParams resourceIdPathParamsSchema
+ * @body homeworkCompletionRequestSchema
+ * @response homeworkCompletionResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const parsed = await parseHomeworkId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   let body: unknown = {};
 
   try {

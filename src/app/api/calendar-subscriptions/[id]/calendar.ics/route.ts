@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import { invalidParamResponse, parseInteger } from "@/lib/api-helpers";
+import { calendarSubscriptionIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import {
   extractToken,
   verifyCalendarSubscriptionJWT,
@@ -10,14 +11,23 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/calendar-subscriptions/[id]/calendar.ics?token=xxx
- * Redirect to batch calendar endpoint with subscription's section IDs
+ * Redirect calendar subscription token to sections ICS URL.
+ * @pathParams calendarSubscriptionIdPathParamsSchema
+ * @response 302
+ * @response 404:openApiErrorSchema
  */
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await context.params;
+  const rawParams = await context.params;
+  const parsedParams =
+    calendarSubscriptionIdPathParamsSchema.safeParse(rawParams);
+  if (!parsedParams.success) {
+    return invalidParamResponse("subscription ID");
+  }
+
+  const { id } = parsedParams.data;
   const subscriptionId = parseInteger(id);
 
   if (subscriptionId === null) {

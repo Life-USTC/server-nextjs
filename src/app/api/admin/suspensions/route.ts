@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
-import { adminCreateSuspensionRequestSchema } from "@/lib/api-schemas";
+import { adminCreateSuspensionRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +12,10 @@ function parseDate(value: string | null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+/**
+ * List suspensions.
+ * @response adminSuspensionsResponseSchema
+ */
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin) {
@@ -34,6 +38,12 @@ export async function GET() {
   }
 }
 
+/**
+ * Create suspension for one user.
+ * @body adminCreateSuspensionRequestSchema
+ * @response adminSuspensionResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   const admin = await requireAdmin();
   if (!admin) {

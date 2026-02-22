@@ -4,7 +4,7 @@ import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import {
   descriptionsQuerySchema,
   descriptionUpsertRequestSchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api-schemas/request-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -59,6 +59,12 @@ async function ensureTargetExists(
   return null;
 }
 
+/**
+ * Get description and history by target.
+ * @params descriptionsQuerySchema
+ * @response descriptionsResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = descriptionsQuerySchema.safeParse({
@@ -139,6 +145,12 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * Upsert description by target.
+ * @body descriptionUpsertRequestSchema
+ * @response descriptionUpsertResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   let body: unknown = {};
 

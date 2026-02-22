@@ -1,20 +1,29 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { invalidParamResponse, parseInteger } from "@/lib/api-helpers";
+import { jwIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import { createSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/sections/[jwId]/calendar.ics
- * Generate calendar for a single section by JW ID
+ * Generate calendar ICS for one section.
+ * @pathParams jwIdPathParamsSchema
+ * @response 200:binary
+ * @response 404:openApiErrorSchema
  */
 export async function GET(
   _: NextRequest,
   context: { params: Promise<{ jwId: string }> },
 ) {
   try {
-    const { jwId } = await context.params;
+    const rawParams = await context.params;
+    const parsedParams = jwIdPathParamsSchema.safeParse(rawParams);
+    if (!parsedParams.success) {
+      return invalidParamResponse("section JW ID");
+    }
+
+    const { jwId } = parsedParams.data;
     const sectionJwId = parseInteger(jwId);
 
     if (sectionJwId === null) {

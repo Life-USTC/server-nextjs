@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Get metadata dictionaries for filters.
+ * @response metadataResponseSchema
+ */
 export async function GET() {
   try {
     const [
