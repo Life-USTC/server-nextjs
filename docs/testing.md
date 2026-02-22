@@ -1,9 +1,14 @@
 # 测试
 
-## 当前状态
+## 测试策略
 已接入 Playwright E2E 测试与 Vitest 单测。
 - Playwright 覆盖公开页面、受保护页面、动态路由、页面跳转链路与部分 API 边界。
 - Vitest 覆盖纯业务逻辑与工具函数（参数解析、当前学期推断、schema 校验）。
+
+## 强制要求
+- 所有页面都必须有对应 E2E 覆盖。
+- 新增页面时，功能代码与 E2E 用例必须同次提交。
+- 涉及创建/编辑/跳转/重定向行为的改动，必须补充对应 E2E。
 
 ## 单测运行
 1. 执行一次性单测：`bun run test`
@@ -15,6 +20,11 @@
 3. 执行有头模式：`bun run test:e2e:headed`
 4. 打开交互式 UI：`bun run test:e2e:ui`
 5. 查看 HTML 报告：`bun run test:e2e:report`
+
+## 提交前验证
+1. `bun run check --write`
+2. `bun run build`
+3. `bun run test:e2e`（至少覆盖本次改动涉及范围）
 
 ## 开发调试用户
 - 运行 `bun run dev:seed-scenarios`（或兼容命令 `bun run dev:seed-debug-user`）可创建确定性调试场景数据：今天/明天有课、今日截止作业、评论线程、上传记录、已选课班级订阅。

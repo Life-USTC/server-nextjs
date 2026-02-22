@@ -1,6 +1,10 @@
-# URL List
+# 路由清单
 
-## Static pages
+## 维护规则
+- 新增/删除页面或重定向时，必须同步更新本文件。
+- 本清单仅记录应用可访问页面与文档入口，不记录 `src/app/api/**` 下的全部 API 路由。
+
+## 静态页面
 - /
 - /signin
 - /dashboard
@@ -24,7 +28,7 @@
 - /admin/users
 - /admin/moderation
 
-## Dynamic pages
+## 动态页面
 - /sections/[jwId]
 - /teachers/[id]
 - /courses/[jwId]
@@ -32,17 +36,19 @@
 - /u/[username]
 - /u/id/[uid]
 
-## Redirect-only routes
+## 仅重定向路由
 - /settings -> /settings/profile
 - /settings/uploads -> /dashboard/uploads
 - /settings/comments -> /dashboard/comments
 - /comments/[id] -> /sections/[jwId] or /courses/[jwId] or /teachers/[id]
 
-## Documentation routes
+## 文档路由
 - docs/README.md
+- docs/documentation-guidelines.md
 - docs/cossui.md
 - docs/cossui/*.md
 - docs/page-api-design.md
 
-## API utility routes
+## API 工具路由
 - /api/openapi
+- /openapi.generated.json
