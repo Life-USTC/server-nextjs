@@ -16,6 +16,9 @@ test("openapi 文档接口可访问", async ({ request }) => {
   expect(body.paths["/api/sections/match-codes"]).toBeTruthy();
   expect(body.paths["/api/homeworks"]).toBeTruthy();
   expect(body.paths["/api/descriptions"]).toBeTruthy();
+  expect(body.paths["/api/comments"]?.post?.requestBody).toBeTruthy();
+  expect(body.paths["/api/uploads"]?.post?.requestBody).toBeTruthy();
+  expect(body.paths["/api/locale"]?.post?.requestBody).toBeTruthy();
 });
 
 test("match-codes 无效输入返回 400", async ({ request }) => {
