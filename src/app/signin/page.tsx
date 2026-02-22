@@ -104,13 +104,13 @@ export default async function SignInPage({
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardPanel className="space-y-4">
-          {params.error && (
+          {params.error ? (
             <div className="rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
               {params.error === "OAuthAccountNotLinked"
                 ? t("errorAccountNotLinked")
                 : t("errorGeneric")}
             </div>
-          )}
+          ) : null}
 
           {providers.map((provider) => (
             <Form
@@ -133,11 +133,11 @@ export default async function SignInPage({
             </Form>
           ))}
 
-          {isDev && (
+          {isDev ? (
             <p className="text-center text-muted-foreground text-xs">
               {t("devDebugHint")}
             </p>
-          )}
+          ) : null}
 
           <p className="pt-2 text-center text-muted-foreground text-xs">
             {t("termsNotice")}

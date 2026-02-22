@@ -127,7 +127,7 @@ export default async function Homepage() {
               </CardPanel>
             </Card>
           </Link>
-          {isAdmin && (
+          {isAdmin ? (
             <Link href="/admin" className="no-underline">
               <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
                 <CardHeader>
@@ -143,7 +143,7 @@ export default async function Homepage() {
                 </CardPanel>
               </Card>
             </Link>
-          )}
+          ) : null}
         </div>
       </section>
     </main>

@@ -225,9 +225,9 @@ export default async function CoursesPage({
       <div className="mb-6 flex items-center justify-between">
         <p className="text-muted-foreground">
           {t("showing", { count: courses.length, total })}
-          {search && (
+          {search ? (
             <span className="ml-2">{t("searchFor", { query: search })}</span>
-          )}
+          ) : null}
         </p>
       </div>
 
@@ -251,11 +251,11 @@ export default async function CoursesPage({
                 >
                   <TableCell>
                     {course.namePrimary}
-                    {course.nameSecondary && (
+                    {course.nameSecondary ? (
                       <div className="text-muted-foreground text-xs">
                         {course.nameSecondary}
                       </div>
-                    )}
+                    ) : null}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="font-mono">
@@ -263,25 +263,25 @@ export default async function CoursesPage({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {course.educationLevel && (
+                    {course.educationLevel ? (
                       <Badge variant="outline">
                         {course.educationLevel.namePrimary}
                       </Badge>
-                    )}
+                    ) : null}
                   </TableCell>
                   <TableCell>
-                    {course.category && (
+                    {course.category ? (
                       <Badge variant="outline">
                         {course.category.namePrimary}
                       </Badge>
-                    )}
+                    ) : null}
                   </TableCell>
                   <TableCell>
-                    {course.classType && (
+                    {course.classType ? (
                       <Badge variant="outline">
                         {course.classType.namePrimary}
                       </Badge>
-                    )}
+                    ) : null}
                   </TableCell>
                 </ClickableTableRow>
               ))}
@@ -292,23 +292,23 @@ export default async function CoursesPage({
         <Empty>
           <EmptyHeader>
             <EmptyTitle>{t("noCoursesFound")}</EmptyTitle>
-            {search && (
+            {search ? (
               <EmptyDescription>
                 {t("searchFor", { query: search })}
               </EmptyDescription>
-            )}
+            ) : null}
           </EmptyHeader>
         </Empty>
       )}
 
-      {totalPages > 1 && (
+      {totalPages > 1 ? (
         <Pagination>
           <PaginationContent>
-            {currentPage > 1 && (
+            {currentPage > 1 ? (
               <PaginationItem>
                 <PaginationPrevious href={buildUrl(currentPage - 1)} />
               </PaginationItem>
-            )}
+            ) : null}
             {getPageNumbers().map((pageNum, index) => (
               <PaginationItem
                 key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
@@ -325,14 +325,14 @@ export default async function CoursesPage({
                 )}
               </PaginationItem>
             ))}
-            {currentPage < totalPages && (
+            {currentPage < totalPages ? (
               <PaginationItem>
                 <PaginationNext href={buildUrl(currentPage + 1)} />
               </PaginationItem>
-            )}
+            ) : null}
           </PaginationContent>
         </Pagination>
-      )}
+      ) : null}
     </main>
   );
 }

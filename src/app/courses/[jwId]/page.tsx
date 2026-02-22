@@ -152,11 +152,11 @@ export default async function CoursePage({
         <div className="space-y-8">
           <div className="mt-2">
             <h1 className="mb-2 text-display">{course.namePrimary}</h1>
-            {course.nameSecondary && (
+            {course.nameSecondary ? (
               <p className="text-muted-foreground text-subtitle">
                 {course.nameSecondary}
               </p>
-            )}
+            ) : null}
           </div>
 
           <CommentAwareTabs
@@ -237,13 +237,13 @@ export default async function CoursePage({
                   </TableBody>
                 </Table>
 
-                {course.sections.length === 0 && (
+                {course.sections.length === 0 ? (
                   <Empty>
                     <EmptyHeader>
                       <EmptyTitle>{t("noSections")}</EmptyTitle>
                     </EmptyHeader>
                   </Empty>
-                )}
+                ) : null}
               </div>
             </TabsPanel>
           </CommentAwareTabs>
@@ -273,7 +273,7 @@ export default async function CoursePage({
                         {course.code}
                       </span>
                     </div>
-                    {course.educationLevel && (
+                    {course.educationLevel ? (
                       <div className="flex items-baseline gap-2">
                         <span className="text-muted-foreground">
                           {tCourse("level")}
@@ -282,8 +282,8 @@ export default async function CoursePage({
                           {course.educationLevel.namePrimary}
                         </span>
                       </div>
-                    )}
-                    {course.category && (
+                    ) : null}
+                    {course.category ? (
                       <div className="flex items-baseline gap-2">
                         <span className="text-muted-foreground">
                           {tCourse("category")}
@@ -292,8 +292,8 @@ export default async function CoursePage({
                           {course.category.namePrimary}
                         </span>
                       </div>
-                    )}
-                    {course.classType && (
+                    ) : null}
+                    {course.classType ? (
                       <div className="flex items-baseline gap-2">
                         <span className="text-muted-foreground">
                           {tCourse("type")}
@@ -302,7 +302,7 @@ export default async function CoursePage({
                           {course.classType.namePrimary}
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </CardPanel>
               </Card>

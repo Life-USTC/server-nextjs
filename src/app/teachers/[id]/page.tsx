@@ -142,17 +142,17 @@ export default async function TeacherPage({
           <div className="mt-2">
             <h1 className="mb-2 text-display">
               {teacher.namePrimary}
-              {isEnglish && teacher.nameSecondary && (
+              {isEnglish && teacher.nameSecondary ? (
                 <span className="ml-3 text-muted-foreground">
                   ({teacher.nameSecondary})
                 </span>
-              )}
+              ) : null}
             </h1>
-            {teacher.department && (
+            {teacher.department ? (
               <p className="text-muted-foreground text-subtitle">
                 {teacher.department.namePrimary}
               </p>
-            )}
+            ) : null}
           </div>
 
           <CommentAwareTabs
@@ -188,11 +188,11 @@ export default async function TeacherPage({
                           href={`/sections/${section.jwId}`}
                         >
                           <TableCell>
-                            {section.semester && (
+                            {section.semester ? (
                               <Badge variant="outline">
                                 {section.semester.nameCn}
                               </Badge>
-                            )}
+                            ) : null}
                           </TableCell>
                           <TableCell>{section.course.namePrimary}</TableCell>
                           <TableCell>
@@ -243,14 +243,14 @@ export default async function TeacherPage({
                   <span className="text-muted-foreground">{t("name")}</span>
                   <span className="font-medium text-foreground">
                     {teacher.namePrimary}
-                    {teacher.nameSecondary && (
+                    {teacher.nameSecondary ? (
                       <span className="ml-2 text-muted-foreground">
                         ({teacher.nameSecondary})
                       </span>
-                    )}
+                    ) : null}
                   </span>
                 </div>
-                {teacher.department && (
+                {teacher.department ? (
                   <div className="flex items-baseline gap-2">
                     <span className="text-muted-foreground">
                       {t("department")}
@@ -259,24 +259,24 @@ export default async function TeacherPage({
                       {teacher.department.namePrimary}
                     </span>
                   </div>
-                )}
-                {teacher.teacherTitle && (
+                ) : null}
+                {teacher.teacherTitle ? (
                   <div className="flex items-baseline gap-2">
                     <span className="text-muted-foreground">{t("title")}</span>
                     <span className="font-medium text-foreground">
                       {teacher.teacherTitle.namePrimary}
                     </span>
                   </div>
-                )}
-                {teacher.email && (
+                ) : null}
+                {teacher.email ? (
                   <div className="flex items-baseline gap-2">
                     <span className="text-muted-foreground">{t("email")}</span>
                     <span className="font-medium text-foreground">
                       {teacher.email}
                     </span>
                   </div>
-                )}
-                {teacher.telephone && (
+                ) : null}
+                {teacher.telephone ? (
                   <div className="flex items-baseline gap-2">
                     <span className="text-muted-foreground">
                       {t("telephone")}
@@ -285,16 +285,16 @@ export default async function TeacherPage({
                       {teacher.telephone}
                     </span>
                   </div>
-                )}
-                {teacher.mobile && (
+                ) : null}
+                {teacher.mobile ? (
                   <div className="flex items-baseline gap-2">
                     <span className="text-muted-foreground">{t("mobile")}</span>
                     <span className="font-medium text-foreground">
                       {teacher.mobile}
                     </span>
                   </div>
-                )}
-                {teacher.address && (
+                ) : null}
+                {teacher.address ? (
                   <div className="flex items-baseline gap-2">
                     <span className="text-muted-foreground">
                       {t("address")}
@@ -303,7 +303,7 @@ export default async function TeacherPage({
                       {teacher.address}
                     </span>
                   </div>
-                )}
+                ) : null}
               </div>
             </CardPanel>
           </Card>
