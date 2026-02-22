@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   calendarSubscriptionCreateRequestSchema,
   commentReactionRequestSchema,
+  coursesQuerySchema,
   descriptionUpsertRequestSchema,
   homeworkCreateRequestSchema,
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
+  schedulesQuerySchema,
+  sectionsQuerySchema,
   uploadCreateRequestSchema,
 } from "@/lib/api-schemas";
 
@@ -100,5 +103,22 @@ describe("other request schemas", () => {
       locale: "fr-fr",
     });
     expect(invalid.success).toBe(false);
+  });
+
+  it("validates query schemas", () => {
+    expect(
+      sectionsQuerySchema.safeParse({ courseId: "1", ids: "1,2" }).success,
+    ).toBe(true);
+    expect(
+      schedulesQuerySchema.safeParse({ weekday: "2", page: "1" }).success,
+    ).toBe(true);
+    expect(coursesQuerySchema.safeParse({ search: "math" }).success).toBe(true);
+
+    expect(sectionsQuerySchema.safeParse({ courseId: "abc" }).success).toBe(
+      false,
+    );
+    expect(schedulesQuerySchema.safeParse({ weekday: "x" }).success).toBe(
+      false,
+    );
   });
 });
