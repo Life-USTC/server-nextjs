@@ -48,6 +48,64 @@ const descriptionUpsertResponseSchema = z.object({
   updated: z.boolean(),
 });
 
+const genericSuccessSchema = z.object({}).passthrough();
+
+const registerGenericPath = (
+  method: "get" | "post" | "patch" | "delete" | "put",
+  path: string,
+  summary: string,
+  tag: string,
+) => {
+  registry.registerPath({
+    method,
+    path,
+    summary,
+    responses: {
+      200: {
+        description: "Success",
+        content: {
+          "application/json": {
+            schema: genericSuccessSchema,
+          },
+        },
+      },
+      400: {
+        description: "Bad request",
+        content: {
+          "application/json": {
+            schema: openApiErrorSchema,
+          },
+        },
+      },
+      401: {
+        description: "Unauthorized",
+        content: {
+          "application/json": {
+            schema: openApiErrorSchema,
+          },
+        },
+      },
+      403: {
+        description: "Forbidden",
+        content: {
+          "application/json": {
+            schema: openApiErrorSchema,
+          },
+        },
+      },
+      404: {
+        description: "Not found",
+        content: {
+          "application/json": {
+            schema: openApiErrorSchema,
+          },
+        },
+      },
+    },
+    tags: [tag],
+  });
+};
+
 registry.registerPath({
   method: "post",
   path: "/api/sections/match-codes",
@@ -147,30 +205,6 @@ registry.registerPath({
         },
       },
     },
-    401: {
-      description: "Unauthorized",
-      content: {
-        "application/json": {
-          schema: openApiErrorSchema,
-        },
-      },
-    },
-    403: {
-      description: "Suspended",
-      content: {
-        "application/json": {
-          schema: openApiErrorSchema,
-        },
-      },
-    },
-    404: {
-      description: "Section not found",
-      content: {
-        "application/json": {
-          schema: openApiErrorSchema,
-        },
-      },
-    },
   },
   tags: ["Homeworks"],
 });
@@ -206,33 +240,120 @@ registry.registerPath({
         },
       },
     },
-    401: {
-      description: "Unauthorized",
-      content: {
-        "application/json": {
-          schema: openApiErrorSchema,
-        },
-      },
-    },
-    403: {
-      description: "Suspended",
-      content: {
-        "application/json": {
-          schema: openApiErrorSchema,
-        },
-      },
-    },
-    404: {
-      description: "Target not found",
-      content: {
-        "application/json": {
-          schema: openApiErrorSchema,
-        },
-      },
-    },
   },
   tags: ["Descriptions"],
 });
+
+const genericEndpoints = [
+  ["get", "/api/openapi", "Get OpenAPI document", "System"],
+  [
+    "get",
+    "/api/sections/calendar.ics",
+    "Export multiple sections calendar",
+    "Sections",
+  ],
+  ["get", "/api/sections", "List sections", "Sections"],
+  ["get", "/api/sections/{jwId}", "Get section detail", "Sections"],
+  [
+    "get",
+    "/api/sections/{jwId}/calendar.ics",
+    "Export section calendar",
+    "Sections",
+  ],
+  [
+    "get",
+    "/api/sections/{jwId}/schedule-groups",
+    "List section schedule groups",
+    "Sections",
+  ],
+  [
+    "get",
+    "/api/sections/{jwId}/schedules",
+    "List section schedules",
+    "Sections",
+  ],
+  ["get", "/api/courses", "List courses", "Courses"],
+  ["get", "/api/teachers", "List teachers", "Teachers"],
+  ["get", "/api/schedules", "List schedules", "Schedules"],
+  ["get", "/api/semesters", "List semesters", "Semesters"],
+  ["get", "/api/comments", "List comments by target", "Comments"],
+  ["post", "/api/comments", "Create comment", "Comments"],
+  ["get", "/api/comments/{id}", "Get comment thread", "Comments"],
+  ["patch", "/api/comments/{id}", "Update comment", "Comments"],
+  ["delete", "/api/comments/{id}", "Delete comment", "Comments"],
+  ["post", "/api/comments/{id}/reactions", "Add comment reaction", "Comments"],
+  [
+    "delete",
+    "/api/comments/{id}/reactions",
+    "Remove comment reaction",
+    "Comments",
+  ],
+  ["get", "/api/homeworks", "List section homeworks", "Homeworks"],
+  ["patch", "/api/homeworks/{id}", "Update homework", "Homeworks"],
+  ["delete", "/api/homeworks/{id}", "Delete homework", "Homeworks"],
+  [
+    "put",
+    "/api/homeworks/{id}/completion",
+    "Update homework completion",
+    "Homeworks",
+  ],
+  ["get", "/api/descriptions", "Get description by target", "Descriptions"],
+  ["post", "/api/uploads", "Create upload reservation", "Uploads"],
+  ["get", "/api/uploads", "List uploads", "Uploads"],
+  ["post", "/api/uploads/complete", "Finalize upload", "Uploads"],
+  ["patch", "/api/uploads/{id}", "Rename upload", "Uploads"],
+  ["delete", "/api/uploads/{id}", "Delete upload", "Uploads"],
+  ["get", "/api/uploads/{id}/download", "Get upload download URL", "Uploads"],
+  [
+    "post",
+    "/api/calendar-subscriptions",
+    "Create calendar subscription",
+    "Calendar",
+  ],
+  [
+    "get",
+    "/api/calendar-subscriptions/current",
+    "Get current user subscriptions",
+    "Calendar",
+  ],
+  [
+    "get",
+    "/api/calendar-subscriptions/{id}",
+    "Get subscription detail",
+    "Calendar",
+  ],
+  [
+    "patch",
+    "/api/calendar-subscriptions/{id}",
+    "Update subscription sections",
+    "Calendar",
+  ],
+  [
+    "delete",
+    "/api/calendar-subscriptions/{id}",
+    "Delete subscription",
+    "Calendar",
+  ],
+  [
+    "get",
+    "/api/calendar-subscriptions/{id}/calendar.ics",
+    "Export subscription calendar",
+    "Calendar",
+  ],
+  ["get", "/api/admin/comments", "List moderation comments", "Admin"],
+  ["patch", "/api/admin/comments/{id}", "Moderate comment", "Admin"],
+  ["get", "/api/admin/users", "List users", "Admin"],
+  ["patch", "/api/admin/users/{id}", "Update user", "Admin"],
+  ["get", "/api/admin/suspensions", "List suspensions", "Admin"],
+  ["post", "/api/admin/suspensions", "Create suspension", "Admin"],
+  ["patch", "/api/admin/suspensions/{id}", "Lift suspension", "Admin"],
+  ["get", "/api/metadata", "Get metadata summary", "System"],
+  ["post", "/api/locale", "Update locale cookie", "System"],
+] as const;
+
+for (const [method, path, summary, tag] of genericEndpoints) {
+  registerGenericPath(method, path, summary, tag);
+}
 
 export function buildOpenApiDocument() {
   const generator = new OpenApiGeneratorV31(registry.definitions);
@@ -241,8 +362,7 @@ export function buildOpenApiDocument() {
     info: {
       title: "Life@USTC API",
       version: "0.1.0",
-      description:
-        "Life@USTC Next.js API specification (incremental coverage).",
+      description: "Life@USTC Next.js API specification.",
     },
     servers: [{ url: "/" }],
   });

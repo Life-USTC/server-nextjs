@@ -80,6 +80,111 @@ export const descriptionUpsertRequestSchema = z
     }
   });
 
+export const uploadCreateRequestSchema = z.object({
+  filename: z.string().trim().min(1),
+  contentType: z.string().optional(),
+  size: z.union([z.string(), z.number()]),
+});
+
+export const uploadCompleteRequestSchema = z.object({
+  key: z.string().trim().min(1),
+  filename: z.string().trim().min(1),
+  contentType: z.string().optional(),
+});
+
+export const uploadRenameRequestSchema = z.object({
+  filename: z.string().trim().min(1).max(255),
+});
+
+export const calendarSubscriptionCreateRequestSchema = z.object({
+  sectionIds: z.array(z.number().int().positive()).optional(),
+});
+
+export const calendarSubscriptionUpdateRequestSchema = z.object({
+  sectionIds: z.array(z.number().int().positive()),
+});
+
+export const commentVisibilitySchema = z.enum([
+  "public",
+  "logged_in_only",
+  "anonymous",
+]);
+
+export const commentTargetTypeSchema = z.enum([
+  "section",
+  "course",
+  "teacher",
+  "section-teacher",
+  "homework",
+]);
+
+export const commentCreateRequestSchema = z.object({
+  targetType: commentTargetTypeSchema,
+  targetId: z.union([z.string(), z.number()]).optional(),
+  sectionId: z.union([z.string(), z.number()]).optional(),
+  teacherId: z.union([z.string(), z.number()]).optional(),
+  body: z.string().trim().min(1).max(8000),
+  visibility: commentVisibilitySchema.optional(),
+  isAnonymous: z.boolean().optional(),
+  parentId: z.string().optional().nullable(),
+  attachmentIds: z.array(z.string()).optional(),
+});
+
+export const commentUpdateRequestSchema = z.object({
+  body: z.string().trim().min(1).max(8000),
+  visibility: commentVisibilitySchema.optional(),
+  isAnonymous: z.boolean().optional(),
+  attachmentIds: z.array(z.string()).optional(),
+});
+
+export const commentReactionRequestSchema = z.object({
+  type: z.enum([
+    "upvote",
+    "downvote",
+    "heart",
+    "laugh",
+    "hooray",
+    "confused",
+    "rocket",
+    "eyes",
+  ]),
+});
+
+export const adminModerateCommentRequestSchema = z.object({
+  status: z.enum(["active", "softbanned", "deleted"]),
+  moderationNote: z.string().optional().nullable(),
+});
+
+export const homeworkCompletionRequestSchema = z.object({
+  completed: z.boolean(),
+});
+
+export const homeworkUpdateRequestSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  publishedAt: z.union([z.string(), z.null()]).optional(),
+  submissionStartAt: z.union([z.string(), z.null()]).optional(),
+  submissionDueAt: z.union([z.string(), z.null()]).optional(),
+  isMajor: z.boolean().optional(),
+  requiresTeam: z.boolean().optional(),
+});
+
+export const adminCreateSuspensionRequestSchema = z.object({
+  userId: z.string().trim().min(1),
+  reason: z.string().optional(),
+  note: z.string().optional(),
+  expiresAt: z.union([z.string(), z.null()]).optional(),
+});
+
+export const adminUpdateUserRequestSchema = z.object({
+  name: z.union([z.string(), z.null()]).optional(),
+  username: z.union([z.string(), z.null()]).optional(),
+  isAdmin: z.boolean().optional(),
+});
+
+export const localeUpdateRequestSchema = z.object({
+  locale: z.enum(["en-us", "zh-cn"]),
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });

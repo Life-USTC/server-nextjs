@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { CommentVisibility } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
+import { commentUpdateRequestSchema } from "@/lib/api-schemas";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import { getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
@@ -166,12 +167,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  let body: {
-    body?: string;
-    attachmentIds?: string[];
-    visibility?: string;
-    isAnonymous?: boolean;
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -179,21 +175,25 @@ export async function PATCH(
     return handleRouteError("Invalid comment update", error, 400);
   }
 
-  const content = typeof body.body === "string" ? body.body.trim() : "";
-  if (!content) {
-    return NextResponse.json({ error: "Content required" }, { status: 400 });
+  const parsedBody = commentUpdateRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid comment update", parsedBody.error, 400);
   }
 
+  const content = parsedBody.data.body;
+
   const visibility =
-    typeof body.visibility === "string"
-      ? (body.visibility as CommentVisibility)
+    typeof parsedBody.data.visibility === "string"
+      ? (parsedBody.data.visibility as CommentVisibility)
       : undefined;
   const isAnonymous =
-    typeof body.isAnonymous === "boolean" ? body.isAnonymous : undefined;
+    typeof parsedBody.data.isAnonymous === "boolean"
+      ? parsedBody.data.isAnonymous
+      : undefined;
 
-  const hasAttachmentUpdate = Array.isArray(body.attachmentIds);
+  const hasAttachmentUpdate = Array.isArray(parsedBody.data.attachmentIds);
   const attachmentIds = hasAttachmentUpdate
-    ? (body.attachmentIds ?? []).filter((id) => typeof id === "string")
+    ? (parsedBody.data.attachmentIds ?? [])
     : [];
 
   try {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
+import { calendarSubscriptionCreateRequestSchema } from "@/lib/api-schemas";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
 
@@ -20,7 +21,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const sectionIds = (body.sectionIds || []) as number[];
+    const parsedBody = calendarSubscriptionCreateRequestSchema.safeParse(body);
+    if (!parsedBody.success) {
+      return handleRouteError(
+        "Invalid subscription request",
+        parsedBody.error,
+        400,
+      );
+    }
+
+    const sectionIds = parsedBody.data.sectionIds ?? [];
 
     // Create the subscription tied to the user
     const subscription = await prisma.calendarSubscription.create({

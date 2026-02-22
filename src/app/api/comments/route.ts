@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import { commentCreateRequestSchema } from "@/lib/api-schemas";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import {
   findActiveSuspension,
@@ -129,17 +130,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let body: {
-    targetType?: TargetType;
-    targetId?: number | string;
-    sectionId?: number;
-    teacherId?: number;
-    body?: string;
-    visibility?: Visibility;
-    isAnonymous?: boolean;
-    parentId?: string | null;
-    attachmentIds?: string[];
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -147,24 +138,16 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid comment request", error, 400);
   }
 
-  const targetType = body.targetType;
-  if (!targetType || !TARGET_TYPES.includes(targetType)) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+  const parsedBody = commentCreateRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid comment request", parsedBody.error, 400);
   }
 
-  const content = typeof body.body === "string" ? body.body.trim() : "";
-  if (!content) {
-    return NextResponse.json({ error: "Content required" }, { status: 400 });
-  }
-  if (content.length > 8000) {
-    return NextResponse.json({ error: "Content too long" }, { status: 400 });
-  }
+  const targetType = parsedBody.data.targetType;
+  const content = parsedBody.data.body;
 
-  const visibility =
-    body.visibility && VISIBILITY_VALUES.includes(body.visibility)
-      ? body.visibility
-      : "public";
-  const isAnonymous = body.isAnonymous === true;
+  const visibility: Visibility = parsedBody.data.visibility ?? "public";
+  const isAnonymous = parsedBody.data.isAnonymous === true;
 
   const session = await auth();
   const userId = session?.user?.id ?? null;
@@ -185,13 +168,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const normalizedTargetId = parseOptionalInt(body.targetId);
+    const normalizedTargetId = parseOptionalInt(parsedBody.data.targetId);
     const normalizedHomeworkId =
-      typeof body.targetId === "string" && body.targetId.trim().length > 0
-        ? body.targetId.trim()
+      typeof parsedBody.data.targetId === "string" &&
+      parsedBody.data.targetId.trim().length > 0
+        ? parsedBody.data.targetId.trim()
         : null;
-    const normalizedSectionId = parseOptionalInt(body.sectionId);
-    const normalizedTeacherId = parseOptionalInt(body.teacherId);
+    const normalizedSectionId = parseOptionalInt(parsedBody.data.sectionId);
+    const normalizedTeacherId = parseOptionalInt(parsedBody.data.teacherId);
     let targetData: Record<string, number | string> | null = null;
     let resolvedSectionTeacherId: number | null = null;
 
@@ -223,9 +207,9 @@ export async function POST(request: Request) {
 
     let parentId: string | null = null;
     let rootId: string | null = null;
-    if (body.parentId) {
+    if (parsedBody.data.parentId) {
       const parent = await prisma.comment.findUnique({
-        where: { id: body.parentId },
+        where: { id: parsedBody.data.parentId },
       });
       if (!parent) {
         return NextResponse.json(
@@ -268,9 +252,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const attachmentIds = Array.isArray(body.attachmentIds)
-      ? body.attachmentIds.filter((id) => typeof id === "string")
-      : [];
+    const attachmentIds = parsedBody.data.attachmentIds ?? [];
 
     if (attachmentIds.length > 0) {
       const uploads = await prisma.upload.findMany({

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
+import { adminUpdateUserRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 
 function normalizeName(value: unknown) {
@@ -26,16 +27,17 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  let body: {
-    name?: unknown;
-    username?: unknown;
-    isAdmin?: unknown;
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
   } catch (error) {
     return handleRouteError("Invalid update request", error, 400);
+  }
+
+  const parsedBody = adminUpdateUserRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid update request", parsedBody.error, 400);
   }
 
   try {
@@ -45,12 +47,12 @@ export async function PATCH(
       isAdmin?: boolean;
     } = {};
 
-    if ("name" in body) {
-      data.name = normalizeName(body.name);
+    if ("name" in parsedBody.data) {
+      data.name = normalizeName(parsedBody.data.name);
     }
 
-    if ("username" in body) {
-      const username = normalizeUsername(body.username);
+    if ("username" in parsedBody.data) {
+      const username = normalizeUsername(parsedBody.data.username);
       if (username) {
         if (!/^[a-z0-9]{1,20}$/.test(username)) {
           return NextResponse.json(
@@ -72,8 +74,11 @@ export async function PATCH(
       data.username = username;
     }
 
-    if ("isAdmin" in body && typeof body.isAdmin === "boolean") {
-      data.isAdmin = body.isAdmin;
+    if (
+      "isAdmin" in parsedBody.data &&
+      typeof parsedBody.data.isAdmin === "boolean"
+    ) {
+      data.isAdmin = parsedBody.data.isAdmin;
     }
 
     const updated = await prisma.user.update({

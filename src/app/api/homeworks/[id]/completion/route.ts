@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
+import { homeworkCompletionRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  let body: { completed?: boolean } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -18,10 +19,12 @@ export async function PUT(
     return handleRouteError("Invalid completion payload", error, 400);
   }
 
-  if (typeof body.completed !== "boolean") {
-    return NextResponse.json(
-      { error: "Invalid completion payload" },
-      { status: 400 },
+  const parsedBody = homeworkCompletionRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError(
+      "Invalid completion payload",
+      parsedBody.error,
+      400,
     );
   }
 
@@ -41,7 +44,7 @@ export async function PUT(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (body.completed) {
+    if (parsedBody.data.completed) {
       const completion = await prisma.homeworkCompletion.upsert({
         where: { userId_homeworkId: { userId, homeworkId: id } },
         update: { completedAt: new Date() },
