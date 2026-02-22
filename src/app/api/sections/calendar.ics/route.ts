@@ -1,14 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleRouteError, parseIntegerList } from "@/lib/api-helpers";
-import { sectionsCalendarQuerySchema } from "@/lib/api-schemas";
+import { sectionsCalendarQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { createMultiSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/sections/calendar.ics?sectionIds=1,2,3
- * Generate calendar for multiple sections
+ * Generate calendar ICS for multiple sections.
+ * @params sectionsCalendarQuerySchema
+ * @response 200:binary
+ * @response 400:openApiErrorSchema
  */
 export async function GET(request: NextRequest) {
   try {

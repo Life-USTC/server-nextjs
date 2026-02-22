@@ -6,11 +6,17 @@ import {
   getPagination,
   handleRouteError,
 } from "@/lib/api-helpers";
-import { adminUsersQuerySchema } from "@/lib/api-schemas";
+import { adminUsersQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * List users for admin console.
+ * @params adminUsersQuerySchema
+ * @response adminUsersResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) {

@@ -5,6 +5,11 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Get current semester.
+ * @response semesterSchema
+ * @response 404:openApiErrorSchema
+ */
 export async function GET() {
   try {
     const now = new Date();

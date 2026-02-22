@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { CommentVisibility } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
-import { commentUpdateRequestSchema } from "@/lib/api-schemas";
+import {
+  commentUpdateRequestSchema,
+  resourceIdPathParamsSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import { getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
@@ -18,11 +21,33 @@ function findComment(nodes: any[], id: string): any | null {
   return null;
 }
 
+async function parseCommentId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
+
+/**
+ * Get one comment thread by comment ID.
+ * @pathParams resourceIdPathParamsSchema
+ * @response commentThreadResponseSchema
+ * @response 404:openApiErrorSchema
+ */
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const parsed = await parseCommentId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
 
   try {
     const comment = await prisma.comment.findUnique({
@@ -162,11 +187,22 @@ export async function GET(
   }
 }
 
+/**
+ * Update one comment.
+ * @pathParams resourceIdPathParamsSchema
+ * @body commentUpdateRequestSchema
+ * @response commentUpdateResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const parsed = await parseCommentId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   let body: unknown = {};
 
   try {
@@ -321,11 +357,21 @@ export async function PATCH(
   }
 }
 
+/**
+ * Delete one comment.
+ * @pathParams resourceIdPathParamsSchema
+ * @response successResponseSchema
+ * @response 404:openApiErrorSchema
+ */
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { id } = await params;
+  const parsed = await parseCommentId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
 
   try {
     const session = await auth();

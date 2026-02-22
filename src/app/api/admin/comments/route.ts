@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
-import { adminCommentsQuerySchema } from "@/lib/api-schemas";
+import { adminCommentsQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +15,12 @@ function parseLimit(value: string | null) {
   return Math.min(Math.max(parsed, 1), 200);
 }
 
+/**
+ * List moderation comments.
+ * @params adminCommentsQuerySchema
+ * @response adminCommentsResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: Request) {
   const admin = await requireAdmin();
   if (!admin) {

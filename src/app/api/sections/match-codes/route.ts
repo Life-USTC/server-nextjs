@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleRouteError, parseInteger } from "@/lib/api-helpers";
-import { matchSectionCodesRequestSchema } from "@/lib/api-schemas";
+import { matchSectionCodesRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/prisma";
 import { sectionCompactInclude } from "@/lib/query-helpers";
@@ -8,8 +8,10 @@ import { sectionCompactInclude } from "@/lib/query-helpers";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/sections/match-codes
- * Matches section codes against sections in the selected semester
+ * Match section codes in one semester.
+ * @body matchSectionCodesRequestSchema
+ * @response matchSectionCodesResponseSchema
+ * @response 400:openApiErrorSchema
  */
 export async function POST(request: NextRequest) {
   try {

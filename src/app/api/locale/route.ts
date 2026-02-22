@@ -1,7 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleRouteError } from "@/lib/api-helpers";
-import { localeUpdateRequestSchema } from "@/lib/api-schemas";
+import { localeUpdateRequestSchema } from "@/lib/api-schemas/request-schemas";
 
+/**
+ * Update user locale cookie.
+ * @body localeUpdateRequestSchema
+ * @response successResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

@@ -4,7 +4,7 @@ import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
 import {
   commentCreateRequestSchema,
   commentsQuerySchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api-schemas/request-schemas";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import {
   findActiveSuspension,
@@ -27,6 +27,12 @@ const TARGET_TYPES = [
 type TargetType = (typeof TARGET_TYPES)[number];
 type Visibility = (typeof VISIBILITY_VALUES)[number];
 
+/**
+ * List comments for a target.
+ * @params commentsQuerySchema
+ * @response commentsListResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = commentsQuerySchema.safeParse({
@@ -137,6 +143,12 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * Create one comment.
+ * @body commentCreateRequestSchema
+ * @response idResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   let body: unknown = {};
 

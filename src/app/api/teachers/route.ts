@@ -6,11 +6,17 @@ import {
   handleRouteError,
   parseOptionalInt,
 } from "@/lib/api-helpers";
-import { teachersQuerySchema } from "@/lib/api-schemas";
+import { teachersQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * List teachers with department/search filters.
+ * @params teachersQuerySchema
+ * @response paginatedTeacherResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parsedQuery = teachersQuerySchema.safeParse({

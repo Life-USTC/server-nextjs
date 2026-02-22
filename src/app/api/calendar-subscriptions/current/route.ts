@@ -6,6 +6,11 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Get current user's latest calendar subscription.
+ * @response currentCalendarSubscriptionResponseSchema
+ * @response 401:openApiErrorSchema
+ */
 export async function GET() {
   try {
     const session = await auth();

@@ -2,12 +2,33 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { CommentReactionType } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
-import { commentReactionRequestSchema } from "@/lib/api-schemas";
+import {
+  commentReactionRequestSchema,
+  resourceIdPathParamsSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { findActiveSuspension } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+async function parseCommentId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
+
+/**
+ * Add one reaction to a comment.
+ * @pathParams resourceIdPathParamsSchema
+ * @body commentReactionRequestSchema
+ * @response successResponseSchema
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -17,7 +38,11 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const parsed = await parseCommentId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
 
   let body: unknown = {};
   try {
@@ -75,6 +100,12 @@ export async function POST(
   }
 }
 
+/**
+ * Remove one reaction from a comment.
+ * @pathParams resourceIdPathParamsSchema
+ * @body commentReactionRequestSchema
+ * @response successResponseSchema
+ */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -84,7 +115,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
+  const parsed = await parseCommentId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
   let body: unknown = {};
   try {
     body = await request.json();

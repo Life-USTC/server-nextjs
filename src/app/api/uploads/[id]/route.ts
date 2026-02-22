@@ -2,16 +2,38 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
-import { uploadRenameRequestSchema } from "@/lib/api-schemas";
+import {
+  resourceIdPathParamsSchema,
+  uploadRenameRequestSchema,
+} from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
+async function parseUploadId(
+  params: Promise<{ id: string }>,
+): Promise<string | NextResponse> {
+  const raw = await params;
+  const parsed = resourceIdPathParamsSchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid upload ID" }, { status: 400 });
+  }
+
+  return parsed.data.id;
+}
+
 function sanitizeFilename(filename: string) {
   return filename.trim();
 }
 
+/**
+ * Rename one upload.
+ * @pathParams resourceIdPathParamsSchema
+ * @body uploadRenameRequestSchema
+ * @response uploadRenameResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -21,10 +43,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await context.params;
-  if (!id) {
-    return NextResponse.json({ error: "Invalid upload" }, { status: 400 });
+  const parsed = await parseUploadId(context.params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
   }
+  const id = parsed;
 
   let body: unknown = {};
 
@@ -80,6 +103,12 @@ export async function PATCH(
   }
 }
 
+/**
+ * Delete one upload.
+ * @pathParams resourceIdPathParamsSchema
+ * @response uploadDeleteResponseSchema
+ * @response 404:openApiErrorSchema
+ */
 export async function DELETE(
   _: Request,
   context: { params: Promise<{ id: string }> },
@@ -89,10 +118,11 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await context.params;
-  if (!id) {
-    return NextResponse.json({ error: "Invalid upload" }, { status: 400 });
+  const parsed = await parseUploadId(context.params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
   }
+  const id = parsed;
 
   try {
     const upload = await prisma.upload.findFirst({

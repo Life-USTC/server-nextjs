@@ -6,11 +6,17 @@ import {
   handleRouteError,
   parseOptionalInt,
 } from "@/lib/api-helpers";
-import { schedulesQuerySchema } from "@/lib/api-schemas";
+import { schedulesQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * List schedules with filters and pagination.
+ * @params schedulesQuerySchema
+ * @response paginatedScheduleResponseSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

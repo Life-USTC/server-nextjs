@@ -1,0 +1,4191 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Life@USTC API",
+    "version": "1.0.0",
+    "description": "OpenAPI document generated from Next.js routes by next-openapi-gen"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local server"
+    }
+  ],
+  "paths": {
+    "/api/calendar-subscriptions": {
+      "post": {
+        "operationId": "post-api-calendar-subscriptions",
+        "summary": "Create a calendar subscription.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calendarSubscriptionCreateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calendarSubscriptionCreateResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/comments": {
+      "get": {
+        "operationId": "get-api-comments",
+        "summary": "List comments for a target.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "targetType",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "targetId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "sectionId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "teacherId",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/commentsListResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-comments",
+        "summary": "Create one comment.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/commentCreateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/idResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses": {
+      "get": {
+        "operationId": "get-api-courses",
+        "summary": "List courses with search and pagination.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedCourseResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/descriptions": {
+      "get": {
+        "operationId": "get-api-descriptions",
+        "summary": "Get description and history by target.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "targetType",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "targetId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/descriptionsResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-descriptions",
+        "summary": "Upsert description by target.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/descriptionUpsertRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/descriptionUpsertResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/homeworks": {
+      "get": {
+        "operationId": "get-api-homeworks",
+        "summary": "List homeworks by section.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sectionId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "includeDeleted",
+            "schema": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/homeworksListResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-homeworks",
+        "summary": "Create one homework.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/homeworkCreateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/idResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/locale": {
+      "post": {
+        "operationId": "post-api-locale",
+        "summary": "Update user locale cookie.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/localeUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/metadata": {
+      "get": {
+        "operationId": "get-api-metadata",
+        "summary": "Get metadata dictionaries for filters.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/metadataResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/schedules": {
+      "get": {
+        "operationId": "get-api-schedules",
+        "summary": "List schedules with filters and pagination.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sectionId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "teacherId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "roomId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "weekday",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "dateFrom",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "dateTo",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedScheduleResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections": {
+      "get": {
+        "operationId": "get-api-sections",
+        "summary": "List sections with filters and pagination.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "courseId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "semesterId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "campusId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "departmentId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "teacherId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "ids",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedSectionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/semesters": {
+      "get": {
+        "operationId": "get-api-semesters",
+        "summary": "List semesters with pagination.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedSemesterResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers": {
+      "get": {
+        "operationId": "get-api-teachers",
+        "summary": "List teachers with department/search filters.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "departmentId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/paginatedTeacherResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads": {
+      "get": {
+        "operationId": "get-api-uploads",
+        "summary": "List uploads of current user.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uploadsListResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-uploads",
+        "summary": "Create a signed upload URL.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/uploadCreateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uploadCreateResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/comments": {
+      "get": {
+        "operationId": "get-api-admin-comments",
+        "summary": "List moderation comments.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": ["active", "softbanned", "deleted"]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminCommentsResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/suspensions": {
+      "get": {
+        "operationId": "get-api-admin-suspensions",
+        "summary": "List suspensions.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminSuspensionsResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-admin-suspensions",
+        "summary": "Create suspension for one user.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminCreateSuspensionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminSuspensionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "operationId": "get-api-admin-users",
+        "summary": "List users for admin console.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminUsersResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar-subscriptions/{id}": {
+      "get": {
+        "operationId": "get-api-calendar-subscriptions-{id}",
+        "summary": "Get subscription detail.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calendarSubscriptionSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-api-calendar-subscriptions-{id}",
+        "summary": "Update sections in one subscription.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calendarSubscriptionUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-calendar-subscriptions-{id}",
+        "summary": "Delete one subscription.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/calendar-subscriptions/current": {
+      "get": {
+        "operationId": "get-api-calendar-subscriptions-current",
+        "summary": "Get current user's latest calendar subscription.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/currentCalendarSubscriptionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/comments/{id}": {
+      "get": {
+        "operationId": "get-api-comments-{id}",
+        "summary": "Get one comment thread by comment ID.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/commentThreadResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-api-comments-{id}",
+        "summary": "Update one comment.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/commentUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/commentUpdateResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-comments-{id}",
+        "summary": "Delete one comment.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/homeworks/{id}": {
+      "patch": {
+        "operationId": "patch-api-homeworks-{id}",
+        "summary": "Update one homework.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/homeworkUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-homeworks-{id}",
+        "summary": "Soft delete one homework.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}",
+        "summary": "Get section detail by JW ID.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sectionDetailSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/calendar.ics": {
+      "get": {
+        "operationId": "get-api-sections-calendar.ics",
+        "summary": "Generate calendar ICS for multiple sections.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sectionIds",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/match-codes": {
+      "post": {
+        "operationId": "post-api-sections-match-codes",
+        "summary": "Match section codes in one semester.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/matchSectionCodesRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/matchSectionCodesResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/semesters/current": {
+      "get": {
+        "operationId": "get-api-semesters-current",
+        "summary": "Get current semester.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/semesterSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads/{id}": {
+      "patch": {
+        "operationId": "patch-api-uploads-{id}",
+        "summary": "Rename one upload.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/uploadRenameRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uploadRenameResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-uploads-{id}",
+        "summary": "Delete one upload.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/uploads/complete": {
+      "post": {
+        "operationId": "post-api-uploads-complete",
+        "summary": "Finalize one upload after S3 put.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/uploadCompleteRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uploadCompleteResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/comments/{id}": {
+      "patch": {
+        "operationId": "patch-api-admin-comments-{id}",
+        "summary": "Moderate one comment.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminModerateCommentRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminModeratedCommentResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/suspensions/{id}": {
+      "patch": {
+        "operationId": "patch-api-admin-suspensions-{id}",
+        "summary": "Lift one suspension.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminSuspensionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "patch": {
+        "operationId": "patch-api-admin-users-{id}",
+        "summary": "Update one user.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminUpdateUserRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminUserResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar-subscriptions/{id}/calendar.ics": {
+      "get": {
+        "operationId": "get-api-calendar-subscriptions-{id}-calendar.ics",
+        "summary": "Redirect calendar subscription token to sections ICS URL.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/comments/{id}/reactions": {
+      "post": {
+        "operationId": "post-api-comments-{id}-reactions",
+        "summary": "Add one reaction to a comment.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/commentReactionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-comments-{id}-reactions",
+        "summary": "Remove one reaction from a comment.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/homeworks/{id}/completion": {
+      "put": {
+        "operationId": "put-api-homeworks-{id}-completion",
+        "summary": "Update completion state for one homework.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/homeworkCompletionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/homeworkCompletionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}/calendar.ics": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}-calendar.ics",
+        "summary": "Generate calendar ICS for one section.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}/schedule-groups": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}-schedule-groups",
+        "summary": "Get schedule groups for one section.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/array"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}/schedules": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}-schedules",
+        "summary": "Get all schedules for one section.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/array"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/uploads/{id}/download": {
+      "get": {
+        "operationId": "get-api-uploads-{id}-download",
+        "summary": "Redirect to signed URL for one upload.",
+        "description": "",
+        "tags": ["Api"],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "resourceIdPathParamsSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["id"]
+      },
+      "adminModerateCommentRequestSchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["active", "softbanned", "deleted"]
+          },
+          "moderationNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["status"]
+      },
+      "adminModeratedCommentResponseSchema": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/adminCommentBaseSchema"
+          }
+        },
+        "required": ["comment"]
+      },
+      "adminCommentsQuerySchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["active", "softbanned", "deleted"]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "adminCommentsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminCommentSchema"
+            }
+          }
+        },
+        "required": ["comments"]
+      },
+      "adminSuspensionResponseSchema": {
+        "type": "object",
+        "properties": {
+          "suspension": {
+            "$ref": "#/components/schemas/adminSuspensionSchema"
+          }
+        },
+        "required": ["suspension"]
+      },
+      "adminSuspensionsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "suspensions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminSuspensionSchema"
+            }
+          }
+        },
+        "required": ["suspensions"]
+      },
+      "adminCreateSuspensionRequestSchema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["userId"]
+      },
+      "adminUpdateUserRequestSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAdmin": {
+            "type": "boolean"
+          }
+        }
+      },
+      "adminUserResponseSchema": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/adminUserListItemSchema"
+          }
+        },
+        "required": ["user"]
+      },
+      "adminUsersQuerySchema": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string"
+          },
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "adminUsersResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminUserListItemSchema"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/pageMetaSchema"
+          }
+        },
+        "required": ["data", "pagination"]
+      },
+      "calendarSubscriptionIdPathParamsSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/integerStringSchema"
+          }
+        },
+        "required": ["id"]
+      },
+      "calendarSubscriptionSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "course": {
+                  "$ref": "#/components/schemas/courseBaseSchema"
+                },
+                "semester": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/semesterSchema"
+                    }
+                  ]
+                },
+                "campus": {
+                  "type": "object"
+                },
+                "schedules": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/scheduleWithRoomTeachersSchema"
+                  }
+                }
+              },
+              "required": ["course", "semester", "campus", "schedules"]
+            }
+          }
+        },
+        "required": ["id", "userId", "sections"]
+      },
+      "calendarSubscriptionUpdateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "sectionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          }
+        },
+        "required": ["sectionIds"]
+      },
+      "calendarSubscriptionSummarySchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                }
+              },
+              "required": ["id"]
+            }
+          }
+        },
+        "required": ["id", "sections"]
+      },
+      "successResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": ["success"]
+      },
+      "currentCalendarSubscriptionResponseSchema": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "subscription": {
+                "type": "null"
+              }
+            },
+            "required": ["subscription"]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "subscription": {
+                "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
+              },
+              "token": {
+                "type": "string"
+              }
+            },
+            "required": ["subscription", "token"]
+          }
+        ]
+      },
+      "calendarSubscriptionCreateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "sectionIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          }
+        }
+      },
+      "calendarSubscriptionCreateResponseSchema": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": ["subscription", "token"]
+      },
+      "commentReactionRequestSchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "upvote",
+              "downvote",
+              "heart",
+              "laugh",
+              "hooray",
+              "confused",
+              "rocket",
+              "eyes"
+            ]
+          }
+        },
+        "required": ["type"]
+      },
+      "commentThreadResponseSchema": {
+        "type": "object",
+        "properties": {
+          "thread": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/commentNodeSchema"
+            }
+          },
+          "focusId": {
+            "type": "string"
+          },
+          "hiddenCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "viewer": {
+            "$ref": "#/components/schemas/viewerContextSchema"
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "sectionId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "courseId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "teacherId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherSectionId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherTeacherId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherSectionJwId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherSectionCode": {
+                "type": "string",
+                "nullable": true
+              },
+              "sectionTeacherTeacherName": {
+                "type": "string",
+                "nullable": true
+              },
+              "sectionTeacherCourseJwId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherCourseName": {
+                "type": "string",
+                "nullable": true
+              },
+              "homeworkId": {
+                "type": "string",
+                "nullable": true
+              },
+              "homeworkTitle": {
+                "type": "string",
+                "nullable": true
+              },
+              "homeworkSectionJwId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "homeworkSectionCode": {
+                "type": "string",
+                "nullable": true
+              },
+              "sectionJwId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionCode": {
+                "type": "string",
+                "nullable": true
+              },
+              "courseJwId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "courseName": {
+                "type": "string",
+                "nullable": true
+              },
+              "teacherName": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "sectionId",
+              "courseId",
+              "teacherId",
+              "sectionTeacherId",
+              "sectionTeacherSectionId",
+              "sectionTeacherTeacherId",
+              "sectionTeacherSectionJwId",
+              "sectionTeacherSectionCode",
+              "sectionTeacherTeacherName",
+              "sectionTeacherCourseJwId",
+              "sectionTeacherCourseName",
+              "homeworkId",
+              "homeworkTitle",
+              "homeworkSectionJwId",
+              "homeworkSectionCode",
+              "sectionJwId",
+              "sectionCode",
+              "courseJwId",
+              "courseName",
+              "teacherName"
+            ]
+          }
+        },
+        "required": ["thread", "focusId", "hiddenCount", "viewer", "target"]
+      },
+      "commentUpdateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/commentVisibilitySchema"
+              }
+            ]
+          },
+          "isAnonymous": {
+            "type": "boolean"
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["body"]
+      },
+      "commentUpdateResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "comment": {
+            "$ref": "#/components/schemas/commentNodeSchema"
+          }
+        },
+        "required": ["success", "comment"]
+      },
+      "commentsQuerySchema": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/commentTargetTypeSchema"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "sectionId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "teacherId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        },
+        "required": ["targetType"]
+      },
+      "commentsListResponseSchema": {
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/commentNodeSchema"
+            }
+          },
+          "hiddenCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "viewer": {
+            "$ref": "#/components/schemas/viewerContextSchema"
+          },
+          "target": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "targetId": {
+                "oneOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "sectionId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "teacherId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "sectionTeacherId": {
+                "type": "integer",
+                "nullable": true
+              },
+              "homeworkId": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "type",
+              "targetId",
+              "sectionId",
+              "teacherId",
+              "sectionTeacherId",
+              "homeworkId"
+            ]
+          }
+        },
+        "required": ["comments", "hiddenCount", "viewer", "target"]
+      },
+      "commentCreateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/commentTargetTypeSchema"
+          },
+          "targetId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "sectionId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "teacherId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "visibility": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/commentVisibilitySchema"
+              }
+            ]
+          },
+          "isAnonymous": {
+            "type": "boolean"
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "attachmentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["targetType", "body"]
+      },
+      "idResponseSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": ["id"]
+      },
+      "coursesQuerySchema": {
+        "type": "object",
+        "properties": {
+          "search": {
+            "type": "string"
+          },
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "paginatedCourseResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/courseSchema"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/pageMetaSchema"
+          }
+        },
+        "required": ["data", "pagination"]
+      },
+      "descriptionsQuerySchema": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/descriptionTargetTypeSchema"
+          },
+          "targetId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["targetType", "targetId"]
+      },
+      "descriptionsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "$ref": "#/components/schemas/descriptionDetailSchema"
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/descriptionHistoryEntrySchema"
+            }
+          },
+          "viewer": {
+            "$ref": "#/components/schemas/viewerContextSchema"
+          }
+        },
+        "required": ["description", "history", "viewer"]
+      },
+      "descriptionUpsertRequestSchema": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "$ref": "#/components/schemas/descriptionTargetTypeSchema"
+          },
+          "targetId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000
+          }
+        },
+        "required": ["targetType", "targetId", "content"]
+      },
+      "descriptionUpsertResponseSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "updated": {
+            "type": "boolean"
+          }
+        },
+        "required": ["id", "updated"]
+      },
+      "homeworkCompletionRequestSchema": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          }
+        },
+        "required": ["completed"]
+      },
+      "homeworkCompletionResponseSchema": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["completed", "completedAt"]
+      },
+      "homeworkUpdateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "publishedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionStartAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionDueAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMajor": {
+            "type": "boolean"
+          },
+          "requiresTeam": {
+            "type": "boolean"
+          }
+        }
+      },
+      "homeworksQuerySchema": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "$ref": "#/components/schemas/integerStringSchema"
+          },
+          "includeDeleted": {
+            "type": "string",
+            "enum": ["true", "false"]
+          }
+        },
+        "required": ["sectionId"]
+      },
+      "homeworksListResponseSchema": {
+        "type": "object",
+        "properties": {
+          "viewer": {
+            "$ref": "#/components/schemas/viewerContextSchema"
+          },
+          "homeworks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/homeworkListItemSchema"
+            }
+          },
+          "auditLogs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/homeworkAuditLogSchema"
+            }
+          }
+        },
+        "required": ["viewer", "homeworks", "auditLogs"]
+      },
+      "homeworkCreateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "publishedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionStartAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "submissionDueAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "isMajor": {
+            "type": "boolean"
+          },
+          "requiresTeam": {
+            "type": "boolean"
+          }
+        },
+        "required": ["sectionId", "title"]
+      },
+      "localeUpdateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": ["en-us", "zh-cn"]
+          }
+        },
+        "required": ["locale"]
+      },
+      "metadataResponseSchema": {
+        "type": "object",
+        "properties": {
+          "educationLevels": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/educationLevelSchema"
+            }
+          },
+          "courseCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/courseCategorySchema"
+            }
+          },
+          "courseClassifies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/courseClassifySchema"
+            }
+          },
+          "classTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/classTypeSchema"
+            }
+          },
+          "courseTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/courseTypeSchema"
+            }
+          },
+          "courseGradations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/courseGradationSchema"
+            }
+          },
+          "examModes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/examModeSchema"
+            }
+          },
+          "teachLanguages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teachLanguageSchema"
+            }
+          },
+          "campuses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "buildings": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/buildingSchema"
+                  }
+                }
+              },
+              "required": ["buildings"]
+            }
+          }
+        },
+        "required": [
+          "educationLevels",
+          "courseCategories",
+          "courseClassifies",
+          "classTypes",
+          "courseTypes",
+          "courseGradations",
+          "examModes",
+          "teachLanguages",
+          "campuses"
+        ]
+      },
+      "schedulesQuerySchema": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "teacherId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "roomId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "weekday": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "dateFrom": {
+            "type": "string"
+          },
+          "dateTo": {
+            "type": "string"
+          },
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "paginatedScheduleResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/scheduleWithRelationsSchema"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/pageMetaSchema"
+          }
+        },
+        "required": ["data", "pagination"]
+      },
+      "jwIdPathParamsSchema": {
+        "type": "object",
+        "properties": {
+          "jwId": {
+            "$ref": "#/components/schemas/integerStringSchema"
+          }
+        },
+        "required": ["jwId"]
+      },
+      "binary": {},
+      "sectionDetailSchema": {
+        "type": "object",
+        "properties": {
+          "course": {
+            "$ref": "#/components/schemas/courseSchema"
+          },
+          "semester": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/semesterSchema"
+              }
+            ]
+          },
+          "campus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/campusSchema"
+              }
+            ]
+          },
+          "openDepartment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          },
+          "examMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/examModeSchema"
+              }
+            ]
+          },
+          "teachLanguage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/teachLanguageSchema"
+              }
+            ]
+          },
+          "roomType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/roomTypeSchema"
+              }
+            ]
+          },
+          "schedules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/scheduleBaseSchema"
+            }
+          },
+          "scheduleGroups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/scheduleGroupSchema"
+            }
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherWithDepartmentTitleSchema"
+            }
+          },
+          "teacherAssignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherAssignmentSchema"
+            }
+          },
+          "exams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/examSchema"
+            }
+          },
+          "adminClasses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminClassSchema"
+            }
+          }
+        },
+        "required": [
+          "course",
+          "semester",
+          "campus",
+          "openDepartment",
+          "examMode",
+          "teachLanguage",
+          "roomType",
+          "schedules",
+          "scheduleGroups",
+          "teachers",
+          "teacherAssignments",
+          "exams",
+          "adminClasses"
+        ]
+      },
+      "array": {},
+      "sectionsCalendarQuerySchema": {
+        "type": "object",
+        "properties": {
+          "sectionIds": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["sectionIds"]
+      },
+      "matchSectionCodesRequestSchema": {
+        "type": "object",
+        "properties": {
+          "codes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/sectionCodeSchema"
+            },
+            "minItems": 1,
+            "maxItems": 500
+          },
+          "semesterId": {
+            "type": "string"
+          }
+        },
+        "required": ["codes"]
+      },
+      "matchSectionCodesResponseSchema": {
+        "type": "object",
+        "properties": {
+          "semester": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "nameCn": {
+                "type": "string",
+                "nullable": true
+              },
+              "code": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["id", "nameCn", "code"]
+          },
+          "matchedCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unmatchedCodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/sectionCompactSchema"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "semester",
+          "matchedCodes",
+          "unmatchedCodes",
+          "sections",
+          "total"
+        ]
+      },
+      "sectionsQuerySchema": {
+        "type": "object",
+        "properties": {
+          "courseId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "semesterId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "campusId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "departmentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "teacherId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "ids": {
+            "type": "string"
+          },
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "paginatedSectionResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/sectionListSchema"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/pageMetaSchema"
+          }
+        },
+        "required": ["data", "pagination"]
+      },
+      "semesterSchema": {
+        "type": "object",
+        "properties": {
+          "startDate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "endDate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["startDate", "endDate"]
+      },
+      "semestersQuerySchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "paginatedSemesterResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/semesterSchema"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/pageMetaSchema"
+          }
+        },
+        "required": ["data", "pagination"]
+      },
+      "teachersQuerySchema": {
+        "type": "object",
+        "properties": {
+          "departmentId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "search": {
+            "type": "string"
+          },
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "paginatedTeacherResponseSchema": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherListSchema"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/pageMetaSchema"
+          }
+        },
+        "required": ["data", "pagination"]
+      },
+      "uploadRenameRequestSchema": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "required": ["filename"]
+      },
+      "uploadRenameResponseSchema": {
+        "type": "object",
+        "properties": {
+          "upload": {
+            "$ref": "#/components/schemas/uploadSummarySchema"
+          }
+        },
+        "required": ["upload"]
+      },
+      "uploadDeleteResponseSchema": {
+        "type": "object",
+        "properties": {
+          "deletedId": {
+            "type": "string"
+          },
+          "deletedSize": {
+            "type": "integer"
+          }
+        },
+        "required": ["deletedId", "deletedSize"]
+      },
+      "uploadCompleteRequestSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "required": ["key", "filename"]
+      },
+      "uploadCompleteResponseSchema": {
+        "type": "object",
+        "properties": {
+          "upload": {
+            "$ref": "#/components/schemas/uploadSummarySchema"
+          },
+          "usedBytes": {
+            "type": "integer"
+          },
+          "quotaBytes": {
+            "type": "integer"
+          }
+        },
+        "required": ["upload", "usedBytes", "quotaBytes"]
+      },
+      "uploadsListResponseSchema": {
+        "type": "object",
+        "properties": {
+          "maxFileSizeBytes": {
+            "type": "integer"
+          },
+          "quotaBytes": {
+            "type": "integer"
+          },
+          "uploads": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/uploadSummarySchema"
+            }
+          },
+          "usedBytes": {
+            "type": "integer"
+          }
+        },
+        "required": ["maxFileSizeBytes", "quotaBytes", "uploads", "usedBytes"]
+      },
+      "uploadCreateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "size": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "required": ["filename", "size"]
+      },
+      "uploadCreateResponseSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "maxFileSizeBytes": {
+            "type": "integer"
+          },
+          "quotaBytes": {
+            "type": "integer"
+          },
+          "usedBytes": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "url",
+          "maxFileSizeBytes",
+          "quotaBytes",
+          "usedBytes"
+        ]
+      },
+      "sectionCodeSchema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[A-Za-z0-9_.-]+$"
+      },
+      "descriptionTargetTypeSchema": {
+        "type": "string",
+        "enum": ["section", "course", "teacher", "homework"]
+      },
+      "commentVisibilitySchema": {
+        "type": "string",
+        "enum": ["public", "logged_in_only", "anonymous"]
+      },
+      "commentTargetTypeSchema": {
+        "type": "string",
+        "enum": ["section", "course", "teacher", "section-teacher", "homework"]
+      },
+      "integerStringSchema": {
+        "type": "string",
+        "pattern": "^-?\\d+$"
+      },
+      "openApiErrorSchema": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["error"]
+      },
+      "dateTimeSchema": {
+        "type": "string"
+      },
+      "pageMetaSchema": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "totalPages": {
+            "type": "integer"
+          }
+        },
+        "required": ["page", "pageSize", "total", "totalPages"]
+      },
+      "commentAuthorSummarySchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "isUstcVerified": {
+            "type": "boolean"
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "isGuest": {
+            "type": "boolean"
+          }
+        },
+        "required": ["name", "isUstcVerified", "isAdmin", "isGuest"]
+      },
+      "commentAttachmentSummarySchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "uploadId": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": true
+          },
+          "size": {
+            "type": "integer"
+          }
+        },
+        "required": ["id", "uploadId", "filename", "url", "contentType", "size"]
+      },
+      "commentReactionSummarySchema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "viewerHasReacted": {
+            "type": "boolean"
+          }
+        },
+        "required": ["type", "count", "viewerHasReacted"]
+      },
+      "commentNodeSchema": {
+        "type": "string"
+      },
+      "viewerContextSchema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAdmin": {
+            "type": "boolean"
+          },
+          "isAuthenticated": {
+            "type": "boolean"
+          },
+          "isSuspended": {
+            "type": "boolean"
+          },
+          "suspensionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "suspensionExpiresAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "image",
+          "isAdmin",
+          "isAuthenticated",
+          "isSuspended",
+          "suspensionReason",
+          "suspensionExpiresAt"
+        ]
+      },
+      "openApiDocumentResponseSchema": {
+        "type": "object",
+        "properties": {
+          "openapi": {
+            "type": "string"
+          },
+          "info": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": ["title", "version"]
+          },
+          "servers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": ["url"]
+            }
+          },
+          "paths": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["openapi", "info", "paths"]
+      },
+      "sectionBaseSchema": {
+        "type": "object"
+      },
+      "courseBaseSchema": {
+        "type": "object"
+      },
+      "courseSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object"
+          },
+          "classType": {
+            "type": "object"
+          },
+          "classify": {
+            "type": "object"
+          },
+          "educationLevel": {
+            "type": "object"
+          },
+          "gradation": {
+            "type": "object"
+          },
+          "type": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "category",
+          "classType",
+          "classify",
+          "educationLevel",
+          "gradation",
+          "type"
+        ]
+      },
+      "departmentSchema": {
+        "type": "object"
+      },
+      "teacherSchema": {
+        "type": "object"
+      },
+      "sectionCompactSchema": {
+        "type": "object",
+        "properties": {
+          "course": {
+            "$ref": "#/components/schemas/courseSchema"
+          },
+          "semester": {
+            "type": "object"
+          },
+          "campus": {
+            "type": "object"
+          },
+          "openDepartment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherSchema"
+            }
+          }
+        },
+        "required": [
+          "course",
+          "semester",
+          "campus",
+          "openDepartment",
+          "teachers"
+        ]
+      },
+      "scheduleBaseSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["date"]
+      },
+      "roomSchema": {
+        "type": "object"
+      },
+      "roomTypeSchema": {
+        "type": "object"
+      },
+      "roomWithBuildingSchema": {
+        "type": "object",
+        "properties": {
+          "building": {
+            "type": "object"
+          },
+          "roomType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/roomTypeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["building", "roomType"]
+      },
+      "scheduleWithRoomTeachersSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "room": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/roomWithBuildingSchema"
+              }
+            ]
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherSchema"
+            }
+          }
+        },
+        "required": ["date", "room", "teachers"]
+      },
+      "adminUserListItemSchema": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          }
+        },
+        "required": ["email", "createdAt"]
+      },
+      "adminSuspensionSchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "expiresAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "liftedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["id", "name"],
+            "nullable": true
+          }
+        },
+        "required": ["createdAt", "expiresAt", "liftedAt"]
+      },
+      "adminCommentBaseSchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "deletedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "moderatedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["createdAt", "updatedAt", "deletedAt", "moderatedAt"]
+      },
+      "uploadSummarySchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          }
+        },
+        "required": ["createdAt"]
+      },
+      "buildingSchema": {
+        "type": "object"
+      },
+      "campusSchema": {
+        "type": "object"
+      },
+      "teachLanguageSchema": {
+        "type": "object"
+      },
+      "examModeSchema": {
+        "type": "object"
+      },
+      "courseGradationSchema": {
+        "type": "object"
+      },
+      "courseTypeSchema": {
+        "type": "object"
+      },
+      "classTypeSchema": {
+        "type": "object"
+      },
+      "courseClassifySchema": {
+        "type": "object"
+      },
+      "courseCategorySchema": {
+        "type": "object"
+      },
+      "educationLevelSchema": {
+        "type": "object"
+      },
+      "homeworkUserSummarySchema": {
+        "type": "object"
+      },
+      "homeworkAuditLogSchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "actor": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/homeworkUserSummarySchema"
+              }
+            ]
+          }
+        },
+        "required": ["createdAt", "actor"]
+      },
+      "homeworkDescriptionSchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "lastEditedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["createdAt", "updatedAt", "lastEditedAt"]
+      },
+      "homeworkListItemSchema": {
+        "type": "object",
+        "properties": {
+          "publishedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "submissionStartAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "submissionDueAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "deletedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "description": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/homeworkDescriptionSchema"
+              }
+            ]
+          },
+          "createdBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/homeworkUserSummarySchema"
+              }
+            ]
+          },
+          "updatedBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/homeworkUserSummarySchema"
+              }
+            ]
+          },
+          "deletedBy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/homeworkUserSummarySchema"
+              }
+            ]
+          },
+          "completion": {
+            "type": "object",
+            "properties": {
+              "completedAt": {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            },
+            "required": ["completedAt"],
+            "nullable": true
+          }
+        },
+        "required": [
+          "publishedAt",
+          "submissionStartAt",
+          "submissionDueAt",
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "description",
+          "createdBy",
+          "updatedBy",
+          "deletedBy",
+          "completion"
+        ]
+      },
+      "descriptionHistoryEntrySchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "editor": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "image": {
+                "type": "string",
+                "nullable": true
+              },
+              "username": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["id", "name", "image", "username"],
+            "nullable": true
+          }
+        },
+        "required": ["createdAt", "editor"]
+      },
+      "descriptionDetailSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "lastEditedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "lastEditedBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "image": {
+                "type": "string",
+                "nullable": true
+              },
+              "username": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["id", "name", "image", "username"],
+            "nullable": true
+          }
+        },
+        "required": ["id", "updatedAt", "lastEditedAt", "lastEditedBy"]
+      },
+      "adminCommentSchema": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "updatedAt": {
+            "$ref": "#/components/schemas/dateTimeSchema"
+          },
+          "deletedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "moderatedAt": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": ["name"],
+            "nullable": true
+          },
+          "section": {
+            "type": "object",
+            "properties": {
+              "jwId": {
+                "type": "integer"
+              },
+              "code": {
+                "type": "string"
+              }
+            },
+            "required": ["jwId", "code"],
+            "nullable": true
+          },
+          "course": {
+            "type": "object",
+            "properties": {
+              "jwId": {
+                "type": "integer"
+              },
+              "code": {
+                "type": "string"
+              },
+              "nameCn": {
+                "type": "string"
+              }
+            },
+            "required": ["jwId", "code", "nameCn"],
+            "nullable": true
+          },
+          "teacher": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "nameCn": {
+                "type": "string"
+              }
+            },
+            "required": ["id", "nameCn"],
+            "nullable": true
+          },
+          "homework": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "section": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code"]
+              }
+            },
+            "required": ["id", "title", "section"],
+            "nullable": true
+          },
+          "sectionTeacher": {
+            "type": "object",
+            "properties": {
+              "section": {
+                "type": "object",
+                "properties": {
+                  "jwId": {
+                    "type": "integer"
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": ["jwId", "code"]
+              },
+              "teacher": {
+                "type": "object",
+                "properties": {
+                  "nameCn": {
+                    "type": "string"
+                  }
+                },
+                "required": ["nameCn"]
+              }
+            },
+            "required": ["section", "teacher"],
+            "nullable": true
+          }
+        },
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "moderatedAt",
+          "user",
+          "section",
+          "course",
+          "teacher",
+          "homework",
+          "sectionTeacher"
+        ]
+      },
+      "buildingWithCampusSchema": {
+        "type": "object",
+        "properties": {
+          "campus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/campusSchema"
+              }
+            ]
+          }
+        },
+        "required": ["campus"]
+      },
+      "roomWithBuildingCampusSchema": {
+        "type": "object",
+        "properties": {
+          "building": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/buildingWithCampusSchema"
+              }
+            ]
+          },
+          "roomType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/roomTypeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["building", "roomType"]
+      },
+      "teacherWithDepartmentSchema": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          }
+        },
+        "required": ["department"]
+      },
+      "scheduleGroupSchema": {
+        "type": "object"
+      },
+      "scheduleWithRelationsSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "room": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/roomWithBuildingCampusSchema"
+              }
+            ]
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherWithDepartmentSchema"
+            }
+          },
+          "section": {
+            "type": "object",
+            "properties": {
+              "course": {
+                "$ref": "#/components/schemas/courseBaseSchema"
+              }
+            },
+            "required": ["course"]
+          },
+          "scheduleGroup": {
+            "$ref": "#/components/schemas/scheduleGroupSchema"
+          }
+        },
+        "required": ["date", "room", "teachers", "section", "scheduleGroup"]
+      },
+      "teacherTitleSchema": {
+        "type": "object"
+      },
+      "teacherWithDepartmentTitleSchema": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          },
+          "teacherTitle": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/teacherTitleSchema"
+              }
+            ]
+          }
+        },
+        "required": ["department", "teacherTitle"]
+      },
+      "teacherLessonTypeSchema": {
+        "type": "object"
+      },
+      "teacherAssignmentSchema": {
+        "type": "object",
+        "properties": {
+          "weekIndices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "nullable": true
+          },
+          "teacher": {
+            "$ref": "#/components/schemas/teacherSchema"
+          },
+          "teacherLessonType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/teacherLessonTypeSchema"
+              }
+            ]
+          }
+        },
+        "required": ["weekIndices", "teacher", "teacherLessonType"]
+      },
+      "examBatchSchema": {
+        "type": "object"
+      },
+      "examRoomSchema": {
+        "type": "object"
+      },
+      "examSchema": {
+        "type": "object",
+        "properties": {
+          "examDate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          },
+          "examBatch": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/examBatchSchema"
+              }
+            ]
+          },
+          "examRooms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/examRoomSchema"
+            }
+          }
+        },
+        "required": ["examDate", "examBatch", "examRooms"]
+      },
+      "adminClassSchema": {
+        "type": "object"
+      },
+      "sectionListSchema": {
+        "type": "object",
+        "properties": {
+          "course": {
+            "$ref": "#/components/schemas/courseSchema"
+          },
+          "semester": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/semesterSchema"
+              }
+            ]
+          },
+          "campus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/campusSchema"
+              }
+            ]
+          },
+          "openDepartment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          },
+          "examMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/examModeSchema"
+              }
+            ]
+          },
+          "teachLanguage": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/teachLanguageSchema"
+              }
+            ]
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherSchema"
+            }
+          },
+          "adminClasses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/adminClassSchema"
+            }
+          }
+        },
+        "required": [
+          "course",
+          "semester",
+          "campus",
+          "openDepartment",
+          "examMode",
+          "teachLanguage",
+          "teachers",
+          "adminClasses"
+        ]
+      },
+      "teacherListSchema": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          },
+          "teacherTitle": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/teacherTitleSchema"
+              }
+            ]
+          },
+          "_count": {
+            "type": "object",
+            "properties": {
+              "sections": {
+                "type": "integer"
+              }
+            },
+            "required": ["sections"]
+          }
+        },
+        "required": ["department", "teacherTitle", "_count"]
+      }
+    },
+    "responses": {}
+  }
+}
