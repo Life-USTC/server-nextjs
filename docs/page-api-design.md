@@ -45,6 +45,7 @@
 ### 本轮落地
 - 提供 `GET /api/openapi` 输出 OpenAPI 3.1 文档。
 - 当前已纳入 `POST /api/sections/match-codes`、`GET /api/semesters/current`、`POST /api/homeworks`、`POST /api/descriptions` 的契约描述。
+- 提供 `/api-docs` 交互式文档页面，便于联调与人工验收。
 
 ### 演进方向
 - 将新增接口默认纳入 OpenAPI registry，保持文档与代码同源更新。
