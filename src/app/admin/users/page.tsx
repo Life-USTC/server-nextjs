@@ -126,6 +126,9 @@ export default async function AdminUsersPage({
           <FieldLabel className="sr-only">{tCommon("search")}</FieldLabel>
           <Input
             name="search"
+            type="search"
+            inputMode="search"
+            autoComplete="off"
             defaultValue={search}
             placeholder={t("searchPlaceholder")}
             className="w-full"

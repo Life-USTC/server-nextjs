@@ -186,16 +186,16 @@ export default async function TeachersPage({
       <div className="mb-6 flex items-center justify-between">
         <p className="text-muted-foreground">
           {t("showing", { count: teachers.length, total })}
-          {search && (
+          {search ? (
             <span className="ml-2">{t("searchFor", { query: search })}</span>
-          )}
-          {selectedDepartment && (
+          ) : null}
+          {selectedDepartment ? (
             <span className="ml-2">
               {t("inDepartment", {
                 department: selectedDepartment.namePrimary,
               })}
             </span>
-          )}
+          ) : null}
         </p>
       </div>
 
@@ -220,11 +220,11 @@ export default async function TeachersPage({
                   <TableCell>
                     <div className="font-medium">
                       {teacher.namePrimary}
-                      {isEnglish && teacher.nameSecondary && (
+                      {isEnglish && teacher.nameSecondary ? (
                         <span className="ml-2 text-muted-foreground">
                           ({teacher.nameSecondary})
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -260,30 +260,30 @@ export default async function TeachersPage({
         <Empty>
           <EmptyHeader>
             <EmptyTitle>{t("noTeachersFound")}</EmptyTitle>
-            {search && (
+            {search ? (
               <EmptyDescription>
                 {t("searchFor", { query: search })}
               </EmptyDescription>
-            )}
-            {selectedDepartment && (
+            ) : null}
+            {selectedDepartment ? (
               <EmptyDescription>
                 {t("inDepartment", {
                   department: selectedDepartment.namePrimary,
                 })}
               </EmptyDescription>
-            )}
+            ) : null}
           </EmptyHeader>
         </Empty>
       )}
 
-      {totalPages > 1 && (
+      {totalPages > 1 ? (
         <Pagination>
           <PaginationContent>
-            {currentPage > 1 && (
+            {currentPage > 1 ? (
               <PaginationItem>
                 <PaginationPrevious href={buildUrl(currentPage - 1)} />
               </PaginationItem>
-            )}
+            ) : null}
             {getPageNumbers().map((pageNum, index) => (
               <PaginationItem
                 key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
@@ -300,14 +300,14 @@ export default async function TeachersPage({
                 )}
               </PaginationItem>
             ))}
-            {currentPage < totalPages && (
+            {currentPage < totalPages ? (
               <PaginationItem>
                 <PaginationNext href={buildUrl(currentPage + 1)} />
               </PaginationItem>
-            )}
+            ) : null}
           </PaginationContent>
         </Pagination>
-      )}
+      ) : null}
     </main>
   );
 }

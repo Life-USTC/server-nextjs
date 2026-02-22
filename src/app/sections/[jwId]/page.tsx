@@ -845,11 +845,11 @@ function SectionHeader({
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <h1 className="mb-2 text-display">{courseName}</h1>
-          {courseNameSecondary && (
+          {courseNameSecondary ? (
             <p className="text-muted-foreground text-sm">
               {courseNameSecondary}
             </p>
-          )}
+          ) : null}
         </div>
         <SubscriptionCalendarButton
           sectionDatabaseId={sectionId}
@@ -950,12 +950,12 @@ function MiniCalendar({
                 </span>
                 {isCurrentMonth && (hasCourse || hasExam) ? (
                   <div className="flex items-center gap-1">
-                    {hasCourse && (
+                    {hasCourse ? (
                       <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                    )}
-                    {hasExam && (
+                    ) : null}
+                    {hasExam ? (
                       <span className="h-1.5 w-1.5 rounded-full border border-foreground" />
-                    )}
+                    ) : null}
                   </div>
                 ) : (
                   <span className="h-1.5" />
@@ -1001,16 +1001,16 @@ function BasicInfoCard({
           </CardHeader>
           <CardPanel>
             <div className="grid grid-cols-1 gap-2 text-sm">
-              {section.semester && (
+              {section.semester ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">{t("semester")}</span>
                   <span className="font-medium text-foreground">
                     {section.semester.nameCn}
                   </span>
                 </div>
-              )}
+              ) : null}
 
-              {section.code && (
+              {section.code ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">
                     {t("sectionCode")}
@@ -1019,18 +1019,18 @@ function BasicInfoCard({
                     {section.code}
                   </span>
                 </div>
-              )}
+              ) : null}
 
               <div className="mt-4" />
 
-              {section.campus && (
+              {section.campus ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">{t("campus")}</span>
                   <span className="font-medium text-foreground">
                     {section.campus.namePrimary}
                   </span>
                 </div>
-              )}
+              ) : null}
 
               <div className="flex items-baseline gap-2">
                 <span className="text-muted-foreground">
@@ -1041,37 +1041,38 @@ function BasicInfoCard({
                 </span>
               </div>
 
-              {section.credits !== null && (
+              {section.credits !== null ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">{t("credits")}</span>
                   <span className="font-medium text-foreground">
                     {section.credits}
                   </span>
                 </div>
-              )}
+              ) : null}
 
-              {section.period !== null && (
+              {section.period !== null ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">{t("period")}</span>
                   <span className="font-medium text-foreground">
                     {section.period}
                     {section.actualPeriods !== null &&
-                      section.actualPeriods !== section.period &&
-                      ` (${section.actualPeriods})`}
+                    section.actualPeriods !== section.period
+                      ? ` (${section.actualPeriods})`
+                      : null}
                   </span>
                 </div>
-              )}
+              ) : null}
 
-              {section.examMode && (
+              {section.examMode ? (
                 <div className="flex items-baseline gap-2">
                   <span className="text-muted-foreground">{t("examMode")}</span>
                   <span className="font-medium text-foreground">
                     {section.examMode.namePrimary}
                   </span>
                 </div>
-              )}
+              ) : null}
 
-              {section.remark && (
+              {section.remark ? (
                 <div className="mt-6">
                   <p className="mb-1 text-muted-foreground text-sm">
                     {t("remark")}
@@ -1080,9 +1081,9 @@ function BasicInfoCard({
                     {section.remark}
                   </p>
                 </div>
-              )}
+              ) : null}
 
-              {section.teachers && section.teachers.length > 0 && (
+              {section.teachers && section.teachers.length > 0 ? (
                 <div className="mt-6">
                   <p className="mb-2 text-muted-foreground text-sm">
                     {t("teachers")}
@@ -1099,17 +1100,17 @@ function BasicInfoCard({
                           className="cursor-pointer hover:bg-secondary/80"
                         >
                           {teacher.namePrimary}
-                          {teacher.department && (
+                          {teacher.department ? (
                             <span className="ml-1 text-muted-foreground">
                               ({teacher.department.namePrimary})
                             </span>
-                          )}
+                          ) : null}
                         </Badge>
                       </Link>
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
 
             <Collapsible className="mt-6">
@@ -1220,7 +1221,7 @@ function BasicInfoCard({
                   ) : null}
                 </div>
 
-                {section.adminClasses && section.adminClasses.length > 0 && (
+                {section.adminClasses && section.adminClasses.length > 0 ? (
                   <div className="mt-6">
                     <p className="mb-2 text-muted-foreground text-sm">
                       {t("adminClasses")}
@@ -1233,13 +1234,13 @@ function BasicInfoCard({
                       ))}
                     </div>
                   </div>
-                )}
+                ) : null}
 
-                {(sameSemesterOtherTeachers.length > 0 ||
-                  sameTeacherOtherSemesters.length > 0 ||
-                  otherSections.length > 0) && (
+                {sameSemesterOtherTeachers.length > 0 ||
+                sameTeacherOtherSemesters.length > 0 ||
+                otherSections.length > 0 ? (
                   <div className="mt-6 space-y-4">
-                    {sameSemesterOtherTeachers.length > 0 && (
+                    {sameSemesterOtherTeachers.length > 0 ? (
                       <div>
                         <p className="mb-2 text-muted-foreground text-sm">
                           {t("sameSemesterOtherTeachers")}
@@ -1274,9 +1275,9 @@ function BasicInfoCard({
                             ))}
                         </div>
                       </div>
-                    )}
+                    ) : null}
 
-                    {sameTeacherOtherSemesters.length > 0 && (
+                    {sameTeacherOtherSemesters.length > 0 ? (
                       <div>
                         <p className="mb-2 text-muted-foreground text-sm">
                           {t("sameTeacherOtherSemesters")}
@@ -1294,9 +1295,9 @@ function BasicInfoCard({
                                   variant="outline"
                                   className="cursor-pointer hover:bg-accent"
                                 >
-                                  {otherSection.semester && (
+                                  {otherSection.semester ? (
                                     <span>{otherSection.semester.nameCn}</span>
-                                  )}
+                                  ) : null}
                                   <span className="ml-1 text-muted-foreground">
                                     {otherSection.code}
                                   </span>
@@ -1305,9 +1306,9 @@ function BasicInfoCard({
                             ))}
                         </div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
-                )}
+                ) : null}
               </CollapsiblePanel>
             </Collapsible>
 

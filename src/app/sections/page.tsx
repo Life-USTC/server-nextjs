@@ -419,14 +419,14 @@ export default async function SectionsPage({
       <div className="mb-6 flex items-center justify-between">
         <p className="text-muted-foreground">
           {t("showing", { count: sections.length, total })}
-          {search && (
+          {search ? (
             <span className="ml-2">{t("searchFor", { query: search })}</span>
-          )}
-          {selectedSemester && (
+          ) : null}
+          {selectedSemester ? (
             <span className="ml-2">
               {t("inSemester", { semester: selectedSemester.nameCn })}
             </span>
-          )}
+          ) : null}
         </p>
       </div>
 
@@ -451,9 +451,9 @@ export default async function SectionsPage({
                   href={`/sections/${section.jwId}`}
                 >
                   <TableCell>
-                    {section.semester && (
+                    {section.semester ? (
                       <Badge variant="outline">{section.semester.nameCn}</Badge>
-                    )}
+                    ) : null}
                   </TableCell>
                   <TableCell>{section.course.namePrimary}</TableCell>
                   <TableCell>
@@ -499,28 +499,28 @@ export default async function SectionsPage({
         <Empty>
           <EmptyHeader>
             <EmptyTitle>{t("noSectionsFound")}</EmptyTitle>
-            {search && (
+            {search ? (
               <EmptyDescription>
                 {t("searchFor", { query: search })}
               </EmptyDescription>
-            )}
-            {selectedSemester && (
+            ) : null}
+            {selectedSemester ? (
               <EmptyDescription>
                 {t("inSemester", { semester: selectedSemester.nameCn })}
               </EmptyDescription>
-            )}
+            ) : null}
           </EmptyHeader>
         </Empty>
       )}
 
-      {totalPages > 1 && (
+      {totalPages > 1 ? (
         <Pagination>
           <PaginationContent>
-            {currentPage > 1 && (
+            {currentPage > 1 ? (
               <PaginationItem>
                 <PaginationPrevious href={buildUrl(currentPage - 1)} />
               </PaginationItem>
-            )}
+            ) : null}
             {getPageNumbers().map((pageNum, index) => (
               <PaginationItem
                 key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
@@ -537,14 +537,14 @@ export default async function SectionsPage({
                 )}
               </PaginationItem>
             ))}
-            {currentPage < totalPages && (
+            {currentPage < totalPages ? (
               <PaginationItem>
                 <PaginationNext href={buildUrl(currentPage + 1)} />
               </PaginationItem>
-            )}
+            ) : null}
           </PaginationContent>
         </Pagination>
-      )}
+      ) : null}
     </main>
   );
 }

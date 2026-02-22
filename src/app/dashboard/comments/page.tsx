@@ -282,14 +282,14 @@ export default async function MyCommentsPage({
             ))}
           </div>
 
-          {totalPages > 1 && (
+          {totalPages > 1 ? (
             <Pagination className="mt-6">
               <PaginationContent>
-                {page > 1 && (
+                {page > 1 ? (
                   <PaginationItem>
                     <PaginationPrevious href={buildUrl(page - 1)} />
                   </PaginationItem>
-                )}
+                ) : null}
                 {(() => {
                   const maxVisible = 7;
                   const half = Math.floor(maxVisible / 2);
@@ -300,16 +300,16 @@ export default async function MyCommentsPage({
                   for (let i = start; i <= end; i++) pages.push(i);
                   return (
                     <>
-                      {start > 1 && (
+                      {start > 1 ? (
                         <>
                           <PaginationItem>
                             <PaginationLink href={buildUrl(1)}>
                               1
                             </PaginationLink>
                           </PaginationItem>
-                          {start > 2 && <PaginationEllipsis />}
+                          {start > 2 ? <PaginationEllipsis /> : null}
                         </>
-                      )}
+                      ) : null}
                       {pages.map((pageNum) => (
                         <PaginationItem key={pageNum}>
                           <PaginationLink
@@ -320,27 +320,27 @@ export default async function MyCommentsPage({
                           </PaginationLink>
                         </PaginationItem>
                       ))}
-                      {end < totalPages && (
+                      {end < totalPages ? (
                         <>
-                          {end < totalPages - 1 && <PaginationEllipsis />}
+                          {end < totalPages - 1 ? <PaginationEllipsis /> : null}
                           <PaginationItem>
                             <PaginationLink href={buildUrl(totalPages)}>
                               {totalPages}
                             </PaginationLink>
                           </PaginationItem>
                         </>
-                      )}
+                      ) : null}
                     </>
                   );
                 })()}
-                {page < totalPages && (
+                {page < totalPages ? (
                   <PaginationItem>
                     <PaginationNext href={buildUrl(page + 1)} />
                   </PaginationItem>
-                )}
+                ) : null}
               </PaginationContent>
             </Pagination>
-          )}
+          ) : null}
         </div>
       )}
     </main>
