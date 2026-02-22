@@ -50,7 +50,7 @@
 ### 演进方向
 - 将新增接口默认纳入 OpenAPI registry，保持文档与代码同源更新。
 - 与 Zod Schema 同步维护输入/输出模型，减少双份定义漂移。
-- 后续可接入 Swagger UI 或 Redoc 页面用于本地联调。
+- 当前已提供 Swagger UI 页面用于本地联调。
 
 ## 测试策略提炼
 

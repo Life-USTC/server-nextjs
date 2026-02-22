@@ -68,6 +68,5 @@ test("API 文档页面可访问并展示容器", async ({ page }) => {
   await page.goto("/api-docs");
 
   await expect(page).toHaveURL(/\/api-docs$/);
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.locator("#redoc-container")).toBeVisible();
+  await expect(page.locator("#swagger-ui")).toBeVisible();
 });

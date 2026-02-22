@@ -27,7 +27,7 @@
 - `tests/e2e/smoke.spec.ts`：验证 `/signin` 页面可访问且 USTC/GitHub/Google 登录按钮可见。
 - `tests/e2e/public-pages.spec.ts`：验证 `/sections`、`/teachers`、`/courses` 页面加载、搜索参数生效，以及列表区（表格或空态）渲染。
 - `tests/e2e/public-pages.spec.ts`：验证 `/comments/guide` 页面可访问并成功渲染 Markdown 示例。
-- `tests/e2e/public-pages.spec.ts`：验证 `/api-docs` 页面可访问并展示 Redoc 容器。
+- `tests/e2e/public-pages.spec.ts`：验证 `/api-docs` 页面可访问并展示 Swagger UI 容器。
 - `tests/e2e/detail-navigation.spec.ts`：验证列表页可进入详情页；若当前数据为空则回退验证详情页 404 行为。
 - `tests/e2e/auth-redirect.spec.ts`：验证未登录访问 `/admin*`、`/dashboard*`、`/settings*` 全部受保护页面时会重定向到 `/signin`。
 - `tests/e2e/dynamic-routes.spec.ts`：验证 `/comments/[id]`、`/u/[username]`、`/u/id/[uid]` 及详情页动态路由在无效参数下返回 404。
