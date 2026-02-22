@@ -32,6 +32,7 @@
 - `tests/e2e/dynamic-routes.spec.ts`：验证 `/comments/[id]`、`/u/[username]`、`/u/id/[uid]` 及详情页动态路由在无效参数下返回 404。
 - `tests/e2e/navigation-flow.spec.ts`：验证首页快速入口跳转与列表页面包屑返回首页等跨页面导航逻辑。
 - `tests/e2e/api-routes.spec.ts`：验证 OpenAPI 接口、match-codes 输入边界与 calendar 参数非法场景。
+- `tests/e2e/api-routes.spec.ts`：覆盖主要 API 路由在未授权/异常输入下不返回 500，并校验预期状态码集合。
 
 ## 当前单测
 - `tests/unit/api-helpers.test.ts`：整数解析与列表解析边界。

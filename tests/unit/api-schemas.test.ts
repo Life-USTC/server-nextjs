@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  calendarSubscriptionCreateRequestSchema,
+  commentReactionRequestSchema,
   descriptionUpsertRequestSchema,
   homeworkCreateRequestSchema,
+  localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
+  uploadCreateRequestSchema,
 } from "@/lib/api-schemas";
 
 describe("matchSectionCodesRequestSchema", () => {
@@ -65,5 +69,36 @@ describe("descriptionUpsertRequestSchema", () => {
       content: "text",
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("other request schemas", () => {
+  it("validates upload create payload", () => {
+    const valid = uploadCreateRequestSchema.safeParse({
+      filename: "a.txt",
+      size: "123",
+    });
+    expect(valid.success).toBe(true);
+  });
+
+  it("validates calendar subscription payload", () => {
+    const valid = calendarSubscriptionCreateRequestSchema.safeParse({
+      sectionIds: [1, 2, 3],
+    });
+    expect(valid.success).toBe(true);
+  });
+
+  it("rejects invalid reaction type", () => {
+    const invalid = commentReactionRequestSchema.safeParse({
+      type: "boom",
+    });
+    expect(invalid.success).toBe(false);
+  });
+
+  it("rejects unsupported locale", () => {
+    const invalid = localeUpdateRequestSchema.safeParse({
+      locale: "fr-fr",
+    });
+    expect(invalid.success).toBe(false);
   });
 });
