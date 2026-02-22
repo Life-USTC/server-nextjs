@@ -18,7 +18,8 @@
       "userProfile": "{username}'s Profile",
       "subscriptions": "Selected Sections",
       "uploads": "My Uploads",
-      "homeworks": "My Homework"
+      "homeworks": "My Homework",
+      "apiDocs": "API Docs"
     }
   },
   "common": {
@@ -152,6 +153,11 @@
     "toastDeleteSuccessDescription": "The file was removed.",
     "toastDeleteErrorTitle": "Delete failed",
     "toastDeleteErrorDescription": "We couldn't delete the file."
+  },
+  "apiDocs": {
+    "title": "API Documentation",
+    "description": "Interactive API reference generated from the project OpenAPI schema.",
+    "rawSpecLink": "Open raw OpenAPI JSON"
   },
   "homepage": {
     "badge": "🎓 Your Campus Companion",

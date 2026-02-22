@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
-import { descriptionUpsertRequestSchema } from "@/lib/api-schemas";
+import {
+  descriptionsQuerySchema,
+  descriptionUpsertRequestSchema,
+} from "@/lib/api-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -58,16 +61,18 @@ async function ensureTargetExists(
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const targetType = searchParams.get("targetType") as TargetType | null;
-  const targetIdParam = searchParams.get("targetId");
-  const targetId =
-    targetType === "homework"
-      ? targetIdParam
-      : parseOptionalInt(searchParams.get("targetId"));
-
-  if (!targetType || !TARGET_TYPES.includes(targetType)) {
+  const parsedQuery = descriptionsQuerySchema.safeParse({
+    targetType: searchParams.get("targetType"),
+    targetId: searchParams.get("targetId") ?? "",
+  });
+  if (!parsedQuery.success) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
   }
+
+  const targetType = parsedQuery.data.targetType as TargetType;
+  const targetIdParam = parsedQuery.data.targetId;
+  const targetId =
+    targetType === "homework" ? targetIdParam : parseOptionalInt(targetIdParam);
 
   if (!targetId) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });

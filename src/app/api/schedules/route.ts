@@ -6,6 +6,7 @@ import {
   handleRouteError,
   parseOptionalInt,
 } from "@/lib/api-helpers";
+import { schedulesQuerySchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -13,14 +14,23 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const pagination = getPagination(searchParams);
+    const parsedQuery = schedulesQuerySchema.safeParse({
+      sectionId: searchParams.get("sectionId") ?? undefined,
+      teacherId: searchParams.get("teacherId") ?? undefined,
+      roomId: searchParams.get("roomId") ?? undefined,
+      dateFrom: searchParams.get("dateFrom") ?? undefined,
+      dateTo: searchParams.get("dateTo") ?? undefined,
+      weekday: searchParams.get("weekday") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    });
+    if (!parsedQuery.success) {
+      return handleRouteError("Invalid schedule query", parsedQuery.error, 400);
+    }
 
-    const sectionId = searchParams.get("sectionId");
-    const teacherId = searchParams.get("teacherId");
-    const roomId = searchParams.get("roomId");
-    const dateFrom = searchParams.get("dateFrom");
-    const dateTo = searchParams.get("dateTo");
-    const weekday = searchParams.get("weekday");
+    const pagination = getPagination(searchParams);
+    const { sectionId, teacherId, roomId, dateFrom, dateTo, weekday } =
+      parsedQuery.data;
 
     const whereClause: Prisma.ScheduleWhereInput = {};
     const parsedSectionId = parseOptionalInt(sectionId);

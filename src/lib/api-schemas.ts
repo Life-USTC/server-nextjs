@@ -185,6 +185,78 @@ export const localeUpdateRequestSchema = z.object({
   locale: z.enum(["en-us", "zh-cn"]),
 });
 
+const integerStringSchema = z
+  .string()
+  .trim()
+  .regex(/^-?\d+$/);
+
+export const sectionsQuerySchema = z.object({
+  courseId: integerStringSchema.optional(),
+  semesterId: integerStringSchema.optional(),
+  campusId: integerStringSchema.optional(),
+  departmentId: integerStringSchema.optional(),
+  teacherId: integerStringSchema.optional(),
+  ids: z.string().trim().optional(),
+  page: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const schedulesQuerySchema = z.object({
+  sectionId: integerStringSchema.optional(),
+  teacherId: integerStringSchema.optional(),
+  roomId: integerStringSchema.optional(),
+  weekday: integerStringSchema.optional(),
+  dateFrom: z.string().trim().datetime().optional(),
+  dateTo: z.string().trim().datetime().optional(),
+  page: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const teachersQuerySchema = z.object({
+  departmentId: integerStringSchema.optional(),
+  search: z.string().trim().optional(),
+  page: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const coursesQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  page: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const adminUsersQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  page: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const adminCommentsQuerySchema = z.object({
+  status: z.enum(["active", "softbanned", "deleted"]).optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const commentsQuerySchema = z.object({
+  targetType: commentTargetTypeSchema,
+  targetId: z.string().optional(),
+  sectionId: integerStringSchema.optional(),
+  teacherId: integerStringSchema.optional(),
+});
+
+export const descriptionsQuerySchema = z.object({
+  targetType: descriptionTargetTypeSchema,
+  targetId: z.string().trim().min(1),
+});
+
+export const homeworksQuerySchema = z.object({
+  sectionId: integerStringSchema,
+  includeDeleted: z.enum(["true", "false"]).optional(),
+});
+
+export const sectionsCalendarQuerySchema = z.object({
+  sectionIds: z.string().trim().min(1),
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });
