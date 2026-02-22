@@ -4,6 +4,7 @@ import {
   invalidParamResponse,
   parseInteger,
 } from "@/lib/api-helpers";
+import { calendarSubscriptionUpdateRequestSchema } from "@/lib/api-schemas";
 import {
   extractToken,
   verifyCalendarSubscriptionJWT,
@@ -119,14 +120,16 @@ export async function PATCH(
     if (accessError) return accessError;
 
     const body = await request.json();
-    const sectionIds = body.sectionIds as number[];
-
-    if (!Array.isArray(sectionIds)) {
-      return NextResponse.json(
-        { error: "sectionIds must be an array" },
-        { status: 400 },
+    const parsedBody = calendarSubscriptionUpdateRequestSchema.safeParse(body);
+    if (!parsedBody.success) {
+      return handleRouteError(
+        "Invalid subscription update payload",
+        parsedBody.error,
+        400,
       );
     }
+
+    const sectionIds = parsedBody.data.sectionIds;
 
     // First check if subscription exists
     const existingSubscription = await prisma.calendarSubscription.findUnique({

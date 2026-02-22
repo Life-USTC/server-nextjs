@@ -1,19 +1,16 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleRouteError } from "@/lib/api-helpers";
-
-const locales = ["en-us", "zh-cn"];
+import { localeUpdateRequestSchema } from "@/lib/api-schemas";
 
 export async function POST(request: NextRequest) {
   try {
-    const { locale } = await request.json();
-
-    if (!locale || !locales.includes(locale)) {
-      return handleRouteError(
-        "Invalid locale",
-        new Error("Invalid locale"),
-        400,
-      );
+    const body = await request.json();
+    const parsedBody = localeUpdateRequestSchema.safeParse(body);
+    if (!parsedBody.success) {
+      return handleRouteError("Invalid locale", parsedBody.error, 400);
     }
+
+    const locale = parsedBody.data.locale;
 
     const response = NextResponse.json({ success: true });
     response.cookies.set("NEXT_LOCALE", locale, {

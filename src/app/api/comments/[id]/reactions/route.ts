@@ -2,21 +2,11 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { CommentReactionType } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
+import { commentReactionRequestSchema } from "@/lib/api-schemas";
 import { findActiveSuspension } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const REACTION_TYPES = [
-  "upvote",
-  "downvote",
-  "heart",
-  "laugh",
-  "hooray",
-  "confused",
-  "rocket",
-  "eyes",
-] as const;
 
 export async function POST(
   request: Request,
@@ -29,17 +19,18 @@ export async function POST(
 
   const { id } = await params;
 
-  let body: { type?: string } = {};
+  let body: unknown = {};
   try {
     body = await request.json();
   } catch (error) {
     return handleRouteError("Invalid reaction", error, 400);
   }
 
-  const type = typeof body.type === "string" ? body.type : "";
-  if (!REACTION_TYPES.includes(type as (typeof REACTION_TYPES)[number])) {
-    return NextResponse.json({ error: "Invalid reaction" }, { status: 400 });
+  const parsedBody = commentReactionRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid reaction", parsedBody.error, 400);
   }
+  const type = parsedBody.data.type;
 
   const suspension = await findActiveSuspension(session.user.id);
   if (suspension) {
@@ -94,17 +85,18 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  let body: { type?: string } = {};
+  let body: unknown = {};
   try {
     body = await request.json();
   } catch (error) {
     return handleRouteError("Invalid reaction", error, 400);
   }
 
-  const type = typeof body.type === "string" ? body.type : "";
-  if (!REACTION_TYPES.includes(type as (typeof REACTION_TYPES)[number])) {
-    return NextResponse.json({ error: "Invalid reaction" }, { status: 400 });
+  const parsedBody = commentReactionRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid reaction", parsedBody.error, 400);
   }
+  const type = parsedBody.data.type;
 
   try {
     await prisma.commentReaction.deleteMany({

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import { uploadCreateRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 import { buildUploadKey, s3Bucket, s3Client } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
 
   const userId = session.user.id;
 
-  let body: { filename?: string; contentType?: string; size?: unknown } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -132,7 +133,12 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid upload request", error, 400);
   }
 
-  const filename = typeof body.filename === "string" ? body.filename : "";
+  const parsedBody = uploadCreateRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid upload request", parsedBody.error, 400);
+  }
+
+  const filename = parsedBody.data.filename;
   if (!filename.trim()) {
     return NextResponse.json(
       { error: "Filename is required" },
@@ -140,7 +146,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const size = parseFileSize(body.size);
+  const size = parseFileSize(parsedBody.data.size);
   if (!size || size <= 0) {
     return NextResponse.json({ error: "Invalid file size" }, { status: 400 });
   }
@@ -155,7 +161,7 @@ export async function POST(request: Request) {
       where: { userId, expiresAt: { lt: now } },
     });
 
-    const contentType = normalizeContentType(body.contentType);
+    const contentType = normalizeContentType(parsedBody.data.contentType);
     const key = buildUploadKey(userId);
     const expiresAt = new Date(Date.now() + MAX_UPLOAD_EXPIRES_SECONDS * 1000);
 

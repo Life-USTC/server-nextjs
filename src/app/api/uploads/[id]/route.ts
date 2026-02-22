@@ -2,14 +2,11 @@ import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
+import { uploadRenameRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
-
-type UpdatePayload = {
-  filename?: string;
-};
 
 function sanitizeFilename(filename: string) {
   return filename.trim();
@@ -29,7 +26,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid upload" }, { status: 400 });
   }
 
-  let body: UpdatePayload = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -37,8 +34,12 @@ export async function PATCH(
     return handleRouteError("Invalid update payload", error, 400);
   }
 
-  const filename = typeof body.filename === "string" ? body.filename : "";
-  const trimmed = sanitizeFilename(filename);
+  const parsedBody = uploadRenameRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid update payload", parsedBody.error, 400);
+  }
+
+  const trimmed = sanitizeFilename(parsedBody.data.filename);
   if (!trimmed) {
     return NextResponse.json({ error: "Filename required" }, { status: 400 });
   }

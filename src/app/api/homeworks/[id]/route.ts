@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError } from "@/lib/api-helpers";
+import { homeworkUpdateRequestSchema } from "@/lib/api-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -20,14 +21,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  let body: {
-    title?: string;
-    publishedAt?: string | null;
-    submissionStartAt?: string | null;
-    submissionDueAt?: string | null;
-    isMajor?: boolean;
-    requiresTeam?: boolean;
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -35,26 +29,28 @@ export async function PATCH(
     return handleRouteError("Invalid homework update", error, 400);
   }
 
-  const title = typeof body.title === "string" ? body.title.trim() : undefined;
-  if (title !== undefined && title.length === 0) {
-    return NextResponse.json({ error: "Title required" }, { status: 400 });
-  }
-  if (title && title.length > 200) {
-    return NextResponse.json({ error: "Title too long" }, { status: 400 });
+  const parsedBody = homeworkUpdateRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError("Invalid homework update", parsedBody.error, 400);
   }
 
-  const hasPublishedAt = Object.hasOwn(body, "publishedAt");
-  const hasSubmissionStartAt = Object.hasOwn(body, "submissionStartAt");
-  const hasSubmissionDueAt = Object.hasOwn(body, "submissionDueAt");
+  const title = parsedBody.data.title;
+
+  const hasPublishedAt = Object.hasOwn(parsedBody.data, "publishedAt");
+  const hasSubmissionStartAt = Object.hasOwn(
+    parsedBody.data,
+    "submissionStartAt",
+  );
+  const hasSubmissionDueAt = Object.hasOwn(parsedBody.data, "submissionDueAt");
 
   const publishedAt = hasPublishedAt
-    ? parseDateValue(body.publishedAt)
+    ? parseDateValue(parsedBody.data.publishedAt)
     : undefined;
   const submissionStartAt = hasSubmissionStartAt
-    ? parseDateValue(body.submissionStartAt)
+    ? parseDateValue(parsedBody.data.submissionStartAt)
     : undefined;
   const submissionDueAt = hasSubmissionDueAt
-    ? parseDateValue(body.submissionDueAt)
+    ? parseDateValue(parsedBody.data.submissionDueAt)
     : undefined;
 
   if (hasPublishedAt && publishedAt === undefined) {
@@ -120,9 +116,11 @@ export async function PATCH(
     };
 
     if (title !== undefined) updates.title = title;
-    if (body.isMajor !== undefined) updates.isMajor = body.isMajor === true;
-    if (body.requiresTeam !== undefined) {
-      updates.requiresTeam = body.requiresTeam === true;
+    if (parsedBody.data.isMajor !== undefined) {
+      updates.isMajor = parsedBody.data.isMajor === true;
+    }
+    if (parsedBody.data.requiresTeam !== undefined) {
+      updates.requiresTeam = parsedBody.data.requiresTeam === true;
     }
     if (publishedAt !== undefined) updates.publishedAt = publishedAt;
     if (submissionStartAt !== undefined) {

@@ -2,11 +2,10 @@ import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
+import { adminModerateCommentRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_VALUES = ["active", "softbanned", "deleted"] as const;
 
 export async function PATCH(
   request: Request,
@@ -18,7 +17,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  let body: { status?: string; moderationNote?: string | null } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -26,17 +25,23 @@ export async function PATCH(
     return handleRouteError("Invalid moderation request", error, 400);
   }
 
-  const status = typeof body.status === "string" ? body.status : "";
-  if (!STATUS_VALUES.includes(status as (typeof STATUS_VALUES)[number])) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  const parsedBody = adminModerateCommentRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError(
+      "Invalid moderation request",
+      parsedBody.error,
+      400,
+    );
   }
+
+  const { status, moderationNote } = parsedBody.data;
 
   try {
     const updated = await prisma.comment.update({
       where: { id },
       data: {
         status: status as CommentStatus,
-        moderationNote: body.moderationNote ?? null,
+        moderationNote: moderationNote ?? null,
         moderatedAt: new Date(),
         moderatedById: admin.userId,
         deletedAt: status === "deleted" ? new Date() : null,

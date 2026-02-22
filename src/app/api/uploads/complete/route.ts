@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError } from "@/lib/api-helpers";
+import { uploadCompleteRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
@@ -48,12 +49,6 @@ async function runSerializableTransaction<T>(
   throw new Error("Failed to finalize upload quota");
 }
 
-type CompletePayload = {
-  key?: string;
-  filename?: string;
-  contentType?: string;
-};
-
 function normalizeContentType(value: unknown) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -68,7 +63,7 @@ export async function POST(request: Request) {
 
   const userId = session.user.id;
 
-  let body: CompletePayload = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -76,8 +71,16 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid upload completion payload", error, 400);
   }
 
-  const key = typeof body.key === "string" ? body.key : "";
-  const filename = typeof body.filename === "string" ? body.filename : "";
+  const parsedBody = uploadCompleteRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError(
+      "Invalid upload completion payload",
+      parsedBody.error,
+      400,
+    );
+  }
+
+  const { key, filename } = parsedBody.data;
 
   if (!key || !filename) {
     return NextResponse.json({ error: "Missing upload data" }, { status: 400 });
@@ -144,7 +147,7 @@ export async function POST(request: Request) {
     }
 
     const contentType =
-      normalizeContentType(body.contentType) ?? head.ContentType;
+      normalizeContentType(parsedBody.data.contentType) ?? head.ContentType;
 
     const reservation = await runSerializableTransaction(async (tx) => {
       const pending = await tx.uploadPending.findUnique({ where: { key } });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError } from "@/lib/api-helpers";
+import { adminCreateSuspensionRequestSchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -39,12 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let body: {
-    userId?: string;
-    reason?: string;
-    note?: string;
-    expiresAt?: string | null;
-  } = {};
+  let body: unknown = {};
 
   try {
     body = await request.json();
@@ -52,10 +48,16 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid suspension request", error, 400);
   }
 
-  const userId = typeof body.userId === "string" ? body.userId.trim() : "";
-  if (!userId) {
-    return NextResponse.json({ error: "User required" }, { status: 400 });
+  const parsedBody = adminCreateSuspensionRequestSchema.safeParse(body);
+  if (!parsedBody.success) {
+    return handleRouteError(
+      "Invalid suspension request",
+      parsedBody.error,
+      400,
+    );
   }
+
+  const userId = parsedBody.data.userId.trim();
 
   try {
     const user = await prisma.user.findUnique({
@@ -70,9 +72,9 @@ export async function POST(request: Request) {
       data: {
         userId,
         createdById: admin.userId,
-        reason: body.reason?.trim() || null,
-        note: body.note?.trim() || null,
-        expiresAt: parseDate(body.expiresAt ?? null),
+        reason: parsedBody.data.reason?.trim() || null,
+        note: parsedBody.data.note?.trim() || null,
+        expiresAt: parseDate(parsedBody.data.expiresAt ?? null),
       },
     });
 
