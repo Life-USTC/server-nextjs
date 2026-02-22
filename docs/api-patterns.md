@@ -54,4 +54,4 @@ export async function GET(request: NextRequest) {
 - 提供 `GET /api/openapi` 输出 OpenAPI 3.1 文档。
 - 已覆盖主要 API 路径（含 admin、comments、homeworks、uploads、calendar 等）的契约条目。
 - 新增 API 时同步补充 OpenAPI registry，保证接口契约可追踪。
-- 提供 `GET /api-docs` 交互式文档页（Redoc）。
+- 提供 `GET /api-docs` 交互式文档页（Swagger UI）。

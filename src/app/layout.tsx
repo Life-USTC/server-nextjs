@@ -53,12 +53,17 @@ export default async function RootLayout({
               <AnchoredToastProvider>
                 <div className="flex min-h-screen flex-col">
                   <div className="flex-1">
-                    <div className="fixed top-4 right-4 z-50">
+                    <div
+                      id="app-user-menu"
+                      className="fixed top-4 right-4 z-50"
+                    >
                       <UserMenu />
                     </div>
                     <div id="main-content">{children}</div>
                   </div>
-                  <BottomBar />
+                  <div id="app-bottom-bar">
+                    <BottomBar />
+                  </div>
                 </div>
               </AnchoredToastProvider>
             </ToastProvider>
