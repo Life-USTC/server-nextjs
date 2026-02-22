@@ -6,16 +6,25 @@ import {
   handleRouteError,
   parseOptionalInt,
 } from "@/lib/api-helpers";
+import { teachersQuerySchema } from "@/lib/api-schemas";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const pagination = getPagination(searchParams);
+  const parsedQuery = teachersQuerySchema.safeParse({
+    departmentId: searchParams.get("departmentId") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
+    page: searchParams.get("page") ?? undefined,
+    limit: searchParams.get("limit") ?? undefined,
+  });
+  if (!parsedQuery.success) {
+    return handleRouteError("Invalid teacher query", parsedQuery.error, 400);
+  }
 
-  const departmentId = searchParams.get("departmentId");
-  const search = searchParams.get("search");
+  const pagination = getPagination(searchParams);
+  const { departmentId, search } = parsedQuery.data;
 
   const where: Prisma.TeacherWhereInput = {};
 

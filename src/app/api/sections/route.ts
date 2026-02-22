@@ -7,20 +7,36 @@ import {
   parseIntegerList,
   parseOptionalInt,
 } from "@/lib/api-helpers";
+import { sectionsQuerySchema } from "@/lib/api-schemas";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const pagination = getPagination(searchParams);
+  const parsedQuery = sectionsQuerySchema.safeParse({
+    courseId: searchParams.get("courseId") ?? undefined,
+    semesterId: searchParams.get("semesterId") ?? undefined,
+    campusId: searchParams.get("campusId") ?? undefined,
+    departmentId: searchParams.get("departmentId") ?? undefined,
+    teacherId: searchParams.get("teacherId") ?? undefined,
+    ids: searchParams.get("ids") ?? undefined,
+    page: searchParams.get("page") ?? undefined,
+    limit: searchParams.get("limit") ?? undefined,
+  });
+  if (!parsedQuery.success) {
+    return handleRouteError("Invalid section query", parsedQuery.error, 400);
+  }
 
-  const courseId = searchParams.get("courseId");
-  const semesterId = searchParams.get("semesterId");
-  const campusId = searchParams.get("campusId");
-  const departmentId = searchParams.get("departmentId");
-  const teacherId = searchParams.get("teacherId");
-  const idsParam = searchParams.get("ids");
+  const pagination = getPagination(searchParams);
+  const {
+    courseId,
+    semesterId,
+    campusId,
+    departmentId,
+    teacherId,
+    ids: idsParam,
+  } = parsedQuery.data;
 
   const where: Prisma.SectionWhereInput = {};
   const parsedCourseId = parseOptionalInt(courseId);

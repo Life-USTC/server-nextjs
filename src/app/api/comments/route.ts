@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
-import { commentCreateRequestSchema } from "@/lib/api-schemas";
+import {
+  commentCreateRequestSchema,
+  commentsQuerySchema,
+} from "@/lib/api-schemas";
 import { buildCommentNodes } from "@/lib/comment-serialization";
 import {
   findActiveSuspension,
@@ -26,16 +29,21 @@ type Visibility = (typeof VISIBILITY_VALUES)[number];
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const targetType = searchParams.get("targetType") as TargetType | null;
-
-  if (!targetType || !TARGET_TYPES.includes(targetType)) {
+  const parsedQuery = commentsQuerySchema.safeParse({
+    targetType: searchParams.get("targetType"),
+    targetId: searchParams.get("targetId") ?? undefined,
+    sectionId: searchParams.get("sectionId") ?? undefined,
+    teacherId: searchParams.get("teacherId") ?? undefined,
+  });
+  if (!parsedQuery.success) {
     return NextResponse.json({ error: "Invalid target" }, { status: 400 });
   }
 
-  const targetIdParam = searchParams.get("targetId");
+  const targetType = parsedQuery.data.targetType as TargetType;
+  const targetIdParam = parsedQuery.data.targetId ?? null;
   const targetId = parseOptionalInt(targetIdParam);
-  const sectionId = parseOptionalInt(searchParams.get("sectionId"));
-  const teacherId = parseOptionalInt(searchParams.get("teacherId"));
+  const sectionId = parseOptionalInt(parsedQuery.data.sectionId);
+  const teacherId = parseOptionalInt(parsedQuery.data.teacherId);
 
   try {
     let whereTarget: Record<string, number | string> | null = null;

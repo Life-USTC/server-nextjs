@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import { adminCommentsQuerySchema } from "@/lib/api-schemas";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -21,8 +22,16 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status") ?? "";
-  const limit = parseLimit(searchParams.get("limit"));
+  const parsedQuery = adminCommentsQuerySchema.safeParse({
+    status: searchParams.get("status") ?? undefined,
+    limit: searchParams.get("limit") ?? undefined,
+  });
+  if (!parsedQuery.success) {
+    return handleRouteError("Invalid moderation query", parsedQuery.error, 400);
+  }
+
+  const status = parsedQuery.data.status ?? "";
+  const limit = parseLimit(parsedQuery.data.limit ?? null);
 
   const where = STATUS_FILTERS.includes(
     status as (typeof STATUS_FILTERS)[number],

@@ -18,7 +18,8 @@
       "userProfile": "{username} 的主页",
       "subscriptions": "已选课班级",
       "uploads": "我的上传",
-      "homeworks": "我的作业"
+      "homeworks": "我的作业",
+      "apiDocs": "API 文档"
     }
   },
   "common": {
@@ -152,6 +153,11 @@
     "toastDeleteSuccessDescription": "文件已删除。",
     "toastDeleteErrorTitle": "删除失败",
     "toastDeleteErrorDescription": "无法删除文件，请重试。"
+  },
+  "apiDocs": {
+    "title": "API 文档",
+    "description": "基于项目 OpenAPI 规范生成的交互式接口文档。",
+    "rawSpecLink": "打开 OpenAPI 原始 JSON"
   },
   "homepage": {
     "badge": "🎓 您的校园伙伴",

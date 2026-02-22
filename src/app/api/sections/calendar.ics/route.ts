@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleRouteError, parseIntegerList } from "@/lib/api-helpers";
+import { sectionsCalendarQuerySchema } from "@/lib/api-schemas";
 import { createMultiSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
 
@@ -12,17 +13,19 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const sectionIdsParam = searchParams.get("sectionIds");
-
-    if (!sectionIdsParam) {
+    const parsedQuery = sectionsCalendarQuerySchema.safeParse({
+      sectionIds: searchParams.get("sectionIds") ?? "",
+    });
+    if (!parsedQuery.success) {
       return handleRouteError(
         "sectionIds parameter is required",
-        new Error("Missing sectionIds"),
+        parsedQuery.error,
         400,
       );
     }
 
-    // Parse section IDs from comma-separated string
+    const sectionIdsParam = parsedQuery.data.sectionIds;
+
     const sectionIds = parseIntegerList(sectionIdsParam);
 
     if (sectionIds.length === 0) {

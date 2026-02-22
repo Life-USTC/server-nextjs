@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
 import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
-import { homeworkCreateRequestSchema } from "@/lib/api-schemas";
+import {
+  homeworkCreateRequestSchema,
+  homeworksQuerySchema,
+} from "@/lib/api-schemas";
 import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
@@ -19,8 +22,16 @@ function parseDateValue(value: unknown) {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const sectionId = parseOptionalInt(searchParams.get("sectionId"));
-  const includeDeleted = searchParams.get("includeDeleted") === "true";
+  const parsedQuery = homeworksQuerySchema.safeParse({
+    sectionId: searchParams.get("sectionId") ?? undefined,
+    includeDeleted: searchParams.get("includeDeleted") ?? undefined,
+  });
+  if (!parsedQuery.success) {
+    return handleRouteError("Invalid homework query", parsedQuery.error, 400);
+  }
+
+  const sectionId = parseOptionalInt(parsedQuery.data.sectionId);
+  const includeDeleted = parsedQuery.data.includeDeleted === "true";
 
   if (!sectionId) {
     return NextResponse.json({ error: "Invalid section" }, { status: 400 });
