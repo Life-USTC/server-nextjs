@@ -63,3 +63,11 @@ test("评论指南页面可访问并渲染 Markdown 示例", async ({ page }) =>
   await expect(page.locator("pre").first()).toBeVisible();
   await expect(page.locator("table").first()).toBeVisible();
 });
+
+test("API 文档页面可访问并展示容器", async ({ page }) => {
+  await page.goto("/api-docs");
+
+  await expect(page).toHaveURL(/\/api-docs$/);
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.locator("#redoc-container")).toBeVisible();
+});

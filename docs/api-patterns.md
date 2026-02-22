@@ -48,8 +48,10 @@ export async function GET(request: NextRequest) {
 - 数值统一使用 `parseInteger()` / `parseOptionalInt()` / `parseIntegerList()`。
 - 参数错误推荐使用 `invalidParamResponse()` 返回 400。
 - 复杂请求体使用 Zod schema（`safeParse`）后再进入业务逻辑。
+- 查询参数同样使用 Zod schema 校验，非法查询参数直接返回 400。
 
 ## 契约文档
 - 提供 `GET /api/openapi` 输出 OpenAPI 3.1 文档。
 - 已覆盖主要 API 路径（含 admin、comments、homeworks、uploads、calendar 等）的契约条目。
 - 新增 API 时同步补充 OpenAPI registry，保证接口契约可追踪。
+- 提供 `GET /api-docs` 交互式文档页（Redoc）。

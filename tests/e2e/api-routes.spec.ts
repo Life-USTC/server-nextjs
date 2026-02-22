@@ -261,3 +261,31 @@ test("主要 API 接口在异常输入下不返回 500", async ({ request }) => 
     );
   }
 });
+
+test("启用 query schema 的接口在非法查询参数下返回 400", async ({
+  request,
+}) => {
+  const cases = [
+    { url: "/api/sections?courseId=abc", statuses: [400] },
+    { url: "/api/schedules?weekday=foo", statuses: [400] },
+    { url: "/api/teachers?departmentId=foo", statuses: [400] },
+    { url: "/api/courses?page=foo", statuses: [400] },
+    {
+      url: "/api/comments?targetType=section&targetId=foo",
+      statuses: [400],
+    },
+    {
+      url: "/api/descriptions?targetType=section&targetId=",
+      statuses: [400],
+    },
+    { url: "/api/homeworks?sectionId=foo", statuses: [400] },
+    { url: "/api/sections/calendar.ics?sectionIds=", statuses: [400] },
+    { url: "/api/admin/users?page=foo", statuses: [400, 401] },
+    { url: "/api/admin/comments?limit=foo", statuses: [400, 401] },
+  ] as const;
+
+  for (const entry of cases) {
+    const response = await request.get(entry.url);
+    expect(entry.statuses).toContain(response.status());
+  }
+});

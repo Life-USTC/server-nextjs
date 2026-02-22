@@ -27,12 +27,14 @@
 - `tests/e2e/smoke.spec.ts`：验证 `/signin` 页面可访问且 USTC/GitHub/Google 登录按钮可见。
 - `tests/e2e/public-pages.spec.ts`：验证 `/sections`、`/teachers`、`/courses` 页面加载、搜索参数生效，以及列表区（表格或空态）渲染。
 - `tests/e2e/public-pages.spec.ts`：验证 `/comments/guide` 页面可访问并成功渲染 Markdown 示例。
+- `tests/e2e/public-pages.spec.ts`：验证 `/api-docs` 页面可访问并展示 Redoc 容器。
 - `tests/e2e/detail-navigation.spec.ts`：验证列表页可进入详情页；若当前数据为空则回退验证详情页 404 行为。
 - `tests/e2e/auth-redirect.spec.ts`：验证未登录访问 `/admin*`、`/dashboard*`、`/settings*` 全部受保护页面时会重定向到 `/signin`。
 - `tests/e2e/dynamic-routes.spec.ts`：验证 `/comments/[id]`、`/u/[username]`、`/u/id/[uid]` 及详情页动态路由在无效参数下返回 404。
 - `tests/e2e/navigation-flow.spec.ts`：验证首页快速入口跳转与列表页面包屑返回首页等跨页面导航逻辑。
 - `tests/e2e/api-routes.spec.ts`：验证 OpenAPI 接口、match-codes 输入边界与 calendar 参数非法场景。
 - `tests/e2e/api-routes.spec.ts`：覆盖主要 API 路由在未授权/异常输入下不返回 500，并校验预期状态码集合。
+- `tests/e2e/api-routes.spec.ts`：覆盖启用 query schema 的接口在非法查询参数下返回 400。
 
 ## 当前单测
 - `tests/unit/api-helpers.test.ts`：整数解析与列表解析边界。

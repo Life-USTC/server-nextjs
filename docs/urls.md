@@ -12,6 +12,7 @@
 - /teachers
 - /courses
 - /comments/guide
+- /api-docs
 - /settings
 - /settings/profile
 - /settings/uploads
