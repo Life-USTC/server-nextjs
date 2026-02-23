@@ -25,6 +25,12 @@ test("登录页可访问并展示第三方登录按钮", async ({ page }) => {
   await expect(
     page.getByRole("button", { name: /Debug User|调试用户/i }),
   ).toBeVisible();
+
+  await expect(
+    page.getByRole("button", {
+      name: /Admin User \(Dev\)|调试管理员（开发）/i,
+    }),
+  ).toBeVisible();
 });
 
 test("开发调试用户按钮可一键登录", async ({ page }) => {
