@@ -36,11 +36,19 @@ import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import {
+  adminCommentsResponseSchema,
+  adminSuspensionsResponseSchema,
+} from "@/lib/api-schemas";
+
+type CommentStatus = "active" | "softbanned" | "deleted";
+type CommentStatusFilter = CommentStatus | "all";
 
 type AdminComment = {
   id: string;
   body: string;
-  status: string;
+  status: CommentStatus;
   isAnonymous: boolean;
   authorName: string | null;
   userId: string | null;
@@ -73,7 +81,7 @@ type Suspension = {
   note: string | null;
   expiresAt: string | null;
   liftedAt: string | null;
-  user: { id: string; name: string | null };
+  user: { id: string; name: string | null } | null;
 };
 
 const DURATION_OPTIONS = [
@@ -87,9 +95,10 @@ const DURATION_OPTIONS = [
 
 type CommentFiltersProps = {
   searchQuery: string;
-  statusFilter: string;
+  statusFilter: CommentStatusFilter;
+  showStatusFilter?: boolean;
   onSearchChange: (value: string) => void;
-  onStatusChange: (value: string) => void;
+  onStatusChange: (value: CommentStatusFilter) => void;
   t: ReturnType<typeof useTranslations>;
 };
 
@@ -112,14 +121,14 @@ type CommentDetailDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   comment: AdminComment | null;
-  updateStatus: string;
+  updateStatus: CommentStatus;
   updateNote: string;
   suspendDuration: string;
   suspendExpiresAt: string;
   suspendReason: string;
   onUpdateStatus: () => void;
   onSuspendUser: () => void;
-  onStatusChange: (value: string) => void;
+  onStatusChange: (value: CommentStatus) => void;
   onNoteChange: (value: string) => void;
   onDurationChange: (value: string) => void;
   onExpiresChange: (value: string) => void;
@@ -143,14 +152,15 @@ export function ModerationDashboard() {
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [suspensions, setSuspensions] = useState<Suspension[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("active");
+  const [statusFilter, setStatusFilter] =
+    useState<CommentStatusFilter>("active");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<AdminComment | null>(
     null,
   );
-  const [updateStatus, setUpdateStatus] = useState("");
+  const [updateStatus, setUpdateStatus] = useState<CommentStatus>("active");
   const [updateNote, setUpdateNote] = useState("");
 
   const [suspendDuration, setSuspendDuration] = useState("3d");
@@ -173,23 +183,38 @@ export function ModerationDashboard() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") {
-        params.set("status", statusFilter);
-      }
+      const commentPromise =
+        statusFilter === "all"
+          ? apiClient.GET("/api/admin/comments")
+          : apiClient.GET("/api/admin/comments", {
+              params: {
+                query: { status: statusFilter },
+              },
+            });
 
-      const [commentResponse, suspensionResponse] = await Promise.all([
-        fetch(`/api/admin/comments?${params.toString()}`),
-        fetch("/api/admin/suspensions"),
+      const suspensionPromise = apiClient.GET("/api/admin/suspensions");
+
+      const [commentResult, suspensionResult] = await Promise.all([
+        commentPromise,
+        suspensionPromise,
       ]);
 
-      if (commentResponse.ok) {
-        const data = await commentResponse.json();
-        setComments(data.comments ?? []);
+      if (commentResult.response.ok && commentResult.data) {
+        const parsed = adminCommentsResponseSchema.safeParse(
+          commentResult.data,
+        );
+        if (parsed.success) {
+          setComments(parsed.data.comments);
+        }
       }
-      if (suspensionResponse.ok) {
-        const data = await suspensionResponse.json();
-        setSuspensions(data.suspensions ?? []);
+
+      if (suspensionResult.response.ok && suspensionResult.data) {
+        const parsed = adminSuspensionsResponseSchema.safeParse(
+          suspensionResult.data,
+        );
+        if (parsed.success) {
+          setSuspensions(parsed.data.suspensions);
+        }
       }
     } catch (error) {
       console.error("Failed to load moderation data", error);
@@ -258,8 +283,8 @@ export function ModerationDashboard() {
   };
 
   const calculateExpiresAt = () => {
-    if (suspendDuration === "permanent") return null;
-    if (suspendDuration === "custom") return suspendExpiresAt || null;
+    if (suspendDuration === "permanent") return undefined;
+    if (suspendDuration === "custom") return suspendExpiresAt || undefined;
 
     const now = new Date();
     switch (suspendDuration) {
@@ -276,7 +301,7 @@ export function ModerationDashboard() {
         now.setDate(now.getDate() + 30);
         break;
       default:
-        return null;
+        return undefined;
     }
     return now.toISOString();
   };
@@ -284,19 +309,19 @@ export function ModerationDashboard() {
   const handleUpdateStatus = async () => {
     if (!selectedComment) return;
     try {
-      const response = await fetch(
-        `/api/admin/comments/${selectedComment.id}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            status: updateStatus,
-            moderationNote: updateNote.trim() || null,
-          }),
+      const result = await apiClient.PATCH("/api/admin/comments/{id}", {
+        params: {
+          path: { id: selectedComment.id },
         },
-      );
-      if (!response.ok) {
-        throw new Error("Failed to update comment");
+        body: {
+          status: updateStatus,
+          moderationNote: updateNote.trim() || null,
+        },
+      });
+
+      if (!result.response.ok) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Failed to update comment");
       }
       toast({
         title: t("updateSuccess"),
@@ -317,17 +342,17 @@ export function ModerationDashboard() {
     if (!selectedComment?.userId) return;
     try {
       const expiresAt = calculateExpiresAt();
-      const response = await fetch("/api/admin/suspensions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await apiClient.POST("/api/admin/suspensions", {
+        body: {
           userId: selectedComment.userId,
-          reason: suspendReason.trim() || null,
+          reason: suspendReason.trim() || undefined,
           expiresAt,
-        }),
+        },
       });
-      if (!response.ok) {
-        throw new Error("Failed to suspend user");
+
+      if (!result.response.ok) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Failed to suspend user");
       }
       toast({
         title: t("suspendSuccess"),
@@ -352,14 +377,15 @@ export function ModerationDashboard() {
 
   const confirmLift = async () => {
     try {
-      const response = await fetch(
-        `/api/admin/suspensions/${liftSuspensionId}`,
-        {
-          method: "PATCH",
+      const result = await apiClient.PATCH("/api/admin/suspensions/{id}", {
+        params: {
+          path: { id: liftSuspensionId },
         },
-      );
-      if (!response.ok) {
-        throw new Error("Failed to lift suspension");
+      });
+
+      if (!result.response.ok) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Failed to lift suspension");
       }
       toast({
         title: t("liftSuccess"),
@@ -415,7 +441,7 @@ export function ModerationDashboard() {
             searchQuery={searchQuery}
             statusFilter={statusFilter}
             onSearchChange={setSearchQuery}
-            onStatusChange={(value) => setStatusFilter(value ?? "active")}
+            onStatusChange={setStatusFilter}
             t={t}
           />
 
@@ -442,9 +468,10 @@ export function ModerationDashboard() {
         <TabsPanel value="suspensions">
           <CommentFilters
             searchQuery={searchQuery}
-            statusFilter="all"
+            statusFilter={statusFilter}
+            showStatusFilter={false}
             onSearchChange={setSearchQuery}
-            onStatusChange={() => null}
+            onStatusChange={setStatusFilter}
             t={t}
           />
 
@@ -502,6 +529,7 @@ export function ModerationDashboard() {
 function CommentFilters({
   searchQuery,
   statusFilter,
+  showStatusFilter = true,
   onSearchChange,
   onStatusChange,
   t,
@@ -517,10 +545,19 @@ function CommentFilters({
           className="pl-9"
         />
       </div>
-      {statusFilter !== "all" && (
+      {showStatusFilter && (
         <Select
           value={statusFilter}
-          onValueChange={(value) => onStatusChange(value ?? "active")}
+          onValueChange={(value) => {
+            const next: CommentStatusFilter =
+              value === "all" ||
+              value === "active" ||
+              value === "softbanned" ||
+              value === "deleted"
+                ? value
+                : "active";
+            onStatusChange(next);
+          }}
           items={[
             { value: "all", label: t("filterAll") },
             { value: "active", label: t("filterActive") },
@@ -720,7 +757,15 @@ function CommentDetailDialog({
                 <h4 className="font-medium">{t("changeStatus")}</h4>
                 <RadioGroup
                   value={updateStatus}
-                  onValueChange={onStatusChange}
+                  onValueChange={(value) => {
+                    if (
+                      value === "active" ||
+                      value === "softbanned" ||
+                      value === "deleted"
+                    ) {
+                      onStatusChange(value);
+                    }
+                  }}
                   className="flex flex-wrap gap-4"
                 >
                   <div className="flex items-center space-x-2">
