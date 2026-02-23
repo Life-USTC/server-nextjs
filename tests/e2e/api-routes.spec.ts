@@ -21,6 +21,32 @@ test("openapi 文档接口可访问", async ({ request }) => {
   expect(body.paths["/api/locale"]?.post).toBeTruthy();
 });
 
+test("locale 接口可设置语言 cookie", async ({ request }) => {
+  const response = await request.post("/api/locale", {
+    data: { locale: "en-us" },
+  });
+
+  expect(response.status()).toBe(200);
+  const headers = response.headers();
+  const setCookie = headers["set-cookie"];
+  expect(typeof setCookie).toBe("string");
+  expect(setCookie).toContain("NEXT_LOCALE=en-us");
+});
+
+test("current semester 接口返回 200 或 404 且响应结构正确", async ({
+  request,
+}) => {
+  const response = await request.get("/api/semesters/current");
+  expect([200, 404]).toContain(response.status());
+
+  const body = (await response.json()) as Record<string, unknown>;
+  if (response.status() === 200) {
+    expect(typeof body.id).toBe("number");
+  } else {
+    expect(typeof body.error).toBe("string");
+  }
+});
+
 test("match-codes 无效输入返回 400", async ({ request }) => {
   const response = await request.post("/api/sections/match-codes", {
     data: {
