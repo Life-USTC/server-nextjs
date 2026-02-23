@@ -2,7 +2,13 @@ import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  forbidden,
+  handleRouteError,
+  payloadTooLarge,
+  unauthorized,
+} from "@/lib/api-helpers";
 import { uploadCompleteRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";
@@ -64,7 +70,7 @@ function normalizeContentType(value: unknown) {
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const userId = session.user.id;
@@ -89,12 +95,12 @@ export async function POST(request: Request) {
   const { key, filename } = parsedBody.data;
 
   if (!key || !filename) {
-    return NextResponse.json({ error: "Missing upload data" }, { status: 400 });
+    return badRequest("Missing upload data");
   }
 
   const expectedPrefix = `uploads/${userId}/`;
   if (!key.startsWith(expectedPrefix)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return forbidden();
   }
 
   try {
@@ -139,17 +145,14 @@ export async function POST(request: Request) {
 
     const size = head.ContentLength ?? 0;
     if (!size || size <= 0) {
-      return NextResponse.json(
-        { error: "Uploaded object missing" },
-        { status: 400 },
-      );
+      return badRequest("Uploaded object missing");
     }
 
     if (size > uploadConfig.maxFileSizeBytes) {
       await s3Client.send(
         new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }),
       );
-      return NextResponse.json({ error: "File too large" }, { status: 413 });
+      return payloadTooLarge("File too large");
     }
 
     const contentType =
@@ -223,7 +226,7 @@ export async function POST(request: Request) {
           new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }),
         );
       }
-      return NextResponse.json({ error: error.code }, { status: 400 });
+      return badRequest(error.code);
     }
     return handleRouteError("Failed to finalize upload", error);
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError } from "@/lib/api-helpers";
+import { badRequest, handleRouteError, unauthorized } from "@/lib/api-helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
@@ -12,10 +12,7 @@ async function parseSuspensionId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Invalid suspension ID" },
-      { status: 400 },
-    );
+    return badRequest("Invalid suspension ID");
   }
 
   return parsed.data.id;
@@ -33,7 +30,7 @@ export async function PATCH(
 ) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseSuspensionId(params);

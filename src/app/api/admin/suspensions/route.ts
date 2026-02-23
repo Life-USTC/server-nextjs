@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, notFound, unauthorized } from "@/lib/api-helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +19,7 @@ function parseDate(value: string | null) {
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   try {
@@ -47,7 +47,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   let body: unknown = {};
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
       select: { id: true },
     });
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return notFound("User not found");
     }
 
     const suspension = await prisma.userSuspension.create({

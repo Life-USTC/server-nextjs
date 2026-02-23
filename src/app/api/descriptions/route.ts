@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  parseOptionalInt,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   descriptionsQuerySchema,
   descriptionUpsertRequestSchema,
 } from "@/lib/api-schemas/request-schemas";
-import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
+import { findActiveSuspension } from "@/lib/comment-utils";
+import { getDescriptionPayload } from "@/lib/descriptions-server";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -72,7 +79,7 @@ export async function GET(request: Request) {
     targetId: searchParams.get("targetId") ?? "",
   });
   if (!parsedQuery.success) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+    return badRequest("Invalid target");
   }
 
   const targetType = parsedQuery.data.targetType as TargetType;
@@ -81,65 +88,17 @@ export async function GET(request: Request) {
     targetType === "homework" ? targetIdParam : parseOptionalInt(targetIdParam);
 
   if (!targetId) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+    return badRequest("Invalid target");
   }
 
   const whereTarget = getTargetWhere(targetType, targetId);
   if (!whereTarget) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+    return badRequest("Invalid target");
   }
 
   try {
-    const [viewer, description] = await Promise.all([
-      getViewerContext({ includeAdmin: false }),
-      prisma.description.findFirst({
-        where: whereTarget,
-        include: {
-          lastEditedBy: {
-            select: { id: true, name: true, image: true, username: true },
-          },
-        },
-      }),
-    ]);
-
-    const history = description
-      ? await prisma.descriptionEdit.findMany({
-          where: { descriptionId: description.id },
-          include: {
-            editor: {
-              select: { id: true, name: true, image: true, username: true },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 20,
-        })
-      : [];
-
-    return NextResponse.json({
-      description: description
-        ? {
-            id: description.id,
-            content: description.content ?? "",
-            updatedAt: description.updatedAt?.toISOString() ?? null,
-            lastEditedAt: description.lastEditedAt?.toISOString() ?? null,
-            lastEditedBy: description.lastEditedBy ?? null,
-          }
-        : {
-            id: null,
-            content: "",
-            updatedAt: null,
-            lastEditedAt: null,
-            lastEditedBy: null,
-          },
-      history: history.map((entry: any) => ({
-        id: entry.id,
-        createdAt: entry.createdAt.toISOString(),
-        previousContent: entry.previousContent ?? null,
-        nextContent: entry.nextContent ?? "",
-        editor: entry.editor ?? null,
-      })),
-      viewer,
-    });
+    const payload = await getDescriptionPayload(targetType, targetId);
+    return NextResponse.json(payload);
   } catch (error) {
     return handleRouteError("Failed to fetch description", error);
   }
@@ -180,7 +139,7 @@ export async function POST(request: Request) {
       : parseOptionalInt(rawTargetId);
 
   if (!targetId) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+    return badRequest("Invalid target");
   }
 
   const content = parsedBody.data.content.trim();
@@ -188,7 +147,7 @@ export async function POST(request: Request) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const suspension = await findActiveSuspension(userId);
@@ -201,13 +160,13 @@ export async function POST(request: Request) {
 
   const whereTarget = getTargetWhere(targetType, targetId);
   if (!whereTarget) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+    return badRequest("Invalid target");
   }
 
   try {
     const target = await ensureTargetExists(targetType, targetId);
     if (!target) {
-      return NextResponse.json({ error: "Target not found" }, { status: 404 });
+      return notFound("Target not found");
     }
 
     const result = await prisma.$transaction(async (tx) => {

@@ -1,7 +1,12 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   resourceIdPathParamsSchema,
   uploadRenameRequestSchema,
@@ -17,7 +22,7 @@ async function parseUploadId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid upload ID" }, { status: 400 });
+    return badRequest("Invalid upload ID");
   }
 
   return parsed.data.id;
@@ -33,6 +38,8 @@ function sanitizeFilename(filename: string) {
  * @body uploadRenameRequestSchema
  * @response uploadRenameResponseSchema
  * @response 400:openApiErrorSchema
+ * @response 401:openApiErrorSchema
+ * @response 404:openApiErrorSchema
  */
 export async function PATCH(
   request: Request,
@@ -40,7 +47,7 @@ export async function PATCH(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseUploadId(context.params);
@@ -64,7 +71,7 @@ export async function PATCH(
 
   const trimmed = sanitizeFilename(parsedBody.data.filename);
   if (!trimmed) {
-    return NextResponse.json({ error: "Filename required" }, { status: 400 });
+    return badRequest("Filename required");
   }
 
   try {
@@ -74,7 +81,7 @@ export async function PATCH(
     });
 
     if (!upload) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     const updated = await prisma.upload.update({
@@ -106,7 +113,8 @@ export async function PATCH(
 /**
  * Delete one upload.
  * @pathParams resourceIdPathParamsSchema
- * @response uploadDeleteResponseSchema
+ * @response 200:uploadDeleteResponseSchema
+ * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export async function DELETE(
@@ -115,7 +123,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseUploadId(context.params);
@@ -131,7 +139,7 @@ export async function DELETE(
     });
 
     if (!upload) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     await s3Client.send(

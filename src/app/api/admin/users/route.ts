@@ -5,6 +5,7 @@ import {
   buildPaginatedResponse,
   getPagination,
   handleRouteError,
+  unauthorized,
 } from "@/lib/api-helpers";
 import { adminUsersQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
@@ -20,7 +21,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const searchParams = request.nextUrl.searchParams;

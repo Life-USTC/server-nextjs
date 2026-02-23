@@ -3,7 +3,13 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  parseOptionalInt,
+  payloadTooLarge,
+  unauthorized,
+} from "@/lib/api-helpers";
 import { uploadCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { buildUploadKey, s3Bucket, s3Client } from "@/lib/storage";
@@ -69,7 +75,7 @@ function normalizeContentType(value: unknown) {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const userId = session.user.id;
@@ -130,7 +136,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const userId = session.user.id;
@@ -150,19 +156,16 @@ export async function POST(request: Request) {
 
   const filename = parsedBody.data.filename;
   if (!filename.trim()) {
-    return NextResponse.json(
-      { error: "Filename is required" },
-      { status: 400 },
-    );
+    return badRequest("Filename is required");
   }
 
   const size = parseFileSize(parsedBody.data.size);
   if (!size || size <= 0) {
-    return NextResponse.json({ error: "Invalid file size" }, { status: 400 });
+    return badRequest("Invalid file size");
   }
 
   if (size > uploadConfig.maxFileSizeBytes) {
-    return NextResponse.json({ error: "File too large" }, { status: 413 });
+    return payloadTooLarge("File too large");
   }
 
   try {
@@ -224,7 +227,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof UploadError) {
-      return NextResponse.json({ error: error.code }, { status: 400 });
+      return badRequest(error.code);
     }
     return handleRouteError("Failed to create upload", error);
   }

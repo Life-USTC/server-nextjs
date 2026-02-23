@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError } from "@/lib/api-helpers";
+import { badRequest, handleRouteError, unauthorized } from "@/lib/api-helpers";
 import {
   adminModerateCommentRequestSchema,
   resourceIdPathParamsSchema,
@@ -16,7 +16,7 @@ async function parseCommentId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+    return badRequest("Invalid comment ID");
   }
 
   return parsed.data.id;
@@ -35,7 +35,7 @@ export async function PATCH(
 ) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseCommentId(params);

@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  parseOptionalInt,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   commentCreateRequestSchema,
   commentsQuerySchema,
@@ -42,7 +48,7 @@ export async function GET(request: Request) {
     teacherId: searchParams.get("teacherId") ?? undefined,
   });
   if (!parsedQuery.success) {
-    return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+    return badRequest("Invalid target");
   }
 
   const targetType = parsedQuery.data.targetType as TargetType;
@@ -80,7 +86,7 @@ export async function GET(request: Request) {
     }
 
     if (!whereTarget) {
-      return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+      return badRequest("Invalid target");
     }
 
     const [viewer, comments] = await Promise.all([
@@ -173,7 +179,7 @@ export async function POST(request: Request) {
   const userId = session?.user?.id ?? null;
 
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const suspension = await findActiveSuspension(userId);
@@ -222,7 +228,7 @@ export async function POST(request: Request) {
     }
 
     if (!targetData) {
-      return NextResponse.json({ error: "Invalid target" }, { status: 400 });
+      return badRequest("Invalid target");
     }
 
     let parentId: string | null = null;
@@ -232,20 +238,14 @@ export async function POST(request: Request) {
         where: { id: parsedBody.data.parentId },
       });
       if (!parent) {
-        return NextResponse.json(
-          { error: "Parent not found" },
-          { status: 404 },
-        );
+        return notFound("Parent not found");
       }
 
       const sameTarget = Object.entries(targetData).every(
         ([key, value]) => parent[key as keyof typeof parent] === value,
       );
       if (!sameTarget) {
-        return NextResponse.json(
-          { error: "Parent target mismatch" },
-          { status: 400 },
-        );
+        return badRequest("Parent target mismatch");
       }
       parentId = parent.id;
       rootId = parent.rootId ?? parent.id;
@@ -284,10 +284,7 @@ export async function POST(request: Request) {
       });
 
       if (uploads.length !== attachmentIds.length) {
-        return NextResponse.json(
-          { error: "Invalid attachments" },
-          { status: 400 },
-        );
+        return badRequest("Invalid attachments");
       }
 
       await prisma.commentAttachment.createMany({

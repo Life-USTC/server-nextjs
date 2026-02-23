@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError } from "@/lib/api-helpers";
+import { badRequest, handleRouteError, unauthorized } from "@/lib/api-helpers";
 import {
   adminUpdateUserRequestSchema,
   resourceIdPathParamsSchema,
@@ -26,7 +26,7 @@ async function parseUserId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+    return badRequest("Invalid user ID");
   }
 
   return parsed.data.id;
@@ -45,7 +45,7 @@ export async function PATCH(
 ) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseUserId(params);
@@ -81,20 +81,14 @@ export async function PATCH(
       const username = normalizeUsername(parsedBody.data.username);
       if (username) {
         if (!/^[a-z0-9]{1,20}$/.test(username)) {
-          return NextResponse.json(
-            { error: "Invalid username" },
-            { status: 400 },
-          );
+          return badRequest("Invalid username");
         }
         const existing = await prisma.user.findUnique({
           where: { username },
           select: { id: true },
         });
         if (existing && existing.id !== id) {
-          return NextResponse.json(
-            { error: "Username already taken" },
-            { status: 400 },
-          );
+          return badRequest("Username already taken");
         }
       }
       data.username = username;

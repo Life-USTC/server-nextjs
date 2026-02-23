@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
-import { type NextRequest, NextResponse } from "next/server";
-import { invalidParamResponse, parseInteger } from "@/lib/api-helpers";
+import type { NextRequest } from "next/server";
+import {
+  forbidden,
+  handleRouteError,
+  invalidParamResponse,
+  notFound,
+  parseInteger,
+  unauthorized,
+} from "@/lib/api-helpers";
 import { calendarSubscriptionIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import {
   extractToken,
@@ -34,46 +41,42 @@ export async function GET(
     return invalidParamResponse("subscription ID");
   }
 
-  // Extract and verify token
-  const token = extractToken(request);
-  if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  let sectionIds = "";
+  try {
+    // Extract and verify token
+    const token = extractToken(request);
+    if (!token) {
+      return unauthorized();
+    }
 
-  const tokenSubscriptionId = await verifyCalendarSubscriptionJWT(token);
-  if (tokenSubscriptionId !== subscriptionId) {
-    return NextResponse.json(
-      { error: "Invalid or unauthorized token" },
-      { status: 403 },
-    );
-  }
+    const tokenSubscriptionId = await verifyCalendarSubscriptionJWT(token);
+    if (tokenSubscriptionId !== subscriptionId) {
+      return forbidden("Invalid or unauthorized token");
+    }
 
-  const subscription = await prisma.calendarSubscription.findUnique({
-    where: { id: subscriptionId },
-    include: {
-      sections: {
-        select: {
-          id: true,
+    const subscription = await prisma.calendarSubscription.findUnique({
+      where: { id: subscriptionId },
+      include: {
+        sections: {
+          select: {
+            id: true,
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!subscription) {
-    return NextResponse.json(
-      { error: "Subscription not found" },
-      { status: 404 },
-    );
+    if (!subscription) {
+      return notFound("Subscription not found");
+    }
+
+    if (subscription.sections.length === 0) {
+      return notFound("No sections in subscription");
+    }
+
+    sectionIds = subscription.sections.map((s) => s.id).join(",");
+  } catch (error) {
+    return handleRouteError("Failed to resolve calendar subscription", error);
   }
-
-  if (subscription.sections.length === 0) {
-    return NextResponse.json(
-      { error: "No sections in subscription" },
-      { status: 404 },
-    );
-  }
-
-  const sectionIds = subscription.sections.map((s) => s.id).join(",");
 
   redirect(`/api/sections/calendar.ics?sectionIds=${sectionIds}`);
 }

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { CommentReactionType } from "@/generated/prisma/client";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
@@ -17,7 +22,7 @@ async function parseCommentId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+    return badRequest("Invalid comment ID");
   }
 
   return parsed.data.id;
@@ -27,7 +32,7 @@ async function parseCommentId(
  * Add one reaction to a comment.
  * @pathParams resourceIdPathParamsSchema
  * @body commentReactionRequestSchema
- * @response successResponseSchema
+ * @response 200:successResponseSchema
  */
 export async function POST(
   request: Request,
@@ -35,7 +40,7 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseCommentId(params);
@@ -75,7 +80,7 @@ export async function POST(
     });
 
     if (!comment) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     await prisma.commentReaction.upsert({
@@ -103,8 +108,8 @@ export async function POST(
 /**
  * Remove one reaction from a comment.
  * @pathParams resourceIdPathParamsSchema
- * @body commentReactionRequestSchema
- * @response successResponseSchema
+ * @params commentReactionRequestSchema
+ * @response 200:successResponseSchema
  */
 export async function DELETE(
   request: Request,
@@ -112,7 +117,7 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseCommentId(params);
@@ -120,14 +125,10 @@ export async function DELETE(
     return parsed;
   }
   const id = parsed;
-  let body: unknown = {};
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid reaction", error, 400);
-  }
-
-  const parsedBody = commentReactionRequestSchema.safeParse(body);
+  const { searchParams } = new URL(request.url);
+  const parsedBody = commentReactionRequestSchema.safeParse({
+    type: searchParams.get("type"),
+  });
   if (!parsedBody.success) {
     return handleRouteError("Invalid reaction", parsedBody.error, 400);
   }

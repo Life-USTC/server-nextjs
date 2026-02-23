@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError, unauthorized } from "@/lib/api-helpers";
 import { calendarSubscriptionCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const session = await auth();
 
     if (!session?.user?.id) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return unauthorized();
     }
 
     const body = await request.json();
