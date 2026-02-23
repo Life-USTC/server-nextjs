@@ -2,22 +2,32 @@
 
 import NextImage from "next/image";
 import { Component, type ReactNode, useEffect, useMemo, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkDirective from "remark-directive";
 import remarkEmoji from "remark-emoji";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
+import type { Node, Parent } from "unist";
 import { visit } from "unist-util-visit";
 import { cn } from "@/lib/utils";
 import "katex/dist/katex.min.css";
 
+type MarkdownErrorBoundaryProps = {
+  children: ReactNode;
+  fallback: ReactNode;
+};
+
+type MarkdownErrorBoundaryState = {
+  hasError: boolean;
+};
+
 class MarkdownErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { hasError: boolean }
+  MarkdownErrorBoundaryProps,
+  MarkdownErrorBoundaryState
 > {
-  constructor(props: any) {
+  constructor(props: MarkdownErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false };
   }
@@ -26,7 +36,7 @@ class MarkdownErrorBoundary extends Component<
     return { hasError: true };
   }
 
-  componentDidCatch(error: any) {
+  componentDidCatch(error: Error) {
     console.error("Markdown rendering error:", error);
   }
 
@@ -41,7 +51,7 @@ class MarkdownErrorBoundary extends Component<
 const mentionPattern = /\b(section|teacher)#(\d+)\b/g;
 
 function preprocessMarkdown(value: string) {
-  return value.replace(mentionPattern, (_match, kind, id) => {
+  return value.replace(mentionPattern, (_match, kind: string, id: string) => {
     const href = kind === "teacher" ? `/teachers/${id}` : `/sections/${id}`;
     return `[${kind}#${id}](${href})`;
   });
@@ -103,37 +113,59 @@ const customSchema = {
   },
 };
 
+type HastElementLike = Node & {
+  type: "element";
+  tagName?: string;
+  properties?: Record<string, unknown>;
+};
+
+type HastTextLike = Node & {
+  type: "text";
+  value?: string;
+};
+
+type HastParentLike = Parent & {
+  children: Node[];
+};
+
 /**
  * Plugin to parse {width=200 align=center} syntax after images/links.
  */
 function rehypeAttributes() {
-  return (tree: any) => {
+  return (tree: Node) => {
     visit(
       tree,
       "element",
-      (node: any, index: number | undefined, parent: any) => {
-        if (node.tagName !== "img" && node.tagName !== "a") return;
+      (node: Node, index: number | undefined, parent: Parent | undefined) => {
+        const element = node as HastElementLike;
+        if (element.tagName !== "img" && element.tagName !== "a") return;
         if (!parent || typeof index !== "number") return;
 
-        const next = parent.children[index + 1];
-        if (next?.type === "text" && next.value) {
-          const match = next.value.match(/^\s*\{([^}]+)\}/);
+        const parentNode = parent as HastParentLike;
+        const next = parentNode.children[index + 1] as Node | undefined;
+        const textNode = next as HastTextLike | undefined;
+        if (textNode?.type === "text" && textNode.value) {
+          const match = textNode.value.match(/^\s*\{([^}]+)\}/);
           if (match) {
             const attrString = match[1];
             const attrs = attrString.split(/\s+/);
-            node.properties = node.properties || {};
+            const properties: Record<string, unknown> =
+              element.properties ?? {};
             attrs.forEach((attr: string) => {
               const parts = attr.split("=");
               if (parts.length === 2) {
                 const [key, value] = parts;
                 const normalizedKey = key === "class" ? "className" : key;
-                node.properties[normalizedKey] = value.replace(/['"]/g, "");
+                properties[normalizedKey] = value.replace(/['"]/g, "");
               }
             });
-            next.value = next.value.replace(/^\s*\{([^}]+)\}/, "").trim();
+            element.properties = properties;
+            textNode.value = textNode.value
+              .replace(/^\s*\{([^}]+)\}/, "")
+              .trim();
             // If the text node is now empty, remove it
-            if (!next.value) {
-              parent.children.splice(index + 1, 1);
+            if (!textNode.value) {
+              parentNode.children.splice(index + 1, 1);
             }
           }
         }
@@ -146,28 +178,38 @@ function rehypeAttributes() {
  * Plugin to transform remark-directive nodes into HAST nodes.
  */
 function directivePlugin() {
-  return (tree: any) => {
-    visit(tree, (node: any) => {
+  return (tree: Node) => {
+    visit(tree, (node: Node) => {
       if (
         node.type === "containerDirective" ||
         node.type === "leafDirective" ||
         node.type === "textDirective"
       ) {
-        if (!node.data) {
-          node.data = {};
-        }
-        const data = node.data;
-        const attributes = node.attributes || {};
+        const directive = node as Node & {
+          name?: string;
+          data?: Record<string, unknown>;
+          attributes?: Record<string, unknown>;
+        };
 
-        data.hName = node.name === "center" ? "center" : "div";
-        data.hProperties = {
+        directive.data = directive.data ?? {};
+        const attributes = directive.attributes ?? {};
+        const name = directive.name ?? "";
+        const classValue =
+          typeof attributes.class === "string" ? attributes.class : undefined;
+        const classNameValue =
+          typeof attributes.className === "string"
+            ? attributes.className
+            : undefined;
+
+        directive.data.hName = name === "center" ? "center" : "div";
+        directive.data.hProperties = {
           ...attributes,
           className: cn(
             "markdown-directive",
-            `directive-${node.name}`,
-            node.name === "center" && "text-center",
-            attributes.class,
-            attributes.className,
+            `directive-${name}`,
+            name === "center" && "text-center",
+            classValue,
+            classNameValue,
           ),
         };
       }
@@ -245,70 +287,80 @@ export function CommentMarkdown({ content, className }: CommentMarkdownProps) {
             rehypeKatex,
             [rehypeSanitize, customSchema],
           ]}
-          components={{
-            a: ({ href, children, ...props }: any) => {
-              const { _node, ...rest } = props;
-              const safeHref = href ?? "";
-              const isExternal = safeHref.startsWith("http");
-              return (
-                <a
-                  href={safeHref}
-                  target={isExternal ? "_blank" : undefined}
-                  rel={isExternal ? "noopener noreferrer" : undefined}
-                  {...rest}
-                >
-                  {children}
-                </a>
-              );
-            },
-            img: ({ src, alt, ...props }: any) => {
-              const { _node, width, height, align, ...rest } = props;
-              const w = Number(width) || 800;
-              const h = Number(height) || 450;
-              return (
-                <NextImage
-                  src={src ?? ""}
-                  alt={alt ?? ""}
-                  unoptimized
-                  width={w}
-                  height={h}
-                  style={{ maxWidth: "100%", height: "auto", width: "auto" }}
-                  className={cn(
-                    "rounded-lg",
-                    align === "center" && "mx-auto block",
-                    align === "right" && "ml-auto block",
-                    rest.className,
-                  )}
-                  {...rest}
-                />
-              );
-            },
-            center: ({ children, ...props }: any) => {
-              const { _node, ...rest } = props;
-              return (
-                <span className="block text-center" {...rest}>
-                  {children}
-                </span>
-              );
-            },
-            // Ensure typography elements are rendered correctly
-            ins: ({ children, ...props }: any) => {
-              const { _node, ...rest } = props;
-              return <ins {...rest}>{children}</ins>;
-            },
-            mark: ({ children, ...props }: any) => {
-              const { _node, ...rest } = props;
-              return <mark {...rest}>{children}</mark>;
-            },
-            sub: ({ children, ...props }: any) => {
-              const { _node, ...rest } = props;
-              return <sub {...rest}>{children}</sub>;
-            },
-            sup: ({ children, ...props }: any) => {
-              const { _node, ...rest } = props;
-              return <sup {...rest}>{children}</sup>;
-            },
-          }}
+          components={
+            {
+              a: ({ href, children, ...props }) => {
+                const { node: _node, ...rest } = props;
+                const safeHref = href ?? "";
+                const isExternal = safeHref.startsWith("http");
+                return (
+                  <a
+                    href={safeHref}
+                    target={isExternal ? "_blank" : undefined}
+                    rel={isExternal ? "noopener noreferrer" : undefined}
+                    {...rest}
+                  >
+                    {children}
+                  </a>
+                );
+              },
+              img: ({ src, alt, ...props }) => {
+                const {
+                  node: _node,
+                  width,
+                  height,
+                  className,
+                  ..._rest
+                } = props;
+                const align = (props as { align?: unknown }).align;
+                const safeSrc = typeof src === "string" ? src : "";
+                const safeAlt = typeof alt === "string" ? alt : "";
+                const w = Number(width) || 800;
+                const h = Number(height) || 450;
+                return (
+                  <NextImage
+                    src={safeSrc}
+                    alt={safeAlt}
+                    unoptimized
+                    width={w}
+                    height={h}
+                    style={{ maxWidth: "100%", height: "auto", width: "auto" }}
+                    className={cn(
+                      "rounded-lg",
+                      align === "center" && "mx-auto block",
+                      align === "right" && "ml-auto block",
+                      className,
+                    )}
+                  />
+                );
+              },
+              center: ({ children, ...props }) => {
+                const { node: _node, ...rest } = props;
+                return (
+                  <span className="block text-center" {...rest}>
+                    {children}
+                  </span>
+                );
+              },
+              // Ensure typography elements are rendered correctly
+              ins: ({ children, ...props }) => {
+                const { node: _node, ...rest } = props;
+                return <ins {...rest}>{children}</ins>;
+              },
+              mark: ({ children, ...props }) => {
+                const { node: _node, ...rest } = props;
+                return <mark {...rest}>{children}</mark>;
+              },
+              sub: ({ children, ...props }) => {
+                const { node: _node, ...rest } = props;
+                return <sub {...rest}>{children}</sub>;
+              },
+              sup: ({ children, ...props }) => {
+                const { node: _node, ...rest } = props;
+                return <sup {...rest}>{children}</sup>;
+              },
+            } satisfies Components
+          }
         >
           {processedContent}
         </ReactMarkdown>

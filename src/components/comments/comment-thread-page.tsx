@@ -14,6 +14,12 @@ import { Card, CardPanel } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUploadsSummary } from "@/hooks/use-uploads-summary";
 import { Link } from "@/i18n/routing";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import {
+  commentThreadResponseSchema,
+  commentUpdateResponseSchema,
+  successResponseSchema,
+} from "@/lib/api-schemas";
 
 type ThreadResponse = {
   thread: CommentNode[];
@@ -77,15 +83,26 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/comments/${commentId}`);
-      if (!response.ok) {
+      const result = await apiClient.GET("/api/comments/{id}", {
+        params: {
+          path: { id: commentId },
+        },
+      });
+
+      if (!result.response.ok || !result.data) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Failed to load");
+      }
+
+      const parsed = commentThreadResponseSchema.safeParse(result.data);
+      if (!parsed.success) {
         throw new Error("Failed to load");
       }
-      const data = (await response.json()) as ThreadResponse;
-      setThread(data.thread);
-      setViewer(data.viewer);
-      setFocusId(data.focusId);
-      setTarget(data.target ?? {});
+
+      setThread(parsed.data.thread);
+      setViewer(parsed.data.viewer);
+      setFocusId(parsed.data.focusId);
+      setTarget(parsed.data.target ?? {});
     } catch (error) {
       console.error("Failed to load comment thread", error);
       setError(t("loadFailed"));
@@ -105,7 +122,19 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     attachmentIds: string[];
     parentId?: string;
   }) => {
-    let targetType: string = "section";
+    const visibility: "public" | "logged_in_only" | "anonymous" =
+      payload.visibility === "public" ||
+      payload.visibility === "logged_in_only" ||
+      payload.visibility === "anonymous"
+        ? payload.visibility
+        : "public";
+
+    let targetType:
+      | "section"
+      | "section-teacher"
+      | "homework"
+      | "course"
+      | "teacher" = "section";
     let targetId: number | null = null;
     let sectionId: number | null = null;
     let teacherId: number | null = null;
@@ -130,24 +159,24 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     }
 
     const payloadTargetId = targetType === "homework" ? homeworkId : targetId;
-    const response = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+
+    const result = await apiClient.POST("/api/comments", {
+      body: {
         targetType,
-        targetId: payloadTargetId,
-        sectionId,
-        teacherId,
+        targetId: payloadTargetId ?? undefined,
+        sectionId: sectionId ?? undefined,
+        teacherId: teacherId ?? undefined,
         body: payload.body,
-        visibility: payload.visibility,
+        visibility,
         isAnonymous: payload.isAnonymous,
         parentId: payload.parentId ?? null,
         attachmentIds: payload.attachmentIds,
-      }),
+      },
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to create reply");
+    if (!result.response.ok) {
+      const apiMessage = extractApiErrorMessage(result.error);
+      throw new Error(apiMessage ?? "Failed to create reply");
     }
 
     await loadThread();
@@ -162,18 +191,32 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
       isAnonymous?: boolean;
     },
   ) => {
-    const response = await fetch(`/api/comments/${commentIdValue}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const visibility: "public" | "logged_in_only" | "anonymous" | undefined =
+      payload.visibility === "public" ||
+      payload.visibility === "logged_in_only" ||
+      payload.visibility === "anonymous"
+        ? payload.visibility
+        : undefined;
+
+    const result = await apiClient.PATCH("/api/comments/{id}", {
+      params: {
+        path: { id: commentIdValue },
+      },
+      body: {
         body: payload.body,
         attachmentIds: payload.attachmentIds,
-        visibility: payload.visibility,
+        visibility,
         isAnonymous: payload.isAnonymous,
-      }),
+      },
     });
 
-    if (!response.ok) {
+    if (!result.response.ok || !result.data) {
+      const apiMessage = extractApiErrorMessage(result.error);
+      throw new Error(apiMessage ?? "Failed to update comment");
+    }
+
+    const parsed = commentUpdateResponseSchema.safeParse(result.data);
+    if (!parsed.success || !parsed.data.success) {
       throw new Error("Failed to update comment");
     }
 
@@ -181,11 +224,19 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
   };
 
   const handleDelete = async (commentIdValue: string) => {
-    const response = await fetch(`/api/comments/${commentIdValue}`, {
-      method: "DELETE",
+    const result = await apiClient.DELETE("/api/comments/{id}", {
+      params: {
+        path: { id: commentIdValue },
+      },
     });
 
-    if (!response.ok) {
+    if (!result.response.ok || !result.data) {
+      const apiMessage = extractApiErrorMessage(result.error);
+      throw new Error(apiMessage ?? "Failed to delete comment");
+    }
+
+    const parsed = successResponseSchema.safeParse(result.data);
+    if (!parsed.success || !parsed.data.success) {
       throw new Error("Failed to delete comment");
     }
 
