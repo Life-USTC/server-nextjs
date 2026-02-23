@@ -67,17 +67,6 @@ export function MarkdownEditor({
               {tabPreviewLabel}
             </TabsTab>
           </TabsList>
-
-          <Button
-            variant="ghost"
-            size="xs"
-            className="h-8 px-2"
-            render={<Link className="no-underline" href={markdownGuideHref} />}
-          >
-            <span className="text-muted-foreground text-xs">
-              {markdownGuideLabel}
-            </span>
-          </Button>
         </div>
 
         <div
@@ -118,6 +107,17 @@ export function MarkdownEditor({
               </p>
             )}
           </div>
+        </div>
+
+        <div className="mt-2 flex justify-end">
+          <Button
+            variant="ghost"
+            size="xs"
+            className="h-8 px-2 text-muted-foreground"
+            render={<Link className="no-underline" href={markdownGuideHref} />}
+          >
+            <span className="text-xs">{markdownGuideLabel}</span>
+          </Button>
         </div>
       </Tabs>
     </div>
