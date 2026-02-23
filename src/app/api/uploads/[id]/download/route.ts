@@ -2,7 +2,12 @@ import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api-helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 import { s3Bucket, s3Client } from "@/lib/storage";
@@ -15,7 +20,7 @@ async function parseUploadId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid upload ID" }, { status: 400 });
+    return badRequest("Invalid upload ID");
   }
 
   return parsed.data.id;
@@ -30,6 +35,7 @@ function buildContentDisposition(filename: string) {
  * Redirect to signed URL for one upload.
  * @pathParams resourceIdPathParamsSchema
  * @response 302
+ * @response 401:openApiErrorSchema
  * @response 404:openApiErrorSchema
  */
 export async function GET(
@@ -38,7 +44,7 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const parsed = await parseUploadId(context.params);
@@ -53,7 +59,7 @@ export async function GET(
     });
 
     if (!upload) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     const command = new GetObjectCommand({

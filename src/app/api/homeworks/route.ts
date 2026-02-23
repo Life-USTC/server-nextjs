@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
-import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  parseOptionalInt,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   homeworkCreateRequestSchema,
   homeworksQuerySchema,
@@ -40,7 +46,7 @@ export async function GET(request: Request) {
   const includeDeleted = parsedQuery.data.includeDeleted === "true";
 
   if (!sectionId) {
-    return NextResponse.json({ error: "Invalid section" }, { status: 400 });
+    return badRequest("Invalid section");
   }
 
   try {
@@ -128,7 +134,7 @@ export async function POST(request: Request) {
   const sectionId = parseOptionalInt(parsedBody.data.sectionId);
 
   if (!sectionId) {
-    return NextResponse.json({ error: "Invalid section" }, { status: 400 });
+    return badRequest("Invalid section");
   }
 
   const title = parsedBody.data.title;
@@ -139,22 +145,13 @@ export async function POST(request: Request) {
   const submissionDueAt = parseDateValue(parsedBody.data.submissionDueAt);
 
   if (publishedAt === undefined) {
-    return NextResponse.json(
-      { error: "Invalid publish date" },
-      { status: 400 },
-    );
+    return badRequest("Invalid publish date");
   }
   if (submissionStartAt === undefined) {
-    return NextResponse.json(
-      { error: "Invalid submission start" },
-      { status: 400 },
-    );
+    return badRequest("Invalid submission start");
   }
   if (submissionDueAt === undefined) {
-    return NextResponse.json(
-      { error: "Invalid submission due" },
-      { status: 400 },
-    );
+    return badRequest("Invalid submission due");
   }
 
   if (
@@ -162,16 +159,13 @@ export async function POST(request: Request) {
     submissionDueAt &&
     submissionStartAt.getTime() > submissionDueAt.getTime()
   ) {
-    return NextResponse.json(
-      { error: "Submission start must be before due" },
-      { status: 400 },
-    );
+    return badRequest("Submission start must be before due");
   }
 
   const session = await auth();
   const userId = session?.user?.id ?? null;
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const suspension = await findActiveSuspension(userId);
@@ -189,7 +183,7 @@ export async function POST(request: Request) {
     });
 
     if (!section) {
-      return NextResponse.json({ error: "Section not found" }, { status: 404 });
+      return notFound("Section not found");
     }
 
     const result = await prisma.$transaction(async (tx) => {

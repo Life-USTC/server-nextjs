@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  forbidden,
   handleRouteError,
   invalidParamResponse,
+  notFound,
   parseInteger,
+  unauthorized,
 } from "@/lib/api-helpers";
 import {
   calendarSubscriptionIdPathParamsSchema,
@@ -26,16 +29,13 @@ async function verifyAccess(
   const token = extractToken(request);
 
   if (!token) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const tokenSubscriptionId = await verifyCalendarSubscriptionJWT(token);
 
   if (tokenSubscriptionId !== subscriptionId) {
-    return NextResponse.json(
-      { error: "Invalid or unauthorized token" },
-      { status: 403 },
-    );
+    return forbidden("Invalid or unauthorized token");
   }
 
   return null; // Access granted
@@ -101,10 +101,7 @@ export async function GET(
     });
 
     if (!subscription) {
-      return NextResponse.json(
-        { error: "Subscription not found" },
-        { status: 404 },
-      );
+      return notFound("Subscription not found");
     }
 
     return NextResponse.json(subscription);
@@ -151,10 +148,7 @@ export async function PATCH(
     });
 
     if (!existingSubscription) {
-      return NextResponse.json(
-        { error: "Subscription not found" },
-        { status: 404 },
-      );
+      return notFound("Subscription not found");
     }
 
     // Verify all section IDs exist

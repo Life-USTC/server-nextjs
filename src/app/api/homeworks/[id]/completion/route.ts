@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   homeworkCompletionRequestSchema,
   resourceIdPathParamsSchema,
@@ -15,7 +20,7 @@ async function parseHomeworkId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid homework ID" }, { status: 400 });
+    return badRequest("Invalid homework ID");
   }
 
   return parsed.data.id;
@@ -57,7 +62,7 @@ export async function PUT(
   const session = await auth();
   const userId = session?.user?.id ?? null;
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   try {
@@ -67,7 +72,7 @@ export async function PUT(
     });
 
     if (!homework || homework.deletedAt) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     if (parsedBody.data.completed) {

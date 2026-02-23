@@ -1,18 +1,27 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { CommentVisibility } from "@/generated/prisma/client";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  forbidden,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api-schemas/request-schemas";
-import { buildCommentNodes } from "@/lib/comment-serialization";
+import {
+  buildCommentNodes,
+  type CommentNode,
+} from "@/lib/comment-serialization";
 import { getViewerContext } from "@/lib/comment-utils";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-function findComment(nodes: any[], id: string): any | null {
+function findComment(nodes: CommentNode[], id: string): CommentNode | null {
   for (const node of nodes) {
     if (node.id === id) return node;
     const nested = findComment(node.replies ?? [], id);
@@ -27,7 +36,7 @@ async function parseCommentId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid comment ID" }, { status: 400 });
+    return badRequest("Invalid comment ID");
   }
 
   return parsed.data.id;
@@ -99,7 +108,7 @@ export async function GET(
     });
 
     if (!comment) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     const viewer = await getViewerContext({ includeAdmin: false });
@@ -146,7 +155,7 @@ export async function GET(
     const focus = findComment(roots, id);
 
     if (!focus) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return forbidden();
     }
 
     return NextResponse.json({
@@ -235,7 +244,7 @@ export async function PATCH(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorized();
     }
 
     const viewer = await getViewerContext();
@@ -245,15 +254,15 @@ export async function PATCH(
     });
 
     if (!comment) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     if (String(comment.status) === "deleted") {
-      return NextResponse.json({ error: "Comment locked" }, { status: 403 });
+      return forbidden("Comment locked");
     }
 
     if (!viewer.isAdmin && comment.userId !== viewer.userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return forbidden();
     }
 
     if (hasAttachmentUpdate) {
@@ -266,10 +275,7 @@ export async function PATCH(
       });
 
       if (uploads.length !== attachmentIds.length) {
-        return NextResponse.json(
-          { error: "Invalid attachments" },
-          { status: 400 },
-        );
+        return badRequest("Invalid attachments");
       }
     }
 
@@ -346,7 +352,7 @@ export async function PATCH(
     });
 
     if (!updatedComment) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     const { roots } = buildCommentNodes([updatedComment], viewer);
@@ -376,7 +382,7 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorized();
     }
 
     const comment = await prisma.comment.findUnique({
@@ -385,11 +391,11 @@ export async function DELETE(
     });
 
     if (!comment) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     if (comment.userId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return forbidden();
     }
 
     await prisma.comment.update({

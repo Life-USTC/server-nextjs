@@ -69,7 +69,31 @@ export function handleRouteError(
   status = 500,
 ) {
   console.error(message, error);
+  return errorResponse(message, status);
+}
+
+export function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
+}
+
+export function badRequest(message: string) {
+  return errorResponse(message, 400);
+}
+
+export function unauthorized(message = "Unauthorized") {
+  return errorResponse(message, 401);
+}
+
+export function forbidden(message = "Forbidden") {
+  return errorResponse(message, 403);
+}
+
+export function notFound(message = "Not found") {
+  return errorResponse(message, 404);
+}
+
+export function payloadTooLarge(message = "Payload too large") {
+  return errorResponse(message, 413);
 }
 
 export function parseInteger(value: unknown): number | null {
@@ -94,11 +118,6 @@ export function parseOptionalInt(value: unknown): number | null {
   return parseInteger(value);
 }
 
-export function parseRequiredInt(value: unknown): number | null {
-  const parsed = parseInteger(value);
-  return parsed === null ? null : parsed;
-}
-
 export function parseIntegerList(value: unknown, separator = ","): number[] {
   if (typeof value !== "string") {
     return [];
@@ -111,5 +130,5 @@ export function parseIntegerList(value: unknown, separator = ","): number[] {
 }
 
 export function invalidParamResponse(paramName: string) {
-  return NextResponse.json({ error: `Invalid ${paramName}` }, { status: 400 });
+  return badRequest(`Invalid ${paramName}`);
 }

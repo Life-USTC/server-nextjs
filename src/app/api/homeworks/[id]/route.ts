@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
+import {
+  badRequest,
+  forbidden,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api-helpers";
 import {
   homeworkUpdateRequestSchema,
   resourceIdPathParamsSchema,
@@ -16,7 +22,7 @@ async function parseHomeworkId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid homework ID" }, { status: 400 });
+    return badRequest("Invalid homework ID");
   }
 
   return parsed.data.id;
@@ -80,22 +86,13 @@ export async function PATCH(
     : undefined;
 
   if (hasPublishedAt && publishedAt === undefined) {
-    return NextResponse.json(
-      { error: "Invalid publish date" },
-      { status: 400 },
-    );
+    return badRequest("Invalid publish date");
   }
   if (hasSubmissionStartAt && submissionStartAt === undefined) {
-    return NextResponse.json(
-      { error: "Invalid submission start" },
-      { status: 400 },
-    );
+    return badRequest("Invalid submission start");
   }
   if (hasSubmissionDueAt && submissionDueAt === undefined) {
-    return NextResponse.json(
-      { error: "Invalid submission due" },
-      { status: 400 },
-    );
+    return badRequest("Invalid submission due");
   }
 
   if (
@@ -103,16 +100,13 @@ export async function PATCH(
     submissionDueAt &&
     submissionStartAt.getTime() > submissionDueAt.getTime()
   ) {
-    return NextResponse.json(
-      { error: "Submission start must be before due" },
-      { status: 400 },
-    );
+    return badRequest("Submission start must be before due");
   }
 
   const session = await auth();
   const userId = session?.user?.id ?? null;
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const suspension = await findActiveSuspension(userId);
@@ -130,11 +124,11 @@ export async function PATCH(
     });
 
     if (!homework) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     if (homework.deletedAt) {
-      return NextResponse.json({ error: "Homework deleted" }, { status: 403 });
+      return forbidden("Homework deleted");
     }
 
     const updates: Record<string, unknown> = {
@@ -156,7 +150,7 @@ export async function PATCH(
       updates.submissionDueAt = submissionDueAt;
 
     if (Object.keys(updates).length === 1) {
-      return NextResponse.json({ error: "No changes" }, { status: 400 });
+      return badRequest("No changes");
     }
 
     await prisma.homework.update({
@@ -189,7 +183,7 @@ export async function DELETE(
   const userId = session?.user?.id ?? null;
 
   if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const suspension = await findActiveSuspension(userId);
@@ -208,11 +202,11 @@ export async function DELETE(
     });
 
     if (!homework) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return notFound();
     }
 
     if (!viewer.isAdmin && homework.createdById !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return forbidden();
     }
 
     await prisma.$transaction(async (tx) => {

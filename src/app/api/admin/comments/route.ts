@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError, parseOptionalInt } from "@/lib/api-helpers";
+import {
+  handleRouteError,
+  parseOptionalInt,
+  unauthorized,
+} from "@/lib/api-helpers";
 import { adminCommentsQuerySchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
 
@@ -24,7 +28,7 @@ function parseLimit(value: string | null) {
 export async function GET(request: Request) {
   const admin = await requireAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return unauthorized();
   }
 
   const { searchParams } = new URL(request.url);

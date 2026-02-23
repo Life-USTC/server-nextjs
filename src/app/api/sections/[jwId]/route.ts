@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
   handleRouteError,
   invalidParamResponse,
+  notFound,
   parseInteger,
 } from "@/lib/api-helpers";
 import { jwIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
@@ -63,7 +64,7 @@ export async function GET(
     });
 
     if (!section) {
-      return NextResponse.json({ error: "Section not found" }, { status: 404 });
+      return notFound("Section not found");
     }
 
     return NextResponse.json(section);

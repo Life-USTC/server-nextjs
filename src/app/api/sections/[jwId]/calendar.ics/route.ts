@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { invalidParamResponse, parseInteger } from "@/lib/api-helpers";
+import {
+  handleRouteError,
+  invalidParamResponse,
+  notFound,
+  parseInteger,
+} from "@/lib/api-helpers";
 import { jwIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import { createSectionCalendar } from "@/lib/ical";
 import { prisma } from "@/lib/prisma";
@@ -57,7 +62,7 @@ export async function GET(
     });
 
     if (!section) {
-      return NextResponse.json({ error: "Section not found" }, { status: 404 });
+      return notFound("Section not found");
     }
 
     const calendar = await createSectionCalendar(section);
@@ -71,13 +76,6 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Error generating section calendar:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to generate calendar",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
+    return handleRouteError("Failed to generate calendar", error);
   }
 }
