@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
+import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
 import { getViewerContext } from "@/lib/comment-utils";
 import { getCommentsPayload } from "@/lib/comments-server";
@@ -36,6 +37,78 @@ import { getDescriptionPayload } from "@/lib/descriptions-server";
 import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 import { formatTime } from "@/lib/time-utils";
 import { cn } from "@/lib/utils";
+
+const SECTION_DETAIL_INCLUDE = {
+  course: true,
+  semester: true,
+  campus: true,
+  openDepartment: true,
+  examMode: true,
+  teachLanguage: true,
+  roomType: true,
+  adminClasses: true,
+  teachers: {
+    include: {
+      department: true,
+    },
+  },
+  schedules: {
+    include: {
+      room: {
+        include: {
+          building: {
+            include: {
+              campus: true,
+            },
+          },
+        },
+      },
+      teachers: true,
+    },
+    orderBy: [{ date: "asc" }, { startTime: "asc" }],
+  },
+  exams: {
+    include: {
+      examBatch: true,
+      examRooms: true,
+    },
+    orderBy: { examDate: "asc" },
+  },
+} satisfies Prisma.SectionInclude;
+
+const OTHER_SECTIONS_INCLUDE = {
+  semester: true,
+  teachers: true,
+} satisfies Prisma.SectionInclude;
+
+type LocalePrisma = ReturnType<typeof getPrisma>;
+
+async function fetchSectionDetail(prisma: LocalePrisma, jwId: number) {
+  return prisma.section.findUnique({
+    where: { jwId },
+    include: SECTION_DETAIL_INCLUDE,
+  });
+}
+
+type SectionDetail = NonNullable<
+  Awaited<ReturnType<typeof fetchSectionDetail>>
+>;
+
+async function fetchOtherSections(
+  prisma: LocalePrisma,
+  section: { courseId: number; id: number },
+) {
+  return prisma.section.findMany({
+    where: {
+      courseId: section.courseId,
+      id: { not: section.id },
+    },
+    include: OTHER_SECTIONS_INCLUDE,
+    orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+  });
+}
+
+type OtherSection = Awaited<ReturnType<typeof fetchOtherSections>>[number];
 
 export async function generateMetadata({
   params,
@@ -90,46 +163,7 @@ export default async function SectionPage({
   const locale = await getLocale();
   const prisma = getPrisma(locale);
 
-  const section = await prisma.section.findUnique({
-    where: { jwId: parsedJwId },
-    include: {
-      course: true,
-      semester: true,
-      campus: true,
-      openDepartment: true,
-      examMode: true,
-      teachLanguage: true,
-      roomType: true,
-      adminClasses: true,
-      teachers: {
-        include: {
-          department: true,
-        },
-      },
-      schedules: {
-        include: {
-          room: {
-            include: {
-              building: {
-                include: {
-                  campus: true,
-                },
-              },
-            },
-          },
-          teachers: true,
-        },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-      },
-      exams: {
-        include: {
-          examBatch: true,
-          examRooms: true,
-        },
-        orderBy: { examDate: "asc" },
-      },
-    },
-  });
+  const section = await fetchSectionDetail(prisma, parsedJwId);
 
   if (!section) {
     notFound();
@@ -159,17 +193,7 @@ export default async function SectionPage({
         startDate: "asc",
       },
     }),
-    prisma.section.findMany({
-      where: {
-        courseId: section.courseId,
-        id: { not: section.id },
-      },
-      include: {
-        semester: true,
-        teachers: true,
-      },
-      orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-    }),
+    fetchOtherSections(prisma, section),
     getTranslations("sectionDetail"),
     getTranslations("common"),
     getTranslations("accessibility"),
@@ -718,8 +742,12 @@ async function HomeworkLoader({
     }),
   ]);
 
+  type HomeworkRowWithCompletions = (typeof homeworkEntries)[number] & {
+    homeworkCompletions?: Array<{ completedAt: Date }>;
+  };
+
   const homeworks = homeworkEntries.map(
-    (homework: { homeworkCompletions?: Array<{ completedAt: Date }> }) => {
+    (homework: HomeworkRowWithCompletions) => {
       const { homeworkCompletions, ...rest } = homework;
       return {
         ...rest,
@@ -729,7 +757,7 @@ async function HomeworkLoader({
   );
 
   const homeworkInitialData = {
-    homeworks: homeworks.map((homework: any) => ({
+    homeworks: homeworks.map((homework) => ({
       ...homework,
       createdAt: homework.createdAt.toISOString(),
       updatedAt: homework.updatedAt.toISOString(),
@@ -750,7 +778,7 @@ async function HomeworkLoader({
         ? { completedAt: homework.completion.completedAt.toISOString() }
         : null,
     })),
-    auditLogs: homeworkAuditLogs.map((log: any) => ({
+    auditLogs: homeworkAuditLogs.map((log) => ({
       ...log,
       createdAt: log.createdAt.toISOString(),
     })),
@@ -970,10 +998,10 @@ function MiniCalendar({
 }
 
 type BasicInfoCardProps = {
-  section: any;
-  otherSections: any[];
-  sameSemesterOtherTeachers: any[];
-  sameTeacherOtherSemesters: any[];
+  section: SectionDetail;
+  otherSections: OtherSection[];
+  sameSemesterOtherTeachers: OtherSection[];
+  sameTeacherOtherSemesters: OtherSection[];
   t: (key: string, params?: Record<string, string | number | Date>) => string;
   tCommon: (key: string) => string;
 };
@@ -1089,7 +1117,7 @@ function BasicInfoCard({
                     {t("teachers")}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {section.teachers.map((teacher: any) => (
+                    {section.teachers.map((teacher) => (
                       <Link
                         key={teacher.id}
                         href={`/teachers/${teacher.id}`}
@@ -1227,7 +1255,7 @@ function BasicInfoCard({
                       {t("adminClasses")}
                     </p>
                     <div className="flex flex-wrap gap-2">
-                      {section.adminClasses.map((ac: any) => (
+                      {section.adminClasses.map((ac) => (
                         <Badge key={ac.id} variant="secondary">
                           {ac.namePrimary}
                         </Badge>
@@ -1261,7 +1289,7 @@ function BasicInfoCard({
                                   {otherSection.teachers.length > 0 ? (
                                     <span>
                                       {otherSection.teachers
-                                        .map((t: any) => t.namePrimary)
+                                        .map((t) => t.namePrimary)
                                         .join(", ")}
                                     </span>
                                   ) : (
