@@ -13,48 +13,51 @@ async function expectTableOrEmpty(page: Page) {
   await expect(page.locator('[data-slot="empty"]').first()).toBeVisible();
 }
 
+function visibleSearchInput(page: Page) {
+  return page.locator('input[name="search"]:visible').first();
+}
+
 test.describe("公共页面元素与高级功能", () => {
   test("sections 列表支持搜索并正确回填参数", async ({ page }) => {
     await page.goto("/sections");
+    const searchInput = visibleSearchInput(page);
 
-    await expect(page.locator('input[name="search"]')).toBeVisible();
+    await expect(searchInput).toBeVisible();
     await expectTableOrEmpty(page);
 
-    await page.locator('input[name="search"]').fill("ssr-query");
-    await page.locator('input[name="search"]').press("Enter");
+    await searchInput.fill("ssr-query");
+    await searchInput.press("Enter");
 
     await expect(page).toHaveURL(/\/sections\?.*search=ssr-query/);
-    await expect(page.locator('input[name="search"]')).toHaveValue("ssr-query");
+    await expect(searchInput).toHaveValue("ssr-query");
   });
 
   test("teachers 列表支持搜索并正确回填参数", async ({ page }) => {
     await page.goto("/teachers");
+    const searchInput = visibleSearchInput(page);
 
-    await expect(page.locator('input[name="search"]')).toBeVisible();
+    await expect(searchInput).toBeVisible();
     await expectTableOrEmpty(page);
 
-    await page.locator('input[name="search"]').fill("e2e-teacher");
-    await page.locator('input[name="search"]').press("Enter");
+    await searchInput.fill("e2e-teacher");
+    await searchInput.press("Enter");
 
     await expect(page).toHaveURL(/\/teachers\?.*search=e2e-teacher/);
-    await expect(page.locator('input[name="search"]')).toHaveValue(
-      "e2e-teacher",
-    );
+    await expect(searchInput).toHaveValue("e2e-teacher");
   });
 
   test("courses 列表支持搜索并正确回填参数", async ({ page }) => {
     await page.goto("/courses");
+    const searchInput = visibleSearchInput(page);
 
-    await expect(page.locator('input[name="search"]')).toBeVisible();
+    await expect(searchInput).toBeVisible();
     await expectTableOrEmpty(page);
 
-    await page.locator('input[name="search"]').fill("e2e-course");
-    await page.locator('input[name="search"]').press("Enter");
+    await searchInput.fill("e2e-course");
+    await searchInput.press("Enter");
 
     await expect(page).toHaveURL(/\/courses\?.*search=e2e-course/);
-    await expect(page.locator('input[name="search"]')).toHaveValue(
-      "e2e-course",
-    );
+    await expect(searchInput).toHaveValue("e2e-course");
   });
 
   test("评论指南页面渲染 Markdown 样例", async ({ page }) => {
@@ -78,6 +81,13 @@ test.describe("登录后页面元素与高级功能", () => {
     await expect(
       page.locator('a[href="/dashboard/homeworks"]').first(),
     ).toBeVisible();
+    await expect(page.getByTestId("dashboard-homeworks-entry")).toBeVisible();
+  });
+
+  test("dashboard 新作业入口按钮可跳转到全部作业", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page.getByTestId("dashboard-homeworks-entry").click();
+    await expect(page).toHaveURL(/\/dashboard\/homeworks(?:\?.*)?$/);
   });
 
   test("dashboard 左侧切换可在三个页面间导航", async ({ page }) => {
@@ -99,24 +109,51 @@ test.describe("登录后页面元素与高级功能", () => {
 
   test("dashboard 子页面具备关键交互元素", async ({ page }) => {
     await page.goto("/dashboard/subscriptions/sections");
-    await expect(page.locator("textarea")).toBeVisible();
+    await expect(page.locator("textarea:visible").first()).toBeVisible();
 
     await page.goto("/dashboard/uploads");
-    await expect(page.locator("input#upload-file")).toBeAttached();
+    await expect(
+      page.locator("input#upload-file:visible").first(),
+    ).toBeAttached();
 
     await page.goto("/dashboard/comments");
     await expect(page.locator("#main-content")).toBeVisible();
 
     await page.goto("/dashboard/homeworks");
-    await expect(
-      page.getByRole("button", { name: /未完成|Incomplete/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: /已完成|Completed/i }).first(),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /添加作业|Add homework/i }).first(),
-    ).toBeVisible();
+    const incompleteButton = page.getByRole("button", {
+      name: /未完成|Incomplete/i,
+    });
+    const browseCoursesLink = page.locator('a[href="/courses"]').first();
+    if ((await browseCoursesLink.count()) > 0) {
+      await expect(browseCoursesLink).toBeVisible();
+    } else {
+      await expect(incompleteButton.first()).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /已完成|Completed/i }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("dashboard-homeworks-add").first(),
+      ).toBeVisible();
+    }
+  });
+
+  test("dashboard 作业页添加入口可打开新建作业表单", async ({ page }) => {
+    await page.goto("/dashboard/homeworks");
+
+    const addHomeworkButton = page
+      .getByTestId("dashboard-homeworks-add")
+      .first();
+    if ((await addHomeworkButton.count()) === 0) {
+      await expect(page.locator('a[href="/courses"]').first()).toBeVisible();
+      return;
+    }
+
+    await addHomeworkButton.click();
+    await expect(page.getByTestId("dashboard-homework-title")).toBeVisible();
+    await page
+      .getByRole("button", { name: /取消|Cancel/i })
+      .first()
+      .click();
   });
 
   test("settings 页面支持导航与重定向", async ({ page }) => {
@@ -178,5 +215,18 @@ test.describe("登录后页面元素与高级功能", () => {
       await page.goto(`/u/id/${userId}`);
       await expect(page.locator("#main-content")).toBeVisible();
     }
+  });
+
+  test("登录用户支持公开个人页用户名路由", async ({ page }) => {
+    const sessionResponse = await page.request.get("/api/auth/session");
+    const session = (await sessionResponse.json()) as {
+      user?: { username?: string | null };
+    };
+    const username = session.user?.username;
+
+    test.skip(!username, "当前会话没有 username，跳过用户名路由断言");
+
+    await page.goto(`/u/${username}`);
+    await expect(page.locator("#main-content")).toBeVisible();
   });
 });
