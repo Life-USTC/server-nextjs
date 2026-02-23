@@ -92,6 +92,11 @@ export default async function SignInPage({
             name: t("devDebugProvider"),
             icon: <span aria-hidden="true">🧪</span>,
           },
+          {
+            id: "dev-admin",
+            name: t("devAdminProvider"),
+            icon: <span aria-hidden="true">🛡️</span>,
+          },
         ]
       : []),
   ];

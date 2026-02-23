@@ -18,9 +18,14 @@ type OAuthProfile = {
 
 const isDev = process.env.NODE_ENV === "development";
 const DEV_DEBUG_PROVIDER_ID = "dev-debug";
+const DEV_ADMIN_PROVIDER_ID = "dev-admin";
 const DEV_DEBUG_USERNAME =
   process.env.DEV_DEBUG_USERNAME?.trim().toLowerCase() || "dev-user";
 const DEV_DEBUG_NAME = process.env.DEV_DEBUG_NAME?.trim() || "Dev Debug User";
+
+const DEV_ADMIN_USERNAME =
+  process.env.DEV_ADMIN_USERNAME?.trim().toLowerCase() || "dev-admin";
+const DEV_ADMIN_NAME = process.env.DEV_ADMIN_NAME?.trim() || "Dev Admin User";
 
 const prismaAdapter = PrismaAdapter(
   prisma as unknown as Parameters<typeof PrismaAdapter>[0],
@@ -103,6 +108,35 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               };
             },
           }),
+          Credentials({
+            id: DEV_ADMIN_PROVIDER_ID,
+            name: "Dev Admin",
+            credentials: {},
+            authorize: async () => {
+              const user = await prisma.user.upsert({
+                where: { username: DEV_ADMIN_USERNAME },
+                update: {
+                  name: DEV_ADMIN_NAME,
+                  isAdmin: true,
+                },
+                create: {
+                  username: DEV_ADMIN_USERNAME,
+                  name: DEV_ADMIN_NAME,
+                  isAdmin: true,
+                  image:
+                    "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
+                },
+              });
+
+              return {
+                id: user.id,
+                name: user.name,
+                image: user.image,
+                isAdmin: true,
+                username: user.username,
+              };
+            },
+          }),
         ]
       : []),
     {
@@ -138,7 +172,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async signIn({ user, account, profile }) {
       if (!account || !user.id) return true;
-      if (account.provider === DEV_DEBUG_PROVIDER_ID) {
+      if (
+        account.provider === DEV_DEBUG_PROVIDER_ID ||
+        account.provider === DEV_ADMIN_PROVIDER_ID
+      ) {
         return isDev;
       }
 
