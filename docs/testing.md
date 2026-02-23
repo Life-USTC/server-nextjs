@@ -37,7 +37,9 @@
 - 运行 `bun run dev:seed-scenarios`（或兼容命令 `bun run dev:seed-debug-user`）可创建确定性调试场景数据：今天/明天有课、今日截止作业、评论线程、上传记录、已选课班级订阅。
 - 运行 `bun run dev:reset-scenarios` 可只清理调试场景数据，不影响普通业务数据。
 - 在开发环境打开 `/signin` 后，可点击“调试用户（开发）/Debug User (Dev)”按钮一键登录。
+- 在开发环境打开 `/signin` 后，可点击“调试管理员（开发）/Admin User (Dev)”按钮一键登录管理员，用于覆盖后台与 admin API 的 E2E。
 - 可通过环境变量覆盖调试用户信息：`DEV_DEBUG_USERNAME`、`DEV_DEBUG_NAME`。
+  - 管理员调试账号可通过 `DEV_ADMIN_USERNAME`、`DEV_ADMIN_NAME` 覆盖。
 
 ## 当前用例
 
