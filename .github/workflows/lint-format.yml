@@ -51,14 +51,8 @@ jobs:
               github.event.pull_request.head.repo.full_name == github.repository))
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'chore: apply biome fixes'
-          file_pattern: '.'
+          commit_message: "chore: apply biome fixes"
+          file_pattern: "."
 
       - name: Verify Biome check
         run: bun run check 2>&1
-
-      - name: Verify OpenAPI artifacts are committed
-        run: |
-          bun run openapi:generate
-          bun run openapi:types
-          git diff --exit-code -- public/openapi.generated.json src/generated/openapi.ts

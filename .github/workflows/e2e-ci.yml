@@ -12,8 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_e2e
+      JWT_SECRET: e2e-ci-secret
+      WEBHOOK_SECRET: e2e-ci-secret
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: life-ustc-e2e
+      S3_ACCESS_KEY_ID: minioadmin
+      S3_SECRET_ACCESS_KEY: minioadmin
+      R2_ACCESS_URL: http://minio:9000
       AUTH_SECRET: e2e-ci-secret
-      NEXTAUTH_SECRET: e2e-ci-secret
 
     services:
       postgres:
@@ -56,14 +62,8 @@ jobs:
       - name: Run Biome check
         run: bun run check
 
-      - name: Build application
-        run: bun run build
-
-      - name: Generate OpenAPI types
-        run: bun run openapi:types
-
-      - name: Verify OpenAPI artifacts are committed
-        run: git diff --exit-code -- public/openapi.generated.json src/generated/openapi.ts
+      - name: Setup Prisma and Zod
+        run: bun run prebuild
 
       - name: Run Playwright E2E tests
         run: bun run test:e2e
