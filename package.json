@@ -25,7 +25,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:reset": "prisma migrate reset",
-    "openapi:generate": "next-openapi-gen generate && bun run openapi:postprocess",
+    "openapi:generate": "next-openapi-gen generate && bun run openapi:postprocess && biome format --write public/openapi.generated.json",
     "openapi:postprocess": "bun run tools/openapi-postprocess.ts",
     "openapi:types": "bunx openapi-typescript \"public/openapi.generated.json\" -o \"src/generated/openapi.ts\"",
     "dev:seed-debug-user": "bun run tools/seed-dev-scenarios.ts",
