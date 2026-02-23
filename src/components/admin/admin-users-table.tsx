@@ -41,6 +41,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import { adminUserResponseSchema } from "@/lib/api-schemas";
 
 type AdminUser = {
   id: string;
@@ -134,22 +136,32 @@ export function AdminUsersTable({
     if (!selectedUser) return;
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const result = await apiClient.PATCH("/api/admin/users/{id}", {
+        params: {
+          path: { id: selectedUser.id },
+        },
+        body: {
           name: editName.trim() || null,
           username: editUsername.trim() || null,
           isAdmin: editIsAdmin,
-        }),
+        },
       });
-      if (!response.ok) {
+
+      if (!result.response.ok || !result.data) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Update failed");
+      }
+
+      const parsed = adminUserResponseSchema.safeParse(result.data);
+      if (!parsed.success) {
         throw new Error("Update failed");
       }
-      const data = (await response.json()) as { user: AdminUser };
+
       setUsers((current) =>
         current.map((entry) =>
-          entry.id === data.user.id ? { ...entry, ...data.user } : entry,
+          entry.id === parsed.data.user.id
+            ? { ...entry, ...parsed.data.user }
+            : entry,
         ),
       );
       toast({
@@ -172,17 +184,18 @@ export function AdminUsersTable({
     if (!selectedUser) return;
     setIsSuspending(true);
     try {
-      const response = await fetch("/api/admin/suspensions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const expiresAt = calculateExpiresAt();
+      const result = await apiClient.POST("/api/admin/suspensions", {
+        body: {
           userId: selectedUser.id,
-          reason: suspendReason.trim() || null,
-          expiresAt: calculateExpiresAt(),
-        }),
+          reason: suspendReason.trim() || undefined,
+          expiresAt: expiresAt ?? undefined,
+        },
       });
-      if (!response.ok) {
-        throw new Error("Suspend failed");
+
+      if (!result.response.ok) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Suspend failed");
       }
       toast({
         title: tModeration("suspendSuccess"),
