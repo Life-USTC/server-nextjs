@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { ScheduleSessionLink } from "@/components/schedules/schedule-session-link";
 import {
   Card,
   CardDescription,
@@ -14,7 +15,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Link } from "@/i18n/routing";
 import { formatDuration, formatTime } from "@/lib/time-utils";
 import type { SessionItem, TimeSlot, Translate } from "../types";
 
@@ -103,22 +103,18 @@ export function WeekTable({
                         ) : (
                           <div className="space-y-1">
                             {dayItems.map((item) => (
-                              <Link
+                              <ScheduleSessionLink
                                 key={item.id}
                                 href={
                                   item.sectionJwId
                                     ? `/sections/${item.sectionJwId}`
                                     : "/dashboard/subscriptions/sections"
                                 }
-                                className="block rounded border border-primary/20 bg-primary/5 px-2 py-1 text-xs no-underline transition-colors hover:bg-primary/10"
-                              >
-                                <p className="truncate font-medium">
-                                  {item.courseName}
-                                </p>
-                                <p className="truncate text-muted-foreground">
-                                  {item.location}
-                                </p>
-                              </Link>
+                                courseName={item.courseName}
+                                location={item.location}
+                                className="rounded border border-primary/20 bg-primary/5 px-2 py-1 text-xs hover:bg-primary/10"
+                                variant="compact"
+                              />
                             ))}
                           </div>
                         )}

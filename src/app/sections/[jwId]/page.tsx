@@ -417,7 +417,7 @@ export default async function SectionPage({
     <main className="page-main">
       <SectionBreadcrumb sectionCode={section.code} tCommon={tCommon} />
 
-      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
           <SectionHeader
             courseName={section.course.namePrimary}
@@ -547,7 +547,7 @@ export default async function SectionPage({
           </CommentAwareTabs>
         </div>
 
-        <aside className="lg:-order-1 space-y-4">
+        <aside className="space-y-4">
           <Suspense fallback={<DescriptionSkeleton />}>
             <DescriptionLoader targetType="section" targetId={section.id} />
           </Suspense>
