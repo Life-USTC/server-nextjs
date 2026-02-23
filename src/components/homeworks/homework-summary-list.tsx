@@ -17,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import { homeworkCompletionResponseSchema } from "@/lib/api-schemas";
 
 type HomeworkSummary = {
   id: string;
@@ -107,13 +109,19 @@ export function HomeworkSummaryList({
   ) => {
     setCompletionSaving((prev) => ({ ...prev, [homeworkId]: true }));
     try {
-      const response = await fetch(`/api/homeworks/${homeworkId}/completion`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: nextCompleted }),
+      const result = await apiClient.PUT("/api/homeworks/{id}/completion", {
+        params: {
+          path: { id: homeworkId },
+        },
+        body: { completed: nextCompleted },
       });
 
-      if (!response.ok) {
+      if (!result.response.ok || !result.data) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        console.error(
+          "Failed to update completion",
+          apiMessage ?? result.error,
+        );
         toast({
           title: t("completionFailed"),
           variant: "destructive",
@@ -121,10 +129,14 @@ export function HomeworkSummaryList({
         return;
       }
 
-      const data = (await response.json()) as {
-        completed: boolean;
-        completedAt: string | null;
-      };
+      const parsed = homeworkCompletionResponseSchema.safeParse(result.data);
+      if (!parsed.success) {
+        toast({
+          title: t("completionFailed"),
+          variant: "destructive",
+        });
+        return;
+      }
 
       setItems((prev) =>
         prev.map((homework) =>
@@ -132,8 +144,8 @@ export function HomeworkSummaryList({
             ? {
                 ...homework,
                 completion:
-                  data.completed && data.completedAt
-                    ? { completedAt: data.completedAt }
+                  parsed.data.completed && parsed.data.completedAt
+                    ? { completedAt: parsed.data.completedAt }
                     : null,
               }
             : homework,

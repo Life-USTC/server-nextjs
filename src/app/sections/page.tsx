@@ -291,7 +291,6 @@ async function fetchSections(
       });
     }
 
-    // If we have any conditions, combine them with AND
     if (conditions.length > 0) {
       where.AND = conditions;
     }

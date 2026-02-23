@@ -41,6 +41,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import {
+  commentsListResponseSchema,
+  descriptionsResponseSchema,
+  homeworkCompletionResponseSchema,
+  homeworksListResponseSchema,
+} from "@/lib/api-schemas";
 import { cn } from "@/lib/utils";
 
 type ViewerSummary = {
@@ -106,14 +113,6 @@ type DescriptionHistoryEntry = {
   previousContent: string | null;
   nextContent: string;
   editor: UserSummary | null;
-};
-
-type DescriptionHistoryResponse = {
-  history: DescriptionHistoryEntry[];
-};
-
-type CommentsResponse = {
-  comments: CommentNode[];
 };
 
 type HomeworkPanelProps = {
@@ -315,17 +314,12 @@ export function HomeworkPanel({
     [t],
   );
 
-  const getResponseErrorMessage = useCallback(
-    async (response: Response) => {
-      try {
-        const data = (await response.json()) as { error?: unknown } | null;
-        const error = typeof data?.error === "string" ? data.error : null;
-        return resolveHomeworkError(error);
-      } catch {
-        return t("errorGeneric");
-      }
+  const resolveApiErrorMessage = useCallback(
+    (errorBody: unknown) => {
+      const errorMessage = extractApiErrorMessage(errorBody);
+      return resolveHomeworkError(errorMessage);
     },
-    [resolveHomeworkError, t],
+    [resolveHomeworkError],
   );
 
   const countCommentNodes = useCallback((nodes: CommentNode[]): number => {
@@ -344,18 +338,28 @@ export function HomeworkPanel({
       try {
         const responses = await Promise.all(
           entries.map(async (homework) => {
-            const params = new URLSearchParams({
-              targetType: "homework",
-              targetId: homework.id,
+            const result = await apiClient.GET("/api/comments", {
+              params: {
+                query: {
+                  targetType: "homework",
+                  targetId: homework.id,
+                },
+              },
             });
-            const response = await fetch(`/api/comments?${params.toString()}`);
-            if (!response.ok) {
+
+            if (!result.response.ok || !result.data) {
+              const apiMessage = extractApiErrorMessage(result.error);
+              throw new Error(apiMessage ?? "Failed to load comments");
+            }
+
+            const parsed = commentsListResponseSchema.safeParse(result.data);
+            if (!parsed.success) {
               throw new Error("Failed to load comments");
             }
-            const data = (await response.json()) as CommentsResponse;
+
             return [
               homework.id,
-              countCommentNodes(data.comments ?? []),
+              countCommentNodes(parsed.data.comments ?? []),
             ] as const;
           }),
         );
@@ -371,15 +375,26 @@ export function HomeworkPanel({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/homeworks?sectionId=${sectionId}`);
-      if (!response.ok) {
+      const result = await apiClient.GET("/api/homeworks", {
+        params: {
+          query: { sectionId: String(sectionId) },
+        },
+      });
+
+      if (!result.response.ok || !result.data) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Failed to load homeworks");
+      }
+
+      const parsed = homeworksListResponseSchema.safeParse(result.data);
+      if (!parsed.success) {
         throw new Error("Failed to load homeworks");
       }
-      const data = (await response.json()) as HomeworkResponse;
-      setHomeworks(data.homeworks ?? []);
-      setAuditLogs(data.auditLogs ?? []);
-      setViewer(data.viewer ?? EMPTY_VIEWER);
-      void loadCommentCounts(data.homeworks ?? []);
+
+      setHomeworks(parsed.data.homeworks ?? []);
+      setAuditLogs(parsed.data.auditLogs ?? []);
+      setViewer(parsed.data.viewer ?? EMPTY_VIEWER);
+      void loadCommentCounts(parsed.data.homeworks ?? []);
     } catch (err) {
       console.error("Failed to load homeworks", err);
       setError(t("loadFailed"));
@@ -418,13 +433,21 @@ export function HomeworkPanel({
     if (!viewer.isAuthenticated) return;
     setCompletionSaving((prev) => ({ ...prev, [homeworkId]: true }));
     try {
-      const response = await fetch(`/api/homeworks/${homeworkId}/completion`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: nextCompleted }),
+      const result = await apiClient.PUT("/api/homeworks/{id}/completion", {
+        params: {
+          path: { id: homeworkId },
+        },
+        body: {
+          completed: nextCompleted,
+        },
       });
 
-      if (!response.ok) {
+      if (!result.response.ok || !result.data) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        console.error(
+          "Failed to update completion",
+          apiMessage ?? result.error,
+        );
         toast({
           title: t("completionFailed"),
           variant: "destructive",
@@ -432,10 +455,14 @@ export function HomeworkPanel({
         return;
       }
 
-      const data = (await response.json()) as {
-        completed: boolean;
-        completedAt: string | null;
-      };
+      const parsed = homeworkCompletionResponseSchema.safeParse(result.data);
+      if (!parsed.success) {
+        toast({
+          title: t("completionFailed"),
+          variant: "destructive",
+        });
+        return;
+      }
 
       setHomeworks((prev) =>
         prev.map((homework) =>
@@ -443,8 +470,8 @@ export function HomeworkPanel({
             ? {
                 ...homework,
                 completion:
-                  data.completed && data.completedAt
-                    ? { completedAt: data.completedAt }
+                  parsed.data.completed && parsed.data.completedAt
+                    ? { completedAt: parsed.data.completedAt }
                     : null,
               }
             : homework,
@@ -471,22 +498,21 @@ export function HomeworkPanel({
             semesterEndDate={semesterEndDate}
             onSubmit={async (data) => {
               try {
-                const response = await fetch("/api/homeworks", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    sectionId,
-                    ...data,
+                const result = await apiClient.POST("/api/homeworks", {
+                  body: {
+                    sectionId: String(sectionId),
                     title: data.title.trim(),
                     description: data.description.trim(),
                     publishedAt: data.publishedAt || null,
                     submissionStartAt: data.submissionStartAt || null,
                     submissionDueAt: data.submissionDueAt || null,
-                  }),
+                    isMajor: data.isMajor,
+                    requiresTeam: data.requiresTeam,
+                  },
                 });
 
-                if (!response.ok) {
-                  const message = await getResponseErrorMessage(response);
+                if (!result.response.ok) {
+                  const message = resolveApiErrorMessage(result.error);
                   toast({
                     title: t("createFailed"),
                     description: message,
@@ -630,12 +656,13 @@ export function HomeworkPanel({
                         }
 
                         try {
-                          const response = await fetch(
-                            `/api/homeworks/${homeworkId}`,
+                          const updateResult = await apiClient.PATCH(
+                            "/api/homeworks/{id}",
                             {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
+                              params: {
+                                path: { id: homeworkId },
+                              },
+                              body: {
                                 title: data.title.trim(),
                                 publishedAt: data.publishedAt || null,
                                 submissionStartAt:
@@ -643,13 +670,14 @@ export function HomeworkPanel({
                                 submissionDueAt: data.submissionDueAt || null,
                                 isMajor: data.isMajor,
                                 requiresTeam: data.requiresTeam,
-                              }),
+                              },
                             },
                           );
 
-                          if (!response.ok) {
-                            const message =
-                              await getResponseErrorMessage(response);
+                          if (!updateResult.response.ok) {
+                            const message = resolveApiErrorMessage(
+                              updateResult.error,
+                            );
                             toast({
                               title: t("updateFailed"),
                               description: message,
@@ -660,24 +688,21 @@ export function HomeworkPanel({
 
                           const nextDescription = data.description.trim();
                           if (nextDescription !== currentDescription) {
-                            const descriptionResponse = await fetch(
+                            const descriptionResult = await apiClient.POST(
                               "/api/descriptions",
                               {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
+                                body: {
                                   targetType: "homework",
                                   targetId: homeworkId,
                                   content: nextDescription,
-                                }),
+                                },
                               },
                             );
 
-                            if (!descriptionResponse.ok) {
-                              const message =
-                                await getResponseErrorMessage(
-                                  descriptionResponse,
-                                );
+                            if (!descriptionResult.response.ok) {
+                              const message = resolveApiErrorMessage(
+                                descriptionResult.error,
+                              );
                               toast({
                                 title: t("updateFailed"),
                                 description: message,
@@ -705,16 +730,19 @@ export function HomeworkPanel({
                       }}
                       onDelete={async (homeworkId) => {
                         try {
-                          const response = await fetch(
-                            `/api/homeworks/${homeworkId}`,
+                          const deleteResult = await apiClient.DELETE(
+                            "/api/homeworks/{id}",
                             {
-                              method: "DELETE",
+                              params: {
+                                path: { id: homeworkId },
+                              },
                             },
                           );
 
-                          if (!response.ok) {
-                            const message =
-                              await getResponseErrorMessage(response);
+                          if (!deleteResult.response.ok) {
+                            const message = resolveApiErrorMessage(
+                              deleteResult.error,
+                            );
                             toast({
                               title: t("deleteFailed"),
                               description: message,
@@ -1168,17 +1196,27 @@ function HomeworkCardEditForm({
   const loadDescriptionHistory = async () => {
     setDescriptionHistory((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const params = new URLSearchParams({
-        targetType: "homework",
-        targetId: homework.id,
+      const result = await apiClient.GET("/api/descriptions", {
+        params: {
+          query: {
+            targetType: "homework",
+            targetId: homework.id,
+          },
+        },
       });
-      const response = await fetch(`/api/descriptions?${params.toString()}`);
-      if (!response.ok) {
+
+      if (!result.response.ok || !result.data) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Failed to load history");
+      }
+
+      const parsed = descriptionsResponseSchema.safeParse(result.data);
+      if (!parsed.success) {
         throw new Error("Failed to load history");
       }
-      const data = (await response.json()) as DescriptionHistoryResponse;
+
       setDescriptionHistory({
-        entries: data.history ?? [],
+        entries: parsed.data.history ?? [],
         loading: false,
         error: null,
       });
