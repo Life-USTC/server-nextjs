@@ -37,6 +37,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import {
+  uploadDeleteResponseSchema,
+  uploadRenameResponseSchema,
+} from "@/lib/api-schemas";
 import { formatBytes } from "@/lib/format-bytes";
 import { UploadFlowError, uploadFileWithPresign } from "@/lib/upload-client";
 import { cn } from "@/lib/utils";
@@ -55,15 +60,6 @@ type UploadsManagerProps = {
   maxFileSizeBytes: number;
   quotaBytes: number;
   accessUrl: string;
-};
-
-type UpdateResponse = {
-  upload: UploadItem;
-};
-
-type DeleteResponse = {
-  deletedId: string;
-  deletedSize: number;
 };
 
 type UsageSummaryCardProps = {
@@ -533,20 +529,30 @@ export function UploadsManager({
 
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/uploads/${item.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: editingName }),
+      const {
+        data,
+        error: errorBody,
+        response,
+      } = await apiClient.PATCH("/api/uploads/{id}", {
+        params: { path: { id: item.id } },
+        body: { filename: editingName },
       });
 
       if (!response.ok) {
-        throw new Error("Rename failed");
+        const apiMessage = extractApiErrorMessage(errorBody);
+        throw new Error(apiMessage ?? "Rename failed");
       }
 
-      const data = (await response.json()) as UpdateResponse;
+      const parsedData = uploadRenameResponseSchema.safeParse(data);
+      if (!parsedData.success) {
+        throw parsedData.error;
+      }
+
       setUploads((current) =>
         current.map((upload) =>
-          upload.id === data.upload.id ? data.upload : upload,
+          upload.id === parsedData.data.upload.id
+            ? parsedData.data.upload
+            : upload,
         ),
       );
       cancelRename();
@@ -575,19 +581,30 @@ export function UploadsManager({
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/uploads/${deleteTarget.id}`, {
-        method: "DELETE",
+      const {
+        data,
+        error: errorBody,
+        response,
+      } = await apiClient.DELETE("/api/uploads/{id}", {
+        params: { path: { id: deleteTarget.id } },
       });
 
       if (!response.ok) {
-        throw new Error("Delete failed");
+        const apiMessage = extractApiErrorMessage(errorBody);
+        throw new Error(apiMessage ?? "Delete failed");
       }
 
-      const data = (await response.json()) as DeleteResponse;
+      const parsedData = uploadDeleteResponseSchema.safeParse(data);
+      if (!parsedData.success) {
+        throw parsedData.error;
+      }
+
       setUploads((current) =>
-        current.filter((upload) => upload.id !== data.deletedId),
+        current.filter((upload) => upload.id !== parsedData.data.deletedId),
       );
-      setUsedBytes((current) => Math.max(0, current - data.deletedSize));
+      setUsedBytes((current) =>
+        Math.max(0, current - parsedData.data.deletedSize),
+      );
       toast({
         title: t("toastDeleteSuccessTitle"),
         description: t("toastDeleteSuccessDescription"),

@@ -1,3 +1,5 @@
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+
 export type UploadSummary = {
   maxFileSizeBytes: number;
   quotaBytes: number;
@@ -34,17 +36,13 @@ export class UploadFlowError extends Error {
   }
 }
 
-async function extractUploadErrorCode(response: Response) {
-  try {
-    const data = (await response.json()) as { error?: unknown } | null;
-    const error = typeof data?.error === "string" ? data.error : null;
-    if (error === "Quota exceeded" || error === "File too large") {
-      return error as UploadErrorCode;
-    }
-    return null;
-  } catch {
-    return null;
+function extractUploadErrorCode(errorBody: unknown): UploadErrorCode | null {
+  const error = extractApiErrorMessage(errorBody);
+  if (error === "Quota exceeded" || error === "File too large") {
+    return error;
   }
+
+  return null;
 }
 
 export async function uploadFileWithPresign<TUpload>({
@@ -62,22 +60,22 @@ export async function uploadFileWithPresign<TUpload>({
     throw new UploadFlowError("File too large");
   }
 
-  const presignResponse = await fetch("/api/uploads", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const {
+    data: presignData,
+    error: presignError,
+    response: presignResponse,
+  } = await apiClient.POST("/api/uploads", {
+    body: {
       filename: file.name,
       contentType: file.type || "application/octet-stream",
       size: file.size,
-    }),
+    },
   });
 
-  if (!presignResponse.ok) {
-    const errorCode = await extractUploadErrorCode(presignResponse);
+  if (!presignResponse.ok || !presignData) {
+    const errorCode = extractUploadErrorCode(presignError);
     throw new UploadFlowError(errorCode ?? "Presign failed");
   }
-
-  const presignData = (await presignResponse.json()) as UploadPresignResponse;
 
   const uploadResponse = await fetch(presignData.url, {
     method: "PUT",
@@ -91,23 +89,22 @@ export async function uploadFileWithPresign<TUpload>({
     throw new UploadFlowError("Upload failed");
   }
 
-  const completeResponse = await fetch("/api/uploads/complete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  const {
+    data: completeData,
+    error: completeError,
+    response: completeResponse,
+  } = await apiClient.POST("/api/uploads/complete", {
+    body: {
       key: presignData.key,
       filename: file.name,
       contentType: file.type || "application/octet-stream",
-    }),
+    },
   });
 
-  if (!completeResponse.ok) {
-    const errorCode = await extractUploadErrorCode(completeResponse);
+  if (!completeResponse.ok || !completeData) {
+    const errorCode = extractUploadErrorCode(completeError);
     throw new UploadFlowError(errorCode ?? "Finalize failed");
   }
-
-  const completeData =
-    (await completeResponse.json()) as UploadCompleteResponse<TUpload>;
 
   const summary: UploadSummary = {
     maxFileSizeBytes: presignData.maxFileSizeBytes,
@@ -115,5 +112,9 @@ export async function uploadFileWithPresign<TUpload>({
     usedBytes: completeData.usedBytes,
   };
 
-  return { upload: completeData.upload, summary, presign: presignData };
+  return {
+    upload: completeData.upload as TUpload,
+    summary,
+    presign: presignData,
+  };
 }
