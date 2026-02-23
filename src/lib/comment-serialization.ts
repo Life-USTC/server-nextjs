@@ -53,17 +53,54 @@ export type ViewerInfo = {
 
 const MAX_SORT_DEPTH = 20;
 
-function buildAuthorSummary(comment: any, _viewer: ViewerInfo) {
-  const user = comment.user as
-    | {
-        id: string;
-        name: string | null;
-        image: string | null;
-        isAdmin?: boolean;
-        accounts?: { provider: string }[];
-      }
-    | undefined
-    | null;
+type RawAccount = {
+  provider: string;
+};
+
+type RawUser = {
+  id: string;
+  name: string | null;
+  image: string | null;
+  isAdmin?: boolean;
+  accounts?: RawAccount[] | null;
+};
+
+type RawUpload = {
+  filename?: string | null;
+  contentType?: string | null;
+  size?: number | null;
+};
+
+type RawAttachment = {
+  id: string;
+  uploadId: string;
+  upload?: RawUpload | null;
+};
+
+type RawReaction = {
+  type: unknown;
+  userId: string | null;
+};
+
+export type RawComment = {
+  id: string;
+  body: string;
+  visibility: unknown;
+  status: unknown;
+  authorName?: string | null;
+  isAnonymous?: boolean | null;
+  userId?: string | null;
+  user?: RawUser | null;
+  createdAt: Date;
+  updatedAt: Date;
+  parentId?: string | null;
+  rootId?: string | null;
+  attachments?: RawAttachment[] | null;
+  reactions?: RawReaction[] | null;
+};
+
+function buildAuthorSummary(comment: RawComment, _viewer: ViewerInfo) {
+  const user = comment.user;
 
   const isGuest = !user?.id;
   const isUstcVerified = Boolean(
@@ -80,7 +117,7 @@ function buildAuthorSummary(comment: any, _viewer: ViewerInfo) {
   } satisfies CommentAuthorSummary;
 }
 
-function buildReactionSummary(comment: any, viewer: ViewerInfo) {
+function buildReactionSummary(comment: RawComment, viewer: ViewerInfo) {
   const reactionMap = new Map<string, CommentReactionSummary>();
   const reactions = Array.isArray(comment.reactions) ? comment.reactions : [];
 
@@ -101,11 +138,11 @@ function buildReactionSummary(comment: any, viewer: ViewerInfo) {
   return Array.from(reactionMap.values());
 }
 
-function buildAttachments(comment: any) {
+function buildAttachments(comment: RawComment) {
   const attachments = Array.isArray(comment.attachments)
     ? comment.attachments
     : [];
-  return attachments.map((attachment: any) => {
+  return attachments.map((attachment) => {
     const upload = attachment.upload ?? {};
     return {
       id: attachment.id,
@@ -119,7 +156,7 @@ function buildAttachments(comment: any) {
 }
 
 function shouldHideComment(
-  comment: any,
+  comment: RawComment,
   viewer: ViewerInfo,
   isAuthor: boolean,
   hasVisibleDescendant: boolean,
@@ -134,7 +171,10 @@ function shouldHideComment(
   return false;
 }
 
-export function buildCommentNodes(rawComments: any[], viewer: ViewerInfo) {
+export function buildCommentNodes(
+  rawComments: RawComment[],
+  viewer: ViewerInfo,
+) {
   const childrenMap = new Map<string, string[]>();
   for (const comment of rawComments) {
     if (comment.parentId) {
@@ -183,7 +223,8 @@ export function buildCommentNodes(rawComments: any[], viewer: ViewerInfo) {
     }
 
     const authorHidden =
-      (String(comment.visibility) === "anonymous" || comment.isAnonymous) &&
+      (String(comment.visibility) === "anonymous" ||
+        Boolean(comment.isAnonymous)) &&
       !viewer.isAdmin &&
       !isAuthor;
     const author = authorHidden ? null : buildAuthorSummary(comment, viewer);
