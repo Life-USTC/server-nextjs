@@ -1,3 +1,10 @@
+## [0.36.1](https://github.com/Life-USTC/server-nextjs/compare/v0.36.0...v0.36.1) (2026-02-23)
+
+
+### Bug Fixes
+
+* **build:** resolve zod variant import path for turbopack ([efe2dbd](https://github.com/Life-USTC/server-nextjs/commit/efe2dbdab6bd8fbeac5d2c859bbb00b85c755836))
+
 # [0.36.0](https://github.com/Life-USTC/server-nextjs/compare/v0.35.0...v0.36.0) (2026-02-23)
 
 
