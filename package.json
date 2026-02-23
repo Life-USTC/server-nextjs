@@ -9,9 +9,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "prebuild": "bun run prisma:generate && bun run openapi:generate",
+    "prebuild": "bun run prisma:generate && bun run openapi:generate && bun run openapi:types",
     "start": "next start",
-    "check": "bun run prisma:generate && biome check",
+    "check": "biome check",
     "format": "biome format",
     "test": "vitest run",
     "test:watch": "vitest",

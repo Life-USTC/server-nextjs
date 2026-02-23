@@ -16,7 +16,6 @@ build
 .env.test
 .env.production
 .git
-.gitignore
 .editorconfig
 
 # IDE
