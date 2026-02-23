@@ -17,7 +17,7 @@
         "operationId": "post-api-calendar-subscriptions",
         "summary": "Create a calendar subscription.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Calendar"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -47,7 +47,7 @@
         "operationId": "get-api-comments",
         "summary": "List comments for a target.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [
           {
             "in": "query",
@@ -93,7 +93,7 @@
         "operationId": "post-api-comments",
         "summary": "Create one comment.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -123,7 +123,7 @@
         "operationId": "get-api-courses",
         "summary": "List courses with search and pagination.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Courses"],
         "parameters": [
           {
             "in": "query",
@@ -165,7 +165,7 @@
         "operationId": "get-api-descriptions",
         "summary": "Get description and history by target.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Descriptions"],
         "parameters": [
           {
             "in": "query",
@@ -199,7 +199,7 @@
         "operationId": "post-api-descriptions",
         "summary": "Upsert description by target.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Descriptions"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -229,7 +229,7 @@
         "operationId": "get-api-homeworks",
         "summary": "List homeworks by section.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Homeworks"],
         "parameters": [
           {
             "in": "query",
@@ -264,7 +264,7 @@
         "operationId": "post-api-homeworks",
         "summary": "Create one homework.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Homeworks"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -294,7 +294,7 @@
         "operationId": "post-api-locale",
         "summary": "Update user locale cookie.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Locale"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -324,7 +324,7 @@
         "operationId": "get-api-metadata",
         "summary": "Get metadata dictionaries for filters.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Metadata"],
         "parameters": [],
         "responses": {
           "200": {
@@ -345,7 +345,7 @@
         "operationId": "get-api-schedules",
         "summary": "List schedules with filters and pagination.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Schedules"],
         "parameters": [
           {
             "in": "query",
@@ -419,7 +419,7 @@
         "operationId": "get-api-sections",
         "summary": "List sections with filters and pagination.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [
           {
             "in": "query",
@@ -491,7 +491,7 @@
         "operationId": "get-api-semesters",
         "summary": "List semesters with pagination.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Semesters"],
         "parameters": [
           {
             "in": "query",
@@ -525,7 +525,7 @@
         "operationId": "get-api-teachers",
         "summary": "List teachers with department/search filters.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Teachers"],
         "parameters": [
           {
             "in": "query",
@@ -573,7 +573,7 @@
         "operationId": "get-api-uploads",
         "summary": "List uploads of current user.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Uploads"],
         "parameters": [],
         "responses": {
           "200": {
@@ -592,7 +592,7 @@
         "operationId": "post-api-uploads",
         "summary": "Create a signed upload URL.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Uploads"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -622,7 +622,7 @@
         "operationId": "get-api-admin-comments",
         "summary": "List moderation comments.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [
           {
             "in": "query",
@@ -659,7 +659,7 @@
         "operationId": "get-api-admin-suspensions",
         "summary": "List suspensions.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [],
         "responses": {
           "200": {
@@ -678,7 +678,7 @@
         "operationId": "post-api-admin-suspensions",
         "summary": "Create suspension for one user.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -708,7 +708,7 @@
         "operationId": "get-api-admin-users",
         "summary": "List users for admin console.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [
           {
             "in": "query",
@@ -750,7 +750,7 @@
         "operationId": "get-api-calendar-subscriptions-{id}",
         "summary": "Get subscription detail.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Calendar"],
         "parameters": [
           {
             "in": "path",
@@ -777,7 +777,7 @@
         "operationId": "patch-api-calendar-subscriptions-{id}",
         "summary": "Update sections in one subscription.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Calendar"],
         "parameters": [
           {
             "in": "path",
@@ -813,7 +813,7 @@
         "operationId": "delete-api-calendar-subscriptions-{id}",
         "summary": "Delete one subscription.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Calendar"],
         "parameters": [
           {
             "in": "path",
@@ -835,7 +835,7 @@
         "operationId": "get-api-calendar-subscriptions-current",
         "summary": "Get current user's latest calendar subscription.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Calendar"],
         "parameters": [],
         "responses": {
           "200": {
@@ -856,7 +856,7 @@
         "operationId": "get-api-comments-{id}",
         "summary": "Get one comment thread by comment ID.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [
           {
             "in": "path",
@@ -885,7 +885,7 @@
         "operationId": "patch-api-comments-{id}",
         "summary": "Update one comment.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [
           {
             "in": "path",
@@ -923,7 +923,7 @@
         "operationId": "delete-api-comments-{id}",
         "summary": "Delete one comment.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [
           {
             "in": "path",
@@ -947,7 +947,7 @@
         "operationId": "patch-api-homeworks-{id}",
         "summary": "Update one homework.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Homeworks"],
         "parameters": [
           {
             "in": "path",
@@ -985,7 +985,7 @@
         "operationId": "delete-api-homeworks-{id}",
         "summary": "Soft delete one homework.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Homeworks"],
         "parameters": [
           {
             "in": "path",
@@ -1009,7 +1009,7 @@
         "operationId": "get-api-sections-{jwId}",
         "summary": "Get section detail by JW ID.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [
           {
             "in": "path",
@@ -1038,7 +1038,7 @@
         "operationId": "get-api-sections-calendar.ics",
         "summary": "Generate calendar ICS for multiple sections.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [
           {
             "in": "query",
@@ -1068,7 +1068,7 @@
         "operationId": "post-api-sections-match-codes",
         "summary": "Match section codes in one semester.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -1098,7 +1098,7 @@
         "operationId": "get-api-semesters-current",
         "summary": "Get current semester.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Semesters"],
         "parameters": [],
         "responses": {
           "200": {
@@ -1119,7 +1119,7 @@
         "operationId": "patch-api-uploads-{id}",
         "summary": "Rename one upload.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Uploads"],
         "parameters": [
           {
             "in": "path",
@@ -1157,7 +1157,7 @@
         "operationId": "delete-api-uploads-{id}",
         "summary": "Delete one upload.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Uploads"],
         "parameters": [
           {
             "in": "path",
@@ -1170,8 +1170,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uploadDeleteResponseSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -1181,7 +1188,7 @@
         "operationId": "post-api-uploads-complete",
         "summary": "Finalize one upload after S3 put.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Uploads"],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -1211,7 +1218,7 @@
         "operationId": "patch-api-admin-comments-{id}",
         "summary": "Moderate one comment.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [
           {
             "in": "path",
@@ -1251,7 +1258,7 @@
         "operationId": "patch-api-admin-suspensions-{id}",
         "summary": "Lift one suspension.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [
           {
             "in": "path",
@@ -1282,7 +1289,7 @@
         "operationId": "patch-api-admin-users-{id}",
         "summary": "Update one user.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Admin"],
         "parameters": [
           {
             "in": "path",
@@ -1322,7 +1329,7 @@
         "operationId": "get-api-calendar-subscriptions-{id}-calendar.ics",
         "summary": "Redirect calendar subscription token to sections ICS URL.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Calendar"],
         "parameters": [
           {
             "in": "path",
@@ -1349,7 +1356,7 @@
         "operationId": "post-api-comments-{id}-reactions",
         "summary": "Add one reaction to a comment.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [
           {
             "in": "path",
@@ -1371,7 +1378,7 @@
           }
         },
         "responses": {
-          "201": {
+          "200": {
             "description": "Successful response",
             "content": {
               "application/json": {
@@ -1387,8 +1394,26 @@
         "operationId": "delete-api-comments-{id}-reactions",
         "summary": "Remove one reaction from a comment.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Comments"],
         "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "upvote",
+                "downvote",
+                "heart",
+                "laugh",
+                "hooray",
+                "confused",
+                "rocket",
+                "eyes"
+              ]
+            },
+            "required": false
+          },
           {
             "in": "path",
             "name": "id",
@@ -1400,8 +1425,15 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
           }
         }
       }
@@ -1411,7 +1443,7 @@
         "operationId": "put-api-homeworks-{id}-completion",
         "summary": "Update completion state for one homework.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Homeworks"],
         "parameters": [
           {
             "in": "path",
@@ -1451,7 +1483,7 @@
         "operationId": "get-api-sections-{jwId}-calendar.ics",
         "summary": "Generate calendar ICS for one section.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [
           {
             "in": "path",
@@ -1480,7 +1512,7 @@
         "operationId": "get-api-sections-{jwId}-schedule-groups",
         "summary": "Get schedule groups for one section.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [
           {
             "in": "path",
@@ -1509,7 +1541,7 @@
         "operationId": "get-api-sections-{jwId}-schedules",
         "summary": "Get all schedules for one section.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Sections"],
         "parameters": [
           {
             "in": "path",
@@ -1538,7 +1570,7 @@
         "operationId": "get-api-uploads-{id}-download",
         "summary": "Redirect to signed URL for one upload.",
         "description": "",
-        "tags": ["Api"],
+        "tags": ["Uploads"],
         "parameters": [
           {
             "in": "path",
@@ -4187,5 +4219,59 @@
       }
     },
     "responses": {}
-  }
+  },
+  "tags": [
+    {
+      "name": "Admin",
+      "description": "Admin and moderation endpoints"
+    },
+    {
+      "name": "Comments",
+      "description": "Comment threads, reactions, and moderation"
+    },
+    {
+      "name": "Homeworks",
+      "description": "Homework management and completion status"
+    },
+    {
+      "name": "Uploads",
+      "description": "Upload presign, finalize, and file management"
+    },
+    {
+      "name": "Descriptions",
+      "description": "User-generated description content and history"
+    },
+    {
+      "name": "Sections",
+      "description": "Course sections, calendars, and schedules"
+    },
+    {
+      "name": "Courses",
+      "description": "Course catalog and search"
+    },
+    {
+      "name": "Teachers",
+      "description": "Teacher directory and search"
+    },
+    {
+      "name": "Schedules",
+      "description": "Schedules search and filtering"
+    },
+    {
+      "name": "Semesters",
+      "description": "Semester listing and current semester"
+    },
+    {
+      "name": "Calendar",
+      "description": "Calendar subscriptions and tokens"
+    },
+    {
+      "name": "Locale",
+      "description": "Locale switching and locale cookies"
+    },
+    {
+      "name": "Metadata",
+      "description": "Metadata dictionaries for filters"
+    }
+  ]
 }
