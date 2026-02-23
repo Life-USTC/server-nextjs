@@ -9,6 +9,7 @@ import type {
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { useToast } from "@/hooks/use-toast";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 const REACTION_OPTIONS = [
@@ -22,6 +23,8 @@ const REACTION_OPTIONS = [
   { type: "eyes", emoji: "👀", labelKey: "eyes" },
 ] as const;
 
+type ReactionType = (typeof REACTION_OPTIONS)[number]["type"];
+
 type CommentReactionsProps = {
   commentId: string;
   reactions: CommentReaction[];
@@ -29,7 +32,7 @@ type CommentReactionsProps = {
 };
 
 type OptimisticUpdate = {
-  type: string;
+  type: ReactionType;
   delta: number;
   toggled: boolean;
 };
@@ -42,7 +45,7 @@ export function CommentReactions({
   const t = useTranslations("comments");
   const { toast } = useToast();
   const [optimistic, setOptimistic] = useState<OptimisticUpdate | null>(null);
-  const [pendingType, setPendingType] = useState<string | null>(null);
+  const [pendingType, setPendingType] = useState<ReactionType | null>(null);
   const lastReactionsRef = useRef(reactions);
 
   useEffect(() => {
@@ -73,7 +76,7 @@ export function CommentReactions({
     });
   }
 
-  const toggleReaction = async (type: string) => {
+  const toggleReaction = async (type: ReactionType) => {
     if (!viewer.isAuthenticated) {
       toast({
         title: t("loginRequired"),
@@ -90,14 +93,23 @@ export function CommentReactions({
     const shouldRemove = existing?.viewerHasReacted ?? false;
 
     try {
-      const response = await fetch(`/api/comments/${commentId}/reactions`, {
-        method: shouldRemove ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type }),
-      });
+      const result = shouldRemove
+        ? await apiClient.DELETE("/api/comments/{id}/reactions", {
+            params: {
+              path: { id: commentId },
+              query: { type },
+            },
+          })
+        : await apiClient.POST("/api/comments/{id}/reactions", {
+            params: {
+              path: { id: commentId },
+            },
+            body: { type },
+          });
 
-      if (!response.ok) {
-        throw new Error("Reaction failed");
+      if (!result.response.ok) {
+        const apiMessage = extractApiErrorMessage(result.error);
+        throw new Error(apiMessage ?? "Reaction failed");
       }
 
       setOptimistic({

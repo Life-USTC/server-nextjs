@@ -16,6 +16,12 @@ import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUploadsSummary } from "@/hooks/use-uploads-summary";
 import { Link } from "@/i18n/routing";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import {
+  commentsListResponseSchema,
+  commentUpdateResponseSchema,
+  successResponseSchema,
+} from "@/lib/api-schemas";
 
 type TargetOption = {
   key: string;
@@ -45,12 +51,6 @@ type CommentsSectionProps = {
 };
 
 const EMPTY_TEACHER_OPTIONS: readonly TeacherOption[] = [];
-
-type CommentsResponse = {
-  comments: CommentNode[];
-  hiddenCount: number;
-  viewer: CommentViewer;
-};
 
 export function CommentsSection({
   targets,
@@ -153,12 +153,32 @@ export function CommentsSection({
               params.set("teacherId", String(selectedTeacherId));
             }
 
-            const response = await fetch(`/api/comments?${params.toString()}`);
+            const {
+              data,
+              error: errorBody,
+              response,
+            } = await apiClient.GET("/api/comments", {
+              params: {
+                query: {
+                  targetType: params.get("targetType") ?? undefined,
+                  targetId: params.get("targetId") ?? undefined,
+                  sectionId: params.get("sectionId") ?? undefined,
+                  teacherId: params.get("teacherId") ?? undefined,
+                },
+              },
+            });
+
             if (!response.ok) {
-              throw new Error("Failed to load comments");
+              const apiMessage = extractApiErrorMessage(errorBody);
+              throw new Error(apiMessage ?? "Failed to load comments");
             }
-            const data = (await response.json()) as CommentsResponse;
-            return { key: target.key, data };
+
+            const parsed = commentsListResponseSchema.safeParse(data);
+            if (!parsed.success) {
+              throw parsed.error;
+            }
+
+            return { key: target.key, data: parsed.data };
           }),
       );
 
@@ -197,36 +217,45 @@ export function CommentsSection({
     attachmentIds: string[];
     parentId?: string;
   }) => {
+    const visibility: "public" | "logged_in_only" | "anonymous" =
+      payload.visibility === "public" ||
+      payload.visibility === "logged_in_only" ||
+      payload.visibility === "anonymous"
+        ? payload.visibility
+        : "public";
+
     const targetForPost =
       targets.find((target) => target.key === postTargetKey) ?? activeTarget;
     if (!targetForPost) return;
     if (targetForPost.type === "section-teacher" && !selectedTeacherId) {
       throw new Error("Teacher required");
     }
-    const response = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        targetType: targetForPost.type,
-        targetId:
-          targetForPost.type === "homework"
-            ? targetForPost.homeworkId
-            : targetForPost.targetId,
-        sectionId: targetForPost.sectionId,
-        teacherId:
-          targetForPost.type === "section-teacher"
-            ? selectedTeacherId
-            : targetForPost.teacherId,
-        body: payload.body,
-        visibility: payload.visibility,
-        isAnonymous: payload.isAnonymous,
-        parentId: payload.parentId ?? null,
-        attachmentIds: payload.attachmentIds,
-      }),
-    });
+    const { error: errorBody, response } = await apiClient.POST(
+      "/api/comments",
+      {
+        body: {
+          targetType: targetForPost.type,
+          targetId:
+            targetForPost.type === "homework"
+              ? (targetForPost.homeworkId ?? undefined)
+              : (targetForPost.targetId ?? undefined),
+          sectionId: targetForPost.sectionId ?? undefined,
+          teacherId:
+            targetForPost.type === "section-teacher"
+              ? (selectedTeacherId ?? undefined)
+              : (targetForPost.teacherId ?? undefined),
+          body: payload.body,
+          visibility,
+          isAnonymous: payload.isAnonymous,
+          parentId: payload.parentId ?? null,
+          attachmentIds: payload.attachmentIds,
+        },
+      },
+    );
 
     if (!response.ok) {
-      throw new Error("Failed to create comment");
+      const apiMessage = extractApiErrorMessage(errorBody);
+      throw new Error(apiMessage ?? "Failed to create comment");
     }
 
     await loadComments();
@@ -253,22 +282,42 @@ export function CommentsSection({
       isAnonymous?: boolean;
     },
   ) => {
-    const response = await fetch(`/api/comments/${commentId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const visibility: "public" | "logged_in_only" | "anonymous" | undefined =
+      payload.visibility === "public" ||
+      payload.visibility === "logged_in_only" ||
+      payload.visibility === "anonymous"
+        ? payload.visibility
+        : undefined;
+
+    const {
+      data,
+      error: errorBody,
+      response,
+    } = await apiClient.PATCH("/api/comments/{id}", {
+      params: {
+        path: {
+          id: commentId,
+        },
+      },
+      body: {
         body: payload.body,
         attachmentIds: payload.attachmentIds,
-        visibility: payload.visibility,
+        visibility,
         isAnonymous: payload.isAnonymous,
-      }),
+      },
     });
 
     if (!response.ok) {
-      throw new Error("Failed to update comment");
+      const apiMessage = extractApiErrorMessage(errorBody);
+      throw new Error(apiMessage ?? "Failed to update comment");
     }
 
-    const { comment } = await response.json();
+    const parsed = commentUpdateResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      throw parsed.error;
+    }
+
+    const { comment } = parsed.data;
     if (comment) {
       const updateNodes = (nodes: CommentNode[]): CommentNode[] => {
         return nodes.map((node) => {
@@ -290,11 +339,25 @@ export function CommentsSection({
   };
 
   const handleDelete = async (commentId: string) => {
-    const response = await fetch(`/api/comments/${commentId}`, {
-      method: "DELETE",
+    const {
+      data,
+      error: errorBody,
+      response,
+    } = await apiClient.DELETE("/api/comments/{id}", {
+      params: {
+        path: {
+          id: commentId,
+        },
+      },
     });
 
     if (!response.ok) {
+      const apiMessage = extractApiErrorMessage(errorBody);
+      throw new Error(apiMessage ?? "Failed to delete comment");
+    }
+
+    const parsed = successResponseSchema.safeParse(data);
+    if (!parsed.success || !parsed.data.success) {
       throw new Error("Failed to delete comment");
     }
 
