@@ -177,7 +177,7 @@ async function main() {
 
   await cleanupScenarioData([debugUser.id, adminUser.id]);
 
-  const [campuses, departments, roomTypes, teachLanguages, examModes] =
+  const [campuses, departments, roomTypes, teachLanguages, examModes, rooms] =
     await Promise.all([
       prisma.campus.findMany({
         select: { id: true },
@@ -202,6 +202,11 @@ async function main() {
       prisma.examMode.findMany({
         select: { id: true },
         take: 4,
+        orderBy: { id: "asc" },
+      }),
+      prisma.room.findMany({
+        select: { id: true },
+        take: 6,
         orderBy: { id: "asc" },
       }),
     ]);
@@ -427,6 +432,9 @@ async function main() {
       {
         section: { connect: { id: section.id } },
         scheduleGroup: { connect: { id: defaultGroup.id } },
+        room: rooms[index % rooms.length]
+          ? { connect: { id: rooms[index % rooms.length].id } }
+          : undefined,
         date: morningDate,
         weekday: toWeekday(morningDate),
         startTime: 830,
@@ -444,6 +452,9 @@ async function main() {
       {
         section: { connect: { id: section.id } },
         scheduleGroup: { connect: { id: altGroup.id } },
+        room: rooms[(index + 1) % rooms.length]
+          ? { connect: { id: rooms[(index + 1) % rooms.length].id } }
+          : undefined,
         date: afternoonDate,
         weekday: toWeekday(afternoonDate),
         startTime: 1400,
