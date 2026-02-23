@@ -148,7 +148,7 @@ export default async function CoursePage({
         </Breadcrumb>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
           <div className="mt-2">
             <h1 className="mb-2 text-display">{course.namePrimary}</h1>
@@ -249,7 +249,7 @@ export default async function CoursePage({
           </CommentAwareTabs>
         </div>
 
-        <aside className="lg:-order-1 space-y-4">
+        <aside className="space-y-4">
           <Suspense fallback={<DescriptionSkeleton />}>
             <DescriptionLoader targetType="course" targetId={course.id} />
           </Suspense>

@@ -1,3 +1,4 @@
+import { ScheduleSessionLink } from "@/components/schedules/schedule-session-link";
 import {
   Card,
   CardDescription,
@@ -34,27 +35,19 @@ export function TimelineCard({
           </CardHeader>
           <CardPanel className="space-y-2">
             {todaySessions.map((item) => (
-              <div
+              <ScheduleSessionLink
                 key={item.id}
-                className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-sm">
-                    {item.courseName}
-                  </p>
-                  <p className="truncate text-muted-foreground text-xs">
-                    {item.location}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="font-medium text-sm">
-                    {formatTime(item.startTime)}-{formatTime(item.endTime)}
-                  </p>
-                  <p className="text-muted-foreground text-xs">
-                    {formatDuration(item.startTime, item.endTime)}
-                  </p>
-                </div>
-              </div>
+                href={
+                  item.sectionJwId
+                    ? `/sections/${item.sectionJwId}`
+                    : "/dashboard/subscriptions/sections"
+                }
+                courseName={item.courseName}
+                location={item.location}
+                timeLabel={`${formatTime(item.startTime)}-${formatTime(item.endTime)}`}
+                durationLabel={formatDuration(item.startTime, item.endTime)}
+                variant="detailed"
+              />
             ))}
           </CardPanel>
         </Card>
@@ -68,13 +61,19 @@ export function TimelineCard({
           </CardHeader>
           <CardPanel className="space-y-2">
             {tomorrowSessions.map((item) => (
-              <div key={item.id} className="rounded-md border px-3 py-2">
-                <p className="font-medium text-sm">{item.courseName}</p>
-                <p className="text-muted-foreground text-xs">
-                  {formatTime(item.startTime)}-{formatTime(item.endTime)} ·{" "}
-                  {item.location}
-                </p>
-              </div>
+              <ScheduleSessionLink
+                key={item.id}
+                href={
+                  item.sectionJwId
+                    ? `/sections/${item.sectionJwId}`
+                    : "/dashboard/subscriptions/sections"
+                }
+                courseName={item.courseName}
+                location={item.location}
+                timeLabel={`${formatTime(item.startTime)}-${formatTime(item.endTime)}`}
+                durationLabel={formatDuration(item.startTime, item.endTime)}
+                variant="detailed"
+              />
             ))}
           </CardPanel>
         </Card>
