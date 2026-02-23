@@ -7,6 +7,7 @@ import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { createWeekDayFormatter, getWeekStartMonday } from "@/lib/date-utils";
 import { getPrisma } from "@/lib/prisma";
 import { DebugDateCard } from "./components/debug-date-card";
+import { HomeworkEntryCard } from "./components/homework-entry-card";
 import { HomeworksCard } from "./components/homeworks-card";
 import { TermSelectionCard } from "./components/term-selection-card";
 import { TimelineCard } from "./components/timeline-card";
@@ -196,6 +197,11 @@ export default async function DashboardPage({
 
       {hasCurrentTermSelection ? (
         <>
+          <HomeworkEntryCard
+            t={t}
+            dueTodayCount={dueToday.length}
+            dueSoonCount={dueWithin3Days.length}
+          />
           <TimelineCard
             t={t}
             todaySessions={todaySessions}

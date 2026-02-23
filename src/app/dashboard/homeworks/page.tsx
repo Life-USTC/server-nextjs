@@ -33,6 +33,16 @@ type HomeworkWithSection = {
   } | null;
 };
 
+type SectionOption = {
+  id: number;
+  jwId: number | null;
+  code: string | null;
+  courseName: string | null;
+  semesterName: string | null;
+  semesterStart: string | null;
+  semesterEnd: string | null;
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
 
@@ -52,17 +62,49 @@ export default async function MyHomeworksPage() {
     getTranslations("myHomeworks"),
     basePrisma.calendarSubscription.findMany({
       where: { userId },
-      include: { sections: { select: { id: true } } },
+      include: { sections: { select: { id: true, jwId: true } } },
     }),
   ]);
 
   const sectionIds = Array.from(
     new Set(
-      subscriptions.flatMap((sub: { sections: Array<{ id: number }> }) =>
-        sub.sections.map((section: { id: number }) => section.id),
-      ),
+      subscriptions.flatMap((sub) => sub.sections.map((section) => section.id)),
     ),
   );
+
+  const subscribedSections: SectionOption[] = sectionIds.length
+    ? (
+        await localizedPrisma.section.findMany({
+          where: { id: { in: sectionIds } },
+          select: {
+            id: true,
+            jwId: true,
+            code: true,
+            course: { select: { namePrimary: true } },
+            semester: {
+              select: {
+                nameCn: true,
+                startDate: true,
+                endDate: true,
+              },
+            },
+          },
+          orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+        })
+      ).map((section) => ({
+        id: section.id,
+        jwId: section.jwId,
+        code: section.code,
+        courseName: section.course?.namePrimary ?? null,
+        semesterName: section.semester?.nameCn ?? null,
+        semesterStart: section.semester?.startDate
+          ? section.semester.startDate.toISOString()
+          : null,
+        semesterEnd: section.semester?.endDate
+          ? section.semester.endDate.toISOString()
+          : null,
+      }))
+    : [];
 
   const homeworks: HomeworkWithSection[] = sectionIds.length
     ? await localizedPrisma.homework.findMany({
@@ -128,19 +170,10 @@ export default async function MyHomeworksPage() {
             </Button>
           </CardPanel>
         </Card>
-      ) : homeworks.length === 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{tMyHomeworks("emptyTitle")}</CardTitle>
-            <CardDescription>
-              {tMyHomeworks("emptyDescription")}
-            </CardDescription>
-          </CardHeader>
-        </Card>
       ) : (
         <HomeworkSummaryList
           homeworks={homeworkSummaries}
-          addHomeworkHref="/dashboard/subscriptions/sections"
+          sections={subscribedSections}
         />
       )}
     </DashboardShell>
