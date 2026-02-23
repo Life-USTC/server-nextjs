@@ -1,3 +1,14 @@
+# [0.36.0](https://github.com/Life-USTC/server-nextjs/compare/v0.35.0...v0.36.0) (2026-02-23)
+
+
+### Features
+
+* **api:** add zod validation and openapi endpoint ([a448f71](https://github.com/Life-USTC/server-nextjs/commit/a448f711c11d3897df35297793b93207626a74a4))
+* **api:** apply zod validation across write endpoints ([74c931d](https://github.com/Life-USTC/server-nextjs/commit/74c931d7a52ed9ad98b4d1b737b7ea87beefbb58))
+* **api:** validate query params and add interactive docs page ([f34a277](https://github.com/Life-USTC/server-nextjs/commit/f34a277e08f332b3a5471914943456de36e98083))
+* **auth:** add dev admin sign-in provider for local testing ([6217f0d](https://github.com/Life-USTC/server-nextjs/commit/6217f0d3141f86711fc76880eb6cd93b89e2a76e))
+* **homeworks:** add dashboard creation flow and reusable homework cards ([5130b26](https://github.com/Life-USTC/server-nextjs/commit/5130b26f2652231349375bfdc962e143baec6aa7))
+
 # [0.35.0](https://github.com/Life-USTC/server-nextjs/compare/v0.34.0...v0.35.0) (2026-02-09)
 
 
