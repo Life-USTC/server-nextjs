@@ -53,11 +53,17 @@ jobs:
       - name: Apply Prisma migrations
         run: bunx prisma migrate deploy
 
-      - name: Run Biome check with auto-fix
-        run: bun run check --write
+      - name: Run Biome check
+        run: bun run check
 
       - name: Build application
         run: bun run build
+
+      - name: Generate OpenAPI types
+        run: bun run openapi:types
+
+      - name: Verify OpenAPI artifacts are committed
+        run: git diff --exit-code -- public/openapi.generated.json src/generated/openapi.ts
 
       - name: Run Playwright E2E tests
         run: bun run test:e2e
