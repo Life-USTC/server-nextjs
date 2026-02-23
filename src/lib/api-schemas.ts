@@ -342,26 +342,73 @@ export const commentReactionSummarySchema = z.object({
   viewerHasReacted: z.boolean(),
 });
 
-export const commentNodeSchema = z.object({
-  id: z.string(),
-  body: z.string(),
-  visibility: z.string(),
-  status: z.string(),
-  author: commentAuthorSummarySchema.nullable(),
-  authorHidden: z.boolean(),
-  isAnonymous: z.boolean(),
-  isAuthor: z.boolean(),
-  createdAt: dateTimeSchema,
-  updatedAt: dateTimeSchema,
-  parentId: z.string().nullable(),
-  rootId: z.string().nullable(),
-  replies: z.array(z.unknown()),
-  attachments: z.array(commentAttachmentSummarySchema),
-  reactions: z.array(commentReactionSummarySchema),
-  canReply: z.boolean(),
-  canEdit: z.boolean(),
-  canModerate: z.boolean(),
-});
+type CommentAuthorSummary = {
+  id?: string;
+  name: string | null;
+  image?: string | null;
+  isUstcVerified: boolean;
+  isAdmin: boolean;
+  isGuest: boolean;
+};
+
+type CommentAttachmentSummary = {
+  id: string;
+  uploadId: string;
+  filename: string;
+  url: string;
+  contentType: string | null;
+  size: number;
+};
+
+type CommentReactionSummary = {
+  type: string;
+  count: number;
+  viewerHasReacted: boolean;
+};
+
+type CommentNodeDto = {
+  id: string;
+  body: string;
+  visibility: string;
+  status: string;
+  author: CommentAuthorSummary | null;
+  authorHidden: boolean;
+  isAnonymous: boolean;
+  isAuthor: boolean;
+  createdAt: string;
+  updatedAt: string;
+  parentId: string | null;
+  rootId: string | null;
+  replies: CommentNodeDto[];
+  attachments: CommentAttachmentSummary[];
+  reactions: CommentReactionSummary[];
+  canReply: boolean;
+  canEdit: boolean;
+  canModerate: boolean;
+};
+
+export const commentNodeSchema: z.ZodType<CommentNodeDto> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    body: z.string(),
+    visibility: z.string(),
+    status: z.string(),
+    author: commentAuthorSummarySchema.nullable(),
+    authorHidden: z.boolean(),
+    isAnonymous: z.boolean(),
+    isAuthor: z.boolean(),
+    createdAt: dateTimeSchema,
+    updatedAt: dateTimeSchema,
+    parentId: z.string().nullable(),
+    rootId: z.string().nullable(),
+    replies: z.array(commentNodeSchema),
+    attachments: z.array(commentAttachmentSummarySchema),
+    reactions: z.array(commentReactionSummarySchema),
+    canReply: z.boolean(),
+    canEdit: z.boolean(),
+    canModerate: z.boolean(),
+  }),
+);
 
 export const viewerContextSchema = z.object({
   userId: z.string().nullable(),

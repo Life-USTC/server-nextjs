@@ -119,12 +119,19 @@ export async function getDescriptionPayload(
           lastEditedAt: null,
           lastEditedBy: null,
         },
-    history: history.map((entry: any) => ({
+    history: history.map((entry) => ({
       id: entry.id,
       createdAt: entry.createdAt.toISOString(),
       previousContent: entry.previousContent ?? null,
       nextContent: entry.nextContent ?? "",
-      editor: entry.editor ?? null,
+      editor: entry.editor
+        ? {
+            id: entry.editor.id,
+            name: entry.editor.name,
+            username: entry.editor.username,
+            image: entry.editor.image,
+          }
+        : null,
     })),
     viewer,
   };
