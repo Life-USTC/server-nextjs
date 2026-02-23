@@ -6,6 +6,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/routing";
+import { apiClient } from "@/lib/api-client";
 import {
   Menu,
   MenuPopup,
@@ -28,14 +29,23 @@ export default function BottomBar() {
     setMounted(true);
   }, []);
 
+  type AppLocale = "en-us" | "zh-cn";
+
+  const isAppLocale = (value: string): value is AppLocale =>
+    value === "en-us" || value === "zh-cn";
+
   const handleLanguageChange = async (newLocale: string) => {
+    if (!isAppLocale(newLocale)) {
+      return;
+    }
     try {
       // Set the locale cookie via API
-      await fetch("/api/locale", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ locale: newLocale }),
+      const { response } = await apiClient.POST("/api/locale", {
+        body: { locale: newLocale },
       });
+      if (!response.ok) {
+        throw new Error("Failed to change language");
+      }
 
       // Refresh the page to apply the new locale
       router.refresh();

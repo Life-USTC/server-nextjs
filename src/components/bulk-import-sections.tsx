@@ -4,6 +4,7 @@ import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
+import type { z } from "zod";
 import { addSectionsToSubscription } from "@/app/actions/subscription";
 import {
   AlertDialog,
@@ -27,32 +28,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toastManager } from "@/components/ui/toast";
-import type {
-  Campus,
-  Course,
-  Semester,
-  Teacher,
-} from "@/generated/prisma/client";
+import type { Semester } from "@/generated/prisma/client";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import { matchSectionCodesResponseSchema } from "@/lib/api-schemas";
 
-type SectionData = {
-  id: number;
-  code: string;
-  course: Course & {
-    namePrimary?: string;
-    nameSecondary?: string | null;
-  };
-  semester: (Semester & { namePrimary?: string }) | null;
-  campus:
-    | (Campus & {
-        namePrimary?: string;
-      })
-    | null;
-  teachers: Array<
-    Teacher & {
-      namePrimary?: string;
-    }
-  >;
-};
+type SectionData = z.infer<
+  typeof matchSectionCodesResponseSchema
+>["sections"][number];
 
 type SemesterOption = Pick<Semester, "id" | "nameCn"> & {
   namePrimary?: string;
@@ -136,27 +118,33 @@ export function BulkImportSections({
       const uniqueCodes = [...new Set(extractedCodes)];
 
       // Call API to match codes
-      const response = await fetch("/api/sections/match-codes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const {
+        data,
+        error: errorBody,
+        response,
+      } = await apiClient.POST("/api/sections/match-codes", {
+        body: {
           codes: uniqueCodes,
           semesterId: selectedSemesterId || undefined,
-        }),
+        },
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch sections");
+        const apiMessage = extractApiErrorMessage(errorBody);
+        throw new Error(apiMessage ?? "Failed to fetch sections");
       }
 
-      const data = await response.json();
+      const parsedData = matchSectionCodesResponseSchema.safeParse(data);
+      if (!parsedData.success) {
+        throw parsedData.error;
+      }
 
-      setMatchedSections(data.sections || []);
-      setUnmatchedCodes(data.unmatchedCodes || []);
+      setMatchedSections(parsedData.data.sections || []);
+      setUnmatchedCodes(parsedData.data.unmatchedCodes || []);
 
       // Select all matched sections by default
       setSelectedSectionIds(
-        new Set(data.sections.map((s: SectionData) => s.id)),
+        new Set(parsedData.data.sections.map((section) => section.id)),
       );
 
       setShowConfirmDialog(true);

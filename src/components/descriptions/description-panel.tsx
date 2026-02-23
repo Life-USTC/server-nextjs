@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { z } from "zod";
 import { CommentMarkdown } from "@/components/comments/comment-markdown";
 import { MarkdownEditor } from "@/components/comments/markdown-editor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -25,55 +26,27 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import { descriptionsResponseSchema } from "@/lib/api-schemas";
 
 type TargetType = "section" | "course" | "teacher" | "homework";
 
-type EditorSummary = {
-  id: string;
-  name: string | null;
-  username: string | null;
-  image: string | null;
-};
-
-type ViewerSummary = {
-  userId: string | null;
-  name: string | null;
-  image: string | null;
-  isAdmin: boolean;
-  isAuthenticated: boolean;
-  isSuspended: boolean;
-  suspensionReason: string | null;
-  suspensionExpiresAt: string | null;
-};
-
-type DescriptionData = {
-  id: string | null;
-  content: string;
+type DescriptionResponse = z.infer<typeof descriptionsResponseSchema>;
+type DescriptionData = Omit<DescriptionResponse["description"], "updatedAt"> & {
   updatedAt: string | null;
-  lastEditedAt: string | null;
-  lastEditedBy: EditorSummary | null;
 };
-
-type HistoryItem = {
-  id: string;
-  createdAt: string;
-  previousContent: string | null;
-  nextContent: string;
-  editor: EditorSummary | null;
+type HistoryItem = DescriptionResponse["history"][number];
+type ViewerSummary = DescriptionResponse["viewer"];
+type DescriptionPanelData = Omit<DescriptionResponse, "description"> & {
+  description: DescriptionData;
 };
 
 type DiffMode = "previous" | "next";
 
-type DescriptionResponse = {
-  description: DescriptionData;
-  history: HistoryItem[];
-  viewer: ViewerSummary;
-};
-
 type DescriptionPanelProps = {
   targetType: TargetType;
   targetId: number | string;
-  initialData?: DescriptionResponse;
+  initialData?: DescriptionPanelData;
 };
 
 const EMPTY_DESCRIPTION: DescriptionData = {
@@ -197,17 +170,32 @@ export function DescriptionPanel({
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      params.set("targetType", targetType);
-      params.set("targetId", String(targetId));
-      const response = await fetch(`/api/descriptions?${params.toString()}`);
+      const {
+        data,
+        error: errorBody,
+        response,
+      } = await apiClient.GET("/api/descriptions", {
+        params: {
+          query: {
+            targetType,
+            targetId: String(targetId),
+          },
+        },
+      });
+
       if (!response.ok) {
-        throw new Error("Failed to load description");
+        const apiMessage = extractApiErrorMessage(errorBody);
+        throw new Error(apiMessage ?? "Failed to load description");
       }
-      const data = (await response.json()) as DescriptionResponse;
-      setDescription(data.description ?? EMPTY_DESCRIPTION);
-      setHistory(data.history ?? []);
-      setViewer(data.viewer ?? EMPTY_VIEWER);
+
+      const parsedData = descriptionsResponseSchema.safeParse(data);
+      if (!parsedData.success) {
+        throw parsedData.error;
+      }
+
+      setDescription(parsedData.data.description ?? EMPTY_DESCRIPTION);
+      setHistory(parsedData.data.history ?? []);
+      setViewer(parsedData.data.viewer ?? EMPTY_VIEWER);
     } catch (err) {
       console.error("Failed to load description", err);
       setError(t("loadFailed"));
@@ -235,18 +223,20 @@ export function DescriptionPanel({
     const content = draft.trim();
     setSaving(true);
     try {
-      const response = await fetch("/api/descriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          targetType,
-          targetId,
-          content,
-        }),
-      });
+      const { error: errorBody, response } = await apiClient.POST(
+        "/api/descriptions",
+        {
+          body: {
+            targetType,
+            targetId,
+            content,
+          },
+        },
+      );
 
       if (!response.ok) {
-        throw new Error("Failed to update description");
+        const apiMessage = extractApiErrorMessage(errorBody);
+        throw new Error(apiMessage ?? "Failed to update description");
       }
 
       toast({
