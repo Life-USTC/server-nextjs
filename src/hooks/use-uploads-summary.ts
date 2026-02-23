@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { apiClient } from "@/lib/api-client";
+import { uploadsListResponseSchema } from "@/lib/api-schemas";
 import type { UploadSummary } from "@/lib/upload-client";
 
 export type UploadOption = {
@@ -31,19 +33,15 @@ export function useUploadsSummary({ enabled }: { enabled: boolean }) {
 
     const loadUploads = async () => {
       try {
-        const response = await fetch("/api/uploads");
-        if (!response.ok) return;
-        const data = (await response.json()) as {
-          uploads: UploadOption[];
-          maxFileSizeBytes: number;
-          quotaBytes: number;
-          usedBytes: number;
-        };
-        setUploads(data.uploads ?? []);
+        const { data, response } = await apiClient.GET("/api/uploads");
+        if (!response.ok || !data) return;
+        const parsed = uploadsListResponseSchema.safeParse(data);
+        if (!parsed.success) return;
+        setUploads(parsed.data.uploads);
         setSummary({
-          maxFileSizeBytes: data.maxFileSizeBytes,
-          quotaBytes: data.quotaBytes,
-          usedBytes: data.usedBytes,
+          maxFileSizeBytes: parsed.data.maxFileSizeBytes,
+          quotaBytes: parsed.data.quotaBytes,
+          usedBytes: parsed.data.usedBytes,
         });
       } catch (error) {
         console.error("Failed to load uploads", error);
