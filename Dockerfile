@@ -27,7 +27,7 @@ ENV S3_ACCESS_KEY_ID="dummy-access-key"
 ENV S3_SECRET_ACCESS_KEY="dummy-secret-key"
 ENV NODE_ENV=production
 ENV TSC_COMPILE_ON_ERROR=true
-RUN bun run prisma:generate
+RUN bun run prebuild
 
 # Build Next.js app
 RUN bun run build
