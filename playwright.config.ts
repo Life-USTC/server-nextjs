@@ -6,19 +6,21 @@ const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === "1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testMatch: ["**/*.spec.ts", "**/*.test.ts", "**/test.ts"],
   globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? [["html"], ["github"]] : [["list"], ["html"]],
+  reporter: process.env.CI ? [["github"]] : [["list"]],
   use: {
     baseURL: playwrightBaseUrl,
     trace: "on-first-retry",
     screenshot: "on",
   },
   webServer: {
-    command: `bun run dev -- --port ${playwrightPort}`,
+    command: `node -e "require('fs').writeFileSync('.e2e-mock-s3','1')" && bun run dev -- --port ${playwrightPort}`,
     url: playwrightBaseUrl,
     reuseExistingServer,
     stdout: "ignore",
