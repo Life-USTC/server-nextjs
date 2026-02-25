@@ -50,9 +50,9 @@ interface ButtonProps extends useRender.ComponentProps<"button"> {
   size?: VariantProps<typeof buttonVariants>["size"];
 }
 
-function Button({ className, variant, size, render, ...props }: ButtonProps) {
+function Button({ className, variant, size, render, type, ...props }: ButtonProps) {
   const typeValue: React.ButtonHTMLAttributes<HTMLButtonElement>["type"] =
-    render ? undefined : "button";
+    type ?? (render ? undefined : "button");
 
   const defaultProps = {
     className: cn(buttonVariants({ className, size, variant })),
