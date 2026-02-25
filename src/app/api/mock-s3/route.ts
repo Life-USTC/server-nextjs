@@ -54,7 +54,9 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const filename = url.searchParams.get("filename") ?? "download";
 
-  return new NextResponse(object.body, {
+  const body = new Blob([object.body], { type: object.contentType });
+
+  return new NextResponse(body, {
     status: 200,
     headers: {
       "content-type": object.contentType,
