@@ -2,7 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 type StoredObject = {
-  body: Uint8Array;
+  body: Uint8Array<ArrayBuffer>;
   contentType: string;
 };
 

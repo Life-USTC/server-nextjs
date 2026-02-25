@@ -1,5 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  type DeleteObjectCommandOutput,
+  GetObjectCommand,
+  HeadObjectCommand,
+  type HeadObjectCommandOutput,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   deleteMockS3Object,
@@ -38,6 +46,10 @@ export const s3Client = isMockS3Enabled()
       region: process.env.S3_REGION ?? "auto",
     });
 
+export function sendS3(command: HeadObjectCommand): Promise<HeadObjectCommandOutput>;
+export function sendS3(
+  command: DeleteObjectCommand,
+): Promise<DeleteObjectCommandOutput>;
 export async function sendS3(command: unknown) {
   if (!isMockS3Enabled()) {
     return s3Client.send(command as never);
@@ -70,6 +82,10 @@ export async function sendS3(command: unknown) {
   return {};
 }
 
+export function getS3SignedUrl(
+  command: PutObjectCommand | GetObjectCommand,
+  options: { expiresIn: number; origin?: string },
+): Promise<string>;
 export async function getS3SignedUrl(
   command: unknown,
   options: { expiresIn: number; origin?: string },
