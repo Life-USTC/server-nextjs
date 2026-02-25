@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import {
-  DeleteObjectCommand,
+  type DeleteObjectCommand,
   type DeleteObjectCommandOutput,
-  GetObjectCommand,
-  HeadObjectCommand,
+  type GetObjectCommand,
+  type HeadObjectCommand,
   type HeadObjectCommandOutput,
-  PutObjectCommand,
+  type PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -46,7 +46,9 @@ export const s3Client = isMockS3Enabled()
       region: process.env.S3_REGION ?? "auto",
     });
 
-export function sendS3(command: HeadObjectCommand): Promise<HeadObjectCommandOutput>;
+export function sendS3(
+  command: HeadObjectCommand,
+): Promise<HeadObjectCommandOutput>;
 export function sendS3(
   command: DeleteObjectCommand,
 ): Promise<DeleteObjectCommandOutput>;
