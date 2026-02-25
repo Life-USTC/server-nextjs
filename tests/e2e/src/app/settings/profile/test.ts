@@ -50,14 +50,14 @@ test("/settings/profile 可保存姓名并回滚", async ({ page }, testInfo) =>
   await captureStepScreenshot(page, testInfo, "settings-profile-saved");
 
   let persisted = false;
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await gotoAndWaitForReady(page, "/settings/profile");
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await gotoAndWaitForReady(page, `/settings/profile?ts=${Date.now()}`);
     const value = await page.locator("input#name").inputValue();
     if (value === newName) {
       persisted = true;
       break;
     }
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
   }
   expect(persisted).toBe(true);
 

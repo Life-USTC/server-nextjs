@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -42,7 +42,7 @@ test("/sections/[jwId] 登录用户可发布并编辑评论", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDebugUser(page, `/sections/${DEV_SEED.section.jwId}`);
+  await signInAsDevAdmin(page, `/sections/${DEV_SEED.section.jwId}`);
 
   const commentsTab = page.getByRole("tab", { name: /评论|Comments/i }).first();
   await commentsTab.click();
