@@ -13,6 +13,7 @@
       "!.next",
       "!dist",
       "!build",
+      "!public/openapi.generated.json",
       "!src/components/ui"
     ]
   },
