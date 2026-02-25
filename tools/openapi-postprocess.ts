@@ -191,7 +191,9 @@ async function main() {
     throw new Error("Invalid OpenAPI document: missing paths");
   }
 
-  for (const [path, pathItem] of Object.entries(doc.paths)) {
+  const paths = doc.paths;
+
+  for (const [path, pathItem] of Object.entries(paths)) {
     if (!pathItem || typeof pathItem !== "object") {
       continue;
     }
@@ -209,7 +211,7 @@ async function main() {
   }
 
   const sortedPaths = Object.fromEntries(
-    Object.entries(doc.paths)
+    Object.entries(paths)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([path, pathItem]) => {
         if (!pathItem || typeof pathItem !== "object") {
@@ -217,11 +219,11 @@ async function main() {
         }
         return [path, sortPathItemKeys(pathItem)];
       }),
-  ) as OpenApiDocument["paths"];
+  ) as NonNullable<OpenApiDocument["paths"]>;
 
   doc.paths = sortedPaths;
 
-  doc.tags = buildTopLevelTags(doc.paths);
+  doc.tags = buildTopLevelTags(sortedPaths);
   await writeFile(filePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
 }
 
