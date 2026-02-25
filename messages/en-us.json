@@ -994,6 +994,8 @@
     "replyAction": "Reply",
     "editAction": "Edit",
     "deleteAction": "Delete",
+    "deleteConfirmTitle": "Delete Comment",
+    "deleteConfirmDescription": "Are you sure you want to delete this comment? This action cannot be undone.",
     "moreActions": "More actions",
     "copyLinkAction": "Copy link",
     "linkCopied": "Link copied to clipboard",

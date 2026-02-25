@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogPopup,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -181,6 +180,7 @@ function CommentItem({
   const { copyToClipboard } = useCopyToClipboard();
   const [isReplying, setIsReplying] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const initialAttachmentIds = comment.attachments?.map((a) => a.id) ?? [];
 
@@ -327,10 +327,13 @@ function CommentItem({
                     {t("copyLinkAction")}
                   </MenuItem>
                   {(comment.canModerate || comment.isAuthor) && (
-                    <DeleteCommentMenuItem
-                      commentId={comment.id}
-                      onDelete={onDelete}
-                    />
+                    <MenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => setIsDeleteOpen(true)}
+                    >
+                      <Trash className="mr-2 h-4 w-4" />
+                      {t("deleteAction")}
+                    </MenuItem>
                   )}
                   <MenuItem disabled>
                     <Warning className="mr-2 h-4 w-4" />
@@ -338,6 +341,31 @@ function CommentItem({
                   </MenuItem>
                 </MenuPopup>
               </Menu>
+              {(comment.canModerate || comment.isAuthor) && (
+                <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                  <AlertDialogPopup>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {t("deleteConfirmTitle")}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("deleteConfirmDescription")}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogClose render={<Button variant="ghost" />}>
+                        {t("cancelAction")}
+                      </AlertDialogClose>
+                      <AlertDialogClose
+                        render={<Button variant="destructive" />}
+                        onClick={() => void onDelete(comment.id)}
+                      >
+                        {t("deleteAction")}
+                      </AlertDialogClose>
+                    </AlertDialogFooter>
+                  </AlertDialogPopup>
+                </AlertDialog>
+              )}
             </div>
           </div>
 
@@ -450,50 +478,5 @@ function CommentItem({
         </div>
       )}
     </div>
-  );
-}
-
-function DeleteCommentMenuItem({
-  commentId,
-  onDelete,
-}: {
-  commentId: string;
-  onDelete: (id: string) => Promise<void>;
-}) {
-  const t = useTranslations("comments");
-
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger
-        render={
-          <MenuItem
-            className="text-destructive focus:text-destructive"
-            onSelect={(e) => e.preventDefault()}
-          >
-            <Trash className="mr-2 h-4 w-4" />
-            {t("deleteAction")}
-          </MenuItem>
-        }
-      />
-      <AlertDialogPopup>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{t("deleteConfirmTitle")}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {t("deleteConfirmDescription")}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="ghost" />}>
-            {t("cancelAction")}
-          </AlertDialogClose>
-          <AlertDialogClose
-            render={<Button variant="destructive" />}
-            onClick={() => void onDelete(commentId)}
-          >
-            {t("deleteAction")}
-          </AlertDialogClose>
-        </AlertDialogFooter>
-      </AlertDialogPopup>
-    </AlertDialog>
   );
 }

@@ -994,6 +994,8 @@
     "replyAction": "回复",
     "editAction": "编辑",
     "deleteAction": "删除",
+    "deleteConfirmTitle": "确认删除评论",
+    "deleteConfirmDescription": "确定要删除这条评论吗？此操作无法撤销。",
     "moreActions": "更多操作",
     "copyLinkAction": "复制链接",
     "linkCopied": "链接已复制到剪贴板",
