@@ -1,5 +1,4 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import type { Prisma } from "@/generated/prisma/client";
@@ -12,7 +11,7 @@ import {
 } from "@/lib/api-helpers";
 import { uploadCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
-import { buildUploadKey, s3Bucket, s3Client } from "@/lib/storage";
+import { buildUploadKey, getS3SignedUrl, s3Bucket } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
 
 export const dynamic = "force-dynamic";
@@ -214,8 +213,10 @@ export async function POST(request: Request) {
       Key: key,
       ContentType: contentType,
     });
-    const url = await getSignedUrl(s3Client, command, {
+    const origin = new URL(request.url).origin;
+    const url = await getS3SignedUrl(command, {
       expiresIn: MAX_UPLOAD_EXPIRES_SECONDS,
+      origin,
     });
 
     return NextResponse.json({

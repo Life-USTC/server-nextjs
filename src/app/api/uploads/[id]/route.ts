@@ -12,7 +12,7 @@ import {
   uploadRenameRequestSchema,
 } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
-import { s3Bucket, s3Client } from "@/lib/storage";
+import { s3Bucket, sendS3 } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -142,7 +142,7 @@ export async function DELETE(
       return notFound();
     }
 
-    await s3Client.send(
+    await sendS3(
       new DeleteObjectCommand({ Bucket: s3Bucket, Key: upload.key }),
     );
 

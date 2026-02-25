@@ -11,7 +11,7 @@ import {
 } from "@/lib/api-helpers";
 import { uploadCompleteRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
-import { s3Bucket, s3Client } from "@/lib/storage";
+import { s3Bucket, sendS3 } from "@/lib/storage";
 import { uploadConfig } from "@/lib/upload-config";
 
 export const dynamic = "force-dynamic";
@@ -139,7 +139,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const head = await s3Client.send(
+    const head = await sendS3(
       new HeadObjectCommand({ Bucket: s3Bucket, Key: key }),
     );
 
@@ -149,9 +149,7 @@ export async function POST(request: Request) {
     }
 
     if (size > uploadConfig.maxFileSizeBytes) {
-      await s3Client.send(
-        new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }),
-      );
+      await sendS3(new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }));
       return payloadTooLarge("File too large");
     }
 
@@ -222,9 +220,7 @@ export async function POST(request: Request) {
         error.code === "Quota exceeded" ||
         error.code === "Upload session expired"
       ) {
-        await s3Client.send(
-          new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }),
-        );
+        await sendS3(new DeleteObjectCommand({ Bucket: s3Bucket, Key: key }));
       }
       return badRequest(error.code);
     }
