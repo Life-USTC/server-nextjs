@@ -101,7 +101,7 @@ export function BulkImportSections({
     setImporting(true);
     try {
       // Extract section codes using regex
-      const codePattern = /[A-Z0-9]+\.[A-Z0-9]{2}/g;
+      const codePattern = /[A-Z0-9_.-]+\.[A-Z0-9]{2}/g;
       const extractedCodes = importText.match(codePattern) || [];
 
       if (extractedCodes.length === 0) {
