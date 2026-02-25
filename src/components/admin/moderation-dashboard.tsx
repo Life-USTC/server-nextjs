@@ -793,15 +793,20 @@ function CommentDetailDialog({
                     rows={2}
                   />
                 </div>
-                <Button
-                  onClick={onUpdateStatus}
-                  disabled={
-                    updateStatus === comment.status &&
-                    updateNote === (comment.moderationNote ?? "")
-                  }
-                >
-                  {t("confirmButton")}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={onUpdateStatus}
+                    disabled={
+                      updateStatus === comment.status &&
+                      updateNote === (comment.moderationNote ?? "")
+                    }
+                  >
+                    {t("confirmButton")}
+                  </Button>
+                  <DialogClose render={<Button variant="outline" />}>
+                    {t("cancelButton")}
+                  </DialogClose>
+                </div>
               </div>
 
               {comment.userId && (
