@@ -80,7 +80,7 @@ export async function PATCH(
     if ("username" in parsedBody.data) {
       const username = normalizeUsername(parsedBody.data.username);
       if (username) {
-        if (!/^[a-z0-9]{1,20}$/.test(username)) {
+        if (!/^[a-z0-9-]{1,20}$/.test(username)) {
           return badRequest("Invalid username");
         }
         const existing = await prisma.user.findUnique({

@@ -679,7 +679,7 @@
     "publicProfileHint": "公开主页链接",
     "publicProfileMissing": "设置用户名后即可启用公开主页。",
     "publicProfileIdHint": "使用 ID 的公开主页",
-    "usernameValidation": "仅限小写字母和数字，最多 20 个字符",
+    "usernameValidation": "仅限小写字母、数字与连字符（-），最多 20 个字符",
     "save": "保存更改",
     "saving": "保存中...",
     "updateSuccess": "成功",

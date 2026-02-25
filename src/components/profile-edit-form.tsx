@@ -122,7 +122,7 @@ export function ProfileEditForm({ user }: ProfileEditFormProps) {
                 name="username"
                 defaultValue={user.username || ""}
                 placeholder={t("usernamePlaceholder")}
-                pattern="[a-z0-9]{1,20}"
+                pattern="[a-z0-9-]{1,20}"
                 title={t("usernameValidation")}
               />
             </Field>
