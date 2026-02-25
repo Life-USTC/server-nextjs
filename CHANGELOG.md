@@ -1,3 +1,19 @@
+# [0.37.0](https://github.com/Life-USTC/server-nextjs/compare/v0.36.0...v0.37.0) (2026-02-25)
+
+
+### Bug Fixes
+
+* **build:** resolve zod variant import path for turbopack ([c959f6b](https://github.com/Life-USTC/server-nextjs/commit/c959f6b50e1552ada8d386f9399877003dcba1d2))
+* **subscriptions:** broaden bulk import section code regex ([0895684](https://github.com/Life-USTC/server-nextjs/commit/0895684c5d1d7051c130dea4976228f0aa5e6b17))
+* **uploads:** use storage helper and restrict downloads ([a0b695f](https://github.com/Life-USTC/server-nextjs/commit/a0b695fe37b922a05bc9c1dcc72ddb275b943954))
+
+
+### Features
+
+* **admin:** add cancel action to moderation dialog ([6f9f48e](https://github.com/Life-USTC/server-nextjs/commit/6f9f48e102d752bfbfbe2b99b41074341ef4d409))
+* **profile:** allow hyphens in usernames ([864b233](https://github.com/Life-USTC/server-nextjs/commit/864b23394c6428cf21e64242d36a37019a839810))
+* **storage:** add mock S3 mode for local e2e ([76a12e0](https://github.com/Life-USTC/server-nextjs/commit/76a12e0b20fd16e26c37ccce1bd8f62ae293133f))
+
 ## [0.36.1](https://github.com/Life-USTC/server-nextjs/compare/v0.36.0...v0.36.1) (2026-02-23)
 
 
