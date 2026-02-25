@@ -28,10 +28,6 @@ export function SwaggerViewer() {
         url: "/openapi.generated.json",
         dom_id: "#swagger-ui",
         deepLinking: true,
-        presets: window.SwaggerUIBundle.presets
-          ? [window.SwaggerUIBundle.presets.apis]
-          : undefined,
-        layout: "BaseLayout",
       });
     };
 
@@ -39,8 +35,7 @@ export function SwaggerViewer() {
       const link = document.createElement("link");
       link.id = SWAGGER_STYLE_ID;
       link.rel = "stylesheet";
-      link.href =
-        "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css";
+      link.href = "https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui.css";
       document.head.appendChild(link);
     }
 
@@ -60,7 +55,7 @@ export function SwaggerViewer() {
     const script = document.createElement("script");
     script.id = SWAGGER_SCRIPT_ID;
     script.src =
-      "https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js";
+      "https://unpkg.com/swagger-ui-dist@5.18.2/swagger-ui-bundle.js";
     script.async = true;
     script.addEventListener("load", init, { once: true });
     document.body.appendChild(script);
