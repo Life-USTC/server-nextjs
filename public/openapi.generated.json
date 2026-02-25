@@ -12,12 +12,271 @@
     }
   ],
   "paths": {
+    "/api/admin/comments": {
+      "get": {
+        "operationId": "get-api-admin-comments",
+        "summary": "List moderation comments.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "softbanned",
+                "deleted"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminCommentsResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/comments/{id}": {
+      "patch": {
+        "operationId": "patch-api-admin-comments-{id}",
+        "summary": "Moderate one comment.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminModerateCommentRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminModeratedCommentResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/suspensions": {
+      "get": {
+        "operationId": "get-api-admin-suspensions",
+        "summary": "List suspensions.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminSuspensionsResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-admin-suspensions",
+        "summary": "Create suspension for one user.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminCreateSuspensionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminSuspensionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/suspensions/{id}": {
+      "patch": {
+        "operationId": "patch-api-admin-suspensions-{id}",
+        "summary": "Lift one suspension.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminSuspensionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "operationId": "get-api-admin-users",
+        "summary": "List users for admin console.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminUsersResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "patch": {
+        "operationId": "patch-api-admin-users-{id}",
+        "summary": "Update one user.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/adminUpdateUserRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminUserResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/calendar-subscriptions": {
       "post": {
         "operationId": "post-api-calendar-subscriptions",
         "summary": "Create a calendar subscription.",
         "description": "",
-        "tags": ["Calendar"],
+        "tags": [
+          "Calendar"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -42,12 +301,157 @@
         }
       }
     },
+    "/api/calendar-subscriptions/{id}": {
+      "get": {
+        "operationId": "get-api-calendar-subscriptions-{id}",
+        "summary": "Get subscription detail.",
+        "description": "",
+        "tags": [
+          "Calendar"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calendarSubscriptionSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-api-calendar-subscriptions-{id}",
+        "summary": "Update sections in one subscription.",
+        "description": "",
+        "tags": [
+          "Calendar"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/calendarSubscriptionUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-calendar-subscriptions-{id}",
+        "summary": "Delete one subscription.",
+        "description": "",
+        "tags": [
+          "Calendar"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/calendar-subscriptions/{id}/calendar.ics": {
+      "get": {
+        "operationId": "get-api-calendar-subscriptions-{id}-calendar.ics",
+        "summary": "Redirect calendar subscription token to sections ICS URL.",
+        "description": "",
+        "tags": [
+          "Calendar"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calendar-subscriptions/current": {
+      "get": {
+        "operationId": "get-api-calendar-subscriptions-current",
+        "summary": "Get current user's latest calendar subscription.",
+        "description": "",
+        "tags": [
+          "Calendar"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/currentCalendarSubscriptionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/comments": {
       "get": {
         "operationId": "get-api-comments",
         "summary": "List comments for a target.",
         "description": "",
-        "tags": ["Comments"],
+        "tags": [
+          "Comments"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -93,7 +497,9 @@
         "operationId": "post-api-comments",
         "summary": "Create one comment.",
         "description": "",
-        "tags": ["Comments"],
+        "tags": [
+          "Comments"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -118,12 +524,202 @@
         }
       }
     },
+    "/api/comments/{id}": {
+      "get": {
+        "operationId": "get-api-comments-{id}",
+        "summary": "Get one comment thread by comment ID.",
+        "description": "",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/commentThreadResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-api-comments-{id}",
+        "summary": "Update one comment.",
+        "description": "",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/commentUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/commentUpdateResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-comments-{id}",
+        "summary": "Delete one comment.",
+        "description": "",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/comments/{id}/reactions": {
+      "post": {
+        "operationId": "post-api-comments-{id}-reactions",
+        "summary": "Add one reaction to a comment.",
+        "description": "",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/commentReactionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-comments-{id}-reactions",
+        "summary": "Remove one reaction from a comment.",
+        "description": "",
+        "tags": [
+          "Comments"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "upvote",
+                "downvote",
+                "heart",
+                "laugh",
+                "hooray",
+                "confused",
+                "rocket",
+                "eyes"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/courses": {
       "get": {
         "operationId": "get-api-courses",
         "summary": "List courses with search and pagination.",
         "description": "",
-        "tags": ["Courses"],
+        "tags": [
+          "Courses"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -165,7 +761,9 @@
         "operationId": "get-api-descriptions",
         "summary": "Get description and history by target.",
         "description": "",
-        "tags": ["Descriptions"],
+        "tags": [
+          "Descriptions"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -199,7 +797,9 @@
         "operationId": "post-api-descriptions",
         "summary": "Upsert description by target.",
         "description": "",
-        "tags": ["Descriptions"],
+        "tags": [
+          "Descriptions"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -229,7 +829,9 @@
         "operationId": "get-api-homeworks",
         "summary": "List homeworks by section.",
         "description": "",
-        "tags": ["Homeworks"],
+        "tags": [
+          "Homeworks"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -242,7 +844,10 @@
             "name": "includeDeleted",
             "schema": {
               "type": "string",
-              "enum": ["true", "false"]
+              "enum": [
+                "true",
+                "false"
+              ]
             },
             "required": false
           }
@@ -264,7 +869,9 @@
         "operationId": "post-api-homeworks",
         "summary": "Create one homework.",
         "description": "",
-        "tags": ["Homeworks"],
+        "tags": [
+          "Homeworks"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -289,12 +896,122 @@
         }
       }
     },
+    "/api/homeworks/{id}": {
+      "patch": {
+        "operationId": "patch-api-homeworks-{id}",
+        "summary": "Update one homework.",
+        "description": "",
+        "tags": [
+          "Homeworks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/homeworkUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-homeworks-{id}",
+        "summary": "Soft delete one homework.",
+        "description": "",
+        "tags": [
+          "Homeworks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/homeworks/{id}/completion": {
+      "put": {
+        "operationId": "put-api-homeworks-{id}-completion",
+        "summary": "Update completion state for one homework.",
+        "description": "",
+        "tags": [
+          "Homeworks"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/homeworkCompletionRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/homeworkCompletionResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/locale": {
       "post": {
         "operationId": "post-api-locale",
         "summary": "Update user locale cookie.",
         "description": "",
-        "tags": ["Locale"],
+        "tags": [
+          "Locale"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -324,7 +1041,9 @@
         "operationId": "get-api-metadata",
         "summary": "Get metadata dictionaries for filters.",
         "description": "",
-        "tags": ["Metadata"],
+        "tags": [
+          "Metadata"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -341,11 +1060,13 @@
       }
     },
     "/api/mock-s3": {
-      "put": {
-        "operationId": "put-api-mock-s3",
+      "get": {
+        "operationId": "get-api-mock-s3",
         "summary": "",
         "description": "",
-        "tags": ["Api"],
+        "tags": [
+          "Api"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -358,11 +1079,13 @@
           }
         }
       },
-      "get": {
-        "operationId": "get-api-mock-s3",
+      "put": {
+        "operationId": "put-api-mock-s3",
         "summary": "",
         "description": "",
-        "tags": ["Api"],
+        "tags": [
+          "Api"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -379,7 +1102,9 @@
         "operationId": "delete-api-mock-s3",
         "summary": "",
         "description": "",
-        "tags": ["Api"],
+        "tags": [
+          "Api"
+        ],
         "parameters": [],
         "responses": {
           "204": {
@@ -393,7 +1118,9 @@
         "operationId": "get-api-schedules",
         "summary": "List schedules with filters and pagination.",
         "description": "",
-        "tags": ["Schedules"],
+        "tags": [
+          "Schedules"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -467,7 +1194,9 @@
         "operationId": "get-api-sections",
         "summary": "List sections with filters and pagination.",
         "description": "",
-        "tags": ["Sections"],
+        "tags": [
+          "Sections"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -534,12 +1263,202 @@
         }
       }
     },
+    "/api/sections/{jwId}": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}",
+        "summary": "Get section detail by JW ID.",
+        "description": "",
+        "tags": [
+          "Sections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/sectionDetailSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}/calendar.ics": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}-calendar.ics",
+        "summary": "Generate calendar ICS for one section.",
+        "description": "",
+        "tags": [
+          "Sections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}/schedule-groups": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}-schedule-groups",
+        "summary": "Get schedule groups for one section.",
+        "description": "",
+        "tags": [
+          "Sections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/array"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/{jwId}/schedules": {
+      "get": {
+        "operationId": "get-api-sections-{jwId}-schedules",
+        "summary": "Get all schedules for one section.",
+        "description": "",
+        "tags": [
+          "Sections"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/array"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/calendar.ics": {
+      "get": {
+        "operationId": "get-api-sections-calendar.ics",
+        "summary": "Generate calendar ICS for multiple sections.",
+        "description": "",
+        "tags": [
+          "Sections"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sectionIds",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/binary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sections/match-codes": {
+      "post": {
+        "operationId": "post-api-sections-match-codes",
+        "summary": "Match section codes in one semester.",
+        "description": "",
+        "tags": [
+          "Sections"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/matchSectionCodesRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/matchSectionCodesResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/semesters": {
       "get": {
         "operationId": "get-api-semesters",
         "summary": "List semesters with pagination.",
         "description": "",
-        "tags": ["Semesters"],
+        "tags": [
+          "Semesters"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -568,12 +1487,37 @@
         }
       }
     },
+    "/api/semesters/current": {
+      "get": {
+        "operationId": "get-api-semesters-current",
+        "summary": "Get current semester.",
+        "description": "",
+        "tags": [
+          "Semesters"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/semesterSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/teachers": {
       "get": {
         "operationId": "get-api-teachers",
         "summary": "List teachers with department/search filters.",
         "description": "",
-        "tags": ["Teachers"],
+        "tags": [
+          "Teachers"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -621,7 +1565,9 @@
         "operationId": "get-api-uploads",
         "summary": "List uploads of current user.",
         "description": "",
-        "tags": ["Uploads"],
+        "tags": [
+          "Uploads"
+        ],
         "parameters": [],
         "responses": {
           "200": {
@@ -640,7 +1586,9 @@
         "operationId": "post-api-uploads",
         "summary": "Create a signed upload URL.",
         "description": "",
-        "tags": ["Uploads"],
+        "tags": [
+          "Uploads"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -665,509 +1613,14 @@
         }
       }
     },
-    "/api/admin/comments": {
-      "get": {
-        "operationId": "get-api-admin-comments",
-        "summary": "List moderation comments.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "status",
-            "schema": {
-              "type": "string",
-              "enum": ["active", "softbanned", "deleted"]
-            },
-            "required": false
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {},
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminCommentsResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/suspensions": {
-      "get": {
-        "operationId": "get-api-admin-suspensions",
-        "summary": "List suspensions.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminSuspensionsResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-api-admin-suspensions",
-        "summary": "Create suspension for one user.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/adminCreateSuspensionRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminSuspensionResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/users": {
-      "get": {
-        "operationId": "get-api-admin-users",
-        "summary": "List users for admin console.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "search",
-            "schema": {
-              "type": "string"
-            },
-            "required": false
-          },
-          {
-            "in": "query",
-            "name": "page",
-            "schema": {},
-            "required": false
-          },
-          {
-            "in": "query",
-            "name": "limit",
-            "schema": {},
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminUsersResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/calendar-subscriptions/{id}": {
-      "get": {
-        "operationId": "get-api-calendar-subscriptions-{id}",
-        "summary": "Get subscription detail.",
-        "description": "",
-        "tags": ["Calendar"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/calendarSubscriptionSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "patch-api-calendar-subscriptions-{id}",
-        "summary": "Update sections in one subscription.",
-        "description": "",
-        "tags": ["Calendar"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/calendarSubscriptionUpdateRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete-api-calendar-subscriptions-{id}",
-        "summary": "Delete one subscription.",
-        "description": "",
-        "tags": ["Calendar"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
-    "/api/calendar-subscriptions/current": {
-      "get": {
-        "operationId": "get-api-calendar-subscriptions-current",
-        "summary": "Get current user's latest calendar subscription.",
-        "description": "",
-        "tags": ["Calendar"],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/currentCalendarSubscriptionResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/comments/{id}": {
-      "get": {
-        "operationId": "get-api-comments-{id}",
-        "summary": "Get one comment thread by comment ID.",
-        "description": "",
-        "tags": ["Comments"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/commentThreadResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "patch-api-comments-{id}",
-        "summary": "Update one comment.",
-        "description": "",
-        "tags": ["Comments"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/commentUpdateRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/commentUpdateResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete-api-comments-{id}",
-        "summary": "Delete one comment.",
-        "description": "",
-        "tags": ["Comments"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
-    "/api/homeworks/{id}": {
-      "patch": {
-        "operationId": "patch-api-homeworks-{id}",
-        "summary": "Update one homework.",
-        "description": "",
-        "tags": ["Homeworks"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/homeworkUpdateRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/successResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete-api-homeworks-{id}",
-        "summary": "Soft delete one homework.",
-        "description": "",
-        "tags": ["Homeworks"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
-    "/api/sections/{jwId}": {
-      "get": {
-        "operationId": "get-api-sections-{jwId}",
-        "summary": "Get section detail by JW ID.",
-        "description": "",
-        "tags": ["Sections"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jwId",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/sectionDetailSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sections/calendar.ics": {
-      "get": {
-        "operationId": "get-api-sections-calendar.ics",
-        "summary": "Generate calendar ICS for multiple sections.",
-        "description": "",
-        "tags": ["Sections"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "sectionIds",
-            "schema": {
-              "type": "string"
-            },
-            "required": false
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/binary"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sections/match-codes": {
-      "post": {
-        "operationId": "post-api-sections-match-codes",
-        "summary": "Match section codes in one semester.",
-        "description": "",
-        "tags": ["Sections"],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/matchSectionCodesRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/matchSectionCodesResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/semesters/current": {
-      "get": {
-        "operationId": "get-api-semesters-current",
-        "summary": "Get current semester.",
-        "description": "",
-        "tags": ["Semesters"],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/semesterSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/uploads/{id}": {
       "patch": {
         "operationId": "patch-api-uploads-{id}",
         "summary": "Rename one upload.",
         "description": "",
-        "tags": ["Uploads"],
+        "tags": [
+          "Uploads"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -1205,7 +1658,9 @@
         "operationId": "delete-api-uploads-{id}",
         "summary": "Delete one upload.",
         "description": "",
-        "tags": ["Uploads"],
+        "tags": [
+          "Uploads"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -1231,12 +1686,45 @@
         }
       }
     },
+    "/api/uploads/{id}/download": {
+      "get": {
+        "operationId": "get-api-uploads-{id}-download",
+        "summary": "Redirect to signed URL for one upload.",
+        "description": "",
+        "tags": [
+          "Uploads"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/uploads/complete": {
       "post": {
         "operationId": "post-api-uploads-complete",
         "summary": "Finalize one upload after S3 put.",
         "description": "",
-        "tags": ["Uploads"],
+        "tags": [
+          "Uploads"
+        ],
         "parameters": [],
         "requestBody": {
           "content": {
@@ -1260,387 +1748,6 @@
           }
         }
       }
-    },
-    "/api/admin/comments/{id}": {
-      "patch": {
-        "operationId": "patch-api-admin-comments-{id}",
-        "summary": "Moderate one comment.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/adminModerateCommentRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminModeratedCommentResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/suspensions/{id}": {
-      "patch": {
-        "operationId": "patch-api-admin-suspensions-{id}",
-        "summary": "Lift one suspension.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminSuspensionResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/users/{id}": {
-      "patch": {
-        "operationId": "patch-api-admin-users-{id}",
-        "summary": "Update one user.",
-        "description": "",
-        "tags": ["Admin"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/adminUpdateUserRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/adminUserResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/calendar-subscriptions/{id}/calendar.ics": {
-      "get": {
-        "operationId": "get-api-calendar-subscriptions-{id}-calendar.ics",
-        "summary": "Redirect calendar subscription token to sections ICS URL.",
-        "description": "",
-        "tags": ["Calendar"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/comments/{id}/reactions": {
-      "post": {
-        "operationId": "post-api-comments-{id}-reactions",
-        "summary": "Add one reaction to a comment.",
-        "description": "",
-        "tags": ["Comments"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/commentReactionRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/successResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete-api-comments-{id}-reactions",
-        "summary": "Remove one reaction from a comment.",
-        "description": "",
-        "tags": ["Comments"],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "type",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "upvote",
-                "downvote",
-                "heart",
-                "laugh",
-                "hooray",
-                "confused",
-                "rocket",
-                "eyes"
-              ]
-            },
-            "required": false
-          },
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/successResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/homeworks/{id}/completion": {
-      "put": {
-        "operationId": "put-api-homeworks-{id}-completion",
-        "summary": "Update completion state for one homework.",
-        "description": "",
-        "tags": ["Homeworks"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/homeworkCompletionRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/homeworkCompletionResponseSchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sections/{jwId}/calendar.ics": {
-      "get": {
-        "operationId": "get-api-sections-{jwId}-calendar.ics",
-        "summary": "Generate calendar ICS for one section.",
-        "description": "",
-        "tags": ["Sections"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jwId",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/binary"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sections/{jwId}/schedule-groups": {
-      "get": {
-        "operationId": "get-api-sections-{jwId}-schedule-groups",
-        "summary": "Get schedule groups for one section.",
-        "description": "",
-        "tags": ["Sections"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jwId",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/array"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/sections/{jwId}/schedules": {
-      "get": {
-        "operationId": "get-api-sections-{jwId}-schedules",
-        "summary": "Get all schedules for one section.",
-        "description": "",
-        "tags": ["Sections"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "jwId",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/array"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/uploads/{id}/download": {
-      "get": {
-        "operationId": "get-api-uploads-{id}-download",
-        "summary": "Redirect to signed URL for one upload.",
-        "description": "",
-        "tags": ["Uploads"],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -1653,21 +1760,29 @@
             "minLength": 1
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "adminModerateCommentRequestSchema": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["active", "softbanned", "deleted"]
+            "enum": [
+              "active",
+              "softbanned",
+              "deleted"
+            ]
           },
           "moderationNote": {
             "type": "string",
             "nullable": true
           }
         },
-        "required": ["status"]
+        "required": [
+          "status"
+        ]
       },
       "adminModeratedCommentResponseSchema": {
         "type": "object",
@@ -1676,14 +1791,20 @@
             "$ref": "#/components/schemas/adminCommentBaseSchema"
           }
         },
-        "required": ["comment"]
+        "required": [
+          "comment"
+        ]
       },
       "adminCommentsQuerySchema": {
         "type": "object",
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["active", "softbanned", "deleted"]
+            "enum": [
+              "active",
+              "softbanned",
+              "deleted"
+            ]
           },
           "limit": {
             "allOf": [
@@ -1704,7 +1825,9 @@
             }
           }
         },
-        "required": ["comments"]
+        "required": [
+          "comments"
+        ]
       },
       "adminSuspensionResponseSchema": {
         "type": "object",
@@ -1713,7 +1836,9 @@
             "$ref": "#/components/schemas/adminSuspensionSchema"
           }
         },
-        "required": ["suspension"]
+        "required": [
+          "suspension"
+        ]
       },
       "adminSuspensionsResponseSchema": {
         "type": "object",
@@ -1725,7 +1850,9 @@
             }
           }
         },
-        "required": ["suspensions"]
+        "required": [
+          "suspensions"
+        ]
       },
       "adminCreateSuspensionRequestSchema": {
         "type": "object",
@@ -1745,7 +1872,9 @@
             "nullable": true
           }
         },
-        "required": ["userId"]
+        "required": [
+          "userId"
+        ]
       },
       "adminUpdateUserRequestSchema": {
         "type": "object",
@@ -1770,7 +1899,9 @@
             "$ref": "#/components/schemas/adminUserListItemSchema"
           }
         },
-        "required": ["user"]
+        "required": [
+          "user"
+        ]
       },
       "adminUsersQuerySchema": {
         "type": "object",
@@ -1807,7 +1938,10 @@
             "$ref": "#/components/schemas/pageMetaSchema"
           }
         },
-        "required": ["data", "pagination"]
+        "required": [
+          "data",
+          "pagination"
+        ]
       },
       "calendarSubscriptionIdPathParamsSchema": {
         "type": "object",
@@ -1816,7 +1950,9 @@
             "$ref": "#/components/schemas/integerStringSchema"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "calendarSubscriptionSchema": {
         "type": "object",
@@ -1853,11 +1989,20 @@
                   }
                 }
               },
-              "required": ["course", "semester", "campus", "schedules"]
+              "required": [
+                "course",
+                "semester",
+                "campus",
+                "schedules"
+              ]
             }
           }
         },
-        "required": ["id", "userId", "sections"]
+        "required": [
+          "id",
+          "userId",
+          "sections"
+        ]
       },
       "calendarSubscriptionUpdateRequestSchema": {
         "type": "object",
@@ -1871,7 +2016,9 @@
             }
           }
         },
-        "required": ["sectionIds"]
+        "required": [
+          "sectionIds"
+        ]
       },
       "calendarSubscriptionSummarySchema": {
         "type": "object",
@@ -1888,11 +2035,16 @@
                   "type": "integer"
                 }
               },
-              "required": ["id"]
+              "required": [
+                "id"
+              ]
             }
           }
         },
-        "required": ["id", "sections"]
+        "required": [
+          "id",
+          "sections"
+        ]
       },
       "successResponseSchema": {
         "type": "object",
@@ -1901,7 +2053,9 @@
             "type": "boolean"
           }
         },
-        "required": ["success"]
+        "required": [
+          "success"
+        ]
       },
       "currentCalendarSubscriptionResponseSchema": {
         "oneOf": [
@@ -1912,7 +2066,9 @@
                 "type": "null"
               }
             },
-            "required": ["subscription"]
+            "required": [
+              "subscription"
+            ]
           },
           {
             "type": "object",
@@ -1924,7 +2080,10 @@
                 "type": "string"
               }
             },
-            "required": ["subscription", "token"]
+            "required": [
+              "subscription",
+              "token"
+            ]
           }
         ]
       },
@@ -1951,7 +2110,10 @@
             "type": "string"
           }
         },
-        "required": ["subscription", "token"]
+        "required": [
+          "subscription",
+          "token"
+        ]
       },
       "commentReactionRequestSchema": {
         "type": "object",
@@ -1970,7 +2132,9 @@
             ]
           }
         },
-        "required": ["type"]
+        "required": [
+          "type"
+        ]
       },
       "commentThreadResponseSchema": {
         "type": "object",
@@ -2099,7 +2263,13 @@
             ]
           }
         },
-        "required": ["thread", "focusId", "hiddenCount", "viewer", "target"]
+        "required": [
+          "thread",
+          "focusId",
+          "hiddenCount",
+          "viewer",
+          "target"
+        ]
       },
       "commentUpdateRequestSchema": {
         "type": "object",
@@ -2126,7 +2296,9 @@
             }
           }
         },
-        "required": ["body"]
+        "required": [
+          "body"
+        ]
       },
       "commentUpdateResponseSchema": {
         "type": "object",
@@ -2138,7 +2310,10 @@
             "$ref": "#/components/schemas/commentNodeSchema"
           }
         },
-        "required": ["success", "comment"]
+        "required": [
+          "success",
+          "comment"
+        ]
       },
       "commentsQuerySchema": {
         "type": "object",
@@ -2164,7 +2339,9 @@
             ]
           }
         },
-        "required": ["targetType"]
+        "required": [
+          "targetType"
+        ]
       },
       "commentsListResponseSchema": {
         "type": "object",
@@ -2228,7 +2405,12 @@
             ]
           }
         },
-        "required": ["comments", "hiddenCount", "viewer", "target"]
+        "required": [
+          "comments",
+          "hiddenCount",
+          "viewer",
+          "target"
+        ]
       },
       "commentCreateRequestSchema": {
         "type": "object",
@@ -2292,7 +2474,10 @@
             }
           }
         },
-        "required": ["targetType", "body"]
+        "required": [
+          "targetType",
+          "body"
+        ]
       },
       "idResponseSchema": {
         "type": "object",
@@ -2301,7 +2486,9 @@
             "type": "string"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "coursesQuerySchema": {
         "type": "object",
@@ -2338,7 +2525,10 @@
             "$ref": "#/components/schemas/pageMetaSchema"
           }
         },
-        "required": ["data", "pagination"]
+        "required": [
+          "data",
+          "pagination"
+        ]
       },
       "descriptionsQuerySchema": {
         "type": "object",
@@ -2351,7 +2541,10 @@
             "minLength": 1
           }
         },
-        "required": ["targetType", "targetId"]
+        "required": [
+          "targetType",
+          "targetId"
+        ]
       },
       "descriptionsResponseSchema": {
         "type": "object",
@@ -2369,7 +2562,11 @@
             "$ref": "#/components/schemas/viewerContextSchema"
           }
         },
-        "required": ["description", "history", "viewer"]
+        "required": [
+          "description",
+          "history",
+          "viewer"
+        ]
       },
       "descriptionUpsertRequestSchema": {
         "type": "object",
@@ -2392,7 +2589,11 @@
             "maxLength": 4000
           }
         },
-        "required": ["targetType", "targetId", "content"]
+        "required": [
+          "targetType",
+          "targetId",
+          "content"
+        ]
       },
       "descriptionUpsertResponseSchema": {
         "type": "object",
@@ -2404,7 +2605,10 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "updated"]
+        "required": [
+          "id",
+          "updated"
+        ]
       },
       "homeworkCompletionRequestSchema": {
         "type": "object",
@@ -2413,7 +2617,9 @@
             "type": "boolean"
           }
         },
-        "required": ["completed"]
+        "required": [
+          "completed"
+        ]
       },
       "homeworkCompletionResponseSchema": {
         "type": "object",
@@ -2429,7 +2635,10 @@
             ]
           }
         },
-        "required": ["completed", "completedAt"]
+        "required": [
+          "completed",
+          "completedAt"
+        ]
       },
       "homeworkUpdateRequestSchema": {
         "type": "object",
@@ -2467,10 +2676,15 @@
           },
           "includeDeleted": {
             "type": "string",
-            "enum": ["true", "false"]
+            "enum": [
+              "true",
+              "false"
+            ]
           }
         },
-        "required": ["sectionId"]
+        "required": [
+          "sectionId"
+        ]
       },
       "homeworksListResponseSchema": {
         "type": "object",
@@ -2491,7 +2705,11 @@
             }
           }
         },
-        "required": ["viewer", "homeworks", "auditLogs"]
+        "required": [
+          "viewer",
+          "homeworks",
+          "auditLogs"
+        ]
       },
       "homeworkCreateRequestSchema": {
         "type": "object",
@@ -2534,17 +2752,25 @@
             "type": "boolean"
           }
         },
-        "required": ["sectionId", "title"]
+        "required": [
+          "sectionId",
+          "title"
+        ]
       },
       "localeUpdateRequestSchema": {
         "type": "object",
         "properties": {
           "locale": {
             "type": "string",
-            "enum": ["en-us", "zh-cn"]
+            "enum": [
+              "en-us",
+              "zh-cn"
+            ]
           }
         },
-        "required": ["locale"]
+        "required": [
+          "locale"
+        ]
       },
       "metadataResponseSchema": {
         "type": "object",
@@ -2609,7 +2835,9 @@
                   }
                 }
               },
-              "required": ["buildings"]
+              "required": [
+                "buildings"
+              ]
             }
           }
         },
@@ -2691,7 +2919,10 @@
             "$ref": "#/components/schemas/pageMetaSchema"
           }
         },
-        "required": ["data", "pagination"]
+        "required": [
+          "data",
+          "pagination"
+        ]
       },
       "jwIdPathParamsSchema": {
         "type": "object",
@@ -2700,7 +2931,9 @@
             "$ref": "#/components/schemas/integerStringSchema"
           }
         },
-        "required": ["jwId"]
+        "required": [
+          "jwId"
+        ]
       },
       "binary": {},
       "sectionDetailSchema": {
@@ -2813,7 +3046,9 @@
             "minLength": 1
           }
         },
-        "required": ["sectionIds"]
+        "required": [
+          "sectionIds"
+        ]
       },
       "matchSectionCodesRequestSchema": {
         "type": "object",
@@ -2830,7 +3065,9 @@
             "type": "string"
           }
         },
-        "required": ["codes"]
+        "required": [
+          "codes"
+        ]
       },
       "matchSectionCodesResponseSchema": {
         "type": "object",
@@ -2850,7 +3087,11 @@
                 "nullable": true
               }
             },
-            "required": ["id", "nameCn", "code"]
+            "required": [
+              "id",
+              "nameCn",
+              "code"
+            ]
           },
           "matchedCodes": {
             "type": "array",
@@ -2953,7 +3194,10 @@
             "$ref": "#/components/schemas/pageMetaSchema"
           }
         },
-        "required": ["data", "pagination"]
+        "required": [
+          "data",
+          "pagination"
+        ]
       },
       "semesterSchema": {
         "type": "object",
@@ -2973,7 +3217,10 @@
             ]
           }
         },
-        "required": ["startDate", "endDate"]
+        "required": [
+          "startDate",
+          "endDate"
+        ]
       },
       "semestersQuerySchema": {
         "type": "object",
@@ -3007,7 +3254,10 @@
             "$ref": "#/components/schemas/pageMetaSchema"
           }
         },
-        "required": ["data", "pagination"]
+        "required": [
+          "data",
+          "pagination"
+        ]
       },
       "teachersQuerySchema": {
         "type": "object",
@@ -3051,7 +3301,10 @@
             "$ref": "#/components/schemas/pageMetaSchema"
           }
         },
-        "required": ["data", "pagination"]
+        "required": [
+          "data",
+          "pagination"
+        ]
       },
       "uploadRenameRequestSchema": {
         "type": "object",
@@ -3062,7 +3315,9 @@
             "maxLength": 255
           }
         },
-        "required": ["filename"]
+        "required": [
+          "filename"
+        ]
       },
       "uploadRenameResponseSchema": {
         "type": "object",
@@ -3071,7 +3326,9 @@
             "$ref": "#/components/schemas/uploadSummarySchema"
           }
         },
-        "required": ["upload"]
+        "required": [
+          "upload"
+        ]
       },
       "uploadDeleteResponseSchema": {
         "type": "object",
@@ -3083,7 +3340,10 @@
             "type": "integer"
           }
         },
-        "required": ["deletedId", "deletedSize"]
+        "required": [
+          "deletedId",
+          "deletedSize"
+        ]
       },
       "uploadCompleteRequestSchema": {
         "type": "object",
@@ -3100,7 +3360,10 @@
             "type": "string"
           }
         },
-        "required": ["key", "filename"]
+        "required": [
+          "key",
+          "filename"
+        ]
       },
       "uploadCompleteResponseSchema": {
         "type": "object",
@@ -3115,7 +3378,11 @@
             "type": "integer"
           }
         },
-        "required": ["upload", "usedBytes", "quotaBytes"]
+        "required": [
+          "upload",
+          "usedBytes",
+          "quotaBytes"
+        ]
       },
       "uploadsListResponseSchema": {
         "type": "object",
@@ -3136,7 +3403,12 @@
             "type": "integer"
           }
         },
-        "required": ["maxFileSizeBytes", "quotaBytes", "uploads", "usedBytes"]
+        "required": [
+          "maxFileSizeBytes",
+          "quotaBytes",
+          "uploads",
+          "usedBytes"
+        ]
       },
       "uploadCreateRequestSchema": {
         "type": "object",
@@ -3159,7 +3431,10 @@
             ]
           }
         },
-        "required": ["filename", "size"]
+        "required": [
+          "filename",
+          "size"
+        ]
       },
       "uploadCreateResponseSchema": {
         "type": "object",
@@ -3196,15 +3471,30 @@
       },
       "descriptionTargetTypeSchema": {
         "type": "string",
-        "enum": ["section", "course", "teacher", "homework"]
+        "enum": [
+          "section",
+          "course",
+          "teacher",
+          "homework"
+        ]
       },
       "commentVisibilitySchema": {
         "type": "string",
-        "enum": ["public", "logged_in_only", "anonymous"]
+        "enum": [
+          "public",
+          "logged_in_only",
+          "anonymous"
+        ]
       },
       "commentTargetTypeSchema": {
         "type": "string",
-        "enum": ["section", "course", "teacher", "section-teacher", "homework"]
+        "enum": [
+          "section",
+          "course",
+          "teacher",
+          "section-teacher",
+          "homework"
+        ]
       },
       "integerStringSchema": {
         "type": "string",
@@ -3217,7 +3507,9 @@
             "type": "string"
           }
         },
-        "required": ["error"]
+        "required": [
+          "error"
+        ]
       },
       "dateTimeSchema": {
         "type": "string"
@@ -3238,7 +3530,12 @@
             "type": "integer"
           }
         },
-        "required": ["page", "pageSize", "total", "totalPages"]
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "totalPages"
+        ]
       },
       "commentAuthorSummarySchema": {
         "type": "object",
@@ -3264,7 +3561,12 @@
             "type": "boolean"
           }
         },
-        "required": ["name", "isUstcVerified", "isAdmin", "isGuest"]
+        "required": [
+          "name",
+          "isUstcVerified",
+          "isAdmin",
+          "isGuest"
+        ]
       },
       "commentAttachmentSummarySchema": {
         "type": "object",
@@ -3289,7 +3591,14 @@
             "type": "integer"
           }
         },
-        "required": ["id", "uploadId", "filename", "url", "contentType", "size"]
+        "required": [
+          "id",
+          "uploadId",
+          "filename",
+          "url",
+          "contentType",
+          "size"
+        ]
       },
       "commentReactionSummarySchema": {
         "type": "object",
@@ -3305,7 +3614,11 @@
             "type": "boolean"
           }
         },
-        "required": ["type", "count", "viewerHasReacted"]
+        "required": [
+          "type",
+          "count",
+          "viewerHasReacted"
+        ]
       },
       "commentNodeSchema": {
         "type": "string"
@@ -3376,7 +3689,10 @@
                 "type": "string"
               }
             },
-            "required": ["title", "version"]
+            "required": [
+              "title",
+              "version"
+            ]
           },
           "servers": {
             "type": "array",
@@ -3390,7 +3706,9 @@
                   "type": "string"
                 }
               },
-              "required": ["url"]
+              "required": [
+                "url"
+              ]
             }
           },
           "paths": {
@@ -3400,7 +3718,11 @@
             }
           }
         },
-        "required": ["openapi", "info", "paths"]
+        "required": [
+          "openapi",
+          "info",
+          "paths"
+        ]
       },
       "sectionBaseSchema": {
         "type": "object"
@@ -3490,7 +3812,9 @@
             ]
           }
         },
-        "required": ["date"]
+        "required": [
+          "date"
+        ]
       },
       "roomSchema": {
         "type": "object"
@@ -3512,7 +3836,10 @@
             ]
           }
         },
-        "required": ["building", "roomType"]
+        "required": [
+          "building",
+          "roomType"
+        ]
       },
       "scheduleWithRoomTeachersSchema": {
         "type": "object",
@@ -3538,7 +3865,11 @@
             }
           }
         },
-        "required": ["date", "room", "teachers"]
+        "required": [
+          "date",
+          "room",
+          "teachers"
+        ]
       },
       "adminUserListItemSchema": {
         "type": "object",
@@ -3551,7 +3882,10 @@
             "$ref": "#/components/schemas/dateTimeSchema"
           }
         },
-        "required": ["email", "createdAt"]
+        "required": [
+          "email",
+          "createdAt"
+        ]
       },
       "adminSuspensionSchema": {
         "type": "object",
@@ -3584,11 +3918,18 @@
                 "nullable": true
               }
             },
-            "required": ["id", "name"],
+            "required": [
+              "id",
+              "name"
+            ],
             "nullable": true
           }
         },
-        "required": ["createdAt", "expiresAt", "liftedAt"]
+        "required": [
+          "createdAt",
+          "expiresAt",
+          "liftedAt"
+        ]
       },
       "adminCommentBaseSchema": {
         "type": "object",
@@ -3614,7 +3955,12 @@
             ]
           }
         },
-        "required": ["createdAt", "updatedAt", "deletedAt", "moderatedAt"]
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "deletedAt",
+          "moderatedAt"
+        ]
       },
       "uploadSummarySchema": {
         "type": "object",
@@ -3623,7 +3969,9 @@
             "$ref": "#/components/schemas/dateTimeSchema"
           }
         },
-        "required": ["createdAt"]
+        "required": [
+          "createdAt"
+        ]
       },
       "buildingSchema": {
         "type": "object"
@@ -3672,7 +4020,10 @@
             ]
           }
         },
-        "required": ["createdAt", "actor"]
+        "required": [
+          "createdAt",
+          "actor"
+        ]
       },
       "homeworkDescriptionSchema": {
         "type": "object",
@@ -3691,7 +4042,11 @@
             ]
           }
         },
-        "required": ["createdAt", "updatedAt", "lastEditedAt"]
+        "required": [
+          "createdAt",
+          "updatedAt",
+          "lastEditedAt"
+        ]
       },
       "homeworkListItemSchema": {
         "type": "object",
@@ -3765,7 +4120,9 @@
                 "$ref": "#/components/schemas/dateTimeSchema"
               }
             },
-            "required": ["completedAt"],
+            "required": [
+              "completedAt"
+            ],
             "nullable": true
           }
         },
@@ -3808,11 +4165,19 @@
                 "nullable": true
               }
             },
-            "required": ["id", "name", "image", "username"],
+            "required": [
+              "id",
+              "name",
+              "image",
+              "username"
+            ],
             "nullable": true
           }
         },
-        "required": ["createdAt", "editor"]
+        "required": [
+          "createdAt",
+          "editor"
+        ]
       },
       "descriptionDetailSchema": {
         "type": "object",
@@ -3854,11 +4219,21 @@
                 "nullable": true
               }
             },
-            "required": ["id", "name", "image", "username"],
+            "required": [
+              "id",
+              "name",
+              "image",
+              "username"
+            ],
             "nullable": true
           }
         },
-        "required": ["id", "updatedAt", "lastEditedAt", "lastEditedBy"]
+        "required": [
+          "id",
+          "updatedAt",
+          "lastEditedAt",
+          "lastEditedBy"
+        ]
       },
       "adminCommentSchema": {
         "type": "object",
@@ -3891,7 +4266,9 @@
                 "nullable": true
               }
             },
-            "required": ["name"],
+            "required": [
+              "name"
+            ],
             "nullable": true
           },
           "section": {
@@ -3904,7 +4281,10 @@
                 "type": "string"
               }
             },
-            "required": ["jwId", "code"],
+            "required": [
+              "jwId",
+              "code"
+            ],
             "nullable": true
           },
           "course": {
@@ -3920,7 +4300,11 @@
                 "type": "string"
               }
             },
-            "required": ["jwId", "code", "nameCn"],
+            "required": [
+              "jwId",
+              "code",
+              "nameCn"
+            ],
             "nullable": true
           },
           "teacher": {
@@ -3933,7 +4317,10 @@
                 "type": "string"
               }
             },
-            "required": ["id", "nameCn"],
+            "required": [
+              "id",
+              "nameCn"
+            ],
             "nullable": true
           },
           "homework": {
@@ -3952,10 +4339,16 @@
                     "type": "string"
                   }
                 },
-                "required": ["code"]
+                "required": [
+                  "code"
+                ]
               }
             },
-            "required": ["id", "title", "section"],
+            "required": [
+              "id",
+              "title",
+              "section"
+            ],
             "nullable": true
           },
           "sectionTeacher": {
@@ -3971,7 +4364,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["jwId", "code"]
+                "required": [
+                  "jwId",
+                  "code"
+                ]
               },
               "teacher": {
                 "type": "object",
@@ -3980,10 +4376,15 @@
                     "type": "string"
                   }
                 },
-                "required": ["nameCn"]
+                "required": [
+                  "nameCn"
+                ]
               }
             },
-            "required": ["section", "teacher"],
+            "required": [
+              "section",
+              "teacher"
+            ],
             "nullable": true
           }
         },
@@ -4011,7 +4412,9 @@
             ]
           }
         },
-        "required": ["campus"]
+        "required": [
+          "campus"
+        ]
       },
       "roomWithBuildingCampusSchema": {
         "type": "object",
@@ -4031,7 +4434,10 @@
             ]
           }
         },
-        "required": ["building", "roomType"]
+        "required": [
+          "building",
+          "roomType"
+        ]
       },
       "teacherWithDepartmentSchema": {
         "type": "object",
@@ -4044,7 +4450,9 @@
             ]
           }
         },
-        "required": ["department"]
+        "required": [
+          "department"
+        ]
       },
       "scheduleGroupSchema": {
         "type": "object"
@@ -4079,13 +4487,21 @@
                 "$ref": "#/components/schemas/courseBaseSchema"
               }
             },
-            "required": ["course"]
+            "required": [
+              "course"
+            ]
           },
           "scheduleGroup": {
             "$ref": "#/components/schemas/scheduleGroupSchema"
           }
         },
-        "required": ["date", "room", "teachers", "section", "scheduleGroup"]
+        "required": [
+          "date",
+          "room",
+          "teachers",
+          "section",
+          "scheduleGroup"
+        ]
       },
       "teacherTitleSchema": {
         "type": "object"
@@ -4108,7 +4524,10 @@
             ]
           }
         },
-        "required": ["department", "teacherTitle"]
+        "required": [
+          "department",
+          "teacherTitle"
+        ]
       },
       "teacherLessonTypeSchema": {
         "type": "object"
@@ -4134,7 +4553,11 @@
             ]
           }
         },
-        "required": ["weekIndices", "teacher", "teacherLessonType"]
+        "required": [
+          "weekIndices",
+          "teacher",
+          "teacherLessonType"
+        ]
       },
       "examBatchSchema": {
         "type": "object"
@@ -4166,7 +4589,11 @@
             }
           }
         },
-        "required": ["examDate", "examBatch", "examRooms"]
+        "required": [
+          "examDate",
+          "examBatch",
+          "examRooms"
+        ]
       },
       "adminClassSchema": {
         "type": "object"
@@ -4260,10 +4687,16 @@
                 "type": "integer"
               }
             },
-            "required": ["sections"]
+            "required": [
+              "sections"
+            ]
           }
         },
-        "required": ["department", "teacherTitle", "_count"]
+        "required": [
+          "department",
+          "teacherTitle",
+          "_count"
+        ]
       }
     },
     "responses": {}

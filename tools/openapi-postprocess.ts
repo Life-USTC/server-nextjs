@@ -109,6 +109,38 @@ function isOperationKey(key: string) {
   ].includes(key);
 }
 
+function sortPathItemKeys(pathItem: Record<string, unknown>) {
+  const operationOrder = [
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete",
+    "head",
+    "options",
+    "trace",
+  ];
+
+  const keys = Object.keys(pathItem);
+  keys.sort((a, b) => {
+    const ai = operationOrder.indexOf(a);
+    const bi = operationOrder.indexOf(b);
+    if (ai !== -1 || bi !== -1) {
+      return (
+        (ai === -1 ? Number.POSITIVE_INFINITY : ai) -
+        (bi === -1 ? Number.POSITIVE_INFINITY : bi)
+      );
+    }
+    return a.localeCompare(b);
+  });
+
+  const next: Record<string, unknown> = {};
+  for (const key of keys) {
+    next[key] = pathItem[key];
+  }
+  return next;
+}
+
 function buildTopLevelTags(paths: NonNullable<OpenApiDocument["paths"]>) {
   const byName = new Map<string, { name: string; description: string }>();
   for (const path of Object.keys(paths)) {
@@ -175,6 +207,19 @@ async function main() {
       (operation as { tags?: unknown }).tags = [tag.name];
     }
   }
+
+  const sortedPaths = Object.fromEntries(
+    Object.entries(doc.paths)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([path, pathItem]) => {
+        if (!pathItem || typeof pathItem !== "object") {
+          return [path, pathItem];
+        }
+        return [path, sortPathItemKeys(pathItem)];
+      }),
+  ) as OpenApiDocument["paths"];
+
+  doc.paths = sortedPaths;
 
   doc.tags = buildTopLevelTags(doc.paths);
   await writeFile(filePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
