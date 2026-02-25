@@ -1,5 +1,4 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
@@ -10,7 +9,7 @@ import {
 } from "@/lib/api-helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
 import { prisma } from "@/lib/prisma";
-import { s3Bucket, s3Client } from "@/lib/storage";
+import { getS3SignedUrl, s3Bucket } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -39,13 +38,14 @@ function buildContentDisposition(filename: string) {
  * @response 404:openApiErrorSchema
  */
 export async function GET(
-  _: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return unauthorized();
   }
+  const userId = session.user.id;
 
   const parsed = await parseUploadId(context.params);
   if (parsed instanceof NextResponse) {
@@ -54,8 +54,8 @@ export async function GET(
   const id = parsed;
 
   try {
-    const upload = await prisma.upload.findUnique({
-      where: { id },
+    const upload = await prisma.upload.findFirst({
+      where: { id, userId },
     });
 
     if (!upload) {
@@ -69,7 +69,8 @@ export async function GET(
       ResponseContentType: upload.contentType ?? undefined,
     });
 
-    const url = await getSignedUrl(s3Client, command, { expiresIn: 60 });
+    const origin = new URL(request.url).origin;
+    const url = await getS3SignedUrl(command, { expiresIn: 60, origin });
     return NextResponse.redirect(url);
   } catch (error) {
     return handleRouteError("Failed to prepare download", error);
