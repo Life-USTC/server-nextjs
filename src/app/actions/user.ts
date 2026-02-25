@@ -21,10 +21,10 @@ export async function updateProfile(formData: FormData) {
 
   // Validate username (if provided and non-empty)
   if (username) {
-    if (!/^[a-z0-9]{1,20}$/.test(username)) {
+    if (!/^[a-z0-9-]{1,20}$/.test(username)) {
       return {
         error:
-          "Username must contain only lowercase letters and numbers, max 20 characters",
+          "Username must contain only lowercase letters, numbers, and dashes, max 20 characters",
       };
     }
 
