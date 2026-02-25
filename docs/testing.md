@@ -4,7 +4,10 @@
 
 已接入 Playwright E2E 测试与 Vitest 单测。
 
-- Playwright 覆盖公开页面、受保护页面、动态路由、页面跳转链路与部分 API 边界。
+- Playwright 采用“源码映射 + 场景补充”双层策略：
+  - `tests/e2e/src/app/**/test.ts` 与 `src/app/**/page.tsx`、`src/app/api/**/route.ts` 按目录一一映射。
+  - `tests/e2e/src/app/_shared/page-contract.ts` 与 `tests/e2e/src/app/_shared/api-contract.ts` 提供通用断言逻辑。
+  - 其余场景测试继续覆盖创建/编辑、跳转链路、权限与国际化等高价值行为。
 - Vitest 覆盖纯业务逻辑与工具函数（参数解析、当前学期推断、schema 校验）。
 
 ## 强制要求
@@ -43,18 +46,10 @@
 
 ## 当前用例
 
-- `tests/e2e/smoke.spec.ts`：验证首页加载与 `/sections`、`/teachers`、`/dashboard` 入口可见。
-- `tests/e2e/smoke.spec.ts`：验证 `/signin` 页面可访问且 USTC/GitHub/Google 登录按钮可见。
-- `tests/e2e/public-pages.spec.ts`：验证 `/sections`、`/teachers`、`/courses` 页面加载、搜索参数生效，以及列表区（表格或空态）渲染。
-- `tests/e2e/public-pages.spec.ts`：验证 `/comments/guide` 页面可访问并成功渲染 Markdown 示例。
-- `tests/e2e/public-pages.spec.ts`：验证 `/api-docs` 页面可访问并展示 Swagger UI 容器。
-- `tests/e2e/detail-navigation.spec.ts`：验证列表页可进入详情页；若当前数据为空则回退验证详情页 404 行为。
-- `tests/e2e/auth-redirect.spec.ts`：验证未登录访问 `/admin*`、`/dashboard*`、`/settings*` 全部受保护页面时会重定向到 `/signin`。
-- `tests/e2e/dynamic-routes.spec.ts`：验证 `/comments/[id]`、`/u/[username]`、`/u/id/[uid]` 及详情页动态路由在无效参数下返回 404。
-- `tests/e2e/navigation-flow.spec.ts`：验证首页快速入口跳转与列表页面包屑返回首页等跨页面导航逻辑。
-- `tests/e2e/api-routes.spec.ts`：验证 OpenAPI 接口、match-codes 输入边界与 calendar 参数非法场景。
-- `tests/e2e/api-routes.spec.ts`：覆盖主要 API 路由在未授权/异常输入下不返回 500，并校验预期状态码集合。
-- `tests/e2e/api-routes.spec.ts`：覆盖启用 query schema 的接口在非法查询参数下返回 400。
+- `tests/e2e/src/app/**/test.ts`：与 `src/app/**/page.tsx`、`src/app/api/**/route.ts` 一一对应的映射测试，覆盖页面加载、关键交互（搜索、Tab 切换、跳转）、以及 API 响应契约。
+- `tests/e2e/src/app/_shared/page-contract.ts`：公共页面契约断言（含 seed 数据可见性、动态路由、通用布局元素）。
+- `tests/e2e/src/app/_shared/api-contract.ts`：公共 API 契约断言（含 seed 数据命中、关键状态码、OpenAPI/ICS/locale 等）。
+- `tests/e2e/src/app/admin/**/test.ts`、`tests/e2e/src/app/dashboard/**/test.ts`、`tests/e2e/src/app/settings/**/test.ts`：在对应页面映射测试内断言未登录重定向到 `/signin`，并验证登录后功能行为。
 
 ## 当前单测
 

@@ -5,6 +5,7 @@ import {
   CommentReactionType,
   CommentStatus,
   CommentVisibility,
+  HomeworkAuditAction,
   type Prisma,
   PrismaClient,
 } from "../src/generated/prisma/client";
@@ -29,7 +30,14 @@ const SECTION_JW_IDS = [9_902_001, 9_902_002, 9_902_003] as const;
 const SCHEDULE_GROUP_JW_IDS = [
   9_903_001, 9_903_002, 9_903_003, 9_903_004, 9_903_005, 9_903_006,
 ] as const;
+const EXAM_JW_IDS = [9_904_001, 9_904_002, 9_904_003] as const;
 const TEACHER_CODES = ["DEV-T-001", "DEV-T-002", "DEV-T-003"] as const;
+const DEV_CAMPUS_JW_ID = 9_910_001;
+const DEV_ROOM_TYPE_JW_ID = 9_910_011;
+const DEV_BUILDING_JW_ID = 9_910_021;
+const DEV_ROOM_JW_ID = 9_910_031;
+const DEV_TEACHER_TITLE_JW_ID = 9_910_041;
+const DEV_TEACHER_LESSON_TYPE_JW_ID = 9_910_051;
 
 function makeDateAt(hour: number, minute: number, offsetDays = 0) {
   const now = new Date();
@@ -55,6 +63,32 @@ function pick<T>(items: T[], index: number): T | undefined {
 }
 
 async function cleanupScenarioData(userIds: string[]) {
+  await prisma.session.deleteMany({
+    where: { sessionToken: { startsWith: `${DEV_KEY_PREFIX}session-` } },
+  });
+  await prisma.account.deleteMany({
+    where: { provider: { startsWith: "dev-scenario-" } },
+  });
+  await prisma.authenticator.deleteMany({
+    where: { credentialID: { startsWith: `${DEV_KEY_PREFIX}credential-` } },
+  });
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: { startsWith: DEV_KEY_PREFIX } },
+  });
+  await prisma.verifiedEmail.deleteMany({
+    where: { provider: "dev-scenario" },
+  });
+  await prisma.uploadPending.deleteMany({
+    where: { key: { startsWith: DEV_KEY_PREFIX } },
+  });
+  await prisma.userSuspension.deleteMany({
+    where: { reason: { contains: LEGACY_SCENARIO_MARKER } },
+  });
+
+  await prisma.calendarSubscription.deleteMany({
+    where: { userId: { in: userIds } },
+  });
+
   await prisma.comment.deleteMany({
     where: {
       OR: [
@@ -98,6 +132,9 @@ async function cleanupScenarioData(userIds: string[]) {
   await prisma.description.deleteMany({
     where: { content: { contains: LEGACY_SCENARIO_MARKER } },
   });
+  await prisma.descriptionEdit.deleteMany({
+    where: { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
+  });
 
   const sections = await prisma.section.findMany({
     where: { jwId: { in: [...SECTION_JW_IDS] } },
@@ -123,6 +160,21 @@ async function cleanupScenarioData(userIds: string[]) {
   await prisma.schedule.deleteMany({
     where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
   });
+  await prisma.examRoom.deleteMany({
+    where: { exam: { section: { jwId: { in: [...SECTION_JW_IDS] } } } },
+  });
+  await prisma.exam.deleteMany({
+    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+  });
+  await prisma.teacherAssignment.deleteMany({
+    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+  });
+  await prisma.sectionTeacher.deleteMany({
+    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+  });
+  await prisma.homeworkAuditLog.deleteMany({
+    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+  });
   await prisma.scheduleGroup.deleteMany({
     where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
   });
@@ -135,6 +187,12 @@ async function cleanupScenarioData(userIds: string[]) {
   });
   await prisma.course.deleteMany({
     where: { jwId: { in: [...COURSE_JW_IDS] } },
+  });
+  await prisma.examBatch.deleteMany({
+    where: { nameCn: "DEV 测试考试批次" },
+  });
+  await prisma.adminClass.deleteMany({
+    where: { nameCn: "DEV 测试班级" },
   });
   await prisma.semester.deleteMany({ where: { jwId: SEMESTER_JW_ID } });
 }
@@ -177,6 +235,219 @@ async function main() {
 
   await cleanupScenarioData([debugUser.id, adminUser.id]);
 
+  const [
+    seedCampus,
+    seedDepartment,
+    seedRoomType,
+    seedTeachLanguage,
+    seedExamMode,
+    seedEducationLevel,
+    seedCategory,
+    seedClassType,
+    seedClassify,
+    seedGradation,
+    seedCourseType,
+    seedTeacherTitle,
+    seedTeacherLessonType,
+    seedAdminClass,
+    seedExamBatch,
+  ] = await Promise.all([
+    prisma.campus.upsert({
+      where: { jwId: DEV_CAMPUS_JW_ID },
+      update: { code: "DEV-CAMPUS", nameCn: "DEV 校区", nameEn: "Dev Campus" },
+      create: {
+        jwId: DEV_CAMPUS_JW_ID,
+        code: "DEV-CAMPUS",
+        nameCn: "DEV 校区",
+        nameEn: "Dev Campus",
+      },
+      select: { id: true },
+    }),
+    prisma.department.upsert({
+      where: { code: "DEV-DPT-001" },
+      update: {
+        nameCn: "DEV 测试学院",
+        nameEn: "Dev Testing School",
+        isCollege: true,
+      },
+      create: {
+        code: "DEV-DPT-001",
+        nameCn: "DEV 测试学院",
+        nameEn: "Dev Testing School",
+        isCollege: true,
+      },
+      select: { id: true },
+    }),
+    prisma.roomType.upsert({
+      where: { jwId: DEV_ROOM_TYPE_JW_ID },
+      update: {
+        code: "DEV-ROOM-TYPE",
+        nameCn: "DEV 教室类型",
+        nameEn: "Dev Room Type",
+      },
+      create: {
+        jwId: DEV_ROOM_TYPE_JW_ID,
+        code: "DEV-ROOM-TYPE",
+        nameCn: "DEV 教室类型",
+        nameEn: "Dev Room Type",
+      },
+      select: { id: true },
+    }),
+    prisma.teachLanguage.upsert({
+      where: { nameCn: "DEV 双语" },
+      update: { nameEn: "Dev Bilingual" },
+      create: { nameCn: "DEV 双语", nameEn: "Dev Bilingual" },
+      select: { id: true },
+    }),
+    prisma.examMode.upsert({
+      where: { nameCn: "DEV 闭卷" },
+      update: { nameEn: "Dev Closed-book" },
+      create: { nameCn: "DEV 闭卷", nameEn: "Dev Closed-book" },
+      select: { id: true },
+    }),
+    prisma.educationLevel.upsert({
+      where: { nameCn: "DEV 本科" },
+      update: { nameEn: "Dev Undergraduate" },
+      create: { nameCn: "DEV 本科", nameEn: "Dev Undergraduate" },
+      select: { id: true },
+    }),
+    prisma.courseCategory.upsert({
+      where: { nameCn: "DEV 通识课程" },
+      update: { nameEn: "Dev General Course" },
+      create: { nameCn: "DEV 通识课程", nameEn: "Dev General Course" },
+      select: { id: true },
+    }),
+    prisma.classType.upsert({
+      where: { nameCn: "DEV 理论课" },
+      update: { nameEn: "Dev Lecture" },
+      create: { nameCn: "DEV 理论课", nameEn: "Dev Lecture" },
+      select: { id: true },
+    }),
+    prisma.courseClassify.upsert({
+      where: { nameCn: "DEV 必修" },
+      update: { nameEn: "Dev Required" },
+      create: { nameCn: "DEV 必修", nameEn: "Dev Required" },
+      select: { id: true },
+    }),
+    prisma.courseGradation.upsert({
+      where: { nameCn: "DEV 高阶" },
+      update: { nameEn: "Dev Advanced" },
+      create: { nameCn: "DEV 高阶", nameEn: "Dev Advanced" },
+      select: { id: true },
+    }),
+    prisma.courseType.upsert({
+      where: { nameCn: "DEV 专业课" },
+      update: { nameEn: "Dev Major Course" },
+      create: { nameCn: "DEV 专业课", nameEn: "Dev Major Course" },
+      select: { id: true },
+    }),
+    prisma.teacherTitle.upsert({
+      where: { jwId: DEV_TEACHER_TITLE_JW_ID },
+      update: {
+        code: "DEV-TITLE",
+        nameCn: "DEV 教师职称",
+        nameEn: "Dev Teacher Title",
+        enabled: true,
+      },
+      create: {
+        jwId: DEV_TEACHER_TITLE_JW_ID,
+        code: "DEV-TITLE",
+        nameCn: "DEV 教师职称",
+        nameEn: "Dev Teacher Title",
+        enabled: true,
+      },
+      select: { id: true },
+    }),
+    prisma.teacherLessonType.upsert({
+      where: { jwId: DEV_TEACHER_LESSON_TYPE_JW_ID },
+      update: {
+        code: "DEV-LESSON",
+        nameCn: "DEV 主讲",
+        nameEn: "Dev Lecturer",
+        role: "lecturer",
+        enabled: true,
+      },
+      create: {
+        jwId: DEV_TEACHER_LESSON_TYPE_JW_ID,
+        code: "DEV-LESSON",
+        nameCn: "DEV 主讲",
+        nameEn: "Dev Lecturer",
+        role: "lecturer",
+        enabled: true,
+      },
+      select: { id: true },
+    }),
+    prisma.adminClass.upsert({
+      where: { nameCn: "DEV 测试班级" },
+      update: {
+        jwId: 9_910_061,
+        code: "DEV-CLASS-01",
+        nameEn: "Dev Test Class",
+      },
+      create: {
+        jwId: 9_910_061,
+        code: "DEV-CLASS-01",
+        nameCn: "DEV 测试班级",
+        nameEn: "Dev Test Class",
+        grade: "2026",
+        stdCount: 32,
+        planCount: 35,
+        enabled: true,
+      },
+      select: { id: true },
+    }),
+    prisma.examBatch.upsert({
+      where: { nameCn: "DEV 测试考试批次" },
+      update: { nameEn: "Dev Exam Batch" },
+      create: { nameCn: "DEV 测试考试批次", nameEn: "Dev Exam Batch" },
+      select: { id: true },
+    }),
+  ]);
+
+  const seedBuilding = await prisma.building.upsert({
+    where: { jwId: DEV_BUILDING_JW_ID },
+    update: {
+      nameCn: "DEV 测试楼",
+      nameEn: "Dev Building",
+      code: "DEV-BUILDING",
+      campusId: seedCampus.id,
+    },
+    create: {
+      jwId: DEV_BUILDING_JW_ID,
+      nameCn: "DEV 测试楼",
+      nameEn: "Dev Building",
+      code: "DEV-BUILDING",
+      campusId: seedCampus.id,
+    },
+    select: { id: true },
+  });
+
+  await prisma.room.upsert({
+    where: { jwId: DEV_ROOM_JW_ID },
+    update: {
+      nameCn: "DEV 测试教室 101",
+      nameEn: "Dev Room 101",
+      code: "101",
+      virtual: false,
+      seatsForSection: 60,
+      seats: 60,
+      buildingId: seedBuilding.id,
+      roomTypeId: seedRoomType.id,
+    },
+    create: {
+      jwId: DEV_ROOM_JW_ID,
+      nameCn: "DEV 测试教室 101",
+      nameEn: "Dev Room 101",
+      code: "101",
+      floor: 1,
+      virtual: false,
+      seatsForSection: 60,
+      seats: 60,
+      buildingId: seedBuilding.id,
+      roomTypeId: seedRoomType.id,
+    },
+  });
+
   const [campuses, departments, roomTypes, teachLanguages, examModes, rooms] =
     await Promise.all([
       prisma.campus.findMany({
@@ -205,13 +476,21 @@ async function main() {
         orderBy: { id: "asc" },
       }),
       prisma.room.findMany({
-        select: { id: true },
-        take: 6,
+        select: { id: true, nameCn: true },
+        take: 8,
         orderBy: { id: "asc" },
       }),
     ]);
 
-  const [educationLevels, categories, classTypes] = await Promise.all([
+  const [
+    educationLevels,
+    categories,
+    classTypes,
+    classifies,
+    gradations,
+    courseTypes,
+    teacherTitles,
+  ] = await Promise.all([
     prisma.educationLevel.findMany({
       select: { id: true },
       take: 6,
@@ -223,6 +502,26 @@ async function main() {
       orderBy: { id: "asc" },
     }),
     prisma.classType.findMany({
+      select: { id: true },
+      take: 6,
+      orderBy: { id: "asc" },
+    }),
+    prisma.courseClassify.findMany({
+      select: { id: true },
+      take: 6,
+      orderBy: { id: "asc" },
+    }),
+    prisma.courseGradation.findMany({
+      select: { id: true },
+      take: 6,
+      orderBy: { id: "asc" },
+    }),
+    prisma.courseType.findMany({
+      select: { id: true },
+      take: 6,
+      orderBy: { id: "asc" },
+    }),
+    prisma.teacherTitle.findMany({
       select: { id: true },
       take: 6,
       orderBy: { id: "asc" },
@@ -270,7 +569,8 @@ async function main() {
       prisma.teacher.create({
         data: {
           ...teacherSeed,
-          departmentId: pick(departments, index)?.id,
+          departmentId: pick(departments, index)?.id ?? seedDepartment.id,
+          teacherTitleId: pick(teacherTitles, index)?.id ?? seedTeacherTitle.id,
           address: "中国科学技术大学",
         },
         select: { id: true, nameCn: true },
@@ -302,9 +602,13 @@ async function main() {
       prisma.course.create({
         data: {
           ...courseSeed,
-          educationLevelId: pick(educationLevels, index)?.id,
-          categoryId: pick(categories, index)?.id,
-          classTypeId: pick(classTypes, index)?.id,
+          educationLevelId:
+            pick(educationLevels, index)?.id ?? seedEducationLevel.id,
+          categoryId: pick(categories, index)?.id ?? seedCategory.id,
+          classTypeId: pick(classTypes, index)?.id ?? seedClassType.id,
+          classifyId: pick(classifies, index)?.id ?? seedClassify.id,
+          gradationId: pick(gradations, index)?.id ?? seedGradation.id,
+          typeId: pick(courseTypes, index)?.id ?? seedCourseType.id,
         },
         select: { id: true, code: true, nameCn: true },
       }),
@@ -375,15 +679,19 @@ async function main() {
         timesPerWeek: 2,
         remark: sectionInput.remark,
         scheduleRemark: "包含早课、午后与晚课时段。",
-        campusId: pick(campuses, index)?.id,
-        openDepartmentId: pick(departments, index)?.id,
-        roomTypeId: pick(roomTypes, index)?.id,
-        teachLanguageId: pick(teachLanguages, index)?.id,
-        examModeId: pick(examModes, index)?.id,
+        campusId: pick(campuses, index)?.id ?? seedCampus.id,
+        openDepartmentId: pick(departments, index)?.id ?? seedDepartment.id,
+        roomTypeId: pick(roomTypes, index)?.id ?? seedRoomType.id,
+        teachLanguageId:
+          pick(teachLanguages, index)?.id ?? seedTeachLanguage.id,
+        examModeId: pick(examModes, index)?.id ?? seedExamMode.id,
         teachers: {
           connect: sectionInput.teacherIndexes.map((teacherIndex) => ({
             id: teachers[teacherIndex].id,
           })),
+        },
+        adminClasses: {
+          connect: [{ id: seedAdminClass.id }],
         },
       },
       select: { id: true, code: true, jwId: true },
@@ -391,6 +699,31 @@ async function main() {
 
     sectionRecords.push(section);
   }
+
+  await prisma.sectionTeacher.createMany({
+    data: sectionInputs.flatMap((sectionInput, sectionIndex) =>
+      sectionInput.teacherIndexes.map((teacherIndex) => ({
+        sectionId: sectionRecords[sectionIndex].id,
+        teacherId: teachers[teacherIndex].id,
+      })),
+    ),
+    skipDuplicates: true,
+  });
+
+  await prisma.teacherAssignment.createMany({
+    data: sectionInputs.flatMap((sectionInput, sectionIndex) =>
+      sectionInput.teacherIndexes.map((teacherIndex) => ({
+        teacherId: teachers[teacherIndex].id,
+        sectionId: sectionRecords[sectionIndex].id,
+        role: "lecturer",
+        period: 16,
+        weekIndices: [1, 2, 3, 4, 5, 6, 7, 8],
+        weekIndicesMsg: "1-8 周",
+        teacherLessonTypeId: seedTeacherLessonType.id,
+      })),
+    ),
+    skipDuplicates: true,
+  });
 
   const schedulesToCreate: Array<Prisma.ScheduleCreateInput> = [];
 
@@ -476,6 +809,33 @@ async function main() {
     await prisma.schedule.create({ data: scheduleData });
   }
 
+  const exams = await Promise.all(
+    sectionRecords.map((section, index) =>
+      prisma.exam.create({
+        data: {
+          jwId: EXAM_JW_IDS[index],
+          sectionId: section.id,
+          examBatchId: seedExamBatch.id,
+          examType: 1,
+          startTime: 900,
+          endTime: 1100,
+          examDate: makeDateAt(0, 0, 10 + index),
+          examTakeCount: 1,
+          examMode: "闭卷",
+        },
+        select: { id: true },
+      }),
+    ),
+  );
+
+  await prisma.examRoom.createMany({
+    data: exams.map((exam, index) => ({
+      examId: exam.id,
+      room: rooms[index % rooms.length]?.nameCn ?? `DEV 考场 ${index + 1}`,
+      count: 30 + index * 5,
+    })),
+  });
+
   const publishedAt = makeDateAt(9, 0, -1);
 
   const homeworkSeeds = [
@@ -544,6 +904,17 @@ async function main() {
         completedAt: makeDateAt(20, 30, 1),
       },
     ],
+  });
+
+  await prisma.homeworkAuditLog.createMany({
+    data: homeworks.map((homework, index) => ({
+      action: HomeworkAuditAction.created,
+      titleSnapshot: homework.title,
+      sectionId: sectionRecords[index % sectionRecords.length].id,
+      homeworkId: homework.id,
+      actorId: debugUser.id,
+      createdAt: makeDateAt(9, 30, -1),
+    })),
   });
 
   const uploads = await Promise.all(
@@ -664,11 +1035,12 @@ async function main() {
     ],
   });
 
-  await Promise.all([
+  const descriptions = await Promise.all([
     prisma.description.create({
       data: {
         sectionId: sectionRecords[0].id,
         content:
+          `${LEGACY_SCENARIO_MARKER}\n` +
           "# 课程建议\n" +
           "- 每周提前阅读需求文档\n" +
           "- 课堂展示前先做一次组内彩排\n",
@@ -679,7 +1051,7 @@ async function main() {
     prisma.description.create({
       data: {
         courseId: courses[2].id,
-        content: "实验课建议准备护目镜并提前完成预习问答。",
+        content: `${LEGACY_SCENARIO_MARKER} 实验课建议准备护目镜并提前完成预习问答。`,
         lastEditedById: debugUser.id,
         lastEditedAt: makeDateAt(21, 30, -1),
       },
@@ -687,12 +1059,30 @@ async function main() {
     prisma.description.create({
       data: {
         teacherId: teachers[0].id,
-        content: "老师偏好通过 PR review 反馈代码风格问题。",
+        content: `${LEGACY_SCENARIO_MARKER} 老师偏好通过 PR review 反馈代码风格问题。`,
         lastEditedById: debugUser.id,
         lastEditedAt: makeDateAt(22, 0, -1),
       },
     }),
+    prisma.description.create({
+      data: {
+        homeworkId: homeworks[0].id,
+        content: `${LEGACY_SCENARIO_MARKER} 作业要求：提交仓库链接和测试截图。`,
+        lastEditedById: debugUser.id,
+        lastEditedAt: makeDateAt(22, 30, -1),
+      },
+    }),
   ]);
+
+  await prisma.descriptionEdit.createMany({
+    data: descriptions.map((description, index) => ({
+      descriptionId: description.id,
+      editorId: debugUser.id,
+      previousContent: "",
+      nextContent: `${LEGACY_SCENARIO_MARKER} description edit #${index + 1}`,
+      createdAt: makeDateAt(22, 40 + index, -1),
+    })),
+  });
 
   const existingSubscription = await prisma.calendarSubscription.findFirst({
     where: { userId: debugUser.id },
@@ -718,6 +1108,110 @@ async function main() {
       },
     });
   }
+
+  await prisma.uploadPending.upsert({
+    where: { key: `${DEV_KEY_PREFIX}pending-lab-template.xlsx` },
+    update: {
+      filename: "pending-lab-template.xlsx",
+      contentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      size: 52_000,
+      expiresAt: makeDateAt(23, 59, 1),
+      userId: debugUser.id,
+    },
+    create: {
+      key: `${DEV_KEY_PREFIX}pending-lab-template.xlsx`,
+      filename: "pending-lab-template.xlsx",
+      contentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      size: 52_000,
+      expiresAt: makeDateAt(23, 59, 1),
+      userId: debugUser.id,
+    },
+  });
+
+  await prisma.verifiedEmail.deleteMany({
+    where: { provider: "dev-scenario", email: "dev-user@ustc.dev" },
+  });
+  await prisma.verifiedEmail.create({
+    data: {
+      provider: "dev-scenario",
+      email: "dev-user@ustc.dev",
+      userId: debugUser.id,
+    },
+  });
+
+  await prisma.account.deleteMany({
+    where: {
+      provider: "dev-scenario-oidc",
+      providerAccountId: "dev-user-account",
+    },
+  });
+  await prisma.account.create({
+    data: {
+      userId: debugUser.id,
+      type: "oidc",
+      provider: "dev-scenario-oidc",
+      providerAccountId: "dev-user-account",
+      access_token: "dev-access-token",
+      token_type: "Bearer",
+      scope: "openid profile email",
+      expires_at: Math.floor(makeDateAt(23, 59, 1).getTime() / 1000),
+    },
+  });
+
+  await prisma.session.deleteMany({
+    where: { sessionToken: `${DEV_KEY_PREFIX}session-debug-user` },
+  });
+  await prisma.session.create({
+    data: {
+      sessionToken: `${DEV_KEY_PREFIX}session-debug-user`,
+      userId: debugUser.id,
+      expires: makeDateAt(23, 59, 7),
+    },
+  });
+
+  await prisma.verificationToken.deleteMany({
+    where: {
+      identifier: `${DEV_KEY_PREFIX}verify-debug-user`,
+      token: "dev-verify-token",
+    },
+  });
+  await prisma.verificationToken.create({
+    data: {
+      identifier: `${DEV_KEY_PREFIX}verify-debug-user`,
+      token: "dev-verify-token",
+      expires: makeDateAt(23, 59, 2),
+    },
+  });
+
+  await prisma.authenticator.deleteMany({
+    where: { credentialID: `${DEV_KEY_PREFIX}credential-debug-user` },
+  });
+  await prisma.authenticator.create({
+    data: {
+      credentialID: `${DEV_KEY_PREFIX}credential-debug-user`,
+      userId: debugUser.id,
+      providerAccountId: "dev-user-account",
+      credentialPublicKey: "dev-public-key",
+      counter: 1,
+      credentialDeviceType: "singleDevice",
+      credentialBackedUp: false,
+      transports: "usb",
+    },
+  });
+
+  await prisma.userSuspension.create({
+    data: {
+      userId: debugUser.id,
+      createdById: adminUser.id,
+      reason: `${LEGACY_SCENARIO_MARKER} temporary suspension for seed`,
+      note: "Used by admin API and UI tests.",
+      expiresAt: makeDateAt(23, 59, 3),
+      liftedAt: makeDateAt(9, 0, 0),
+      liftedById: adminUser.id,
+    },
+  });
 
   console.log("开发调试数据初始化完成");
   console.log(`用户: ${debugUser.username}`);
