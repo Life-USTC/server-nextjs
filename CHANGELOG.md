@@ -1,3 +1,13 @@
+## [0.37.1](https://github.com/Life-USTC/server-nextjs/compare/v0.37.0...v0.37.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* **e2e:** avoid commit waitUntil in waitForLoadState ([abd4684](https://github.com/Life-USTC/server-nextjs/commit/abd4684ad66220116849d5fdb2e91b063c0ef5f6))
+* **mock-s3:** return Blob body in GET ([50d9422](https://github.com/Life-USTC/server-nextjs/commit/50d94222cf3384004e6f54fabd61d73fe6fec12d))
+* **openapi:** keep postprocess typesafe for build ([025c401](https://github.com/Life-USTC/server-nextjs/commit/025c401d02c2a6bc3a769a42cfd863691f906eb2))
+* **storage:** narrow mock send types for build ([fe3e8a3](https://github.com/Life-USTC/server-nextjs/commit/fe3e8a3e7f4710b1ece01d592b7a431aac84fba8))
+
 # [0.37.0](https://github.com/Life-USTC/server-nextjs/compare/v0.36.0...v0.37.0) (2026-02-25)
 
 
