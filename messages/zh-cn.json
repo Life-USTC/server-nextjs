@@ -71,9 +71,16 @@
     "browseCourses": "浏览课程",
     "subscriptionTitle": "已选班级 #{id}",
     "sectionsIncluded": "包含 {count} 个班级",
+    "rowActions": "行操作",
     "iCalLink": "复制日历链接",
     "linkCopied": "已复制链接",
     "linkCopiedDescription": "日历链接已复制到剪贴板",
+    "optOut": "移除",
+    "optOutConfirm": "确认",
+    "optOutSuccess": "已移除班级",
+    "optOutSuccessDescription": "该班级已从已选课班级中移除",
+    "optOutError": "移除失败",
+    "optOutRetry": "请稍后重试",
     "courseCode": "课程代码",
     "courseName": "课程名称",
     "section": "班级",
@@ -277,20 +284,30 @@
   "meDashboard": {
     "title": "仪表盘",
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
-    "descriptionV2": "你好，{name}。先看现在该做什么，再看接下来一周的节奏。",
+    "descriptionV2": "你好，{name}",
+    "fallbackName": "访客",
     "nav": {
       "ariaLabel": "仪表盘页面切换",
       "overview": {
         "title": "总览",
         "description": "今日课程、作业与本周课表"
       },
+      "calendar": {
+        "title": "日历",
+        "description": "本周课表与作业截止"
+      },
       "subscriptions": {
         "title": "选课管理",
         "description": "批量导入并维护已选班级"
       },
       "homeworks": {
-        "title": "全部作业",
+        "title": "作业",
         "description": "按完成状态查看和整理作业"
+      },
+      "exams": {
+        "title": "考试",
+        "description": "查看你已选课班级的考试安排",
+        "empty": "暂时没有可用的考试安排。"
       }
     },
     "viewAll": "查看全部",
@@ -305,26 +322,27 @@
       "tomorrowCount": "明天共 {count} 节课程"
     },
     "today": {
-      "title": "今天还要上什么",
+      "title": "今天",
       "description": "按时间顺序查看今天剩余与全部课程。",
       "empty": "今天没有课程安排。"
     },
     "tomorrow": {
-      "title": "明天预览",
+      "title": "明天",
       "description": "提前看看明天第一节课与全天安排。",
       "empty": "明天暂无课程安排。"
     },
     "week": {
-      "title": "本周课表总览",
+      "title": "本周",
       "description": "按周查看每天课程数量与忙碌程度。",
       "descriptionTable": "按时间段与周一到周日查看完整课表。",
       "empty": "本周暂无课程安排。",
       "time": "时间",
       "classCount": "{count} 节课",
-      "more": "还有 {count} 节"
+      "more": "还有 {count} 节",
+      "viewCalendar": "查看日历"
     },
     "homeworks": {
-      "title": "作业总览",
+      "title": "作业",
       "titleV2": "未完成作业",
       "descriptionV2": "优先处理今天与近期截止的作业。",
       "dueToday": "今天截止 {count}",

@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { getWeekStartSunday } from "@/lib/date-utils";
 import { toMinutes } from "@/lib/time-utils";
 import type {
   ExamItem,
@@ -8,19 +9,8 @@ import type {
   SemesterSummary,
   SessionItem,
   SubscriptionSchedule,
-  SubscriptionWithSections,
   TimeSlot,
 } from "./types";
-
-export const extractSections = (subscriptions: SubscriptionWithSections[]) => {
-  const allSections = subscriptions.flatMap(
-    (subscription) => subscription.sections,
-  );
-  const allSectionIds = Array.from(
-    new Set(allSections.map((section) => section.id)),
-  );
-  return { allSections, allSectionIds };
-};
 
 export const resolveDashboardSections = (
   allSections: SectionWithRelations[],
@@ -122,6 +112,35 @@ export const filterSessionsByDay = (
   sessions: SessionItem[],
   targetDay: dayjs.Dayjs,
 ) => sessions.filter((item) => dayjs(item.date).isSame(targetDay, "day"));
+
+export const filterExamsByDay = (exams: ExamItem[], targetDay: dayjs.Dayjs) =>
+  exams.filter(
+    (item) => item.date && dayjs(item.date).isSame(targetDay, "day"),
+  );
+
+/** Returns weeks (Mon–Sun) from semester start to end, inclusive. */
+export const getSemesterWeeks = (
+  semesterStart: dayjs.Dayjs,
+  semesterEnd: dayjs.Dayjs,
+): dayjs.Dayjs[][] => {
+  const weeks: dayjs.Dayjs[][] = [];
+  let weekStart = getWeekStartSunday(semesterStart.startOf("day"));
+  const lastWeekStart = getWeekStartSunday(semesterEnd.startOf("day"));
+
+  while (
+    weekStart.isBefore(lastWeekStart, "day") ||
+    weekStart.isSame(lastWeekStart, "day")
+  ) {
+    weeks.push(
+      Array.from({ length: 7 }, (_, i) =>
+        weekStart.add(i, "day").startOf("day"),
+      ),
+    );
+    weekStart = weekStart.add(7, "day");
+  }
+
+  return weeks;
+};
 
 export const findCurrentSession = (sessions: SessionItem[], now: dayjs.Dayjs) =>
   sessions.find((item) => {

@@ -2,13 +2,12 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { handleRouteError, unauthorized } from "@/lib/api-helpers";
 import { calendarSubscriptionCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
-import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Create a calendar subscription.
+ * Replace current user's selected sections.
  * @body calendarSubscriptionCreateRequestSchema
  * @response calendarSubscriptionCreateResponseSchema
  * @response 400:openApiErrorSchema
@@ -33,31 +32,35 @@ export async function POST(request: Request) {
 
     const sectionIds = parsedBody.data.sectionIds ?? [];
 
-    // Create the subscription tied to the user
-    const subscription = await prisma.calendarSubscription.create({
+    const existingSections = await prisma.section.findMany({
+      where: { id: { in: sectionIds } },
+      select: { id: true },
+    });
+
+    const validSectionIds = existingSections.map((section) => section.id);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: session.user.id },
       data: {
-        sections: {
-          connect: sectionIds.map((id) => ({ id })),
-        },
-        user: {
-          connect: { id: session.user.id },
+        subscribedSections: {
+          set: validSectionIds.map((id) => ({ id })),
         },
       },
-      include: {
-        sections: {
+      select: {
+        id: true,
+        subscribedSections: {
           select: { id: true },
         },
       },
     });
 
-    // Generate JWT token
-    const token = await generateCalendarSubscriptionJWT(subscription.id);
-
     return NextResponse.json({
-      subscription,
-      token,
+      subscription: {
+        userId: updatedUser.id,
+        sections: updatedUser.subscribedSections,
+      },
     });
   } catch (error) {
-    return handleRouteError("Failed to create calendar subscription", error);
+    return handleRouteError("Failed to update calendar subscription", error);
   }
 }

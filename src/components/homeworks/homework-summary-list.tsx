@@ -8,7 +8,7 @@ import { HomeworkCreateSheet } from "@/components/homeworks/homework-create-shee
 import { HomeworkItemCard } from "@/components/homeworks/homework-item-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -186,7 +186,7 @@ export function HomeworkSummaryList({
 
   return (
     <div className="space-y-4">
-      <Card className="border-border/60">
+      <div className="flex flex-col gap-6">
         <CardHeader className="gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex rounded-md border border-border/70 p-1">
@@ -238,14 +238,14 @@ export function HomeworkSummaryList({
             />
           </div>
         </CardHeader>
-      </Card>
+      </div>
 
       {filteredItems.length === 0 ? (
-        <Card className="border-border/60">
+        <div className="flex flex-col gap-6">
           <CardHeader>
             <CardTitle className="text-base">{t("filterEmptyTitle")}</CardTitle>
           </CardHeader>
-        </Card>
+        </div>
       ) : null}
 
       {filteredItems.map((homework) => {
