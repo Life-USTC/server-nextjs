@@ -85,9 +85,14 @@ async function cleanupScenarioData(userIds: string[]) {
     where: { reason: { contains: LEGACY_SCENARIO_MARKER } },
   });
 
-  await prisma.calendarSubscription.deleteMany({
-    where: { userId: { in: userIds } },
-  });
+  await Promise.all(
+    userIds.map((userId) =>
+      prisma.user.update({
+        where: { id: userId },
+        data: { subscribedSections: { set: [] } },
+      }),
+    ),
+  );
 
   await prisma.comment.deleteMany({
     where: {
@@ -135,27 +140,6 @@ async function cleanupScenarioData(userIds: string[]) {
   await prisma.descriptionEdit.deleteMany({
     where: { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
   });
-
-  const sections = await prisma.section.findMany({
-    where: { jwId: { in: [...SECTION_JW_IDS] } },
-    select: { id: true },
-  });
-
-  for (const section of sections) {
-    const subscriptions = await prisma.calendarSubscription.findMany({
-      where: { sections: { some: { id: section.id } } },
-      select: { id: true },
-    });
-
-    await Promise.all(
-      subscriptions.map((subscription) =>
-        prisma.calendarSubscription.update({
-          where: { id: subscription.id },
-          data: { sections: { disconnect: [{ id: section.id }] } },
-        }),
-      ),
-    );
-  }
 
   await prisma.schedule.deleteMany({
     where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
@@ -1084,30 +1068,14 @@ async function main() {
     })),
   });
 
-  const existingSubscription = await prisma.calendarSubscription.findFirst({
-    where: { userId: debugUser.id },
-    select: { id: true },
+  await prisma.user.update({
+    where: { id: debugUser.id },
+    data: {
+      subscribedSections: {
+        set: sectionRecords.map((section) => ({ id: section.id })),
+      },
+    },
   });
-
-  if (existingSubscription) {
-    await prisma.calendarSubscription.update({
-      where: { id: existingSubscription.id },
-      data: {
-        sections: {
-          set: sectionRecords.map((section) => ({ id: section.id })),
-        },
-      },
-    });
-  } else {
-    await prisma.calendarSubscription.create({
-      data: {
-        userId: debugUser.id,
-        sections: {
-          connect: sectionRecords.map((section) => ({ id: section.id })),
-        },
-      },
-    });
-  }
 
   await prisma.uploadPending.upsert({
     where: { key: `${DEV_KEY_PREFIX}pending-lab-template.xlsx` },

@@ -2,263 +2,147 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { generateCalendarSubscriptionJWT } from "@/lib/calendar-jwt";
+import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
 import { prisma } from "@/lib/prisma";
 
 export interface SubscriptionState {
-  subscriptionId: number | null;
-  subscriptionToken: string | null;
+  userId: string | null;
+  subscriptionIcsUrl: string | null;
   subscribedSections: number[];
   isAuthenticated: boolean;
+}
+
+async function getAuthenticatedUserWithSections() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      calendarFeedToken: true,
+      subscribedSections: { select: { id: true } },
+    },
+  });
+
+  return user;
 }
 
 /**
  * Get current subscription state from server
  */
 export async function getSubscriptionState(): Promise<SubscriptionState> {
-  const session = await auth();
+  const user = await getAuthenticatedUserWithSections();
 
-  if (!session?.user?.id) {
+  if (!user) {
     return {
-      subscriptionId: null,
-      subscriptionToken: null,
+      userId: null,
+      subscriptionIcsUrl: null,
       subscribedSections: [],
       isAuthenticated: false,
     };
   }
 
-  const subscription = await prisma.calendarSubscription.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { id: "desc" },
-    include: { sections: { select: { id: true } } },
-  });
-
-  if (!subscription) {
-    return {
-      subscriptionId: null,
-      subscriptionToken: null,
-      subscribedSections: [],
-      isAuthenticated: true,
-    };
-  }
-
-  const token = await generateCalendarSubscriptionJWT(subscription.id);
+  const calendarFeedToken =
+    user.calendarFeedToken ?? (await ensureUserCalendarFeedToken(user.id));
 
   return {
-    subscriptionId: subscription.id,
-    subscriptionToken: token,
-    subscribedSections: subscription.sections.map((s) => s.id),
+    userId: user.id,
+    subscriptionIcsUrl: `/api/users/${user.id}/calendar.ics?token=${calendarFeedToken}`,
+    subscribedSections: user.subscribedSections.map((s) => s.id),
     isAuthenticated: true,
   };
 }
 
 /**
- * Add a section to the current subscription
+ * Add a section to the current user subscription set
  */
 export async function addSectionToSubscription(
   sectionId: number,
 ): Promise<SubscriptionState> {
-  const session = await auth();
+  const user = await getAuthenticatedUserWithSections();
 
-  if (!session?.user?.id) {
+  if (!user) {
     throw new Error("Authentication required");
   }
 
-  // Find or create subscription for user
-  let subscription = await prisma.calendarSubscription.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { id: "desc" },
-    include: { sections: { select: { id: true } } },
-  });
+  const currentSectionIds = user.subscribedSections.map((s) => s.id);
 
-  const currentSectionIds = subscription?.sections.map((s) => s.id) || [];
-
-  // If section already subscribed, return current state
-  if (currentSectionIds.includes(sectionId)) {
-    const token = subscription
-      ? await generateCalendarSubscriptionJWT(subscription.id)
-      : null;
-    return {
-      subscriptionId: subscription?.id || null,
-      subscriptionToken: token,
-      subscribedSections: currentSectionIds,
-      isAuthenticated: true,
-    };
-  }
-
-  const newSectionIds = [...currentSectionIds, sectionId];
-
-  if (!subscription) {
-    // Create new subscription
-    subscription = await prisma.calendarSubscription.create({
+  if (!currentSectionIds.includes(sectionId)) {
+    await prisma.user.update({
+      where: { id: user.id },
       data: {
-        userId: session.user.id,
-        sections: { connect: newSectionIds.map((id) => ({ id })) },
+        subscribedSections: { connect: { id: sectionId } },
       },
-      include: { sections: { select: { id: true } } },
-    });
-  } else {
-    // Update existing subscription
-    subscription = await prisma.calendarSubscription.update({
-      where: { id: subscription.id },
-      data: {
-        sections: { set: newSectionIds.map((id) => ({ id })) },
-      },
-      include: { sections: { select: { id: true } } },
     });
   }
 
-  const token = await generateCalendarSubscriptionJWT(subscription.id);
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/homeworks");
-  revalidatePath("/dashboard/subscriptions/sections");
+  revalidatePath("/");
   revalidatePath("/me/subscriptions/sections");
 
-  return {
-    subscriptionId: subscription.id,
-    subscriptionToken: token,
-    subscribedSections: subscription.sections.map((s) => s.id),
-    isAuthenticated: true,
-  };
+  return getSubscriptionState();
 }
 
 /**
- * Add multiple sections to the current subscription
+ * Add multiple sections to the current user subscription set
  */
 export async function addSectionsToSubscription(
   sectionIds: number[],
 ): Promise<SubscriptionState> {
-  const session = await auth();
+  const user = await getAuthenticatedUserWithSections();
 
-  if (!session?.user?.id) {
+  if (!user) {
     throw new Error("Authentication required");
   }
 
-  // Find or create subscription for user
-  let subscription = await prisma.calendarSubscription.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { id: "desc" },
-    include: { sections: { select: { id: true } } },
-  });
+  const existingSectionIds = new Set(user.subscribedSections.map((s) => s.id));
+  const idsToConnect = sectionIds.filter((id) => !existingSectionIds.has(id));
 
-  const currentSectionIds = subscription?.sections.map((s) => s.id) || [];
-
-  // Filter out already subscribed sections
-  const newSectionIds = [
-    ...currentSectionIds,
-    ...sectionIds.filter((id) => !currentSectionIds.includes(id)),
-  ];
-
-  // If no new sections to add, return current state
-  if (newSectionIds.length === currentSectionIds.length) {
-    const token = subscription
-      ? await generateCalendarSubscriptionJWT(subscription.id)
-      : null;
-    return {
-      subscriptionId: subscription?.id || null,
-      subscriptionToken: token,
-      subscribedSections: currentSectionIds,
-      isAuthenticated: true,
-    };
-  }
-
-  if (!subscription) {
-    // Create new subscription
-    subscription = await prisma.calendarSubscription.create({
+  if (idsToConnect.length > 0) {
+    await prisma.user.update({
+      where: { id: user.id },
       data: {
-        userId: session.user.id,
-        sections: { connect: newSectionIds.map((id) => ({ id })) },
+        subscribedSections: {
+          connect: idsToConnect.map((id) => ({ id })),
+        },
       },
-      include: { sections: { select: { id: true } } },
-    });
-  } else {
-    // Update existing subscription
-    subscription = await prisma.calendarSubscription.update({
-      where: { id: subscription.id },
-      data: {
-        sections: { set: newSectionIds.map((id) => ({ id })) },
-      },
-      include: { sections: { select: { id: true } } },
     });
   }
 
-  const token = await generateCalendarSubscriptionJWT(subscription.id);
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/homeworks");
-  revalidatePath("/dashboard/subscriptions/sections");
+  revalidatePath("/");
   revalidatePath("/me/subscriptions/sections");
 
-  return {
-    subscriptionId: subscription.id,
-    subscriptionToken: token,
-    subscribedSections: subscription.sections.map((s) => s.id),
-    isAuthenticated: true,
-  };
+  return getSubscriptionState();
 }
 
 /**
- * Remove a section from the current subscription
+ * Remove a section from the current user subscription set
  */
 export async function removeSectionFromSubscription(
   sectionId: number,
 ): Promise<SubscriptionState> {
-  const session = await auth();
+  const user = await getAuthenticatedUserWithSections();
 
-  if (!session?.user?.id) {
+  if (!user) {
     throw new Error("Authentication required");
   }
 
-  const subscription = await prisma.calendarSubscription.findFirst({
-    where: { userId: session.user.id },
-    orderBy: { id: "desc" },
-    include: { sections: { select: { id: true } } },
-  });
+  const currentSectionIds = user.subscribedSections.map((s) => s.id);
 
-  if (!subscription) {
-    return {
-      subscriptionId: null,
-      subscriptionToken: null,
-      subscribedSections: [],
-      isAuthenticated: true,
-    };
+  if (currentSectionIds.includes(sectionId)) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        subscribedSections: { disconnect: { id: sectionId } },
+      },
+    });
   }
 
-  const currentSectionIds = subscription.sections.map((s) => s.id);
-
-  // If section not subscribed, return current state
-  if (!currentSectionIds.includes(sectionId)) {
-    const token = await generateCalendarSubscriptionJWT(subscription.id);
-    return {
-      subscriptionId: subscription.id,
-      subscriptionToken: token,
-      subscribedSections: currentSectionIds,
-      isAuthenticated: true,
-    };
-  }
-
-  const newSectionIds = currentSectionIds.filter((id) => id !== sectionId);
-
-  const updatedSubscription = await prisma.calendarSubscription.update({
-    where: { id: subscription.id },
-    data: {
-      sections: { set: newSectionIds.map((id) => ({ id })) },
-    },
-    include: { sections: { select: { id: true } } },
-  });
-
-  const token = await generateCalendarSubscriptionJWT(updatedSubscription.id);
-
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/homeworks");
-  revalidatePath("/dashboard/subscriptions/sections");
+  revalidatePath("/");
   revalidatePath("/me/subscriptions/sections");
 
-  return {
-    subscriptionId: updatedSubscription.id,
-    subscriptionToken: token,
-    subscribedSections: updatedSubscription.sections.map((s) => s.id),
-    isAuthenticated: true,
-  };
+  return getSubscriptionState();
 }

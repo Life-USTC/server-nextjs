@@ -17,7 +17,7 @@ test("/api/uploads/[id]/download 未登录返回 401", async ({ request }) => {
 test("/api/uploads/[id]/download 非本人返回 404", async ({ browser }) => {
   const userContext = await browser.newContext();
   const userPage = await userContext.newPage();
-  await signInAsDebugUser(userPage, "/dashboard");
+  await signInAsDebugUser(userPage, "/");
 
   const uploadsResponse = await userPage.request.get("/api/uploads");
   expect(uploadsResponse.status()).toBe(200);
@@ -30,7 +30,7 @@ test("/api/uploads/[id]/download 非本人返回 404", async ({ browser }) => {
 
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
-  await signInAsDevAdmin(adminPage, "/dashboard");
+  await signInAsDevAdmin(adminPage, "/");
 
   const downloadResponse = await adminPage.request.get(
     `/api/uploads/${uploadId}/download`,

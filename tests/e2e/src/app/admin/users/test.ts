@@ -52,7 +52,10 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
   test.setTimeout(60000);
   await signInAsDevAdmin(page, "/admin/users");
 
-  const row = page.locator("tr").filter({ hasText: "dev-admin" }).first();
+  const row = page
+    .locator("tr")
+    .filter({ hasText: DEV_SEED.debugUsername })
+    .first();
   await expect(row).toBeVisible();
   await row.click();
 
@@ -154,7 +157,12 @@ test("/admin/users 可用自定义到期时间创建封禁并解除", async ({
     await reasonInput.fill(reason);
   }
 
-  const suspendButton = dialog.getByRole("button", { name: /封禁|Suspend/i });
+  let suspendButton = dialog
+    .getByRole("button", { name: /封禁|Suspend|Ban/i })
+    .first();
+  if ((await suspendButton.count()) === 0) {
+    suspendButton = dialog.locator('button[class*="bg-destructive"]').first();
+  }
   await expect(suspendButton).toBeVisible();
 
   await suspendButton.click({ force: true });
@@ -164,11 +172,30 @@ test("/admin/users 可用自定义到期时间创建封禁并解除", async ({
     const listResponse = await page.request.get("/api/admin/suspensions");
     expect(listResponse.status()).toBe(200);
     const listBody = (await listResponse.json()) as {
-      suspensions?: Array<{ id?: string; reason?: string | null }>;
+      suspensions?: Array<{ id?: unknown; reason?: string | null }>;
     };
     const match = listBody.suspensions?.find((item) => item.reason === reason);
-    if (match?.id) {
-      suspensionId = match.id;
+    if (typeof match?.id === "string" || typeof match?.id === "number") {
+      suspensionId = String(match.id);
+      break;
+    }
+    if (match?.id && typeof match.id === "object") {
+      const nestedId = (match.id as { id?: unknown }).id;
+      if (typeof nestedId === "string" || typeof nestedId === "number") {
+        suspensionId = String(nestedId);
+        break;
+      }
+      const toStringId =
+        typeof (match.id as { toString?: unknown }).toString === "function"
+          ? String(match.id)
+          : null;
+      if (toStringId && toStringId !== "[object Object]") {
+        suspensionId = toStringId;
+        break;
+      }
+    }
+    if (match?.id != null) {
+      suspensionId = String(match.id);
       break;
     }
     await page.waitForTimeout(300);
