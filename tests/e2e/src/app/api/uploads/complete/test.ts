@@ -17,7 +17,7 @@ test("/api/uploads/complete 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads/complete key 前缀不匹配返回 403", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const response = await page.request.post("/api/uploads/complete", {
     data: {
       key: "uploads/other-user/test.txt",
@@ -31,7 +31,7 @@ test("/api/uploads/complete 无 pending 时返回 Upload session expired 且清�
   page,
 }) => {
   test.setTimeout(60000);
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
 
   const sessionResponse = await page.request.get("/api/auth/session");
   expect(sessionResponse.status()).toBe(200);

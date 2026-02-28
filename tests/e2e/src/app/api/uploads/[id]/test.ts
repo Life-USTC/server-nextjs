@@ -7,7 +7,7 @@ test("/api/uploads/[id]", async ({ request }) => {
 });
 
 test("/api/uploads/[id] PATCH 空文件名返回 400", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const uploadsResponse = await page.request.get("/api/uploads");
   expect(uploadsResponse.status()).toBe(200);
   const uploadId = (

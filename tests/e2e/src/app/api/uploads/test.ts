@@ -13,7 +13,7 @@ test("/api/uploads 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads 登录后返回 seed 上传与配额字段", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const response = await page.request.get("/api/uploads");
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
@@ -38,7 +38,7 @@ test("/api/uploads POST 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads POST 非法 payload 返回 400", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const response = await page.request.post("/api/uploads", {
     data: { filename: "", size: 1, contentType: "text/plain" },
   });
@@ -48,7 +48,7 @@ test("/api/uploads POST 非法 payload 返回 400", async ({ page }) => {
 });
 
 test("/api/uploads POST 超大文件返回 413", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const response = await page.request.post("/api/uploads", {
     data: {
       filename: "too-big.bin",

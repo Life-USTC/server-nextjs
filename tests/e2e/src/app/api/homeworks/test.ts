@@ -8,7 +8,7 @@ test("/api/homeworks", async ({ request }) => {
 });
 
 test("/api/homeworks 返回 seed 作业与审计日志", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
 
   const matchResponse = await page.request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },

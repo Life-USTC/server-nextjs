@@ -18,8 +18,8 @@ test("/signin 调试用户按钮可登录", async ({ page }, testInfo) => {
     .click();
   await expect(page).toHaveURL(/\/(?:\?.*)?$/);
 
-  await gotoAndWaitForReady(page, "/dashboard");
-  await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+  await gotoAndWaitForReady(page, "/");
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await captureStepScreenshot(page, testInfo, "signin-after-login");
 });

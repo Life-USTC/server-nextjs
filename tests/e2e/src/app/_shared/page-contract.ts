@@ -121,7 +121,7 @@ export async function assertPageContract(
   }
 
   if (routePath === "/u/id/[uid]") {
-    await signInAsDebugUser(page, "/dashboard");
+    await signInAsDebugUser(page, "/");
     const sessionResponse = await page.request.get("/api/auth/session");
     expect(sessionResponse.status()).toBe(200);
     const session = (await sessionResponse.json()) as {

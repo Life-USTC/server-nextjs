@@ -4,15 +4,13 @@ import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/dashboard/homeworks 未登录重定向到登录页", async ({
-  page,
-}, testInfo) => {
-  await gotoAndWaitForReady(page, "/dashboard/homeworks", {
-    expectMainContent: false,
+test("/?tab=homeworks 未登录可访问", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/?tab=homeworks", {
+    expectMainContent: true,
   });
 
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/\?tab=homeworks$/);
+  await expect(page.locator("#main-content")).toBeVisible();
   await captureStepScreenshot(
     page,
     testInfo,
@@ -20,19 +18,17 @@ test("/dashboard/homeworks 未登录重定向到登录页", async ({
   );
 });
 
-test("/dashboard/homeworks 登录后展示 seed 作业", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/homeworks");
+test("/?tab=homeworks 登录后展示 seed 作业", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/?tab=homeworks");
 
-  await expect(page).toHaveURL(/\/dashboard\/homeworks(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/(\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await expect(page.getByText(DEV_SEED.homeworks.title).first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks-seed");
 });
 
-test("/dashboard/homeworks 可切换完成状态 Tab", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/homeworks");
+test("/?tab=homeworks 可切换完成状态 Tab", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/?tab=homeworks");
 
   const completedTab = page
     .getByRole("button", { name: /已完成|Completed/i })
@@ -48,9 +44,9 @@ test("/dashboard/homeworks 可切换完成状态 Tab", async ({ page }, testInfo
   }
 });
 
-test("/dashboard/homeworks 可切换作业完成状态", async ({ page }, testInfo) => {
+test("/?tab=homeworks 可切换作业完成状态", async ({ page }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDebugUser(page, "/dashboard/homeworks");
+  await signInAsDebugUser(page, "/?tab=homeworks");
 
   const item = page.locator("[data-homework-id]").first();
   if ((await item.count()) === 0) {
@@ -85,10 +81,10 @@ test("/dashboard/homeworks 可切换作业完成状态", async ({ page }, testIn
   await captureStepScreenshot(page, testInfo, "dashboard-homeworks-toggled");
 });
 
-test("/dashboard/homeworks 查看详情可跳转到班级页锚点", async ({
+test("/?tab=homeworks 查看详情可跳转到班级页锚点", async ({
   page,
 }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/homeworks");
+  await signInAsDebugUser(page, "/?tab=homeworks");
 
   const viewDetails = page
     .getByRole("link", { name: /查看详情|View details/i })
@@ -111,8 +107,8 @@ test("/dashboard/homeworks 查看详情可跳转到班级页锚点", async ({
   );
 });
 
-test("/dashboard/homeworks 可创建作业", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/homeworks");
+test("/?tab=homeworks 可创建作业", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/?tab=homeworks");
 
   const addButton = page.getByTestId("dashboard-homeworks-add").first();
   if ((await addButton.count()) === 0) {

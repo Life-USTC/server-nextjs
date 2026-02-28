@@ -4,15 +4,13 @@ import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 
-test("/dashboard/subscriptions/sections 未登录重定向到登录页", async ({
-  page,
-}, testInfo) => {
-  await gotoAndWaitForReady(page, "/dashboard/subscriptions/sections", {
-    expectMainContent: false,
+test("/?tab=subscriptions 未登录可访问", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/?tab=subscriptions", {
+    expectMainContent: true,
   });
 
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/\?tab=subscriptions$/);
+  await expect(page.locator("#main-content")).toBeVisible();
   await captureStepScreenshot(
     page,
     testInfo,
@@ -20,23 +18,19 @@ test("/dashboard/subscriptions/sections 未登录重定向到登录页", async (
   );
 });
 
-test("/dashboard/subscriptions/sections 登录后展示 seed 选课", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/subscriptions/sections");
+test("/?tab=subscriptions 登录后展示 seed 选课", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/?tab=subscriptions");
 
-  await expect(page).toHaveURL(
-    /\/dashboard\/subscriptions\/sections(?:\?.*)?$/,
-  );
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-seed");
 });
 
-test("/dashboard/subscriptions/sections 可点击条目跳转班级详情", async ({
+test("/?tab=subscriptions 可点击条目跳转班级详情", async ({
   page,
 }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard/subscriptions/sections");
+  await signInAsDebugUser(page, "/?tab=subscriptions");
   const rowLink = page.locator("tbody a[href^='/sections/']").first();
   if ((await rowLink.count()) === 0) {
     await expect(page.locator("#main-content")).toBeVisible();
@@ -51,11 +45,9 @@ test("/dashboard/subscriptions/sections 可点击条目跳转班级详情", asyn
   );
 });
 
-test("/dashboard/subscriptions/sections 复制日历链接", async ({
-  page,
-}, testInfo) => {
+test("/?tab=subscriptions 复制日历链接", async ({ page }, testInfo) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await signInAsDebugUser(page, "/dashboard/subscriptions/sections");
+  await signInAsDebugUser(page, "/?tab=subscriptions");
 
   const copyButton = page
     .getByRole("button", { name: /复制日历链接|iCal/i })
@@ -70,6 +62,7 @@ test("/dashboard/subscriptions/sections 复制日历链接", async ({
     navigator.clipboard.readText(),
   );
   expect(clipboardText).toContain("calendar.ics");
+  expect(clipboardText).toContain("token=");
   await captureStepScreenshot(
     page,
     testInfo,
@@ -77,11 +70,11 @@ test("/dashboard/subscriptions/sections 复制日历链接", async ({
   );
 });
 
-test("/dashboard/subscriptions/sections 批量导入可打开确认弹窗并取消", async ({
+test("/?tab=subscriptions 批量导入可打开确认弹窗并取消", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDebugUser(page, "/dashboard/subscriptions/sections");
+  await signInAsDebugUser(page, "/?tab=subscriptions");
 
   const textarea = page.getByRole("textbox", {
     name: /粘贴|placeholder|Paste/i,
@@ -115,11 +108,11 @@ test("/dashboard/subscriptions/sections 批量导入可打开确认弹窗并取�
   await expect(dialog).not.toBeVisible();
 });
 
-test("/dashboard/subscriptions/sections 批量导入可确认加入并提示成功", async ({
+test("/?tab=subscriptions 批量导入可确认加入并提示成功", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDebugUser(page, "/dashboard/subscriptions/sections");
+  await signInAsDebugUser(page, "/?tab=subscriptions");
 
   const textarea = page.getByRole("textbox", {
     name: /粘贴|placeholder|Paste/i,

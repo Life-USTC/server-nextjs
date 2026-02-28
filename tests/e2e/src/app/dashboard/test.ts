@@ -14,21 +14,22 @@ test("/dashboard 未登录重定向到登录页", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "dashboard-unauthorized");
 });
 
-test("/dashboard 登录后展示 seed 作业入口", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard");
+test("/ 登录后展示 seed 作业入口", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/");
 
-  await expect(page).toHaveURL(/\/dashboard(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
-  await expect(page.getByTestId("dashboard-homeworks-entry")).toBeVisible();
   await expect(page.getByText(DEV_SEED.homeworks.title).first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "dashboard-home");
 });
 
-test("/dashboard 可点击作业入口跳转", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/dashboard");
-  const entry = page.getByTestId("dashboard-homeworks-entry");
-  await expect(entry).toBeVisible();
-  await entry.click();
-  await expect(page).toHaveURL(/\/dashboard\/homeworks(?:\?.*)?$/);
+test("/ 可点击作业 Tab 跳转到作业页", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/");
+  const homeworksTab = page
+    .getByRole("link", { name: /作业|Homework|Homeworks/i })
+    .first();
+  await expect(homeworksTab).toBeVisible();
+  await homeworksTab.click();
+  await expect(page).toHaveURL(/tab=homeworks/);
   await captureStepScreenshot(page, testInfo, "dashboard-navigate-homeworks");
 });

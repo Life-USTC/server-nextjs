@@ -10,7 +10,7 @@ test("/api/homeworks/[id]/completion", async ({ request }) => {
 });
 
 test("/api/homeworks/[id]/completion 可切换完成状态", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const matchResponse = await page.request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
