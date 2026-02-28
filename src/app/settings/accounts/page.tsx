@@ -20,7 +20,7 @@ export default async function SettingsAccountsPage() {
   });
 
   if (!user) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return <AccountLinkingSection user={user} />;

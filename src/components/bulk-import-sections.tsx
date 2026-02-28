@@ -3,7 +3,7 @@
 import { Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { z } from "zod";
 import { addSectionsToSubscription } from "@/app/actions/subscription";
 import {
@@ -40,14 +40,25 @@ type SemesterOption = Pick<Semester, "id" | "nameCn"> & {
   namePrimary?: string;
 };
 
-interface BulkImportSectionsProps {
+export interface BulkImportSectionsProps {
   semesters: SemesterOption[];
   defaultSemesterId?: number | null;
+  variant?: "card" | "plain";
+  showDescription?: boolean;
+  /** When provided, the match button is not rendered in the form; parent should render it using these props */
+  onMatchButtonRender?: (props: {
+    onClick: () => void;
+    disabled: boolean;
+    label: string;
+  }) => void;
 }
 
 export function BulkImportSections({
   semesters,
   defaultSemesterId,
+  variant = "card",
+  showDescription = true,
+  onMatchButtonRender,
 }: BulkImportSectionsProps) {
   const t = useTranslations("subscriptions");
   const locale = useLocale();
@@ -95,7 +106,7 @@ export function BulkImportSections({
     value: semester.id.toString(),
   }));
 
-  const handleFetchSections = async () => {
+  const handleFetchSections = useCallback(async () => {
     if (!importText.trim()) return;
 
     setImporting(true);
@@ -158,7 +169,7 @@ export function BulkImportSections({
     } finally {
       setImporting(false);
     }
-  };
+  }, [importText, selectedSemesterId, t]);
 
   const handleConfirmImport = async () => {
     try {
@@ -209,57 +220,77 @@ export function BulkImportSections({
     });
   };
 
+  useEffect(() => {
+    onMatchButtonRender?.({
+      onClick: handleFetchSections,
+      disabled: !importText.trim() || importing,
+      label: importing ? t("bulkImport.matching") : t("bulkImport.matchButton"),
+    });
+  }, [onMatchButtonRender, importText, importing, t, handleFetchSections]);
+
+  const description = (
+    <p className="mb-4 text-muted-foreground text-small">
+      {t("bulkImport.description")}
+    </p>
+  );
+
+  const form = (
+    <>
+      {showDescription && description}
+      <Field className="mb-4">
+        <FieldLabel>{t("bulkImport.semesterLabel")}</FieldLabel>
+        <Select
+          name="semesterId"
+          value={selectedSemesterId}
+          onValueChange={(value) => setSelectedSemesterId(value ?? "")}
+          items={semesterItems}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={t("bulkImport.semesterPlaceholder")} />
+          </SelectTrigger>
+          <SelectPopup>
+            {semesterItems.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectPopup>
+        </Select>
+      </Field>
+      <Textarea
+        placeholder={t("bulkImport.placeholder")}
+        value={importText}
+        onChange={(e) => setImportText(e.target.value)}
+        rows={4}
+        className="mb-4"
+      />
+      {!onMatchButtonRender && (
+        <Button
+          onClick={handleFetchSections}
+          disabled={!importText.trim() || importing}
+          className="w-full"
+        >
+          {importing ? t("bulkImport.matching") : t("bulkImport.matchButton")}
+        </Button>
+      )}
+    </>
+  );
+
   return (
     <>
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            {t("bulkImport.title")}
-          </CardTitle>
-        </CardHeader>
-        <div className="p-6 pt-0">
-          <p className="mb-4 text-muted-foreground text-small">
-            {t("bulkImport.description")}
-          </p>
-          <Field className="mb-4">
-            <FieldLabel>{t("bulkImport.semesterLabel")}</FieldLabel>
-            <Select
-              name="semesterId"
-              value={selectedSemesterId}
-              onValueChange={(value) => setSelectedSemesterId(value ?? "")}
-              items={semesterItems}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue
-                  placeholder={t("bulkImport.semesterPlaceholder")}
-                />
-              </SelectTrigger>
-              <SelectPopup>
-                {semesterItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectPopup>
-            </Select>
-          </Field>
-          <Textarea
-            placeholder={t("bulkImport.placeholder")}
-            value={importText}
-            onChange={(e) => setImportText(e.target.value)}
-            rows={4}
-            className="mb-4"
-          />
-          <Button
-            onClick={handleFetchSections}
-            disabled={!importText.trim() || importing}
-            className="w-full"
-          >
-            {importing ? t("bulkImport.matching") : t("bulkImport.matchButton")}
-          </Button>
-        </div>
-      </Card>
+      {variant === "card" ? (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              {t("bulkImport.title")}
+            </CardTitle>
+          </CardHeader>
+          <div className="p-6 pt-0">{form}</div>
+        </Card>
+      ) : (
+        <div className="space-y-4">{form}</div>
+      )}
 
       {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

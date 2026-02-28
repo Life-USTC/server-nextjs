@@ -71,9 +71,16 @@
     "browseCourses": "Browse Courses",
     "subscriptionTitle": "Selected Sections #{id}",
     "sectionsIncluded": "{count} sections included",
+    "rowActions": "Row actions",
     "iCalLink": "Copy iCal Link",
     "linkCopied": "Link Copied",
     "linkCopiedDescription": "Calendar link has been copied to clipboard",
+    "optOut": "Opt out",
+    "optOutConfirm": "Confirm",
+    "optOutSuccess": "Section removed",
+    "optOutSuccessDescription": "This section has been removed from your selected sections",
+    "optOutError": "Failed to remove section",
+    "optOutRetry": "Please try again",
     "courseCode": "Course Code",
     "courseName": "Course Name",
     "section": "Section",
@@ -277,20 +284,30 @@
   "meDashboard": {
     "title": "Dashboard",
     "description": "Hi {name}, this dashboard brings together your courses, homework, and schedule.",
-    "descriptionV2": "Hi {name}, start with what to do now, then plan the rest of your week.",
+    "descriptionV2": "Hi, {name}",
+    "fallbackName": "Guest",
     "nav": {
       "ariaLabel": "Dashboard section switcher",
       "overview": {
         "title": "Overview",
         "description": "Today's classes, homework, and weekly table"
       },
+      "calendar": {
+        "title": "Calendar",
+        "description": "This week's schedule and homework deadlines"
+      },
       "subscriptions": {
         "title": "Section Management",
         "description": "Bulk import and maintain selected sections"
       },
       "homeworks": {
-        "title": "All Homework",
+        "title": "Homework",
         "description": "Review and organize by completion status"
+      },
+      "exams": {
+        "title": "Exams",
+        "description": "View your selected section exam schedule",
+        "empty": "No exam schedule available yet."
       }
     },
     "viewAll": "View all",
@@ -305,26 +322,27 @@
       "tomorrowCount": "{count} classes tomorrow"
     },
     "today": {
-      "title": "What is left today",
+      "title": "Today",
       "description": "See all classes for today in time order.",
       "empty": "No classes scheduled for today."
     },
     "tomorrow": {
-      "title": "Tomorrow preview",
+      "title": "Tomorrow",
       "description": "Look ahead to your first class and full day.",
       "empty": "No classes scheduled for tomorrow."
     },
     "week": {
-      "title": "Weekly schedule overview",
+      "title": "This week",
       "description": "Review class load and busy level day by day.",
       "descriptionTable": "View your full timetable by time slots from Monday to Sunday.",
       "empty": "No classes scheduled this week.",
       "time": "Time",
       "classCount": "{count} classes",
-      "more": "{count} more"
+      "more": "{count} more",
+      "viewCalendar": "View calendar"
     },
     "homeworks": {
-      "title": "Homework overview",
+      "title": "Homework",
       "titleV2": "Incomplete homework",
       "descriptionV2": "Prioritize what's due today and soon.",
       "dueToday": "Due today {count}",

@@ -4,9 +4,10 @@ import dayjs from "dayjs";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
+import type { CalendarEventVariant } from "@/components/calendar-event-card";
+import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export interface CalendarEventDetail {
@@ -20,10 +21,22 @@ export interface CalendarSemester {
   endDate: Date | null;
 }
 
+export type { CalendarEventVariant } from "@/components/calendar-event-card";
+
 export interface CalendarEvent {
   id: string;
   date?: Date | null;
-  line: string;
+  /** @deprecated Use title + meta instead */
+  line?: string;
+  /** Display as card title. Falls back to line when absent. */
+  title?: string;
+  /** Display as card meta (e.g. time, location). */
+  meta?: string;
+  /** Link URL for navigation on click. */
+  href?: string;
+  /** Card border/style variant. Maps from tone when absent. */
+  variant?: CalendarEventVariant;
+  /** @deprecated Use variant instead */
   tone?: "default" | "inverse";
   details?: CalendarEventDetail[];
   sortValue?: number;
@@ -66,7 +79,6 @@ export function EventCalendar({
   const [currentMonth, setCurrentMonth] = useState(
     dayjs(monthStart).startOf("month"),
   );
-  const [openEventId, setOpenEventId] = useState<string | null>(null);
 
   const { gridDays, monthLabel, weekdayOrder } = useMemo(() => {
     const monthStartDay = currentMonth.startOf("month");
@@ -229,7 +241,9 @@ export function EventCalendar({
                             dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
                           );
                         }
-                        return a.line.localeCompare(b.line);
+                        return (a.title ?? a.line ?? "").localeCompare(
+                          b.title ?? b.line ?? "",
+                        );
                       });
                       const isCurrentMonth =
                         day.month() === monthStartDay.month();
@@ -239,7 +253,7 @@ export function EventCalendar({
                         <div
                           key={dateKey}
                           className={cn(
-                            "min-h-24 bg-background p-1 text-xs",
+                            "min-h-24 min-w-0 overflow-hidden bg-background p-1 text-xs",
                             isCurrentMonth ? "" : "bg-muted/5",
                           )}
                         >
@@ -254,58 +268,24 @@ export function EventCalendar({
                               {day.format("D")}
                             </span>
                           </div>
-                          <div className="mt-1.5 space-y-1">
-                            {sortedEvents.map((event) => (
-                              <Popover
-                                key={event.id}
-                                open={openEventId === event.id}
-                                onOpenChange={(open) =>
-                                  setOpenEventId(open ? event.id : null)
-                                }
-                              >
-                                <PopoverTrigger
-                                  className={cn(
-                                    "w-full rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-left text-[0.7rem] text-foreground transition-colors hover:bg-muted/40",
-                                    event.tone === "inverse" &&
-                                      "border-foreground/80 bg-foreground text-background hover:bg-foreground/90",
-                                  )}
-                                  onPointerEnter={() =>
-                                    setOpenEventId(event.id)
-                                  }
-                                  onPointerLeave={() => setOpenEventId(null)}
-                                >
-                                  {event.line}
-                                </PopoverTrigger>
-                                {event.details && event.details.length > 0 && (
-                                  <PopoverPopup
-                                    side="top"
-                                    align="start"
-                                    className="max-h-64 w-64 overflow-auto"
-                                  >
-                                    <div className="space-y-2">
-                                      <p className="font-medium text-sm">
-                                        {event.line}
-                                      </p>
-                                      <div className="grid gap-1 text-muted-foreground text-xs">
-                                        {event.details.map((detail) => (
-                                          <div
-                                            key={`${event.id}-${detail.label}-${detail.value}`}
-                                            className="flex items-baseline gap-2"
-                                          >
-                                            <span className="shrink-0 whitespace-nowrap">
-                                              {detail.label}
-                                            </span>
-                                            <span className="min-w-0 font-medium text-foreground">
-                                              {detail.value}
-                                            </span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </PopoverPopup>
-                                )}
-                              </Popover>
-                            ))}
+                          <div className="mt-1.5 min-w-0 space-y-1 overflow-hidden">
+                            {sortedEvents.map((event) => {
+                              const variant: CalendarEventVariant =
+                                event.variant ??
+                                (event.tone === "inverse" ? "exam" : "session");
+                              const title = event.title ?? event.line ?? "";
+                              return (
+                                <CalendarEventCardInteractive
+                                  key={event.id}
+                                  variant={variant}
+                                  title={title}
+                                  meta={event.meta}
+                                  href={event.href}
+                                  details={event.details}
+                                  className="w-full"
+                                />
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -324,51 +304,23 @@ export function EventCalendar({
             {unscheduledLabel}
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
-            {unscheduledEvents.map((event) => (
-              <Popover
-                key={event.id}
-                open={openEventId === event.id}
-                onOpenChange={(open) => setOpenEventId(open ? event.id : null)}
-              >
-                <PopoverTrigger
-                  className={cn(
-                    "rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-left text-foreground text-sm transition-colors hover:bg-muted/40",
-                    event.tone === "inverse" &&
-                      "border-foreground/80 bg-foreground text-background hover:bg-foreground/90",
-                  )}
-                  onPointerEnter={() => setOpenEventId(event.id)}
-                  onPointerLeave={() => setOpenEventId(null)}
-                >
-                  {event.line}
-                </PopoverTrigger>
-                {event.details && event.details.length > 0 && (
-                  <PopoverPopup
-                    side="top"
-                    align="start"
-                    className="max-h-64 w-64 overflow-auto"
-                  >
-                    <div className="space-y-2">
-                      <p className="font-medium text-sm">{event.line}</p>
-                      <div className="grid gap-1 text-muted-foreground text-xs">
-                        {event.details.map((detail) => (
-                          <div
-                            key={`${event.id}-${detail.label}-${detail.value}`}
-                            className="flex items-baseline gap-2"
-                          >
-                            <span className="shrink-0 whitespace-nowrap">
-                              {detail.label}
-                            </span>
-                            <span className="min-w-0 font-medium text-foreground">
-                              {detail.value}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </PopoverPopup>
-                )}
-              </Popover>
-            ))}
+            {unscheduledEvents.map((event) => {
+              const variant: CalendarEventVariant =
+                event.variant ??
+                (event.tone === "inverse" ? "exam" : "session");
+              const title = event.title ?? event.line ?? "";
+              return (
+                <CalendarEventCardInteractive
+                  key={event.id}
+                  variant={variant}
+                  title={title}
+                  meta={event.meta}
+                  href={event.href}
+                  details={event.details}
+                  className="w-full rounded-lg px-3 py-2"
+                />
+              );
+            })}
           </div>
         </div>
       )}

@@ -206,7 +206,7 @@ export const sectionBaseSchema = SectionModelSchema.omit({
   sectionTeachers: true,
   teacherAssignments: true,
   exams: true,
-  calendarSubscriptions: true,
+  subscribedUsers: true,
   comments: true,
   description: true,
   homeworks: true,
@@ -795,8 +795,7 @@ export const uploadRenameResponseSchema = createEntityResponseSchema(
 );
 
 export const calendarSubscriptionSchema = z.object({
-  id: z.number().int(),
-  userId: z.string().nullable(),
+  userId: z.string(),
   sections: z.array(
     sectionBaseSchema.extend({
       course: courseBaseSchema,
@@ -808,7 +807,7 @@ export const calendarSubscriptionSchema = z.object({
 });
 
 export const calendarSubscriptionSummarySchema = z.object({
-  id: z.number().int(),
+  userId: z.string(),
   sections: z.array(z.object({ id: z.number().int() })),
 });
 
@@ -863,14 +862,12 @@ export const uploadDeleteResponseSchema = z.object({
 
 export const calendarSubscriptionCreateResponseSchema = z.object({
   subscription: calendarSubscriptionSummarySchema,
-  token: z.string(),
 });
 
 export const currentCalendarSubscriptionResponseSchema = z.union([
   z.object({ subscription: z.null() }),
   z.object({
     subscription: calendarSubscriptionSummarySchema,
-    token: z.string(),
   }),
 ]);
 

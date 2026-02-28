@@ -20,7 +20,7 @@ export default async function SettingsProfilePage() {
   });
 
   if (!user) {
-    redirect("/dashboard");
+    redirect("/");
   }
 
   return <ProfileEditForm user={user} />;
