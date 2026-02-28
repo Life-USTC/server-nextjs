@@ -44,11 +44,5 @@ export const selectCurrentSemesterFromList = <
       return getSemesterEndTime(a) - getSemesterEndTime(b);
     });
 
-  const startedUnfinished = unfinished.filter(
-    (semester) => !semester.startDate || semester.startDate <= referenceDate,
-  );
-
-  return (
-    startedUnfinished.at(-1) ?? unfinished.at(-1) ?? semesters.at(-1) ?? null
-  );
+  return unfinished.at(0) ?? semesters.at(-1) ?? null;
 };
