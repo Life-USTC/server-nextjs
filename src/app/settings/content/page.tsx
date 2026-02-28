@@ -9,7 +9,7 @@ export default async function SettingsContentPage() {
   return (
     <div className="grid grid-cols-2 gap-4">
       <Link
-        href="/dashboard/uploads"
+        href="/"
         className="block rounded-md border px-3 py-3 no-underline transition-colors hover:bg-accent/50"
       >
         <p className="font-medium text-sm">
@@ -20,7 +20,7 @@ export default async function SettingsContentPage() {
         </p>
       </Link>
       <Link
-        href="/dashboard/comments"
+        href="/"
         className="block rounded-md border px-3 py-3 no-underline transition-colors hover:bg-accent/50"
       >
         <p className="font-medium text-sm">

@@ -28,7 +28,6 @@
     "openapi:generate": "next-openapi-gen generate && bun run openapi:postprocess",
     "openapi:postprocess": "bun run tools/openapi-postprocess.ts",
     "openapi:types": "bunx openapi-typescript \"public/openapi.generated.json\" -o \"src/generated/openapi.ts\"",
-    "dev:seed-debug-user": "bun run tools/seed-dev-scenarios.ts",
     "dev:seed-scenarios": "bun run tools/seed-dev-scenarios.ts",
     "dev:reset-scenarios": "bun run tools/reset-dev-scenarios.ts"
   },

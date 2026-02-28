@@ -100,10 +100,6 @@ export const calendarSubscriptionCreateRequestSchema = z.object({
   sectionIds: z.array(z.number().int().positive()).optional(),
 });
 
-export const calendarSubscriptionUpdateRequestSchema = z.object({
-  sectionIds: z.array(z.number().int().positive()),
-});
-
 export const commentVisibilitySchema = z.enum([
   "public",
   "logged_in_only",
@@ -269,8 +265,8 @@ export const jwIdPathParamsSchema = z.object({
   jwId: integerStringSchema,
 });
 
-export const calendarSubscriptionIdPathParamsSchema = z.object({
-  id: integerStringSchema,
+export const userCalendarPathParamsSchema = z.object({
+  userId: z.string().trim().min(1),
 });
 
 export const semestersQuerySchema = z.object({

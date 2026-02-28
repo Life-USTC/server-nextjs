@@ -2,10 +2,19 @@ import { Calendar, Shield, User, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
+import {
+  getDashboardNavStats,
+  getDashboardOverviewData,
+  getHomeworksTabData,
+  getSubscriptionsTabData,
+} from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
+import { HomeView } from "@/components/home-view/home-view";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -15,8 +24,58 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Homepage() {
+export default async function Homepage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    tab?: string;
+    debugDate?: string;
+    debugTools?: string;
+  }>;
+}) {
   const [t, session] = await Promise.all([getTranslations("homepage"), auth()]);
+
+  if (session?.user?.id) {
+    const params = await searchParams;
+    const tab = params.tab ?? "overview";
+    const debugOptions = {
+      debugDate: params.debugDate,
+      debugTools: params.debugTools === "1",
+    };
+
+    const [navStats, overviewData, homeworksData, subscriptionsData] =
+      await Promise.all([
+        getDashboardNavStats(session.user.id, debugOptions),
+        tab === "overview" || tab === "calendar"
+          ? getDashboardOverviewData(session.user.id, debugOptions)
+          : Promise.resolve(null),
+        tab === "homeworks"
+          ? getHomeworksTabData(session.user.id)
+          : Promise.resolve(null),
+        tab === "subscriptions" || tab === "exams"
+          ? getSubscriptionsTabData(session.user.id)
+          : Promise.resolve(null),
+      ]);
+
+    if (!navStats) {
+      return (
+        <main className="page-main">
+          <p className="text-muted-foreground">User not found.</p>
+        </main>
+      );
+    }
+
+    return (
+      <HomeView
+        searchParams={searchParams}
+        navStats={navStats}
+        overviewData={overviewData}
+        homeworksData={homeworksData}
+        subscriptionsData={subscriptionsData}
+      />
+    );
+  }
+
   let isAdmin = false;
   if (session?.user?.id) {
     const user = await prisma.user.findUnique({
@@ -112,7 +171,7 @@ export default async function Homepage() {
             </Card>
           </Link>
 
-          <Link href="/dashboard" className="no-underline">
+          <Link href="/" className="no-underline">
             <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
               <CardHeader>
                 <div className="flex items-center gap-3">

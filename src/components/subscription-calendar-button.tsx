@@ -34,16 +34,6 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { Link } from "@/i18n/routing";
 
-/**
- * Get the subscription ICS URL from state (pure function)
- */
-function getSubscriptionIcsUrl(state: SubscriptionState): string | null {
-  if (!state.subscriptionId || !state.subscriptionToken) {
-    return null;
-  }
-  return `/api/calendar-subscriptions/${state.subscriptionId}/calendar.ics?token=${state.subscriptionToken}`;
-}
-
 interface SubscriptionCalendarButtonProps {
   sectionDatabaseId: number;
   sectionJwId: number;
@@ -172,9 +162,7 @@ export function SubscriptionCalendarButton({
   const isAuthenticated = subscriptionState?.isAuthenticated ?? false;
   const isSubscribed =
     subscriptionState?.subscribedSections.includes(sectionDatabaseId) ?? false;
-  const subscriptionIcsUrl = subscriptionState
-    ? getSubscriptionIcsUrl(subscriptionState)
-    : null;
+  const subscriptionIcsUrl = subscriptionState?.subscriptionIcsUrl ?? null;
 
   // Single section calendar URL
   const singleCalendarUrl =
@@ -224,7 +212,7 @@ export function SubscriptionCalendarButton({
           actionProps: {
             children: viewAllSubscriptionsLabel,
             onClick: () => {
-              router.push("/dashboard/subscriptions/sections/");
+              router.push("/?tab=subscriptions");
             },
           },
         };
@@ -344,7 +332,7 @@ export function SubscriptionCalendarButton({
                     <p className="text-muted-foreground text-small">
                       {subscriptionHintLabel}{" "}
                       <Link
-                        href="/dashboard/subscriptions/sections/"
+                        href="/?tab=subscriptions"
                         className="text-primary hover:underline"
                       >
                         {viewAllSubscriptionsLabel} →

@@ -74,7 +74,7 @@ export async function updateProfile(formData: FormData) {
     const newProfileUsername = username ?? oldProfileUsername;
 
     revalidatePath("/me");
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     revalidatePath("/settings");
     revalidatePath("/settings/profile");
     if (oldProfileUsername) {
@@ -140,7 +140,7 @@ export async function unlinkAccount(provider: string) {
     });
 
     revalidatePath("/me");
-    revalidatePath("/dashboard");
+    revalidatePath("/");
     revalidatePath("/settings");
     revalidatePath("/settings/accounts");
     return { success: true };
@@ -162,7 +162,7 @@ export async function deleteAccount() {
     // - Session (onDelete: Cascade)
     // - Authenticator (onDelete: Cascade)
     // - VerifiedEmail (onDelete: Cascade)
-    // - CalendarSubscription (onDelete: Cascade)
+    // - user subscribed section links (onDelete: Cascade)
     await prisma.user.delete({
       where: { id: session.user.id },
     });
