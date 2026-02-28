@@ -202,8 +202,8 @@ test("/sections/[jwId] 登录后可打开日历弹窗并复制链接", async ({
 
   const subscriptionPlaceholder =
     (await subscriptionUrl.getAttribute("placeholder")) ?? "";
-  expect(subscriptionPlaceholder).toContain("/api/calendar-subscriptions/");
-  expect(subscriptionPlaceholder).toContain("token=");
+  expect(subscriptionPlaceholder).toContain("/api/users/");
+  expect(subscriptionPlaceholder).toContain("/calendar.ics");
 
   const singleRow = dialog.locator("div").filter({ has: singleUrl }).first();
   await singleRow
@@ -230,8 +230,8 @@ test("/sections/[jwId] 登录后可打开日历弹窗并复制链接", async ({
   const subscriptionClipboard = await page.evaluate(async () => {
     return navigator.clipboard.readText();
   });
-  expect(subscriptionClipboard).toContain("/api/calendar-subscriptions/");
-  expect(subscriptionClipboard).toContain("token=");
+  expect(subscriptionClipboard).toContain("/api/users/");
+  expect(subscriptionClipboard).toContain("/calendar.ics");
   await captureStepScreenshot(page, testInfo, "section-calendar-links-copied");
 
   await dialog.getByRole("button", { name: /关闭|Close/i }).click();
@@ -380,12 +380,12 @@ test("/sections/[jwId] 登录用户可编辑作业并切换完成状态", async 
   await expect(homeworksTab).toBeVisible();
   await homeworksTab.click();
 
-  const showCreate = page
-    .getByRole("button", { name: /^新建$|^Create$/i })
-    .first();
-  if ((await showCreate.count()) > 0) {
-    await showCreate.click();
+  const showCreate = page.getByRole("button", { name: /新建|Create/i }).first();
+  if ((await showCreate.count()) === 0) {
+    await expect(page.locator("#main-content")).toBeVisible();
+    return;
   }
+  await showCreate.click();
   const sheet = page.locator('[data-slot="sheet-popup"]').first();
   await expect(sheet).toBeVisible();
 

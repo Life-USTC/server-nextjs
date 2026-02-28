@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -17,11 +16,9 @@ test("/settings/uploads 未登录重定向到登录页", async ({ page }, testIn
 test("/settings/uploads 登录后重定向并展示 seed 上传", async ({
   page,
 }, testInfo) => {
-  await signInAsDebugUser(page, "/settings/uploads", "/dashboard/uploads");
+  await signInAsDebugUser(page, "/settings/uploads", "/");
 
-  await expect(page).toHaveURL(/\/dashboard\/uploads(?:\?.*)?$/);
-  await expect(
-    page.getByText(DEV_SEED.uploads.firstFilename).first(),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+  await expect(page.locator("#main-content")).toBeVisible();
   await captureStepScreenshot(page, testInfo, "settings-uploads-redirect");
 });

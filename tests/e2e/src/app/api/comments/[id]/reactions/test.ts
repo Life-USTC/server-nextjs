@@ -10,7 +10,7 @@ test("/api/comments/[id]/reactions", async ({ request }) => {
 });
 
 test("/api/comments/[id]/reactions 登录后可添加与删除", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
 
   const matchResponse = await page.request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },

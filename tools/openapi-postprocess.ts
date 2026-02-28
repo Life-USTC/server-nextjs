@@ -68,7 +68,12 @@ function tagForPath(path: string): { name: string; description: string } {
     {
       match: (p) => p.startsWith("/api/calendar-subscriptions"),
       name: "Calendar",
-      description: "Calendar subscriptions and tokens",
+      description: "Calendar selections",
+    },
+    {
+      match: (p) => p.startsWith("/api/users/") && p.endsWith("/calendar.ics"),
+      name: "Calendar",
+      description: "User calendar export",
     },
     {
       match: (p) => p.startsWith("/api/locale"),

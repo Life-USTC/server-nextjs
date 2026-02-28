@@ -1,9 +1,9 @@
 import dayjs from "dayjs";
 
-export const getWeekStartMonday = (date: dayjs.Dayjs) => {
+/** Week starts on Sunday (day 0). Returns the Sunday of the week containing the date. */
+export const getWeekStartSunday = (date: dayjs.Dayjs) => {
   const day = date.day();
-  const diff = day === 0 ? 6 : day - 1;
-  return date.subtract(diff, "day").startOf("day");
+  return date.subtract(day, "day").startOf("day");
 };
 
 export const formatDateTime = (date: Date, time: number, locale: string) => {

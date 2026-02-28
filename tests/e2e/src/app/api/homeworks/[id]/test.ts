@@ -8,7 +8,7 @@ test("/api/homeworks/[id]", async ({ request }) => {
 });
 
 test("/api/homeworks/[id] 登录后可更新作业标题", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const matchResponse = await page.request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });

@@ -299,8 +299,15 @@ export default async function SectionPage({
     const timeRange = `${formatTime(schedule.startTime)}-${formatTime(
       schedule.endTime,
     )}`;
+    const location = formatScheduleLocation(schedule);
+    const metaStr = [timeRange, location].filter(Boolean).join(" · ");
+    const meta = metaStr
+      ? metaStr.length > 60
+        ? `${metaStr.slice(0, 60)}…`
+        : metaStr
+      : undefined;
     const details = [
-      { label: t("location"), value: formatScheduleLocation(schedule) },
+      { label: t("location"), value: location },
       {
         label: t("teacher"),
         value:
@@ -321,8 +328,11 @@ export default async function SectionPage({
     return {
       id: `schedule-${schedule.id}`,
       date: schedule.date,
+      title: t("classEvent"),
+      meta,
+      href: `/sections/${section.jwId}`,
+      variant: "session",
       line: buildEventLine(timeRange, t("classEvent")),
-      tone: "default",
       sortValue: toMinutes(schedule.startTime),
       details,
     };
@@ -339,6 +349,7 @@ export default async function SectionPage({
           .filter(Boolean)
           .join(", ")
       : "";
+    const courseTitle = section.course?.namePrimary;
     const details = [
       { label: t("examMode"), value: exam.examMode ?? "" },
       { label: t("examBatch"), value: exam.examBatch?.namePrimary ?? "" },
@@ -352,8 +363,11 @@ export default async function SectionPage({
     return {
       id: `exam-${exam.id}`,
       date: exam.examDate,
+      title: courseTitle ?? t("examEvent"),
+      meta: timeRange || undefined,
+      href: `/sections/${section.jwId}`,
+      variant: "exam",
       line: buildEventLine(timeRange, t("examEvent")),
-      tone: "inverse",
       sortValue: toMinutes(exam.startTime),
       details,
     };
@@ -522,7 +536,7 @@ export default async function SectionPage({
                         render={
                           <Link
                             className="no-underline"
-                            href="/dashboard/subscriptions/sections/"
+                            href="/?tab=subscriptions"
                           />
                         }
                         size="sm"

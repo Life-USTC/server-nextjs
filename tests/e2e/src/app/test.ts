@@ -12,7 +12,6 @@ test("/ 首页快速入口可见", async ({ page }, testInfo) => {
 
   await expect(page.locator('a[href="/sections"]').first()).toBeVisible();
   await expect(page.locator('a[href="/teachers"]').first()).toBeVisible();
-  await expect(page.locator('a[href="/dashboard"]').first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });
 

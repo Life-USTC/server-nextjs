@@ -386,7 +386,7 @@ model Section {
   sectionTeachers        SectionTeacher[]
   teacherAssignments    TeacherAssignment[]
   exams                 Exam[]
-  calendarSubscriptions CalendarSubscription[] @relation("SectionCalendarSubscriptions")
+  subscribedUsers       User[]                @relation("UserCalendarSections")
   comments              Comment[]
   description           Description?
   homeworks             Homework[]
@@ -716,17 +716,6 @@ model TeacherAssignment {
   @@index([teacherLessonTypeId])
 }
 
-model CalendarSubscription {
-  id Int @id @default(autoincrement())
-
-  sections Section[] @relation("SectionCalendarSubscriptions")
-
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
 model User {
   id              String   @id @default(cuid())
   name            String?
@@ -734,6 +723,7 @@ model User {
   image           String?
   profilePictures String[] @default([])
   isAdmin         Boolean  @default(false)
+  calendarFeedToken String? @unique
 
   accounts      Account[]
   sessions      Session[]
@@ -745,22 +735,22 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  calendarSubscriptions CalendarSubscription[]
-  uploads               Upload[]
-  uploadPendings        UploadPending[]
-  comments              Comment[]
-  moderatedComments     Comment[]         @relation("ModeratedComments")
-  commentReactions      CommentReaction[]
-  suspensions           UserSuspension[]  @relation("SuspendedUser")
-  suspensionsIssued     UserSuspension[]  @relation("SuspensionCreatedBy")
-  suspensionsLifted     UserSuspension[]  @relation("SuspensionLiftedBy")
-  descriptionEdits      DescriptionEdit[] @relation("DescriptionEdits")
-  descriptionLastEdits  Description[]     @relation("DescriptionLastEditor")
-  homeworksCreated      Homework[]        @relation("HomeworkCreatedBy")
-  homeworksUpdated      Homework[]        @relation("HomeworkUpdatedBy")
-  homeworksDeleted      Homework[]        @relation("HomeworkDeletedBy")
-  homeworkAuditLogs     HomeworkAuditLog[] @relation("HomeworkAuditActor")
-  homeworkCompletions   HomeworkCompletion[]
+  subscribedSections   Section[]           @relation("UserCalendarSections")
+  uploads              Upload[]
+  uploadPendings       UploadPending[]
+  comments             Comment[]
+  moderatedComments    Comment[]           @relation("ModeratedComments")
+  commentReactions     CommentReaction[]
+  suspensions          UserSuspension[]    @relation("SuspendedUser")
+  suspensionsIssued    UserSuspension[]    @relation("SuspensionCreatedBy")
+  suspensionsLifted    UserSuspension[]    @relation("SuspensionLiftedBy")
+  descriptionEdits     DescriptionEdit[]   @relation("DescriptionEdits")
+  descriptionLastEdits Description[]       @relation("DescriptionLastEditor")
+  homeworksCreated     Homework[]          @relation("HomeworkCreatedBy")
+  homeworksUpdated     Homework[]          @relation("HomeworkUpdatedBy")
+  homeworksDeleted     Homework[]          @relation("HomeworkDeletedBy")
+  homeworkAuditLogs    HomeworkAuditLog[]  @relation("HomeworkAuditActor")
+  homeworkCompletions  HomeworkCompletion[]
 }
 
 model Upload {

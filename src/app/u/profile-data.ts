@@ -52,21 +52,12 @@ export async function fetchProfileData(
     return null;
   }
 
-  const sectionSubscriptions = await prisma.calendarSubscription.findMany({
-    where: { userId: user.id },
-    select: {
-      sections: {
-        select: { id: true },
-      },
-    },
+  const sectionSubscription = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { subscribedSections: { select: { id: true } } },
   });
 
-  const sectionCount = new Set(
-    sectionSubscriptions.flatMap(
-      (subscription: { sections: { id: number }[] }) =>
-        subscription.sections.map((section) => section.id),
-    ),
-  ).size;
+  const sectionCount = sectionSubscription?.subscribedSections.length ?? 0;
 
   const today = dayjs().startOf("day");
   const startDate = today.subtract(364, "day").startOf("day");

@@ -87,8 +87,4 @@ export type SectionWithRelations = {
   }>;
 };
 
-export type SubscriptionWithSections = {
-  sections: SectionWithRelations[];
-};
-
 export type SubscriptionSchedule = SectionWithRelations["schedules"][number];

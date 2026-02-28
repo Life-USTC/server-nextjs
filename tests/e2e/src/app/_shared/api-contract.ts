@@ -228,10 +228,12 @@ export async function assertApiContract(
     routePath === "/api/admin/users" ||
     routePath === "/api/admin/users/[id]" ||
     routePath === "/api/admin/suspensions" ||
-    routePath === "/api/admin/suspensions/[id]"
+    routePath === "/api/admin/suspensions/[id]" ||
+    routePath === "/api/users/[userId]/calendar.ics"
   ) {
     const probePath = routePath
       .replace("[id]", "invalid-e2e")
+      .replace("[userId]", "invalid-e2e")
       .replace("[jwId]", String(DEV_SEED.section.jwId));
     const response = await request.get(probePath);
     expect(response.status()).toBeGreaterThan(0);
@@ -264,8 +266,6 @@ export async function assertApiContract(
   }
 
   if (
-    routePath === "/api/calendar-subscriptions/[id]" ||
-    routePath === "/api/calendar-subscriptions/[id]/calendar.ics" ||
     routePath === "/api/comments/[id]" ||
     routePath === "/api/comments/[id]/reactions"
   ) {
@@ -279,6 +279,7 @@ export async function assertApiContract(
 
   const fallbackPath = routePath
     .replace("[id]", "invalid-e2e")
+    .replace("[userId]", "invalid-e2e")
     .replace("[jwId]", "invalid-e2e")
     .replace("[...nextauth]", "session");
   const fallbackResponse = await request.get(fallbackPath);

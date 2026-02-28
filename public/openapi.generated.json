@@ -272,7 +272,7 @@
     "/api/calendar-subscriptions": {
       "post": {
         "operationId": "post-api-calendar-subscriptions",
-        "summary": "Create a calendar subscription.",
+        "summary": "Replace current user's selected sections.",
         "description": "",
         "tags": [
           "Calendar"
@@ -301,130 +301,10 @@
         }
       }
     },
-    "/api/calendar-subscriptions/{id}": {
-      "get": {
-        "operationId": "get-api-calendar-subscriptions-{id}",
-        "summary": "Get subscription detail.",
-        "description": "",
-        "tags": [
-          "Calendar"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/calendarSubscriptionSchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "patch": {
-        "operationId": "patch-api-calendar-subscriptions-{id}",
-        "summary": "Update sections in one subscription.",
-        "description": "",
-        "tags": [
-          "Calendar"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/calendarSubscriptionUpdateRequestSchema"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete-api-calendar-subscriptions-{id}",
-        "summary": "Delete one subscription.",
-        "description": "",
-        "tags": [
-          "Calendar"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
-    "/api/calendar-subscriptions/{id}/calendar.ics": {
-      "get": {
-        "operationId": "get-api-calendar-subscriptions-{id}-calendar.ics",
-        "summary": "Redirect calendar subscription token to sections ICS URL.",
-        "description": "",
-        "tags": [
-          "Calendar"
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "schema": {},
-            "required": true,
-            "example": "123"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/calendar-subscriptions/current": {
       "get": {
         "operationId": "get-api-calendar-subscriptions-current",
-        "summary": "Get current user's latest calendar subscription.",
+        "summary": "Get current user's selected sections.",
         "description": "",
         "tags": [
           "Calendar"
@@ -1748,6 +1628,39 @@
           }
         }
       }
+    },
+    "/api/users/{userId}/calendar.ics": {
+      "get": {
+        "operationId": "get-api-users-{userId}-calendar.ics",
+        "summary": "Generate calendar ICS for a user's selected sections.",
+        "description": "",
+        "tags": [
+          "Calendar"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/binary"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1943,120 +1856,6 @@
           "pagination"
         ]
       },
-      "calendarSubscriptionIdPathParamsSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/integerStringSchema"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "calendarSubscriptionSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "userId": {
-            "type": "string",
-            "nullable": true
-          },
-          "sections": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "course": {
-                  "$ref": "#/components/schemas/courseBaseSchema"
-                },
-                "semester": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/semesterSchema"
-                    }
-                  ]
-                },
-                "campus": {
-                  "type": "object"
-                },
-                "schedules": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/scheduleWithRoomTeachersSchema"
-                  }
-                }
-              },
-              "required": [
-                "course",
-                "semester",
-                "campus",
-                "schedules"
-              ]
-            }
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "sections"
-        ]
-      },
-      "calendarSubscriptionUpdateRequestSchema": {
-        "type": "object",
-        "properties": {
-          "sectionIds": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0,
-              "exclusiveMinimum": true
-            }
-          }
-        },
-        "required": [
-          "sectionIds"
-        ]
-      },
-      "calendarSubscriptionSummarySchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer"
-          },
-          "sections": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "id"
-              ]
-            }
-          }
-        },
-        "required": [
-          "id",
-          "sections"
-        ]
-      },
-      "successResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success"
-        ]
-      },
       "currentCalendarSubscriptionResponseSchema": {
         "oneOf": [
           {
@@ -2075,14 +1874,10 @@
             "properties": {
               "subscription": {
                 "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
-              },
-              "token": {
-                "type": "string"
               }
             },
             "required": [
-              "subscription",
-              "token"
+              "subscription"
             ]
           }
         ]
@@ -2105,14 +1900,10 @@
         "properties": {
           "subscription": {
             "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
-          },
-          "token": {
-            "type": "string"
           }
         },
         "required": [
-          "subscription",
-          "token"
+          "subscription"
         ]
       },
       "commentReactionRequestSchema": {
@@ -2134,6 +1925,17 @@
         },
         "required": [
           "type"
+        ]
+      },
+      "successResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
         ]
       },
       "commentThreadResponseSchema": {
@@ -3463,6 +3265,18 @@
           "usedBytes"
         ]
       },
+      "userCalendarPathParamsSchema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
       "sectionCodeSchema": {
         "type": "string",
         "minLength": 1,
@@ -3668,6 +3482,77 @@
           "isSuspended",
           "suspensionReason",
           "suspensionExpiresAt"
+        ]
+      },
+      "calendarSubscriptionSummarySchema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "id"
+              ]
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "sections"
+        ]
+      },
+      "calendarSubscriptionSchema": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "course": {
+                  "$ref": "#/components/schemas/courseBaseSchema"
+                },
+                "semester": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/semesterSchema"
+                    }
+                  ]
+                },
+                "campus": {
+                  "type": "object"
+                },
+                "schedules": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/scheduleWithRoomTeachersSchema"
+                  }
+                }
+              },
+              "required": [
+                "course",
+                "semester",
+                "campus",
+                "schedules"
+              ]
+            }
+          }
+        },
+        "required": [
+          "userId",
+          "sections"
         ]
       },
       "openApiDocumentResponseSchema": {
@@ -4744,7 +4629,7 @@
     },
     {
       "name": "Calendar",
-      "description": "Calendar subscriptions and tokens"
+      "description": "User calendar export"
     },
     {
       "name": "Locale",
