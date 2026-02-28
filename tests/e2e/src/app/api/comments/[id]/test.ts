@@ -43,7 +43,7 @@ test("/api/comments/[id] 返回线程 focus 与 target", async ({ request }) => 
 });
 
 test("/api/comments/[id] 登录后可修改并删除评论", async ({ page }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
 
   const matchResponse = await page.request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
