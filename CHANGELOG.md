@@ -1,3 +1,10 @@
+# [0.38.0](https://github.com/Life-USTC/server-nextjs/compare/v0.37.1...v0.38.0) (2026-02-28)
+
+
+### Features
+
+* unify home tabs and user calendar feeds ([0c60b43](https://github.com/Life-USTC/server-nextjs/commit/0c60b43c76a5ca871839b4a503753f5a2ec2e956))
+
 ## [0.37.1](https://github.com/Life-USTC/server-nextjs/compare/v0.37.0...v0.37.1) (2026-02-27)
 
 
