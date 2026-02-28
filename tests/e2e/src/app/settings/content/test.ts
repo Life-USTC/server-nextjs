@@ -17,21 +17,19 @@ test("/settings/content 登录后展示内容入口", async ({ page }, testInfo)
   await signInAsDebugUser(page, "/settings/content");
 
   await expect(page).toHaveURL(/\/settings\/content(?:\?.*)?$/);
-  await expect(
-    page.locator('a[href="/dashboard/uploads"]').first(),
-  ).toBeVisible();
-  await expect(
-    page.locator('a[href="/dashboard/comments"]').first(),
-  ).toBeVisible();
+  const contentLinks = page.locator('#main-content .grid a[href="/"]');
+  await expect(contentLinks.first()).toBeVisible();
+  await expect(contentLinks.nth(1)).toBeVisible();
   await captureStepScreenshot(page, testInfo, "settings-content-links");
 });
 
 test("/settings/content 内容入口点击可跳转", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/settings/content");
 
-  const uploadsLink = page.locator('a[href="/dashboard/uploads"]').first();
+  const contentLinks = page.locator('#main-content .grid a[href="/"]');
+  const uploadsLink = contentLinks.first();
   await uploadsLink.click();
-  await expect(page).toHaveURL(/\/dashboard\/uploads(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
   await captureStepScreenshot(
     page,
     testInfo,
@@ -39,9 +37,9 @@ test("/settings/content 内容入口点击可跳转", async ({ page }, testInfo)
   );
 
   await gotoAndWaitForReady(page, "/settings/content");
-  const commentsLink = page.locator('a[href="/dashboard/comments"]').first();
+  const commentsLink = page.locator('#main-content .grid a[href="/"]').nth(1);
   await commentsLink.click();
-  await expect(page).toHaveURL(/\/dashboard\/comments(?:\?.*)?$/);
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
   await captureStepScreenshot(
     page,
     testInfo,

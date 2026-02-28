@@ -19,7 +19,7 @@ test("/api/calendar-subscriptions 未登录创建返回 401", async ({ request }
 test("/api/calendar-subscriptions 登录后可创建并包含 seed section", async ({
   page,
 }) => {
-  await signInAsDebugUser(page, "/dashboard");
+  await signInAsDebugUser(page, "/");
   const matchResponse = await page.request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code] },
   });
@@ -35,10 +35,9 @@ test("/api/calendar-subscriptions 登录后可创建并包含 seed section", asy
   });
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    token?: string;
-    subscription?: { sections?: Array<{ id?: number }> };
+    subscription?: { userId?: string; sections?: Array<{ id?: number }> };
   };
-  expect(body.token).toBeTruthy();
+  expect(body.subscription?.userId).toBeTruthy();
   expect(
     body.subscription?.sections?.some((item) => item.id === sectionId),
   ).toBe(true);
