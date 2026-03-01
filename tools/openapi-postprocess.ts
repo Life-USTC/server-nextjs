@@ -9,6 +9,8 @@ type OpenApiDocument = {
   tags?: Array<{ name: string; description?: string }>;
 };
 
+type OpenApiOperation = Record<string, unknown>;
+
 function tagForPath(path: string): { name: string; description: string } {
   const table: Array<{
     match: (p: string) => boolean;
@@ -187,6 +189,68 @@ function buildTopLevelTags(paths: NonNullable<OpenApiDocument["paths"]>) {
   return tags.map((t) => ({ name: t.name, description: t.description }));
 }
 
+function setRedirectResponse(
+  operation: OpenApiOperation,
+  statusCode: number,
+  description: string,
+) {
+  operation.responses = {
+    [String(statusCode)]: {
+      description,
+      headers: {
+        Location: {
+          description: "Redirect target URL",
+          schema: { type: "string" },
+        },
+      },
+    },
+  };
+}
+
+function setFormRequestBody(operation: OpenApiOperation, schemaRef: string) {
+  operation.requestBody = {
+    required: true,
+    content: {
+      "application/x-www-form-urlencoded": {
+        schema: {
+          $ref: schemaRef,
+        },
+      },
+    },
+  };
+}
+
+function patchRedirectOperations(paths: NonNullable<OpenApiDocument["paths"]>) {
+  const pinPost = paths["/api/dashboard-links/pin"]?.post as
+    | OpenApiOperation
+    | undefined;
+  if (pinPost) {
+    setFormRequestBody(
+      pinPost,
+      "#/components/schemas/dashboardLinkPinRequestSchema",
+    );
+    setRedirectResponse(pinPost, 303, "Redirect after pin/unpin");
+  }
+
+  const visitGet = paths["/api/dashboard-links/visit"]?.get as
+    | OpenApiOperation
+    | undefined;
+  if (visitGet) {
+    setRedirectResponse(visitGet, 307, "Temporary redirect to target link");
+  }
+
+  const visitPost = paths["/api/dashboard-links/visit"]?.post as
+    | OpenApiOperation
+    | undefined;
+  if (visitPost) {
+    setFormRequestBody(
+      visitPost,
+      "#/components/schemas/dashboardLinkVisitRequestSchema",
+    );
+    setRedirectResponse(visitPost, 303, "Redirect after recording link click");
+  }
+}
+
 async function main() {
   const filePath = new URL("../public/openapi.generated.json", import.meta.url);
   const raw = await readFile(filePath, "utf8");
@@ -227,6 +291,7 @@ async function main() {
   ) as NonNullable<OpenApiDocument["paths"]>;
 
   doc.paths = sortedPaths;
+  patchRedirectOperations(sortedPaths);
 
   doc.tags = buildTopLevelTags(sortedPaths);
   await writeFile(filePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");

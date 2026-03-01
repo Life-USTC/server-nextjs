@@ -751,8 +751,43 @@ model User {
   homeworksDeleted     Homework[]          @relation("HomeworkDeletedBy")
   homeworkAuditLogs    HomeworkAuditLog[]  @relation("HomeworkAuditActor")
   homeworkCompletions  HomeworkCompletion[]
+  dashboardLinkClicks  DashboardLinkClick[]
+  dashboardLinkPins    DashboardLinkPin[]
 }
 
+
+model DashboardLinkClick {
+  id String @id @default(cuid())
+
+  userId String
+  slug   String
+  count  Int      @default(0)
+  lastClickedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([slug])
+}
+
+
+model DashboardLinkPin {
+  id String @id @default(cuid())
+
+  userId String
+  slug   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, slug])
+  @@index([userId])
+  @@index([slug])
+}
 model Upload {
   id          String   @id @default(cuid())
   key         String   @unique

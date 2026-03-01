@@ -308,6 +308,10 @@
         "title": "考试",
         "description": "查看你已选课班级的考试安排",
         "empty": "暂时没有可用的考试安排。"
+      },
+      "links": {
+        "title": "网站导航",
+        "description": "浏览全部常用网站并管理置顶"
       }
     },
     "viewAll": "查看全部",
@@ -381,6 +385,27 @@
       "busiest": "跳到最忙日期",
       "busiestNoData": "无可用课表数据",
       "reset": "清除调试日期"
+    },
+    "linkHub": {
+      "title": "常用网站（推荐）",
+      "searchPlaceholder": "搜索网站名称或描述…",
+      "searchShortcutHint": "按 Ctrl+K 或 ⌘K 聚焦搜索",
+      "allSitesTab": "全部网站",
+      "overviewHint": "总览仅展示 5 个网站：优先展示你的置顶，其余按推荐补齐。",
+      "pin": "置顶",
+      "unpin": "取消置顶",
+      "groups": {
+        "mostClicked": "常用",
+        "study": "学习",
+        "life": "生活",
+        "tech": "技术",
+        "classroom": "教室查询",
+        "external": "外部网站",
+        "graduate": "研究生",
+        "leastClicked": "其他"
+      },
+      "credit": "部分链接整合自 ",
+      "creditSuffix": "，在此表示感谢。"
     }
   },
   "publicProfile": {

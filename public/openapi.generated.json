@@ -636,6 +636,105 @@
         }
       }
     },
+    "/api/dashboard-links/pin": {
+      "post": {
+        "operationId": "post-api-dashboard-links-pin",
+        "summary": "Pin or unpin one dashboard link for the current user.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/dashboardLinkPinRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirect after pin/unpin",
+            "headers": {
+              "Location": {
+                "description": "Redirect target URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard-links/visit": {
+      "get": {
+        "operationId": "get-api-dashboard-links-visit",
+        "summary": "Redirect to one dashboard link without side effects.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "307": {
+            "description": "Temporary redirect to target link",
+            "headers": {
+              "Location": {
+                "description": "Redirect target URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-dashboard-links-visit",
+        "summary": "Record one dashboard link visit and redirect.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/dashboardLinkVisitRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "303": {
+            "description": "Redirect after recording link click",
+            "headers": {
+              "Location": {
+                "description": "Redirect target URL",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/descriptions": {
       "get": {
         "operationId": "get-api-descriptions",
@@ -2330,6 +2429,52 @@
         "required": [
           "data",
           "pagination"
+        ]
+      },
+      "dashboardLinkPinRequestSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          },
+          "returnTo": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "pin",
+              "unpin"
+            ]
+          }
+        },
+        "required": [
+          "slug"
+        ]
+      },
+      "dashboardLinkVisitQuerySchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "slug"
+        ]
+      },
+      "dashboardLinkVisitRequestSchema": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "slug"
         ]
       },
       "descriptionsQuerySchema": {
