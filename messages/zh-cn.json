@@ -381,6 +381,13 @@
       "busiest": "跳到最忙日期",
       "busiestNoData": "无可用课表数据",
       "reset": "清除调试日期"
+    },
+    "linkHub": {
+      "title": "USTC 常用链接",
+      "recommendations": "为你推荐",
+      "allLinks": "热门链接",
+      "clickCount": "已点击 {count} 次",
+      "credit": "链接集合改编并致谢 "
     }
   },
   "publicProfile": {

@@ -2,6 +2,10 @@ import dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
 import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
+import {
+  recommendDashboardLinks,
+  USTC_DASHBOARD_LINKS,
+} from "@/lib/dashboard-links";
 import { createWeekDayFormatter, getWeekStartSunday } from "@/lib/date-utils";
 import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 import {
@@ -109,6 +113,14 @@ export async function getDashboardNavStats(
   };
 }
 
+export type DashboardLinkSummary = {
+  slug: string;
+  title: string;
+  url: string;
+  description: string;
+  clickCount: number;
+};
+
 export type OverviewData = {
   user: { id: string; name: string | null; username: string | null };
   currentTermName: string;
@@ -139,6 +151,8 @@ export type OverviewData = {
   allSessions: SessionItem[];
   allExams: ExamItem[];
   semesterHomeworks: HomeworkWithSection[];
+  dashboardLinks: DashboardLinkSummary[];
+  recommendedLinks: DashboardLinkSummary[];
 };
 
 export async function getDashboardOverviewData(
@@ -291,6 +305,22 @@ export async function getDashboardOverviewData(
         })
       : [];
 
+  const clickRows = await basePrisma.dashboardLinkClick.findMany({
+    where: { userId },
+    select: { slug: true, count: true },
+  });
+  const clickStats = Object.fromEntries(
+    clickRows.map((row) => [row.slug, row.count]),
+  );
+  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) => ({
+    ...link,
+    clickCount: clickStats[link.slug] ?? 0,
+  }));
+  const recommendedLinks = recommendDashboardLinks(clickStats).map((link) => ({
+    ...link,
+    clickCount: clickStats[link.slug] ?? 0,
+  }));
+
   return {
     user: {
       id: user.id,
@@ -322,6 +352,8 @@ export async function getDashboardOverviewData(
     allSessions,
     allExams,
     semesterHomeworks,
+    dashboardLinks,
+    recommendedLinks,
   };
 }
 
