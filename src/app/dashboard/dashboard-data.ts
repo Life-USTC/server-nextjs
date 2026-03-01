@@ -1,7 +1,17 @@
 import dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
+import { pinyin } from "pinyin-pro";
 import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
+import type {
+  DashboardLinkGroup,
+  DashboardLinkIcon,
+} from "@/lib/dashboard-links";
+import {
+  getDashboardLinkGroup,
+  recommendDashboardLinks,
+  USTC_DASHBOARD_LINKS,
+} from "@/lib/dashboard-links";
 import { createWeekDayFormatter, getWeekStartSunday } from "@/lib/date-utils";
 import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
 import {
@@ -109,6 +119,42 @@ export async function getDashboardNavStats(
   };
 }
 
+/** Lowercase pinyin (no tones, no spaces) for client-side search and IME. */
+function toSearchPinyin(text: string): string {
+  if (!text.trim()) return "";
+  return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
+}
+
+export type DashboardLinkSummary = {
+  slug: string;
+  title: string;
+  url: string;
+  description: string;
+  /** Pinyin of title for search (lowercase, no spaces). */
+  titlePinyin: string;
+  /** Pinyin of description for search (lowercase, no spaces). */
+  descriptionPinyin: string;
+  icon: DashboardLinkIcon;
+  group: DashboardLinkGroup;
+  isPinned: boolean;
+  clickCount: number;
+};
+
+function toDashboardLinkSummary(
+  link: (typeof USTC_DASHBOARD_LINKS)[number],
+  clickStats: Record<string, number>,
+  pinnedSlugSet: Set<string>,
+): DashboardLinkSummary {
+  return {
+    ...link,
+    titlePinyin: toSearchPinyin(link.title),
+    descriptionPinyin: toSearchPinyin(link.description),
+    group: getDashboardLinkGroup(link.slug),
+    isPinned: pinnedSlugSet.has(link.slug),
+    clickCount: clickStats[link.slug] ?? 0,
+  };
+}
+
 export type OverviewData = {
   user: { id: string; name: string | null; username: string | null };
   currentTermName: string;
@@ -139,6 +185,10 @@ export type OverviewData = {
   allSessions: SessionItem[];
   allExams: ExamItem[];
   semesterHomeworks: HomeworkWithSection[];
+  dashboardLinks: DashboardLinkSummary[];
+  recommendedLinks: DashboardLinkSummary[];
+  pinnedLinks: DashboardLinkSummary[];
+  overviewLinks: DashboardLinkSummary[];
 };
 
 export async function getDashboardOverviewData(
@@ -291,6 +341,38 @@ export async function getDashboardOverviewData(
         })
       : [];
 
+  const [clickRows, pinRows] = await Promise.all([
+    basePrisma.dashboardLinkClick.findMany({
+      where: { userId },
+      select: { slug: true, count: true },
+    }),
+    basePrisma.dashboardLinkPin.findMany({
+      where: { userId },
+      select: { slug: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+  const clickStats: Record<string, number> = Object.fromEntries(
+    clickRows.map((row) => [row.slug, row.count]),
+  );
+  const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
+
+  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) =>
+    toDashboardLinkSummary(link, clickStats, pinnedSlugSet),
+  );
+  const dashboardLinkBySlug = new Map(
+    dashboardLinks.map((link) => [link.slug, link] as const),
+  );
+  const pinnedLinks = pinRows.flatMap((row) => {
+    const link = dashboardLinkBySlug.get(row.slug);
+    return link ? [link] : [];
+  });
+  const recommendedLinks = recommendDashboardLinks(clickStats, {
+    limit: USTC_DASHBOARD_LINKS.length,
+    excludeSlugs: Array.from(pinnedSlugSet),
+  }).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
+  const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(0, 5);
+
   return {
     user: {
       id: user.id,
@@ -322,6 +404,10 @@ export async function getDashboardOverviewData(
     allSessions,
     allExams,
     semesterHomeworks,
+    dashboardLinks,
+    recommendedLinks,
+    pinnedLinks,
+    overviewLinks,
   };
 }
 
