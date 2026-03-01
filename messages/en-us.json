@@ -308,6 +308,10 @@
         "title": "Exams",
         "description": "View your selected section exam schedule",
         "empty": "No exam schedule available yet."
+      },
+      "links": {
+        "title": "Websites",
+        "description": "Browse all sites and manage your pins"
       }
     },
     "viewAll": "View all",
@@ -381,6 +385,27 @@
       "busiest": "Jump to busiest day",
       "busiestNoData": "No schedule data",
       "reset": "Clear override"
+    },
+    "linkHub": {
+      "title": "Recommended websites",
+      "searchPlaceholder": "Search by name or description…",
+      "searchShortcutHint": "Press ⌘K or Ctrl+K to focus search",
+      "allSitesTab": "All websites",
+      "overviewHint": "Overview shows 5 sites only: your pins first, then recommended ones.",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "groups": {
+        "mostClicked": "Most clicked",
+        "study": "Study",
+        "life": "Life",
+        "tech": "Tech",
+        "classroom": "Classroom lookup",
+        "external": "External websites",
+        "graduate": "Graduate",
+        "leastClicked": "Least clicked"
+      },
+      "credit": "Some links are consolidated from ",
+      "creditSuffix": ", with thanks."
     }
   },
   "publicProfile": {
