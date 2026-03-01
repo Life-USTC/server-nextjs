@@ -34,15 +34,15 @@ export const selectCurrentSemesterFromList = <
   semesters: TSemester[],
   referenceDate: Date,
 ): TSemester | null => {
-  const unfinished = semesters
-    .filter(
-      (semester) => !semester.endDate || semester.endDate >= referenceDate,
-    )
-    .sort((a, b) => {
-      const startDiff = getSemesterStartTime(a) - getSemesterStartTime(b);
-      if (startDiff !== 0) return startDiff;
-      return getSemesterEndTime(a) - getSemesterEndTime(b);
-    });
+  const sorted = [...semesters].sort((a, b) => {
+    const startDiff = getSemesterStartTime(a) - getSemesterStartTime(b);
+    if (startDiff !== 0) return startDiff;
+    return getSemesterEndTime(a) - getSemesterEndTime(b);
+  });
 
-  return unfinished.at(0) ?? semesters.at(-1) ?? null;
+  const unfinished = sorted.filter(
+    (semester) => !semester.endDate || semester.endDate >= referenceDate,
+  );
+
+  return unfinished.at(0) ?? sorted.at(-1) ?? null;
 };

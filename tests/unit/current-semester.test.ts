@@ -68,12 +68,12 @@ describe("current-semester helpers", () => {
       {
         id: 20,
         startDate: new Date("2024-09-01T00:00:00.000Z"),
-        endDate: new Date("2025-01-31T23:59:59.000Z"),
+        endDate: new Date("2025-01-31T00:00:00.000Z"),
       },
       {
         id: 21,
         startDate: new Date("2025-02-01T00:00:00.000Z"),
-        endDate: new Date("2025-06-30T23:59:59.000Z"),
+        endDate: new Date("2025-06-30T00:00:00.000Z"),
       },
     ];
 
