@@ -136,11 +136,16 @@ export function DashboardLinksWithSearch({
           </p>
         </div>
       )}
-      {filteredGroups.map((entry) => (
-        <section key={entry.group} className="space-y-1.5">
-          <h3 className="font-medium text-muted-foreground text-sm">
-            {entry.label}
-          </h3>
+      {filteredGroups.map((entry, index) => (
+        <section
+          key={`${entry.group}-${index}`}
+          className={entry.label ? "space-y-1.5" : undefined}
+        >
+          {entry.label ? (
+            <h3 className="font-medium text-muted-foreground text-sm">
+              {entry.label}
+            </h3>
+          ) : null}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {entry.links.map((link) => {
               const Icon = ICON_MAP[link.icon];

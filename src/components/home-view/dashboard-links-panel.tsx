@@ -29,11 +29,19 @@ export async function DashboardLinksPanel({
   const t = await getTranslations("meDashboard");
   const isAllTab = variant === "all";
   const returnTo = isAllTab ? "/?tab=links" : "/";
-  const groupedLinks = DASHBOARD_LINK_GROUP_ORDER.map((group) => ({
-    group,
-    label: t(GROUP_LABEL_KEY[group]),
-    links: links.filter((link) => link.group === group),
-  })).filter((entry) => entry.links.length > 0);
+  const groupedLinks = isAllTab
+    ? DASHBOARD_LINK_GROUP_ORDER.map((group) => ({
+        group,
+        label: t(GROUP_LABEL_KEY[group]),
+        links: links.filter((link) => link.group === group),
+      })).filter((entry) => entry.links.length > 0)
+    : [
+        {
+          group: "mostClicked" as const,
+          label: "",
+          links,
+        },
+      ];
 
   return (
     <DashboardLinksWithSearch
