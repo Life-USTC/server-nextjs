@@ -636,6 +636,48 @@
         }
       }
     },
+    "/api/dashboard-links/pin": {
+      "post": {
+        "operationId": "post-api-dashboard-links-pin",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard-links/visit": {
+      "get": {
+        "operationId": "get-api-dashboard-links-visit",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/descriptions": {
       "get": {
         "operationId": "get-api-descriptions",

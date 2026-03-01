@@ -1,9 +1,14 @@
 import dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
+import { pinyin } from "pinyin-pro";
 import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
-import type { DashboardLinkIcon } from "@/lib/dashboard-links";
+import type {
+  DashboardLinkGroup,
+  DashboardLinkIcon,
+} from "@/lib/dashboard-links";
 import {
+  getDashboardLinkGroup,
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
 } from "@/lib/dashboard-links";
@@ -114,12 +119,23 @@ export async function getDashboardNavStats(
   };
 }
 
+/** Lowercase pinyin (no tones, no spaces) for client-side search and IME. */
+function toSearchPinyin(text: string): string {
+  if (!text.trim()) return "";
+  return pinyin(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
+}
+
 export type DashboardLinkSummary = {
   slug: string;
   title: string;
   url: string;
   description: string;
+  /** Pinyin of title for search (lowercase, no spaces). */
+  titlePinyin: string;
+  /** Pinyin of description for search (lowercase, no spaces). */
+  descriptionPinyin: string;
   icon: DashboardLinkIcon;
+  group: DashboardLinkGroup;
   isPinned: boolean;
   clickCount: number;
 };
@@ -328,15 +344,27 @@ export async function getDashboardOverviewData(
 
   const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) => ({
     ...link,
+    titlePinyin: toSearchPinyin(link.title),
+    descriptionPinyin: toSearchPinyin(link.description),
+    group: getDashboardLinkGroup(link.slug),
     isPinned: pinnedSlugSet.has(link.slug),
     clickCount: clickStats[link.slug] ?? 0,
   }));
-  const pinnedLinks = dashboardLinks.filter((link) => link.isPinned);
+  const dashboardLinkBySlug = new Map(
+    dashboardLinks.map((link) => [link.slug, link] as const),
+  );
+  const pinnedLinks = pinRows.flatMap((row) => {
+    const link = dashboardLinkBySlug.get(row.slug);
+    return link ? [link] : [];
+  });
   const recommendedLinks = recommendDashboardLinks(clickStats, {
     limit: USTC_DASHBOARD_LINKS.length,
     excludeSlugs: Array.from(pinnedSlugSet),
   }).map((link) => ({
     ...link,
+    titlePinyin: toSearchPinyin(link.title),
+    descriptionPinyin: toSearchPinyin(link.description),
+    group: getDashboardLinkGroup(link.slug),
     isPinned: pinnedSlugSet.has(link.slug),
     clickCount: clickStats[link.slug] ?? 0,
   }));

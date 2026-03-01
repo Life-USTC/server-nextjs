@@ -388,11 +388,24 @@
     },
     "linkHub": {
       "title": "Recommended websites",
+      "searchPlaceholder": "Search by name or description…",
+      "searchShortcutHint": "Press ⌘K to focus search",
       "allSitesTab": "All websites",
       "overviewHint": "Overview shows 5 sites only: your pins first, then recommended ones.",
       "pin": "Pin",
       "unpin": "Unpin",
-      "credit": "Curated link set adapted with credit from "
+      "groups": {
+        "mostClicked": "Most clicked",
+        "study": "Study",
+        "life": "Life",
+        "tech": "Tech",
+        "classroom": "Classroom lookup",
+        "external": "External websites",
+        "graduate": "Graduate",
+        "leastClicked": "Least clicked"
+      },
+      "credit": "Some links are consolidated from ",
+      "creditSuffix": ", with thanks."
     }
   },
   "publicProfile": {
