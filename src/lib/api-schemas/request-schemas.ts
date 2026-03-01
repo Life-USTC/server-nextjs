@@ -253,6 +253,20 @@ export const sectionsCalendarQuerySchema = z.object({
   sectionIds: z.string().trim().min(1),
 });
 
+export const dashboardLinkVisitQuerySchema = z.object({
+  slug: z.string().trim().min(1),
+});
+
+export const dashboardLinkVisitRequestSchema = z.object({
+  slug: z.string().trim().min(1),
+});
+
+export const dashboardLinkPinRequestSchema = z.object({
+  slug: z.string().trim().min(1),
+  returnTo: z.string().trim().optional(),
+  action: z.enum(["pin", "unpin"]).optional(),
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });

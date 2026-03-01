@@ -10,6 +10,7 @@ import { CalendarPanel } from "./calendar-panel";
 import { ExamsPanel } from "./exams-panel";
 import { type HomeTabId, HomeTabNav } from "./home-tab-nav";
 import { HomeworksPanel } from "./homeworks-panel";
+import { LinksTabPanel } from "./links-tab-panel";
 import { OverviewPanel } from "./overview-panel";
 import { SubscriptionsPanel } from "./subscriptions-panel";
 
@@ -19,6 +20,7 @@ const VALID_TABS: HomeTabId[] = [
   "homeworks",
   "exams",
   "subscriptions",
+  "links",
 ];
 
 function parseTab(tab: string | undefined): HomeTabId {
@@ -91,6 +93,9 @@ export async function HomeView({
         )}
         {currentTab === "subscriptions" && subscriptionsData && (
           <SubscriptionsPanel data={subscriptionsData} />
+        )}
+        {currentTab === "links" && overviewData && (
+          <LinksTabPanel links={overviewData.dashboardLinks} />
         )}
       </section>
     </main>
