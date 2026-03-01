@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
 import { formatDuration, formatTime } from "@/lib/time-utils";
+import { DashboardLinksPanel } from "./dashboard-links-panel";
 
 export async function OverviewPanel({ data }: { data: OverviewData }) {
   const t = await getTranslations("meDashboard");
@@ -106,6 +107,11 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
           </CardPanel>
         </Card>
       )}
+
+      <DashboardLinksPanel
+        links={data.dashboardLinks}
+        recommendedLinks={data.recommendedLinks}
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         {hasToday ? (

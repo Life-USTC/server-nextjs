@@ -381,6 +381,13 @@
       "busiest": "Jump to busiest day",
       "busiestNoData": "No schedule data",
       "reset": "Clear override"
+    },
+    "linkHub": {
+      "title": "USTC Link Hub",
+      "recommendations": "Recommended for you",
+      "allLinks": "Popular links",
+      "clickCount": "{count} clicks",
+      "credit": "Curated link set adapted with credit from "
     }
   },
   "publicProfile": {
