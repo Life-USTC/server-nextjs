@@ -6,6 +6,7 @@ import {
 } from "@/lib/api-schemas/request-schemas";
 import { USTC_DASHBOARD_LINKS } from "@/lib/dashboard-links";
 import { prisma } from "@/lib/prisma";
+import { resolveRequestRelativeUrl } from "@/lib/request-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export async function GET(request: Request) {
     : null;
 
   if (!target) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(resolveRequestRelativeUrl("/", request));
   }
 
   return NextResponse.redirect(target.url);
@@ -53,7 +54,7 @@ export async function POST(request: Request) {
     : null;
 
   if (!target) {
-    return NextResponse.redirect(new URL("/", request.url), 303);
+    return NextResponse.redirect(resolveRequestRelativeUrl("/", request), 303);
   }
 
   const session = await auth();

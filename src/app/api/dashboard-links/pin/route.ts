@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { dashboardLinkPinRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { USTC_DASHBOARD_LINKS } from "@/lib/dashboard-links";
 import { prisma } from "@/lib/prisma";
+import { resolveRequestRelativeUrl } from "@/lib/request-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function POST(request: Request) {
   });
 
   if (!parsedBody.success) {
-    return NextResponse.redirect(new URL("/", request.url), 303);
+    return NextResponse.redirect(resolveRequestRelativeUrl("/", request), 303);
   }
 
   const { slug } = parsedBody.data;
@@ -38,14 +39,20 @@ export async function POST(request: Request) {
   const link = USTC_DASHBOARD_LINKS.find((item) => item.slug === slug);
 
   if (!link) {
-    return NextResponse.redirect(new URL(returnTo, request.url), 303);
+    return NextResponse.redirect(
+      resolveRequestRelativeUrl(returnTo, request),
+      303,
+    );
   }
 
   const session = await auth();
   const userId = session?.user?.id;
 
   if (!userId) {
-    return NextResponse.redirect(new URL(returnTo, request.url), 303);
+    return NextResponse.redirect(
+      resolveRequestRelativeUrl(returnTo, request),
+      303,
+    );
   }
 
   try {
@@ -87,5 +94,8 @@ export async function POST(request: Request) {
     });
   }
 
-  return NextResponse.redirect(new URL(returnTo, request.url), 303);
+  return NextResponse.redirect(
+    resolveRequestRelativeUrl(returnTo, request),
+    303,
+  );
 }
