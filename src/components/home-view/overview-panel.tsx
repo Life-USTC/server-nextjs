@@ -48,6 +48,11 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
   if (!hasCurrentTermSelection) {
     return (
       <div className="space-y-6">
+        <DashboardLinksPanel
+          links={data.dashboardLinks}
+          recommendedLinks={data.recommendedLinks}
+        />
+
         <Card className="border-warning/40">
           <CardHeader>
             <CardTitle>{t("termSelection.title")}</CardTitle>
