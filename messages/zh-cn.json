@@ -389,7 +389,7 @@
     "linkHub": {
       "title": "常用网站（推荐）",
       "searchPlaceholder": "搜索网站名称或描述…",
-      "searchShortcutHint": "按 ⌘K 聚焦搜索",
+      "searchShortcutHint": "按 Ctrl+K 或 ⌘K 聚焦搜索",
       "allSitesTab": "全部网站",
       "overviewHint": "总览仅展示 5 个网站：优先展示你的置顶，其余按推荐补齐。",
       "pin": "置顶",

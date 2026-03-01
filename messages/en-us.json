@@ -389,7 +389,7 @@
     "linkHub": {
       "title": "Recommended websites",
       "searchPlaceholder": "Search by name or description…",
-      "searchShortcutHint": "Press ⌘K to focus search",
+      "searchShortcutHint": "Press ⌘K or Ctrl+K to focus search",
       "allSitesTab": "All websites",
       "overviewHint": "Overview shows 5 sites only: your pins first, then recommended ones.",
       "pin": "Pin",

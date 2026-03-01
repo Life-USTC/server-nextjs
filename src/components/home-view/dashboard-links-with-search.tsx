@@ -157,22 +157,28 @@ export function DashboardLinksWithSearch({
                   key={link.slug}
                   className="group relative min-w-0 overflow-hidden rounded-lg border"
                 >
-                  <a
-                    href={`/api/dashboard-links/visit?slug=${encodeURIComponent(link.slug)}`}
+                  <form
+                    action="/api/dashboard-links/visit"
+                    method="post"
                     target="_blank"
-                    rel="noopener noreferrer"
-                    className="block min-h-28 p-2.5 no-underline transition-colors hover:bg-accent"
+                    rel="noopener"
                   >
-                    <div className="mb-1.5 flex items-start gap-1.5">
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                      <p className="line-clamp-2 font-medium text-sm">
-                        {link.title}
+                    <input type="hidden" name="slug" value={link.slug} />
+                    <button
+                      type="submit"
+                      className="block min-h-28 w-full p-2.5 text-left no-underline transition-colors hover:bg-accent"
+                    >
+                      <div className="mb-1.5 flex items-start gap-1.5">
+                        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                        <p className="line-clamp-2 font-medium text-sm">
+                          {link.title}
+                        </p>
+                      </div>
+                      <p className="line-clamp-2 text-muted-foreground text-xs">
+                        {link.description}
                       </p>
-                    </div>
-                    <p className="line-clamp-2 text-muted-foreground text-xs">
-                      {link.description}
-                    </p>
-                  </a>
+                    </button>
+                  </form>
                   <form
                     action="/api/dashboard-links/pin"
                     method="post"

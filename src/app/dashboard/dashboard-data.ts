@@ -140,6 +140,21 @@ export type DashboardLinkSummary = {
   clickCount: number;
 };
 
+function toDashboardLinkSummary(
+  link: (typeof USTC_DASHBOARD_LINKS)[number],
+  clickStats: Record<string, number>,
+  pinnedSlugSet: Set<string>,
+): DashboardLinkSummary {
+  return {
+    ...link,
+    titlePinyin: toSearchPinyin(link.title),
+    descriptionPinyin: toSearchPinyin(link.description),
+    group: getDashboardLinkGroup(link.slug),
+    isPinned: pinnedSlugSet.has(link.slug),
+    clickCount: clickStats[link.slug] ?? 0,
+  };
+}
+
 export type OverviewData = {
   user: { id: string; name: string | null; username: string | null };
   currentTermName: string;
@@ -337,19 +352,14 @@ export async function getDashboardOverviewData(
       orderBy: { createdAt: "asc" },
     }),
   ]);
-  const clickStats = Object.fromEntries(
+  const clickStats: Record<string, number> = Object.fromEntries(
     clickRows.map((row) => [row.slug, row.count]),
   );
   const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
 
-  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) => ({
-    ...link,
-    titlePinyin: toSearchPinyin(link.title),
-    descriptionPinyin: toSearchPinyin(link.description),
-    group: getDashboardLinkGroup(link.slug),
-    isPinned: pinnedSlugSet.has(link.slug),
-    clickCount: clickStats[link.slug] ?? 0,
-  }));
+  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) =>
+    toDashboardLinkSummary(link, clickStats, pinnedSlugSet),
+  );
   const dashboardLinkBySlug = new Map(
     dashboardLinks.map((link) => [link.slug, link] as const),
   );
@@ -360,14 +370,7 @@ export async function getDashboardOverviewData(
   const recommendedLinks = recommendDashboardLinks(clickStats, {
     limit: USTC_DASHBOARD_LINKS.length,
     excludeSlugs: Array.from(pinnedSlugSet),
-  }).map((link) => ({
-    ...link,
-    titlePinyin: toSearchPinyin(link.title),
-    descriptionPinyin: toSearchPinyin(link.description),
-    group: getDashboardLinkGroup(link.slug),
-    isPinned: pinnedSlugSet.has(link.slug),
-    clickCount: clickStats[link.slug] ?? 0,
-  }));
+  }).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
   const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(0, 5);
 
   return {
