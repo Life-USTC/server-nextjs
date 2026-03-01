@@ -4,12 +4,24 @@ export type DashboardLinkCategory =
   | "services"
   | "campus";
 
+export type DashboardLinkIcon =
+  | "book-open"
+  | "clipboard-list"
+  | "building"
+  | "graduation-cap"
+  | "mail"
+  | "monitor-play"
+  | "network"
+  | "school"
+  | "users";
+
 export type DashboardLinkItem = {
   slug: string;
   title: string;
   url: string;
   description: string;
   category: DashboardLinkCategory;
+  icon: DashboardLinkIcon;
 };
 
 /**
@@ -22,6 +34,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://jw.ustc.edu.cn/",
     description: "选课、成绩与教学事务。",
     category: "academic",
+    icon: "clipboard-list",
   },
   {
     slug: "icourse",
@@ -29,6 +42,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://icourse.club/",
     description: "课程评价与经验分享。",
     category: "community",
+    icon: "users",
   },
   {
     slug: "mail",
@@ -36,6 +50,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://mail.ustc.edu.cn/",
     description: "USTC 邮件系统。",
     category: "services",
+    icon: "mail",
   },
   {
     slug: "library",
@@ -43,6 +58,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "http://lib.ustc.edu.cn/",
     description: "图书检索与数据库资源。",
     category: "academic",
+    icon: "book-open",
   },
   {
     slug: "official",
@@ -50,6 +66,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://www.ustc.edu.cn/",
     description: "学校新闻与公告。",
     category: "campus",
+    icon: "school",
   },
   {
     slug: "course-platform",
@@ -57,6 +74,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://course.ustc.edu.cn/portal",
     description: "课程资料与在线学习。",
     category: "academic",
+    icon: "monitor-play",
   },
   {
     slug: "education-office",
@@ -64,6 +82,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://www.teach.ustc.edu.cn/",
     description: "教学管理与通知。",
     category: "services",
+    icon: "graduation-cap",
   },
   {
     slug: "nan7",
@@ -71,6 +90,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "https://nan7market.com/",
     description: "校园社区信息平台。",
     category: "community",
+    icon: "building",
   },
   {
     slug: "network",
@@ -78,6 +98,7 @@ export const USTC_DASHBOARD_LINKS: DashboardLinkItem[] = [
     url: "http://wlt.ustc.edu.cn/",
     description: "网络服务与套餐办理。",
     category: "services",
+    icon: "network",
   },
 ];
 
@@ -87,14 +108,25 @@ export type RecommendationStrategy = "frequency-v1";
 
 export function recommendDashboardLinks(
   clickStats: LinkClickStats,
-  strategy: RecommendationStrategy = "frequency-v1",
+  options: {
+    strategy?: RecommendationStrategy;
+    limit?: number;
+    excludeSlugs?: string[];
+  } = {},
 ): DashboardLinkItem[] {
+  const strategy = options.strategy ?? "frequency-v1";
+  const limit = options.limit ?? 3;
+  const excluded = new Set(options.excludeSlugs ?? []);
+  const candidateLinks = USTC_DASHBOARD_LINKS.filter(
+    (link) => !excluded.has(link.slug),
+  );
+
   // Keep strategy switch for future ML/personalization algorithms.
   if (strategy !== "frequency-v1") {
-    return USTC_DASHBOARD_LINKS.slice(0, 3);
+    return candidateLinks.slice(0, limit);
   }
 
-  return [...USTC_DASHBOARD_LINKS]
+  return [...candidateLinks]
     .sort((left, right) => {
       const rightCount = clickStats[right.slug] ?? 0;
       const leftCount = clickStats[left.slug] ?? 0;
@@ -103,5 +135,5 @@ export function recommendDashboardLinks(
       }
       return rightCount - leftCount;
     })
-    .slice(0, 3);
+    .slice(0, limit);
 }

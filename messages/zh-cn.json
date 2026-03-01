@@ -308,6 +308,10 @@
         "title": "考试",
         "description": "查看你已选课班级的考试安排",
         "empty": "暂时没有可用的考试安排。"
+      },
+      "links": {
+        "title": "网站导航",
+        "description": "浏览全部常用网站并管理置顶"
       }
     },
     "viewAll": "查看全部",
@@ -383,10 +387,11 @@
       "reset": "清除调试日期"
     },
     "linkHub": {
-      "title": "USTC 常用链接",
-      "recommendations": "为你推荐",
-      "allLinks": "热门链接",
-      "clickCount": "已点击 {count} 次",
+      "title": "常用网站（推荐）",
+      "allSitesTab": "全部网站",
+      "overviewHint": "总览仅展示 5 个网站：优先展示你的置顶，其余按推荐补齐。",
+      "pin": "置顶",
+      "unpin": "取消置顶",
       "credit": "链接集合改编并致谢 "
     }
   },

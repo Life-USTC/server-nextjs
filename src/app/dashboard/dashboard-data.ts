@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
 import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
+import type { DashboardLinkIcon } from "@/lib/dashboard-links";
 import {
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
@@ -118,6 +119,8 @@ export type DashboardLinkSummary = {
   title: string;
   url: string;
   description: string;
+  icon: DashboardLinkIcon;
+  isPinned: boolean;
   clickCount: number;
 };
 
@@ -153,6 +156,8 @@ export type OverviewData = {
   semesterHomeworks: HomeworkWithSection[];
   dashboardLinks: DashboardLinkSummary[];
   recommendedLinks: DashboardLinkSummary[];
+  pinnedLinks: DashboardLinkSummary[];
+  overviewLinks: DashboardLinkSummary[];
 };
 
 export async function getDashboardOverviewData(
@@ -305,21 +310,37 @@ export async function getDashboardOverviewData(
         })
       : [];
 
-  const clickRows = await basePrisma.dashboardLinkClick.findMany({
-    where: { userId },
-    select: { slug: true, count: true },
-  });
+  const [clickRows, pinRows] = await Promise.all([
+    basePrisma.dashboardLinkClick.findMany({
+      where: { userId },
+      select: { slug: true, count: true },
+    }),
+    basePrisma.dashboardLinkPin.findMany({
+      where: { userId },
+      select: { slug: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
   const clickStats = Object.fromEntries(
     clickRows.map((row) => [row.slug, row.count]),
   );
+  const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
+
   const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) => ({
     ...link,
+    isPinned: pinnedSlugSet.has(link.slug),
     clickCount: clickStats[link.slug] ?? 0,
   }));
-  const recommendedLinks = recommendDashboardLinks(clickStats).map((link) => ({
+  const pinnedLinks = dashboardLinks.filter((link) => link.isPinned);
+  const recommendedLinks = recommendDashboardLinks(clickStats, {
+    limit: USTC_DASHBOARD_LINKS.length,
+    excludeSlugs: Array.from(pinnedSlugSet),
+  }).map((link) => ({
     ...link,
+    isPinned: pinnedSlugSet.has(link.slug),
     clickCount: clickStats[link.slug] ?? 0,
   }));
+  const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(0, 5);
 
   return {
     user: {
@@ -354,6 +375,8 @@ export async function getDashboardOverviewData(
     semesterHomeworks,
     dashboardLinks,
     recommendedLinks,
+    pinnedLinks,
+    overviewLinks,
   };
 }
 

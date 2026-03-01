@@ -48,10 +48,7 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
   if (!hasCurrentTermSelection) {
     return (
       <div className="space-y-6">
-        <DashboardLinksPanel
-          links={data.dashboardLinks}
-          recommendedLinks={data.recommendedLinks}
-        />
+        <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
 
         <Card className="border-warning/40">
           <CardHeader>
@@ -113,10 +110,7 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
         </Card>
       )}
 
-      <DashboardLinksPanel
-        links={data.dashboardLinks}
-        recommendedLinks={data.recommendedLinks}
-      />
+      <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
 
       <div className="grid gap-4 md:grid-cols-2">
         {hasToday ? (

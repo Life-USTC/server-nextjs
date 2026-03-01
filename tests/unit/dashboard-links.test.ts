@@ -26,4 +26,18 @@ describe("dashboard link recommendations", () => {
       ),
     ).toBe(true);
   });
+
+  it("supports exclude slugs and custom limit", () => {
+    const result = recommendDashboardLinks(
+      {
+        jw: 10,
+        library: 7,
+        mail: 6,
+        official: 2,
+      },
+      { excludeSlugs: ["jw", "library"], limit: 2 },
+    );
+
+    expect(result.map((item) => item.slug)).toEqual(["mail", "official"]);
+  });
 });

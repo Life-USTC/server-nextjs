@@ -4,6 +4,7 @@ import {
   CalendarDays,
   GraduationCap,
   LayoutDashboard,
+  Link2,
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
@@ -14,7 +15,8 @@ export type HomeTabId =
   | "calendar"
   | "homeworks"
   | "exams"
-  | "subscriptions";
+  | "subscriptions"
+  | "links";
 
 const TAB_IDS: HomeTabId[] = [
   "overview",
@@ -22,6 +24,7 @@ const TAB_IDS: HomeTabId[] = [
   "homeworks",
   "exams",
   "subscriptions",
+  "links",
 ];
 
 export async function HomeTabNav({
@@ -42,6 +45,7 @@ export async function HomeTabNav({
     homeworks: t("homeworks.title"),
     exams: t("exams.title"),
     subscriptions: t("subscriptions.title"),
+    links: t("links.title"),
   };
   const tabIcons: Record<HomeTabId, typeof LayoutDashboard> = {
     overview: LayoutDashboard,
@@ -49,6 +53,7 @@ export async function HomeTabNav({
     homeworks: BookOpenCheck,
     exams: GraduationCap,
     subscriptions: BookOpen,
+    links: Link2,
   };
 
   return (

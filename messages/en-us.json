@@ -308,6 +308,10 @@
         "title": "Exams",
         "description": "View your selected section exam schedule",
         "empty": "No exam schedule available yet."
+      },
+      "links": {
+        "title": "Websites",
+        "description": "Browse all sites and manage your pins"
       }
     },
     "viewAll": "View all",
@@ -383,10 +387,11 @@
       "reset": "Clear override"
     },
     "linkHub": {
-      "title": "USTC Link Hub",
-      "recommendations": "Recommended for you",
-      "allLinks": "Popular links",
-      "clickCount": "{count} clicks",
+      "title": "Recommended websites",
+      "allSitesTab": "All websites",
+      "overviewHint": "Overview shows 5 sites only: your pins first, then recommended ones.",
+      "pin": "Pin",
+      "unpin": "Unpin",
       "credit": "Curated link set adapted with credit from "
     }
   },

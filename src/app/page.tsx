@@ -46,7 +46,7 @@ export default async function Homepage({
     const [navStats, overviewData, homeworksData, subscriptionsData] =
       await Promise.all([
         getDashboardNavStats(session.user.id, debugOptions),
-        tab === "overview" || tab === "calendar"
+        tab === "overview" || tab === "calendar" || tab === "links"
           ? getDashboardOverviewData(session.user.id, debugOptions)
           : Promise.resolve(null),
         tab === "homeworks"

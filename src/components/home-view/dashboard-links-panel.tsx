@@ -1,76 +1,103 @@
-import { ExternalLink, Sparkles } from "lucide-react";
+import {
+  BookOpen,
+  Building,
+  ClipboardList,
+  GraduationCap,
+  Mail,
+  MonitorPlay,
+  Network,
+  Pin,
+  School,
+  Users,
+} from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import type { DashboardLinkIcon } from "@/lib/dashboard-links";
+
+type PanelVariant = "overview" | "all";
+
+const ICON_MAP: Record<DashboardLinkIcon, typeof BookOpen> = {
+  "book-open": BookOpen,
+  building: Building,
+  "clipboard-list": ClipboardList,
+  "graduation-cap": GraduationCap,
+  mail: Mail,
+  "monitor-play": MonitorPlay,
+  network: Network,
+  school: School,
+  users: Users,
+};
 
 export async function DashboardLinksPanel({
   links,
-  recommendedLinks,
+  variant,
 }: {
   links: DashboardLinkSummary[];
-  recommendedLinks: DashboardLinkSummary[];
+  variant: PanelVariant;
 }) {
   const t = await getTranslations("meDashboard");
+  const isAllTab = variant === "all";
+  const returnTo = isAllTab ? "/?tab=links" : "/";
 
   return (
     <Card>
       <CardHeader className="pb-0">
-        <CardTitle>{t("linkHub.title")}</CardTitle>
+        <CardTitle>
+          {isAllTab ? t("linkHub.allSitesTab") : t("linkHub.title")}
+        </CardTitle>
       </CardHeader>
       <CardPanel className="space-y-4">
-        <div>
-          <p className="mb-2 flex items-center gap-2 font-medium text-sm">
-            <Sparkles className="h-4 w-4 text-primary" />
-            {t("linkHub.recommendations")}
+        {!isAllTab && (
+          <p className="text-muted-foreground text-sm">
+            {t("linkHub.overviewHint")}
           </p>
-          <div className="grid gap-2 md:grid-cols-3">
-            {recommendedLinks.map((link) => (
-              <a
-                key={`recommended-${link.slug}`}
-                href={`/api/dashboard-links/visit?slug=${encodeURIComponent(link.slug)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border p-3 no-underline transition-colors hover:bg-accent"
-              >
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <p className="truncate font-medium text-sm">{link.title}</p>
-                  <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                </div>
-                <p className="line-clamp-2 text-muted-foreground text-xs">
-                  {link.description}
-                </p>
-                <p className="mt-2 text-primary text-xs">
-                  {t("linkHub.clickCount", { count: link.clickCount })}
-                </p>
-              </a>
-            ))}
-          </div>
-        </div>
+        )}
 
-        <div>
-          <p className="mb-2 font-medium text-sm">{t("linkHub.allLinks")}</p>
-          <div className="grid gap-2 md:grid-cols-2">
-            {links.map((link) => (
-              <a
-                key={link.slug}
-                href={`/api/dashboard-links/visit?slug=${encodeURIComponent(link.slug)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start justify-between gap-3 rounded-md border p-3 no-underline transition-colors hover:bg-accent"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium text-sm">{link.title}</p>
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+          {links.map((link) => {
+            const Icon = ICON_MAP[link.icon];
+            return (
+              <div key={link.slug} className="border">
+                <a
+                  href={`/api/dashboard-links/visit?slug=${encodeURIComponent(link.slug)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block h-full p-3 no-underline transition-colors hover:bg-accent"
+                >
+                  <div className="mb-2 flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-primary" />
+                    <p className="truncate font-medium text-sm">{link.title}</p>
+                    {link.isPinned && (
+                      <Pin className="ml-auto h-3.5 w-3.5 text-primary" />
+                    )}
+                  </div>
                   <p className="line-clamp-2 text-muted-foreground text-xs">
                     {link.description}
                   </p>
-                </div>
-                <Badge variant="secondary" className="shrink-0">
-                  {link.clickCount}
-                </Badge>
-              </a>
-            ))}
-          </div>
+                </a>
+                <form
+                  action="/api/dashboard-links/pin"
+                  method="post"
+                  className="border-t"
+                >
+                  <input type="hidden" name="slug" value={link.slug} />
+                  <input type="hidden" name="returnTo" value={returnTo} />
+                  <input
+                    type="hidden"
+                    name="action"
+                    value={link.isPinned ? "unpin" : "pin"}
+                  />
+                  <button
+                    type="submit"
+                    className="w-full px-3 py-2 text-left text-muted-foreground text-xs transition-colors hover:bg-accent"
+                  >
+                    {link.isPinned ? t("linkHub.unpin") : t("linkHub.pin")}
+                  </button>
+                </form>
+              </div>
+            );
+          })}
         </div>
 
         <p className="text-muted-foreground text-xs">
@@ -83,7 +110,7 @@ export async function DashboardLinksPanel({
           >
             SmartHypercube/ustclife
           </a>
-          .
+          。
         </p>
       </CardPanel>
     </Card>
