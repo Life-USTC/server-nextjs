@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
 import { formatDuration, formatTime } from "@/lib/time-utils";
+import { DashboardLinksPanel } from "./dashboard-links-panel";
 
 export async function OverviewPanel({ data }: { data: OverviewData }) {
   const t = await getTranslations("meDashboard");
@@ -47,6 +48,8 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
   if (!hasCurrentTermSelection) {
     return (
       <div className="space-y-6">
+        <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
+
         <Card className="border-warning/40">
           <CardHeader>
             <CardTitle>{t("termSelection.title")}</CardTitle>
@@ -106,6 +109,8 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
           </CardPanel>
         </Card>
       )}
+
+      <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
 
       <div className="grid gap-4 md:grid-cols-2">
         {hasToday ? (
