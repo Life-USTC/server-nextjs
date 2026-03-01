@@ -19,7 +19,7 @@ describe("current-semester helpers", () => {
     });
   });
 
-  it("prefers latest started unfinished semester", () => {
+  it("prefers first unfinished semester", () => {
     const referenceDate = new Date("2026-03-15T00:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -42,7 +42,7 @@ describe("current-semester helpers", () => {
     expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(2);
   });
 
-  it("falls back to nearest unfinished future semester", () => {
+  it("falls back to earliest unfinished future semester", () => {
     const referenceDate = new Date("2026-01-01T00:00:00.000Z");
     const semesters: SemesterLike[] = [
       {
@@ -58,7 +58,27 @@ describe("current-semester helpers", () => {
     ];
 
     expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(
-      11,
+      10,
+    );
+  });
+
+  it("falls back to latest semester when all semesters are finished", () => {
+    const referenceDate = new Date("2026-02-01T12:00:00.000Z");
+    const semesters: SemesterLike[] = [
+      {
+        id: 20,
+        startDate: new Date("2024-09-01T00:00:00.000Z"),
+        endDate: new Date("2025-01-31T23:59:59.000Z"),
+      },
+      {
+        id: 21,
+        startDate: new Date("2025-02-01T00:00:00.000Z"),
+        endDate: new Date("2025-06-30T23:59:59.000Z"),
+      },
+    ];
+
+    expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(
+      21,
     );
   });
 });
