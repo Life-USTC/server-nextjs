@@ -114,11 +114,16 @@ export async function getDashboardNavStats(
           // Unknown exam date is treated as "upcoming" to match exams tab default filter.
           { examDate: null },
           // Any date after today is upcoming.
-          { examDate: { gt: todayStart.toDate() } },
+          { examDate: { gte: tomorrowStart.toDate() } },
           // For today's exams, compare against exam end/start time.
           {
             AND: [
-              { examDate: { equals: todayStart.toDate() } },
+              {
+                examDate: {
+                  gte: todayStart.toDate(),
+                  lt: tomorrowStart.toDate(),
+                },
+              },
               {
                 OR: [
                   // If no time is provided, treat it as end-of-day (still upcoming for today).

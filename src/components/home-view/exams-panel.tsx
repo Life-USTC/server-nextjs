@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
 import type { SubscriptionsTabData } from "@/app/dashboard/dashboard-data";
 import { ExamsList } from "@/components/home-view/exams-list";
@@ -28,7 +29,9 @@ export async function ExamsPanel({ data }: { data: SubscriptionsTabData }) {
         sectionJwId: section.jwId,
         sectionCode: section.code,
         courseName: section.course?.namePrimary ?? null,
-        examDate: exam.examDate?.toISOString() ?? null,
+        examDate: exam.examDate
+          ? dayjs(exam.examDate).format("YYYY-MM-DD")
+          : null,
         startTime: exam.startTime,
         endTime: exam.endTime,
         examMode: exam.examMode,
@@ -43,8 +46,7 @@ export async function ExamsPanel({ data }: { data: SubscriptionsTabData }) {
 
   exams.sort((a, b) => {
     if (a.examDate && b.examDate) {
-      const dateDiff =
-        new Date(a.examDate).getTime() - new Date(b.examDate).getTime();
+      const dateDiff = a.examDate.localeCompare(b.examDate);
       if (dateDiff !== 0) return dateDiff;
       return (
         (a.startTime ?? Number.MAX_SAFE_INTEGER) -
