@@ -82,26 +82,102 @@ function filterGroupedBySearch(
     .filter((entry) => entry.links.length > 0);
 }
 
+function getInitialPinnedSlugSet(
+  groupedLinks: GroupedLinksEntry[],
+): Set<string> {
+  return new Set(
+    groupedLinks.flatMap((entry) =>
+      entry.links.filter((link) => link.isPinned).map((link) => link.slug),
+    ),
+  );
+}
+
 export function DashboardLinksWithSearch({
   groupedLinks,
-  returnTo,
   children,
   showSearch = false,
 }: {
   groupedLinks: GroupedLinksEntry[];
-  returnTo: string;
   children?: React.ReactNode;
   showSearch?: boolean;
 }) {
   const t = useTranslations("meDashboard");
   const [searchQuery, setSearchQuery] = useState("");
+  const [pinnedSlugSet, setPinnedSlugSet] = useState<Set<string>>(() =>
+    getInitialPinnedSlugSet(groupedLinks),
+  );
+  const [pendingSlugSet, setPendingSlugSet] = useState<Set<string>>(
+    () => new Set(),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filteredGroups = filterGroupedBySearch(groupedLinks, searchQuery);
+  useEffect(() => {
+    setPinnedSlugSet(getInitialPinnedSlugSet(groupedLinks));
+  }, [groupedLinks]);
+
+  const groupedLinksWithPinnedState = groupedLinks.map((entry) => ({
+    ...entry,
+    links: entry.links.map((link) => ({
+      ...link,
+      isPinned: pinnedSlugSet.has(link.slug),
+    })),
+  }));
+
+  const filteredGroups = filterGroupedBySearch(
+    groupedLinksWithPinnedState,
+    searchQuery,
+  );
 
   const focusSearch = useCallback(() => {
     inputRef.current?.focus();
   }, []);
+
+  const onPinToggle = useCallback(
+    async (slug: string, currentlyPinned: boolean) => {
+      if (pendingSlugSet.has(slug)) return;
+
+      setPendingSlugSet((prev) => {
+        const next = new Set(prev);
+        next.add(slug);
+        return next;
+      });
+
+      try {
+        const response = await fetch("/api/dashboard-links/pin", {
+          method: "POST",
+          headers: {
+            "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+          },
+          body: new URLSearchParams({
+            slug,
+            action: currentlyPinned ? "unpin" : "pin",
+          }),
+        });
+
+        if (!response.ok) return;
+
+        const data = (await response.json()) as { isPinned?: boolean };
+        if (typeof data.isPinned !== "boolean") return;
+
+        setPinnedSlugSet((prev) => {
+          const next = new Set(prev);
+          if (data.isPinned) {
+            next.add(slug);
+          } else {
+            next.delete(slug);
+          }
+          return next;
+        });
+      } finally {
+        setPendingSlugSet((prev) => {
+          const next = new Set(prev);
+          next.delete(slug);
+          return next;
+        });
+      }
+    },
+    [pendingSlugSet],
+  );
 
   useEffect(() => {
     if (!showSearch) return;
@@ -152,6 +228,7 @@ export function DashboardLinksWithSearch({
               const pinLabel = link.isPinned
                 ? t("linkHub.unpin")
                 : t("linkHub.pin");
+              const isPending = pendingSlugSet.has(link.slug);
               return (
                 <div
                   key={link.slug}
@@ -179,29 +256,20 @@ export function DashboardLinksWithSearch({
                       </p>
                     </button>
                   </form>
-                  <form
-                    action="/api/dashboard-links/pin"
-                    method="post"
-                    className="pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"
-                  >
-                    <input type="hidden" name="slug" value={link.slug} />
-                    <input type="hidden" name="returnTo" value={returnTo} />
-                    <input
-                      type="hidden"
-                      name="action"
-                      value={link.isPinned ? "unpin" : "pin"}
-                    />
+                  <div className="pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100">
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={() => onPinToggle(link.slug, link.isPinned)}
+                      disabled={isPending}
                       aria-label={pinLabel}
                       title={pinLabel}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-card/95 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-card/95 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Pin
                         className={`h-4 w-4 ${link.isPinned ? "fill-current text-primary" : ""}`}
                       />
                     </button>
-                  </form>
+                  </div>
                 </div>
               );
             })}

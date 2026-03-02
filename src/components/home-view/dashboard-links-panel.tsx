@@ -28,7 +28,6 @@ export async function DashboardLinksPanel({
 }) {
   const t = await getTranslations("meDashboard");
   const isAllTab = variant === "all";
-  const returnTo = isAllTab ? "/?tab=links" : "/";
   const groupedLinks = isAllTab
     ? DASHBOARD_LINK_GROUP_ORDER.map((group) => ({
         group,
@@ -44,11 +43,7 @@ export async function DashboardLinksPanel({
       ];
 
   return (
-    <DashboardLinksWithSearch
-      groupedLinks={groupedLinks}
-      returnTo={returnTo}
-      showSearch={isAllTab}
-    >
+    <DashboardLinksWithSearch groupedLinks={groupedLinks} showSearch={isAllTab}>
       {isAllTab && (
         <p className="text-muted-foreground text-xs">
           {t("linkHub.credit")}

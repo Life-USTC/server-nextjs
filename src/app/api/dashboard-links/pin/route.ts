@@ -3,56 +3,43 @@ import { auth } from "@/auth";
 import { dashboardLinkPinRequestSchema } from "@/lib/api-schemas/request-schemas";
 import { USTC_DASHBOARD_LINKS } from "@/lib/dashboard-links";
 import { prisma } from "@/lib/prisma";
-import { resolveRequestRelativeUrl } from "@/lib/request-origin";
 
 export const dynamic = "force-dynamic";
 
 const MAX_PINNED_LINKS = 5;
 
-function sanitizeReturnTo(value: string | undefined): string {
-  if (!value || !value.startsWith("/")) return "/";
-  if (value.startsWith("//")) return "/";
-  if (/[\\\r\n]/.test(value)) return "/";
-  return value;
-}
-
 /**
  * Pin or unpin one dashboard link for the current user.
  * @body dashboardLinkPinRequestSchema
- * @response 303
+ * @response 200
  */
 export async function POST(request: Request) {
   const formData = await request.formData();
   const parsedBody = dashboardLinkPinRequestSchema.safeParse({
     slug: formData.get("slug"),
-    returnTo: formData.get("returnTo"),
     action: formData.get("action"),
   });
 
   if (!parsedBody.success) {
-    return NextResponse.redirect(resolveRequestRelativeUrl("/", request), 303);
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   const { slug } = parsedBody.data;
-  const returnTo = sanitizeReturnTo(parsedBody.data.returnTo);
   const action = parsedBody.data.action === "unpin" ? "unpin" : "pin";
   const link = USTC_DASHBOARD_LINKS.find((item) => item.slug === slug);
 
   if (!link) {
-    return NextResponse.redirect(
-      resolveRequestRelativeUrl(returnTo, request),
-      303,
-    );
+    return NextResponse.json({ error: "Link not found" }, { status: 404 });
   }
 
   const session = await auth();
   const userId = session?.user?.id;
 
   if (!userId) {
-    return NextResponse.redirect(
-      resolveRequestRelativeUrl(returnTo, request),
-      303,
-    );
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -92,10 +79,11 @@ export async function POST(request: Request) {
       action,
       error,
     });
+    return NextResponse.json(
+      { error: "Failed to update dashboard link pin state" },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.redirect(
-    resolveRequestRelativeUrl(returnTo, request),
-    303,
-  );
+  return NextResponse.json({ ok: true, slug, isPinned: action === "pin" });
 }
