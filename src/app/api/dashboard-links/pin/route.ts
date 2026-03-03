@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 
 const MAX_PINNED_LINKS = 5;
 
+type PinApiResponse = {
+  pinnedSlugs: string[];
+  maxPinnedLinks: number;
+};
+
 function sanitizeReturnTo(value: string | undefined): string {
   if (!value || !value.startsWith("/")) return "/";
   if (value.startsWith("//")) return "/";
@@ -21,6 +26,8 @@ function sanitizeReturnTo(value: string | undefined): string {
  * @response 303
  */
 export async function POST(request: Request) {
+  const wantsJson =
+    request.headers.get("accept")?.includes("application/json") ?? false;
   const formData = await request.formData();
   const parsedBody = dashboardLinkPinRequestSchema.safeParse({
     slug: formData.get("slug"),
@@ -29,6 +36,12 @@ export async function POST(request: Request) {
   });
 
   if (!parsedBody.success) {
+    if (wantsJson) {
+      return NextResponse.json<PinApiResponse>(
+        { pinnedSlugs: [], maxPinnedLinks: MAX_PINNED_LINKS },
+        { status: 400 },
+      );
+    }
     return NextResponse.redirect(new URL("/", request.url), 303);
   }
 
@@ -38,6 +51,12 @@ export async function POST(request: Request) {
   const link = USTC_DASHBOARD_LINKS.find((item) => item.slug === slug);
 
   if (!link) {
+    if (wantsJson) {
+      return NextResponse.json<PinApiResponse>({
+        pinnedSlugs: [],
+        maxPinnedLinks: MAX_PINNED_LINKS,
+      });
+    }
     return NextResponse.redirect(new URL(returnTo, request.url), 303);
   }
 
@@ -45,12 +64,20 @@ export async function POST(request: Request) {
   const userId = session?.user?.id;
 
   if (!userId) {
+    if (wantsJson) {
+      return NextResponse.json<PinApiResponse>(
+        { pinnedSlugs: [], maxPinnedLinks: MAX_PINNED_LINKS },
+        { status: 401 },
+      );
+    }
     return NextResponse.redirect(new URL(returnTo, request.url), 303);
   }
 
+  let pinnedSlugs: string[] = [];
+
   try {
     if (action === "pin") {
-      await prisma.$transaction(async (tx) => {
+      pinnedSlugs = await prisma.$transaction(async (tx) => {
         await tx.dashboardLinkPin.upsert({
           where: { userId_slug: { userId, slug } },
           create: { userId, slug },
@@ -72,11 +99,23 @@ export async function POST(request: Request) {
             },
           });
         }
+
+        const finalRows = await tx.dashboardLinkPin.findMany({
+          where: { userId },
+          select: { slug: true },
+        });
+        return finalRows.map((row) => row.slug);
       });
     } else {
       await prisma.dashboardLinkPin.deleteMany({
         where: { userId, slug },
       });
+
+      const finalRows = await prisma.dashboardLinkPin.findMany({
+        where: { userId },
+        select: { slug: true },
+      });
+      pinnedSlugs = finalRows.map((row) => row.slug);
     }
   } catch (error) {
     console.error("Failed to update dashboard link pin state", {
@@ -84,6 +123,19 @@ export async function POST(request: Request) {
       slug,
       action,
       error,
+    });
+
+    const fallbackRows = await prisma.dashboardLinkPin.findMany({
+      where: { userId },
+      select: { slug: true },
+    });
+    pinnedSlugs = fallbackRows.map((row) => row.slug);
+  }
+
+  if (wantsJson) {
+    return NextResponse.json<PinApiResponse>({
+      pinnedSlugs,
+      maxPinnedLinks: MAX_PINNED_LINKS,
     });
   }
 
