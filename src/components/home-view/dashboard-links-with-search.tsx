@@ -95,9 +95,54 @@ export function DashboardLinksWithSearch({
 }) {
   const t = useTranslations("meDashboard");
   const [searchQuery, setSearchQuery] = useState("");
+  const [linksState, setLinksState] = useState(groupedLinks);
+  const [updatingSlug, setUpdatingSlug] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const filteredGroups = filterGroupedBySearch(groupedLinks, searchQuery);
+  useEffect(() => {
+    setLinksState(groupedLinks);
+  }, [groupedLinks]);
+
+  const filteredGroups = filterGroupedBySearch(linksState, searchQuery);
+
+  const handlePinSubmit = useCallback(
+    async (slug: string, nextAction: "pin" | "unpin") => {
+      setUpdatingSlug(slug);
+      try {
+        const formData = new FormData();
+        formData.set("slug", slug);
+        formData.set("action", nextAction);
+        formData.set("returnTo", returnTo);
+
+        const response = await fetch("/api/dashboard-links/pin", {
+          method: "POST",
+          body: formData,
+          headers: {
+            accept: "application/json",
+          },
+        });
+
+        if (!response.ok) return;
+        const data = (await response.json()) as {
+          pinnedSlugs?: string[];
+        };
+        const pinnedSlugs = new Set(data.pinnedSlugs ?? []);
+
+        setLinksState((previous) =>
+          previous.map((entry) => ({
+            ...entry,
+            links: entry.links.map((link) => ({
+              ...link,
+              isPinned: pinnedSlugs.has(link.slug),
+            })),
+          })),
+        );
+      } finally {
+        setUpdatingSlug(null);
+      }
+    },
+    [returnTo],
+  );
 
   const focusSearch = useCallback(() => {
     inputRef.current?.focus();
@@ -182,7 +227,14 @@ export function DashboardLinksWithSearch({
                   <form
                     action="/api/dashboard-links/pin"
                     method="post"
-                    className="pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void handlePinSubmit(
+                        link.slug,
+                        link.isPinned ? "unpin" : "pin",
+                      );
+                    }}
+                    className={`pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"}`}
                   >
                     <input type="hidden" name="slug" value={link.slug} />
                     <input type="hidden" name="returnTo" value={returnTo} />
@@ -193,9 +245,10 @@ export function DashboardLinksWithSearch({
                     />
                     <button
                       type="submit"
+                      disabled={updatingSlug === link.slug}
                       aria-label={pinLabel}
                       title={pinLabel}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-card/95 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-card/95 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Pin
                         className={`h-4 w-4 ${link.isPinned ? "fill-current text-primary" : ""}`}
