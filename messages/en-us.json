@@ -307,7 +307,11 @@
       "exams": {
         "title": "Exams",
         "description": "View your selected section exam schedule",
-        "empty": "No exam schedule available yet."
+        "empty": "No exam schedule available yet.",
+        "filterIncomplete": "Upcoming",
+        "filterCompleted": "Ended",
+        "filterAll": "All",
+        "filterEmpty": "No exams under this filter"
       },
       "links": {
         "title": "Websites",

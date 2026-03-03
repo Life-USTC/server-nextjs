@@ -64,6 +64,7 @@ export async function getDashboardNavStats(
     : baseNow;
   const todayStart = referenceNow.startOf("day");
   const tomorrowStart = todayStart.add(1, "day");
+  const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
 
   const user = await basePrisma.user.findUnique({
     where: { id: userId },
@@ -107,7 +108,36 @@ export async function getDashboardNavStats(
       },
     }),
     basePrisma.exam.count({
-      where: { sectionId: { in: sectionIds } },
+      where: {
+        sectionId: { in: sectionIds },
+        OR: [
+          // Unknown exam date is treated as "upcoming" to match exams tab default filter.
+          { examDate: null },
+          // Any date after today is upcoming.
+          { examDate: { gte: tomorrowStart.toDate() } },
+          // For today's exams, compare against exam end/start time.
+          {
+            AND: [
+              {
+                examDate: {
+                  gte: todayStart.toDate(),
+                  lt: tomorrowStart.toDate(),
+                },
+              },
+              {
+                OR: [
+                  // If no time is provided, treat it as end-of-day (still upcoming for today).
+                  { endTime: null, startTime: null },
+                  // Prefer endTime when available.
+                  { endTime: { gte: nowHHmm } },
+                  // Fallback to startTime when endTime is missing.
+                  { endTime: null, startTime: { gte: nowHHmm } },
+                ],
+              },
+            ],
+          },
+        ],
+      },
     }),
   ]);
 
