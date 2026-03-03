@@ -1,3 +1,10 @@
+# [0.39.0](https://github.com/Life-USTC/server-nextjs/compare/v0.38.0...v0.39.0) (2026-03-03)
+
+
+### Features
+
+* **home:** add exam filters (Upcoming/Ended/All) on Exams tab ([#15](https://github.com/Life-USTC/server-nextjs/issues/15)) ([4ddf060](https://github.com/Life-USTC/server-nextjs/commit/4ddf060e13534789402f6e2a99e63512b45ad188))
+
 # [0.38.0](https://github.com/Life-USTC/server-nextjs/compare/v0.37.1...v0.38.0) (2026-02-28)
 
 
