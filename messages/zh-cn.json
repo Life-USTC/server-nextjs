@@ -307,7 +307,11 @@
       "exams": {
         "title": "考试",
         "description": "查看你已选课班级的考试安排",
-        "empty": "暂时没有可用的考试安排。"
+        "empty": "暂时没有可用的考试安排。",
+        "filterIncomplete": "未结束",
+        "filterCompleted": "已结束",
+        "filterAll": "全部",
+        "filterEmpty": "当前筛选下暂无考试"
       },
       "links": {
         "title": "网站导航",
