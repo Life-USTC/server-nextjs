@@ -9,7 +9,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { requireSignedInUserId } from "@/lib/auth-helpers";
+import { requireSignedInUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
 

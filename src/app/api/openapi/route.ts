@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
+import { handleRouteError } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
 

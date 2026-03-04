@@ -1,6 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
@@ -8,11 +9,10 @@ import {
   parseOptionalInt,
   payloadTooLarge,
   unauthorized,
-} from "@/lib/api-helpers";
-import { uploadCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
-import { buildUploadKey, getS3SignedUrl, s3Bucket } from "@/lib/storage";
-import { uploadConfig } from "@/lib/upload-config";
+} from "@/lib/api/helpers";
+import { uploadCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
+import { buildUploadKey, getS3SignedUrl, s3Bucket } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
 

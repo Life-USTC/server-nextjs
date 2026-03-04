@@ -41,8 +41,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
-import { adminUserResponseSchema } from "@/lib/api-schemas";
+import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
+import { adminUserResponseSchema } from "@/lib/api/schemas";
 
 type AdminUser = {
   id: string;

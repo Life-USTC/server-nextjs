@@ -6,9 +6,9 @@ import {
   getPagination,
   handleRouteError,
   unauthorized,
-} from "@/lib/api-helpers";
-import { adminUsersQuerySchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/helpers";
+import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

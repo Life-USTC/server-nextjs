@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
-import { CommentMarkdown } from "@/components/comments/comment-markdown";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("commentsGuide");

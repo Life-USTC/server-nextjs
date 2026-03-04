@@ -4,9 +4,9 @@ import {
   invalidParamResponse,
   notFound,
   parseInteger,
-} from "@/lib/api-helpers";
-import { jwIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/helpers";
+import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 import { sectionInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";

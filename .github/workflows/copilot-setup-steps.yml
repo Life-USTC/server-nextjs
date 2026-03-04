@@ -1,0 +1,63 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  # The job name must be exactly `copilot-setup-steps`
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 59
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: life_ustc_copilot
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Configure local defaults for Copilot agent
+        run: |
+          echo "DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_copilot" >> "$GITHUB_ENV"
+          echo "JWT_SECRET=copilot-local-secret" >> "$GITHUB_ENV"
+          echo "WEBHOOK_SECRET=copilot-local-secret" >> "$GITHUB_ENV"
+          echo "AUTH_SECRET=copilot-local-secret" >> "$GITHUB_ENV"
+          echo "E2E_MOCK_S3=1" >> "$GITHUB_ENV"
+
+      - name: Apply Prisma migrations
+        run: bunx prisma migrate deploy
+
+      - name: Generate client and OpenAPI artifacts
+        run: bun run prebuild

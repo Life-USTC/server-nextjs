@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 export async function updateProfile(formData: FormData) {
   const session = await auth();

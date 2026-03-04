@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
 

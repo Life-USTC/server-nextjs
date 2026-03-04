@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 type ScheduleSessionLinkProps = {
   href: string;

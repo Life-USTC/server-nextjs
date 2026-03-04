@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError, notFound, unauthorized } from "@/lib/api-helpers";
-import { adminCreateSuspensionRequestSchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+import { handleRouteError, notFound, unauthorized } from "@/lib/api/helpers";
+import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

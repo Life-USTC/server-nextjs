@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { findActiveSuspension } from "@/features/comments/server/comment-utils";
+import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import {
   badRequest,
   handleRouteError,
   notFound,
   parseOptionalInt,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   descriptionsQuerySchema,
   descriptionUpsertRequestSchema,
-} from "@/lib/api-schemas/request-schemas";
-import { findActiveSuspension } from "@/lib/comment-utils";
-import { getDescriptionPayload } from "@/lib/descriptions-server";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

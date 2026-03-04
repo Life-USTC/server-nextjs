@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import {
+  buildCommentNodes,
+  type CommentNode,
+} from "@/features/comments/server/comment-serialization";
+import { getViewerContext } from "@/features/comments/server/comment-utils";
 import type { CommentVisibility } from "@/generated/prisma/client";
 import {
   badRequest,
@@ -7,17 +12,12 @@ import {
   handleRouteError,
   notFound,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
-} from "@/lib/api-schemas/request-schemas";
-import {
-  buildCommentNodes,
-  type CommentNode,
-} from "@/lib/comment-serialization";
-import { getViewerContext } from "@/lib/comment-utils";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
