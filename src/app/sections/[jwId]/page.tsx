@@ -4,12 +4,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { CommentAwareTabs } from "@/components/comments/comment-aware-tabs";
-import { CommentsSection } from "@/components/comments/comments-section";
 import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
-import { HomeworkPanel } from "@/components/homeworks/homework-panel";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -29,14 +26,17 @@ import {
 } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
+import { CommentAwareTabs } from "@/features/comments/components/comment-aware-tabs";
+import { CommentsSection } from "@/features/comments/components/comments-section";
+import { getViewerContext } from "@/features/comments/server/comment-utils";
+import { getCommentsPayload } from "@/features/comments/server/comments-server";
+import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
+import { HomeworkPanel } from "@/features/homeworks/components/homework-panel";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
-import { getViewerContext } from "@/lib/comment-utils";
-import { getCommentsPayload } from "@/lib/comments-server";
-import { getDescriptionPayload } from "@/lib/descriptions-server";
-import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
-import { formatTime } from "@/lib/time-utils";
-import { cn } from "@/lib/utils";
+import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import { formatTime } from "@/shared/lib/time-utils";
+import { cn } from "@/shared/lib/utils";
 
 const SECTION_DETAIL_INCLUDE = {
   course: true,

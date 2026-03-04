@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api-helpers";
-import { prisma } from "@/lib/prisma";
+import { handleRouteError } from "@/lib/api/helpers";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

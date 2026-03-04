@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
+  findActiveSuspension,
+  getViewerContext,
+} from "@/features/comments/server/comment-utils";
+import {
   badRequest,
   forbidden,
   handleRouteError,
   notFound,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   homeworkUpdateRequestSchema,
   resourceIdPathParamsSchema,
-} from "@/lib/api-schemas/request-schemas";
-import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

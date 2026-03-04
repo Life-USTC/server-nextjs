@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AccountLinkingSection } from "@/components/account-linking-section";
-import { requireSignedInUserId } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { requireSignedInUserId } from "@/lib/auth/helpers";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

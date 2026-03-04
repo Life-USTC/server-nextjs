@@ -10,8 +10,8 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { requireSignedInUserId } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { requireSignedInUserId } from "@/lib/auth/helpers";
+import { prisma } from "@/lib/db/prisma";
 
 const ModerationDashboard = dynamic(() =>
   import("@/components/admin/moderation-dashboard").then(

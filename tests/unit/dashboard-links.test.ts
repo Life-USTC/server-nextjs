@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
-} from "@/lib/dashboard-links";
+} from "@/features/dashboard-links/lib/dashboard-links";
 
 describe("dashboard link recommendations", () => {
   it("returns most-clicked links first", () => {

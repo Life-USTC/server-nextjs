@@ -4,7 +4,7 @@ import { FileText, Link2, ShieldAlert, UserRoundCog } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 export function SettingsNav() {
   const tSettings = useTranslations("settings");

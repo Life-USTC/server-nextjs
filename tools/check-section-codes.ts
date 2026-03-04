@@ -1,5 +1,5 @@
 import { findCurrentSemester } from "@/lib/current-semester";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 /**
  * Debug script to check if section codes exist in the database

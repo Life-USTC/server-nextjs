@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 export interface SubscriptionState {
   userId: string | null;

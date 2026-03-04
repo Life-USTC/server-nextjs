@@ -16,8 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
-import { requireSignedInUserId } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { requireSignedInUserId } from "@/lib/auth/helpers";
+import { prisma } from "@/lib/db/prisma";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin");

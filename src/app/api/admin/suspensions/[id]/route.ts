@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { badRequest, handleRouteError, unauthorized } from "@/lib/api-helpers";
-import { resourceIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+import { badRequest, handleRouteError, unauthorized } from "@/lib/api/helpers";
+import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

@@ -8,7 +8,7 @@ import type { CalendarEventVariant } from "@/components/calendar-event-card";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 export interface CalendarEventDetail {
   label: string;

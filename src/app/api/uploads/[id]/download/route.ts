@@ -6,10 +6,10 @@ import {
   handleRouteError,
   notFound,
   unauthorized,
-} from "@/lib/api-helpers";
-import { resourceIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
-import { getS3SignedUrl, s3Bucket } from "@/lib/storage";
+} from "@/lib/api/helpers";
+import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
+import { getS3SignedUrl, s3Bucket } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
 

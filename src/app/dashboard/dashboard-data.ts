@@ -1,19 +1,22 @@
 import dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
 import { pinyin } from "pinyin-pro";
-import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
-import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
-} from "@/lib/dashboard-links";
+} from "@/features/dashboard-links/lib/dashboard-links";
 import {
   getDashboardLinkGroup,
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
-} from "@/lib/dashboard-links";
-import { createWeekDayFormatter, getWeekStartSunday } from "@/lib/date-utils";
-import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
+} from "@/features/dashboard-links/lib/dashboard-links";
+import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
+import { selectCurrentSemesterFromList } from "@/lib/current-semester";
+import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import {
+  createWeekDayFormatter,
+  getWeekStartSunday,
+} from "@/shared/lib/date-utils";
 import {
   buildExams,
   buildScheduleTimes,

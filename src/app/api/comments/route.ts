@@ -1,23 +1,23 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { buildCommentNodes } from "@/features/comments/server/comment-serialization";
+import {
+  findActiveSuspension,
+  getViewerContext,
+  resolveSectionTeacherId,
+} from "@/features/comments/server/comment-utils";
 import {
   badRequest,
   handleRouteError,
   notFound,
   parseOptionalInt,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   commentCreateRequestSchema,
   commentsQuerySchema,
-} from "@/lib/api-schemas/request-schemas";
-import { buildCommentNodes } from "@/lib/comment-serialization";
-import {
-  findActiveSuspension,
-  getViewerContext,
-  resolveSectionTeacherId,
-} from "@/lib/comment-utils";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

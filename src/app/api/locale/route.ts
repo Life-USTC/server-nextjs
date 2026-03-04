@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api-helpers";
-import { localeUpdateRequestSchema } from "@/lib/api-schemas/request-schemas";
+import { handleRouteError } from "@/lib/api/helpers";
+import { localeUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 
 /**
  * Update user locale cookie.

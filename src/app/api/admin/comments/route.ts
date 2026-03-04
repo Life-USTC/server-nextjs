@@ -5,9 +5,9 @@ import {
   handleRouteError,
   parseOptionalInt,
   unauthorized,
-} from "@/lib/api-helpers";
-import { adminCommentsQuerySchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/helpers";
+import { adminCommentsQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
