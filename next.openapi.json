@@ -13,7 +13,7 @@
   ],
   "apiDir": "src/app",
   "routerType": "app",
-  "schemaDir": ["src/lib/api-schemas"],
+  "schemaDir": ["src/lib/api/schemas"],
   "schemaType": "zod",
   "outputFile": "openapi.generated.json",
   "outputDir": "./public",

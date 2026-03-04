@@ -3,7 +3,7 @@ import {
   deleteMockS3Object,
   getMockS3Object,
   putMockS3Object,
-} from "@/lib/mock-s3";
+} from "@/lib/storage/mock-s3";
 
 export const dynamic = "force-dynamic";
 

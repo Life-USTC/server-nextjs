@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import type { CommentReactionType } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
   notFound,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
-} from "@/lib/api-schemas/request-schemas";
-import { findActiveSuspension } from "@/lib/comment-utils";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

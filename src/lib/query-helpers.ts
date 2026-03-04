@@ -3,8 +3,8 @@ import {
   buildPaginatedResponse,
   normalizePagination,
   type PaginatedResponse,
-} from "@/lib/api-helpers";
-import { getPrisma } from "@/lib/prisma";
+} from "@/lib/api/helpers";
+import { getPrisma } from "@/lib/db/prisma";
 
 /**
  * Generic paginated query function for Prisma models

@@ -36,11 +36,11 @@ import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
-import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
+import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
   adminCommentsResponseSchema,
   adminSuspensionsResponseSchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api/schemas";
 
 type CommentStatus = "active" | "softbanned" | "deleted";
 type CommentStatusFilter = CommentStatus | "all";

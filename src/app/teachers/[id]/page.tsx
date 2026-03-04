@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ClickableTableRow } from "@/components/clickable-table-row";
-import { CommentAwareTabs } from "@/components/comments/comment-aware-tabs";
-import { CommentsSection } from "@/components/comments/comments-section";
 import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,11 +25,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
+import { CommentAwareTabs } from "@/features/comments/components/comment-aware-tabs";
+import { CommentsSection } from "@/features/comments/components/comments-section";
+import { getViewerContext } from "@/features/comments/server/comment-utils";
+import { getCommentsPayload } from "@/features/comments/server/comments-server";
+import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import { Link } from "@/i18n/routing";
-import { getViewerContext } from "@/lib/comment-utils";
-import { getCommentsPayload } from "@/lib/comments-server";
-import { getDescriptionPayload } from "@/lib/descriptions-server";
-import { prisma as basePrisma, getPrisma } from "@/lib/prisma";
+import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 
 export async function generateMetadata({
   params,

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
-import { badRequest, handleRouteError, unauthorized } from "@/lib/api-helpers";
+import { badRequest, handleRouteError, unauthorized } from "@/lib/api/helpers";
 import {
   adminModerateCommentRequestSchema,
   resourceIdPathParamsSchema,
-} from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

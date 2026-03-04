@@ -1,4 +1,4 @@
-import { Calendar, Shield, User, Users } from "lucide-react";
+import { Calendar, User, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
@@ -9,12 +9,17 @@ import {
   getSubscriptionsTabData,
 } from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
-import { HomeView } from "@/components/home-view/home-view";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { HomeView } from "@/features/home/components/home-view";
 import { Link } from "@/i18n/routing";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+
+type HomeSearchParams = {
+  tab?: string;
+  debugDate?: string;
+  debugTools?: string;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -24,14 +29,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function Homepage({
+export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    tab?: string;
-    debugDate?: string;
-    debugTools?: string;
-  }>;
+  searchParams: Promise<HomeSearchParams>;
 }) {
   const [t, session] = await Promise.all([getTranslations("homepage"), auth()]);
 
@@ -40,7 +41,7 @@ export default async function Homepage({
     const tab = params.tab ?? "overview";
     const debugOptions = {
       debugDate: params.debugDate,
-      debugTools: params.debugTools === "1",
+      debugTools: params.debugTools === "1" || params.debugTools === "true",
     };
 
     const [navStats, overviewData, homeworksData, subscriptionsData] =
@@ -76,18 +77,8 @@ export default async function Homepage({
     );
   }
 
-  let isAdmin = false;
-  if (session?.user?.id) {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { isAdmin: true },
-    });
-    isAdmin = user?.isAdmin ?? false;
-  }
-
   return (
     <main className="page-main">
-      {/* Hero Section */}
       <section className="-mx-6 fade-in slide-in-from-left-4 mb-12 flex min-h-[100dvh] animate-in items-center justify-center px-6 duration-700 md:mx-0 md:mb-12 md:min-h-0 md:px-0">
         <div className="grid w-full grid-cols-1 items-center gap-8 py-12 md:grid-cols-2 md:gap-12">
           <div className="fade-in slide-in-from-right-4 mb-8 flex animate-in justify-center delay-200 duration-700 md:order-2 md:mb-0">
@@ -135,7 +126,6 @@ export default async function Homepage({
         </div>
       </section>
 
-      {/* Quick Links */}
       <section className="fade-in mb-12 animate-in delay-300 duration-700">
         <h2 className="mb-6 text-title-2">{t("quickAccess.title")}</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -186,23 +176,6 @@ export default async function Homepage({
               </CardPanel>
             </Card>
           </Link>
-          {isAdmin ? (
-            <Link href="/admin" className="no-underline">
-              <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <Shield className="h-5 w-5 text-primary" />
-                    <CardTitle>{t("quickAccess.admin.title")}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardPanel>
-                  <p className="line-clamp-2 text-body text-muted-foreground">
-                    {t("quickAccess.admin.description")}
-                  </p>
-                </CardPanel>
-              </Card>
-            </Link>
-          ) : null}
         </div>
       </section>
     </main>

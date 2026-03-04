@@ -15,8 +15,8 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Link } from "@/i18n/routing";
-import { requireSignedInUserId } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
+import { requireSignedInUserId } from "@/lib/auth/helpers";
+import { prisma } from "@/lib/db/prisma";
 
 const AdminUsersTable = dynamic(() =>
   import("@/components/admin/admin-users-table").then(

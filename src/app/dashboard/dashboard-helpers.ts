@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
-import { getWeekStartSunday } from "@/lib/date-utils";
-import { toMinutes } from "@/lib/time-utils";
+import { getWeekStartSunday } from "@/shared/lib/date-utils";
+import { toMinutes } from "@/shared/lib/time-utils";
 import type {
   ExamItem,
   HomeworkWithSection,

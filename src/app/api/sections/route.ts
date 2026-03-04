@@ -6,8 +6,8 @@ import {
   handleRouteError,
   parseIntegerList,
   parseOptionalInt,
-} from "@/lib/api-helpers";
-import { sectionsQuerySchema } from "@/lib/api-schemas/request-schemas";
+} from "@/lib/api/helpers";
+import { sectionsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";

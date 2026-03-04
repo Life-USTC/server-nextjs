@@ -3,9 +3,9 @@ import {
   buildPaginatedResponse,
   getPagination,
   handleRouteError,
-} from "@/lib/api-helpers";
-import { semestersQuerySchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/helpers";
+import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

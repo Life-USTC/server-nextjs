@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { dashboardLinkPinRequestSchema } from "@/lib/api-schemas/request-schemas";
-import { USTC_DASHBOARD_LINKS } from "@/lib/dashboard-links";
-import { prisma } from "@/lib/prisma";
+import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { dashboardLinkPinRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

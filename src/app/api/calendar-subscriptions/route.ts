@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError, unauthorized } from "@/lib/api-helpers";
-import { calendarSubscriptionCreateRequestSchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+import { handleRouteError, unauthorized } from "@/lib/api/helpers";
+import { calendarSubscriptionCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

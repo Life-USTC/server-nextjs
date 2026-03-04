@@ -3,7 +3,7 @@
 import * as React from "react";
 import { TableRow } from "@/components/ui/table";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 interface ClickableTableRowProps extends React.ComponentProps<typeof TableRow> {
   href: string;

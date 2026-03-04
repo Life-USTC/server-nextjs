@@ -4,10 +4,10 @@ import {
   invalidParamResponse,
   notFound,
   parseInteger,
-} from "@/lib/api-helpers";
-import { jwIdPathParamsSchema } from "@/lib/api-schemas/request-schemas";
+} from "@/lib/api/helpers";
+import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 import { createSectionCalendar } from "@/lib/ical";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 

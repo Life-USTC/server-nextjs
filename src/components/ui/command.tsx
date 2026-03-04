@@ -14,7 +14,7 @@ import {
   AutocompleteList,
   AutocompleteSeparator,
 } from "@/components/ui/autocomplete";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 const CommandInputContext = React.createContext<{
   inputRef: React.RefObject<HTMLInputElement | null> | null;

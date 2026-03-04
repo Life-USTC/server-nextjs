@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseIntegerList } from "@/lib/api-helpers";
-import { sectionsCalendarQuerySchema } from "@/lib/api-schemas/request-schemas";
+import { handleRouteError, parseIntegerList } from "@/lib/api/helpers";
+import { sectionsCalendarQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 import { createMultiSectionCalendar } from "@/lib/ical";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 

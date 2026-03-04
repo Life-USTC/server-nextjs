@@ -5,8 +5,8 @@ import {
   getPagination,
   handleRouteError,
   parseOptionalInt,
-} from "@/lib/api-helpers";
-import { teachersQuerySchema } from "@/lib/api-schemas/request-schemas";
+} from "@/lib/api/helpers";
+import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { paginatedTeacherQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
