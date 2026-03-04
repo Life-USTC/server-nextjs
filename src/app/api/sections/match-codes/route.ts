@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseInteger } from "@/lib/api-helpers";
-import { matchSectionCodesRequestSchema } from "@/lib/api-schemas/request-schemas";
+import { handleRouteError, parseInteger } from "@/lib/api/helpers";
+import { matchSectionCodesRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { findCurrentSemester } from "@/lib/current-semester";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { sectionCompactInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";

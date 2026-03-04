@@ -6,7 +6,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Link, useRouter } from "@/i18n/routing";
-import { apiClient } from "@/lib/api-client";
+import { apiClient } from "@/lib/api/client";
 import {
   Menu,
   MenuPopup,

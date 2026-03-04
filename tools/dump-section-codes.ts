@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db/prisma";
 
 /**
  * Dumps all section codes from the database to a text file

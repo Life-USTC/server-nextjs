@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import {
+  findActiveSuspension,
+  getViewerContext,
+} from "@/features/comments/server/comment-utils";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
@@ -7,13 +11,12 @@ import {
   notFound,
   parseOptionalInt,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   homeworkCreateRequestSchema,
   homeworksQuerySchema,
-} from "@/lib/api-schemas/request-schemas";
-import { findActiveSuspension, getViewerContext } from "@/lib/comment-utils";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

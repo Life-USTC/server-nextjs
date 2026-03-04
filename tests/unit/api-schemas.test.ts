@@ -10,7 +10,7 @@ import {
   schedulesQuerySchema,
   sectionsQuerySchema,
   uploadCreateRequestSchema,
-} from "@/lib/api-schemas";
+} from "@/lib/api/schemas";
 
 describe("matchSectionCodesRequestSchema", () => {
   it("accepts valid payload", () => {

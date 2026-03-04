@@ -3,8 +3,6 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
-import { CommentMarkdown } from "@/components/comments/comment-markdown";
-import { MarkdownEditor } from "@/components/comments/markdown-editor";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,10 +22,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
+import { MarkdownEditor } from "@/features/comments/components/markdown-editor";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
-import { apiClient, extractApiErrorMessage } from "@/lib/api-client";
-import { descriptionsResponseSchema } from "@/lib/api-schemas";
+import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
+import { descriptionsResponseSchema } from "@/lib/api/schemas";
 
 type TargetType = "section" | "course" | "teacher" | "homework";
 

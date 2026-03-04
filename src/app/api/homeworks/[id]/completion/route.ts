@@ -5,12 +5,12 @@ import {
   handleRouteError,
   notFound,
   unauthorized,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 import {
   homeworkCompletionRequestSchema,
   resourceIdPathParamsSchema,
-} from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 

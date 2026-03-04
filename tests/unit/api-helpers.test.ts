@@ -3,7 +3,7 @@ import {
   parseInteger,
   parseIntegerList,
   parseOptionalInt,
-} from "@/lib/api-helpers";
+} from "@/lib/api/helpers";
 
 describe("api-helpers integer parsing", () => {
   it("accepts safe integers from string and number", () => {

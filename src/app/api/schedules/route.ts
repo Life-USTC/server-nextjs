@@ -5,9 +5,9 @@ import {
   getPagination,
   handleRouteError,
   parseOptionalInt,
-} from "@/lib/api-helpers";
-import { schedulesQuerySchema } from "@/lib/api-schemas/request-schemas";
-import { prisma } from "@/lib/prisma";
+} from "@/lib/api/helpers";
+import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
