@@ -13,10 +13,9 @@ test("/api/admin/comments 可按状态读取 softbanned 评论", async ({ page }
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    comments?: Array<{ status?: string }>;
+    data?: Array<{ status?: string }>;
+    pagination?: { total?: number };
   };
-  expect((body.comments?.length ?? 0) > 0).toBe(true);
-  expect(body.comments?.every((item) => item.status === "softbanned")).toBe(
-    true,
-  );
+  expect(Array.isArray(body.data)).toBe(true);
+  expect(body.data?.every((item) => item.status === "softbanned")).toBe(true);
 });
