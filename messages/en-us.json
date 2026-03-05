@@ -19,7 +19,8 @@
       "subscriptions": "Selected Sections",
       "uploads": "My Uploads",
       "homeworks": "My Homework",
-      "apiDocs": "API Docs"
+      "apiDocs": "API Docs",
+      "welcome": "Complete Your Profile"
     }
   },
   "common": {
@@ -227,7 +228,9 @@
     "moderationTitle": "Moderation",
     "moderationDescription": "Review and manage comments and suspensions.",
     "usersTitle": "User Management",
-    "usersDescription": "Search and browse all users."
+    "usersDescription": "Search and browse all users.",
+    "oauthTitle": "OAuth Clients",
+    "oauthDescription": "Manage OAuth client applications."
   },
   "adminUsers": {
     "title": "User Management",
@@ -1229,5 +1232,49 @@
     "errorTitleTooLong": "Title is too long (max 200 characters)",
     "errorContentTooLong": "Description is too long (max 4000 characters)",
     "errorInvalidDueAt": "Invalid due date"
+  },
+  "welcome": {
+    "title": "Complete Your Profile",
+    "description": "Please set your name and username to continue.",
+    "continue": "Continue",
+    "success": "Profile completed",
+    "successDescription": "Welcome! Your profile has been set up."
+  },
+  "oauth": {
+    "authorize": "Authorize Application",
+    "consentDescription": "{app} is requesting access to your account.",
+    "scopesLabel": "This application will be able to:",
+    "scope_openid": "Verify your identity",
+    "scope_profile": "View your profile information",
+    "allow": "Allow",
+    "deny": "Deny",
+    "authorizing": "Authorizing...",
+    "errorUnsupportedResponseType": "Unsupported response type. Only 'code' is supported.",
+    "errorMissingClientId": "Missing client_id parameter.",
+    "errorInvalidClient": "Invalid client application.",
+    "errorInvalidRedirectUri": "Invalid redirect URI.",
+    "adminTitle": "OAuth Clients",
+    "adminSubtitle": "Manage OAuth client applications that can authenticate via Life@USTC.",
+    "createClient": "Create Client",
+    "createClientDescription": "Register a new OAuth client application.",
+    "clientName": "Application Name",
+    "clientNamePlaceholder": "My Application",
+    "redirectUris": "Redirect URIs",
+    "redirectUrisPlaceholder": "https://example.com/callback",
+    "redirectUrisHint": "One URI per line.",
+    "creating": "Creating...",
+    "createError": "Failed to create client",
+    "createSuccess": "Client created",
+    "createSuccessDescription": "Save the credentials below — the secret will not be shown again.",
+    "credentialsTitle": "Client Credentials",
+    "credentialsWarning": "Copy these now. The client secret will not be shown again.",
+    "clientIdLabel": "Client ID",
+    "clientSecretLabel": "Client Secret",
+    "dismissCredentials": "Done",
+    "existingClients": "Existing Clients",
+    "noClients": "No OAuth clients have been created yet.",
+    "deleteClient": "Delete",
+    "deleteError": "Failed to delete client",
+    "deleteSuccess": "Client deleted"
   }
 }

@@ -19,7 +19,8 @@
       "subscriptions": "已选课班级",
       "uploads": "我的上传",
       "homeworks": "我的作业",
-      "apiDocs": "API 文档"
+      "apiDocs": "API 文档",
+      "welcome": "完善个人信息"
     }
   },
   "common": {
@@ -227,7 +228,9 @@
     "moderationTitle": "内容审核",
     "moderationDescription": "查看并处理评论与封禁。",
     "usersTitle": "用户管理",
-    "usersDescription": "查询与浏览所有用户。"
+    "usersDescription": "查询与浏览所有用户。",
+    "oauthTitle": "OAuth 客户端",
+    "oauthDescription": "管理 OAuth 客户端应用。"
   },
   "adminUsers": {
     "title": "用户管理",
@@ -1229,5 +1232,49 @@
     "errorTitleTooLong": "标题过长（最多 200 字）",
     "errorContentTooLong": "内容过长（最多 4000 字）",
     "errorInvalidDueAt": "截止时间无效"
+  },
+  "welcome": {
+    "title": "完善个人信息",
+    "description": "请设置您的姓名和用户名以继续使用。",
+    "continue": "继续",
+    "success": "信息已完善",
+    "successDescription": "欢迎！您的个人信息已设置完成。"
+  },
+  "oauth": {
+    "authorize": "授权应用",
+    "consentDescription": "{app} 正在请求访问您的账户。",
+    "scopesLabel": "此应用将能够：",
+    "scope_openid": "验证您的身份",
+    "scope_profile": "查看您的个人资料",
+    "allow": "允许",
+    "deny": "拒绝",
+    "authorizing": "授权中...",
+    "errorUnsupportedResponseType": "不支持的响应类型。仅支持 'code'。",
+    "errorMissingClientId": "缺少 client_id 参数。",
+    "errorInvalidClient": "无效的客户端应用。",
+    "errorInvalidRedirectUri": "无效的重定向 URI。",
+    "adminTitle": "OAuth 客户端管理",
+    "adminSubtitle": "管理可通过 Life@USTC 进行认证的 OAuth 客户端应用。",
+    "createClient": "创建客户端",
+    "createClientDescription": "注册新的 OAuth 客户端应用。",
+    "clientName": "应用名称",
+    "clientNamePlaceholder": "我的应用",
+    "redirectUris": "重定向 URI",
+    "redirectUrisPlaceholder": "https://example.com/callback",
+    "redirectUrisHint": "每行一个 URI。",
+    "creating": "创建中...",
+    "createError": "创建客户端失败",
+    "createSuccess": "客户端已创建",
+    "createSuccessDescription": "请保存以下凭据——密钥不会再次显示。",
+    "credentialsTitle": "客户端凭据",
+    "credentialsWarning": "请立即复制。客户端密钥不会再次显示。",
+    "clientIdLabel": "客户端 ID",
+    "clientSecretLabel": "客户端密钥",
+    "dismissCredentials": "完成",
+    "existingClients": "已有客户端",
+    "noClients": "尚未创建任何 OAuth 客户端。",
+    "deleteClient": "删除",
+    "deleteError": "删除客户端失败",
+    "deleteSuccess": "客户端已删除"
   }
 }
