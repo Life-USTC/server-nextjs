@@ -1092,6 +1092,69 @@
         }
       }
     },
+    "/api/oauth/authorize": {
+      "post": {
+        "operationId": "post-api-oauth-authorize",
+        "summary": "POST /api/oauth/authorize",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oauth/token": {
+      "post": {
+        "operationId": "post-api-oauth-token",
+        "summary": "POST /api/oauth/token",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oauth/userinfo": {
+      "get": {
+        "operationId": "get-api-oauth-userinfo",
+        "summary": "GET /api/oauth/userinfo",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/schedules": {
       "get": {
         "operationId": "get-api-schedules",
