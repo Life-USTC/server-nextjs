@@ -3412,7 +3412,8 @@
           },
           "content": {
             "type": "string",
-            "maxLength": 4000
+            "maxLength": 4000,
+            "nullable": true
           },
           "priority": {
             "allOf": [
