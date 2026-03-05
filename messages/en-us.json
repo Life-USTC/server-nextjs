@@ -316,6 +316,10 @@
       "links": {
         "title": "Websites",
         "description": "Browse all sites and manage your pins"
+      },
+      "todos": {
+        "title": "Todos",
+        "description": "Manage your personal to-do tasks"
       }
     },
     "viewAll": "View all",
@@ -410,6 +414,11 @@
       },
       "credit": "Some links are consolidated from ",
       "creditSuffix": ", with thanks."
+    },
+    "todos": {
+      "title": "Todos",
+      "pending": "Pending {count}",
+      "viewAll": "View all"
     }
   },
   "publicProfile": {
@@ -1182,5 +1191,43 @@
     "noteLabel": "Note",
     "suspensionDetails": "Suspension Details",
     "defaultBanReason": "You have been banned for your comment \"{content}\" posted on {url} at {date}."
+  },
+  "todos": {
+    "title": "Todos",
+    "subtitle": "Manage your personal to-do tasks",
+    "addButton": "Add Todo",
+    "createTitle": "New Todo",
+    "editTitle": "Edit Todo",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g., Review Chapter 1",
+    "contentLabel": "Description",
+    "contentPlaceholder": "Supports Markdown formatting",
+    "priorityLabel": "Priority",
+    "dueAtLabel": "Due date",
+    "dueLabel": "Due",
+    "priority": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "filterIncomplete": "Incomplete",
+    "filterCompleted": "Completed",
+    "filterAll": "All",
+    "filterEmptyTitle": "No todos match the current filter",
+    "markComplete": "Mark as complete",
+    "markIncomplete": "Mark as incomplete",
+    "editAriaLabel": "Edit todo",
+    "deleteAriaLabel": "Delete todo",
+    "cancel": "Cancel",
+    "saving": "Saving...",
+    "createAction": "Create Todo",
+    "saveChanges": "Save Changes",
+    "createSuccess": "Todo created",
+    "updateSuccess": "Todo updated",
+    "saveFailed": "Failed to save",
+    "errorTitleRequired": "Please enter a title",
+    "errorTitleTooLong": "Title is too long (max 200 characters)",
+    "errorContentTooLong": "Description is too long (max 4000 characters)",
+    "errorInvalidDueAt": "Invalid due date"
   }
 }

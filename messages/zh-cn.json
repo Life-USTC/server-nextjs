@@ -316,6 +316,10 @@
       "links": {
         "title": "网站导航",
         "description": "浏览全部常用网站并管理置顶"
+      },
+      "todos": {
+        "title": "待办事项",
+        "description": "管理个人待办任务"
       }
     },
     "viewAll": "查看全部",
@@ -410,6 +414,11 @@
       },
       "credit": "部分链接整合自 ",
       "creditSuffix": "，在此表示感谢。"
+    },
+    "todos": {
+      "title": "待办事项",
+      "pending": "待完成 {count}",
+      "viewAll": "查看全部"
     }
   },
   "publicProfile": {
@@ -1182,5 +1191,43 @@
     "noteLabel": "备注",
     "suspensionDetails": "封禁详情",
     "defaultBanReason": "您因为于 {date} 在 {url} 页面下发表的评论「{content}」被封禁"
+  },
+  "todos": {
+    "title": "待办事项",
+    "subtitle": "管理你的个人待办任务",
+    "addButton": "添加待办",
+    "createTitle": "新建待办",
+    "editTitle": "编辑待办",
+    "titleLabel": "标题",
+    "titlePlaceholder": "例如：复习第一章",
+    "contentLabel": "内容描述",
+    "contentPlaceholder": "支持 Markdown 格式",
+    "priorityLabel": "优先级",
+    "dueAtLabel": "截止时间",
+    "dueLabel": "截止",
+    "priority": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "filterIncomplete": "未完成",
+    "filterCompleted": "已完成",
+    "filterAll": "全部",
+    "filterEmptyTitle": "当前筛选下暂无待办",
+    "markComplete": "标记为完成",
+    "markIncomplete": "取消完成",
+    "editAriaLabel": "编辑待办",
+    "deleteAriaLabel": "删除待办",
+    "cancel": "取消",
+    "saving": "保存中...",
+    "createAction": "创建待办",
+    "saveChanges": "保存修改",
+    "createSuccess": "待办已创建",
+    "updateSuccess": "待办已更新",
+    "saveFailed": "保存失败",
+    "errorTitleRequired": "请输入标题",
+    "errorTitleTooLong": "标题过长（最多 200 字）",
+    "errorContentTooLong": "内容过长（最多 4000 字）",
+    "errorInvalidDueAt": "截止时间无效"
   }
 }
