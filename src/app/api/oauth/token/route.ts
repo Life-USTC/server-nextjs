@@ -34,7 +34,7 @@ function verifyPkceChallenge(
 /**
  * OAuth 2.0 token endpoint.
  * Supports grant_type=authorization_code with optional PKCE.
- * @response 200:{ access_token, token_type, expires_in?, scope }
+ * @response 200:oauthTokenResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */

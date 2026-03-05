@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * OIDC / OAuth 2.0 userinfo endpoint.
  * Requires a valid Bearer access token.
  * Returns the authenticated user's profile.
- * @response 200:{ sub, name?, username?, picture? }
+ * @response 200:oauthUserinfoResponseSchema
  * @response 401:openApiErrorSchema
  */
 export async function GET(request: NextRequest) {

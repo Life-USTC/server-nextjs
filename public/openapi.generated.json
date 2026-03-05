@@ -1107,7 +1107,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/{ redirectTo: string }"
+                  "$ref": "#/components/schemas/oauthAuthorizeResponseSchema"
                 }
               }
             }
@@ -1130,7 +1130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/{ access_token, token_type, expires_in?, scope }"
+                  "$ref": "#/components/schemas/oauthTokenResponseSchema"
                 }
               }
             }
@@ -1153,7 +1153,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/{ sub, name?, username?, picture? }"
+                  "$ref": "#/components/schemas/oauthUserinfoResponseSchema"
                 }
               }
             }
@@ -2867,6 +2867,62 @@
           "examModes",
           "teachLanguages",
           "campuses"
+        ]
+      },
+      "oauthAuthorizeResponseSchema": {
+        "type": "object",
+        "properties": {
+          "redirectTo": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "redirectTo"
+        ]
+      },
+      "oauthTokenResponseSchema": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string"
+          },
+          "token_type": {
+            "type": "string"
+          },
+          "expires_in": {
+            "type": "number"
+          },
+          "scope": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access_token",
+          "token_type",
+          "scope"
+        ]
+      },
+      "oauthUserinfoResponseSchema": {
+        "type": "object",
+        "properties": {
+          "sub": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "preferred_username": {
+            "type": "string",
+            "nullable": true
+          },
+          "picture": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "sub"
         ]
       },
       "schedulesQuerySchema": {

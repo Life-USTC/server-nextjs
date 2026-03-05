@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * Handle the user's approve/deny decision for an OAuth authorization request.
  * Issues an authorization code and redirects to the client's redirect_uri.
- * @response 200:{ redirectTo: string }
+ * @response 200:oauthAuthorizeResponseSchema
  * @response 400:openApiErrorSchema
  * @response 401:openApiErrorSchema
  */

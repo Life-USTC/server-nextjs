@@ -755,3 +755,21 @@ export const successResponseSchema = z.object({
 export const idResponseSchema = z.object({
   id: z.string(),
 });
+
+export const oauthAuthorizeResponseSchema = z.object({
+  redirectTo: z.string(),
+});
+
+export const oauthTokenResponseSchema = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  expires_in: z.number().optional(),
+  scope: z.string(),
+});
+
+export const oauthUserinfoResponseSchema = z.object({
+  sub: z.string(),
+  name: z.string().nullable().optional(),
+  preferred_username: z.string().nullable().optional(),
+  picture: z.string().nullable().optional(),
+});
