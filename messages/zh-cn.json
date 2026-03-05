@@ -1275,6 +1275,7 @@
     "noClients": "尚未创建任何 OAuth 客户端。",
     "deleteClient": "删除",
     "deleteError": "删除客户端失败",
-    "deleteSuccess": "客户端已删除"
+    "deleteSuccess": "客户端已删除",
+    "errorMissingRedirectUri": "当注册了多个重定向 URI 时，必须指定 redirect_uri 参数。"
   }
 }

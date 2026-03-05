@@ -83,11 +83,25 @@ export default async function OAuthAuthorizePage({
     "profile",
   ];
 
+  // Per OAuth 2.0 spec, if multiple redirect URIs are registered the client
+  // must explicitly specify which one to use.
+  const redirectUri =
+    params.redirect_uri ??
+    (client.redirectUris.length === 1 ? client.redirectUris[0] : null);
+
+  if (!redirectUri) {
+    return (
+      <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
+        <p className="text-destructive">{t("errorMissingRedirectUri")}</p>
+      </main>
+    );
+  }
+
   return (
     <OAuthConsentForm
       clientName={client.name}
       clientId={client.clientId}
-      redirectUri={params.redirect_uri || client.redirectUris[0]}
+      redirectUri={redirectUri}
       scopes={requestedScopes}
       state={params.state}
     />

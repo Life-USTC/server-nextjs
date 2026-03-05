@@ -34,11 +34,15 @@ export async function POST(request: Request) {
 
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Basic ")) {
-    const decoded = Buffer.from(authHeader.slice(6), "base64").toString();
-    const colonIndex = decoded.indexOf(":");
-    if (colonIndex !== -1) {
-      clientId = decodeURIComponent(decoded.slice(0, colonIndex));
-      clientSecret = decodeURIComponent(decoded.slice(colonIndex + 1));
+    try {
+      const decoded = Buffer.from(authHeader.slice(6), "base64").toString();
+      const colonIndex = decoded.indexOf(":");
+      if (colonIndex !== -1) {
+        clientId = decodeURIComponent(decoded.slice(0, colonIndex));
+        clientSecret = decodeURIComponent(decoded.slice(colonIndex + 1));
+      }
+    } catch {
+      return errorResponse("invalid_client", 401);
     }
   }
 

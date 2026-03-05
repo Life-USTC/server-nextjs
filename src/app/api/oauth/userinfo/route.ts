@@ -32,6 +32,10 @@ export async function GET(request: Request) {
   });
 
   if (!accessToken || accessToken.expiresAt < new Date()) {
+    if (accessToken) {
+      // Clean up expired token
+      await prisma.oAuthAccessToken.delete({ where: { id: accessToken.id } });
+    }
     return NextResponse.json(
       { error: "invalid_token" },
       { status: 401, headers: { "WWW-Authenticate": "Bearer" } },

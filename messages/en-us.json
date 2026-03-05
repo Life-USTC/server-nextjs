@@ -1275,6 +1275,7 @@
     "noClients": "No OAuth clients have been created yet.",
     "deleteClient": "Delete",
     "deleteError": "Failed to delete client",
-    "deleteSuccess": "Client deleted"
+    "deleteSuccess": "Client deleted",
+    "errorMissingRedirectUri": "redirect_uri is required when multiple redirect URIs are registered."
   }
 }
