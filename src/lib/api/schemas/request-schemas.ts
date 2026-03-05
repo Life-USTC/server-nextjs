@@ -292,7 +292,7 @@ export const todoPrioritySchema = z.enum(["low", "medium", "high"]);
 
 export const todoCreateRequestSchema = z.object({
   title: z.string().trim().min(1).max(200),
-  content: z.string().max(4000).optional(),
+  content: z.string().max(4000).optional().nullable(),
   priority: todoPrioritySchema.optional(),
   dueAt: z.union([z.string(), z.null()]).optional(),
 });
