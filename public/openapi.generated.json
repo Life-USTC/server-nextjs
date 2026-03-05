@@ -1092,6 +1092,75 @@
         }
       }
     },
+    "/api/oauth/authorize": {
+      "post": {
+        "operationId": "post-api-oauth-authorize",
+        "summary": "Handle the user's approve/deny decision for an OAuth authorization request.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/{ redirectTo: string }"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oauth/token": {
+      "post": {
+        "operationId": "post-api-oauth-token",
+        "summary": "OAuth 2.0 token endpoint.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/{ access_token, token_type, expires_in?, scope }"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/oauth/userinfo": {
+      "get": {
+        "operationId": "get-api-oauth-userinfo",
+        "summary": "OIDC / OAuth 2.0 userinfo endpoint.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/{ sub, name?, username?, picture? }"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/schedules": {
       "get": {
         "operationId": "get-api-schedules",
