@@ -1539,6 +1539,125 @@
         }
       }
     },
+    "/api/todos": {
+      "get": {
+        "operationId": "get-api-todos",
+        "summary": "List todos for the current user.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/todosListResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-todos",
+        "summary": "Create a todo for the current user.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/todoCreateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/idResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/todos/{id}": {
+      "patch": {
+        "operationId": "patch-api-todos-{id}",
+        "summary": "Update one todo.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/todoUpdateRequestSchema"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/successResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-todos-{id}",
+        "summary": "Delete one todo.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/uploads": {
       "get": {
         "operationId": "get-api-uploads",
@@ -3253,6 +3372,64 @@
           "pagination"
         ]
       },
+      "todoUpdateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "nullable": true
+          },
+          "priority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/todoPrioritySchema"
+              }
+            ]
+          },
+          "dueAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "completed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "todosListResponseSchema": {},
+      "todoCreateRequestSchema": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000
+          },
+          "priority": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/todoPrioritySchema"
+              }
+            ]
+          },
+          "dueAt": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
       "uploadRenameRequestSchema": {
         "type": "object",
         "properties": {
@@ -3468,6 +3645,14 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "todoPrioritySchema": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high"
         ]
       },
       "dateTimeSchema": {

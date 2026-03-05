@@ -40,6 +40,12 @@ enum HomeworkAuditAction {
   deleted
 }
 
+enum TodoPriority {
+  low
+  medium
+  high
+}
+
 
 model AdminClass {
   id   Int  @id @default(autoincrement())
@@ -753,6 +759,7 @@ model User {
   homeworkCompletions  HomeworkCompletion[]
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]
+  todos                Todo[]
 }
 
 
@@ -1008,4 +1015,24 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+model Todo {
+  id String @id @default(cuid())
+
+  title    String
+  content  String?
+  completed Boolean   @default(false)
+  priority  TodoPriority @default(medium)
+  dueAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, completed])
+  @@index([dueAt])
 }

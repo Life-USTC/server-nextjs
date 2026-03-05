@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { BookOpenCheck } from "lucide-react";
+import { BookOpenCheck, CheckSquare } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { OverviewData } from "@/app/dashboard/dashboard-data";
 import type { SessionItem } from "@/app/dashboard/types";
@@ -21,10 +21,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardLinksPanel } from "@/features/dashboard-links/components/dashboard-links-panel";
+import type { TodoItem } from "@/features/todos/components/todo-list";
 import { Link } from "@/i18n/routing";
 import { formatDuration, formatTime } from "@/shared/lib/time-utils";
 
-export async function OverviewPanel({ data }: { data: OverviewData }) {
+export async function OverviewPanel({
+  data,
+  todosData,
+}: {
+  data: OverviewData;
+  todosData: TodoItem[];
+}) {
   const t = await getTranslations("meDashboard");
   const _tCommon = await getTranslations("common");
   const {
@@ -46,6 +53,7 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
   } = data;
 
   if (!hasCurrentTermSelection) {
+    const pendingTodosNoTerm = todosData.filter((todo) => !todo.completed);
     return (
       <div className="space-y-6">
         <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
@@ -72,6 +80,27 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
               render={<Link className="no-underline" href="/courses" />}
             >
               {t("termSelection.browseCourses")}
+            </Button>
+          </CardPanel>
+        </Card>
+
+        <Card className="border-secondary/30 bg-secondary/5">
+          <CardHeader className="pb-0">
+            <CardTitle className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4" />
+              {t("todos.title")}
+            </CardTitle>
+          </CardHeader>
+          <CardPanel className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md border px-2 py-1 text-muted-foreground text-sm">
+              {t("todos.pending", { count: pendingTodosNoTerm.length })}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              render={<Link className="no-underline" href="/?tab=todos" />}
+            >
+              {t("todos.viewAll")}
             </Button>
           </CardPanel>
         </Card>
@@ -220,6 +249,62 @@ export async function OverviewPanel({ data }: { data: OverviewData }) {
           </CardPanel>
         )}
       </Card>
+
+      {(() => {
+        const pendingTodos = todosData.filter((todo) => !todo.completed);
+        return (
+          <Card className="border-secondary/30 bg-secondary/5">
+            <CardHeader className="pb-0">
+              <CardTitle className="flex items-center gap-2">
+                <CheckSquare className="h-4 w-4" />
+                {t("todos.title")}
+              </CardTitle>
+            </CardHeader>
+            <CardPanel className="flex flex-wrap items-center gap-2">
+              <span className="rounded-md border px-2 py-1 text-muted-foreground text-sm">
+                {t("todos.pending", { count: pendingTodos.length })}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                render={<Link className="no-underline" href="/?tab=todos" />}
+              >
+                {t("todos.viewAll")}
+              </Button>
+            </CardPanel>
+            {pendingTodos.length > 0 && (
+              <CardPanel className="box-content space-y-2 pt-3">
+                {pendingTodos.slice(0, 5).map((todo) => {
+                  const dueLabel = todo.dueAt
+                    ? dayjs(todo.dueAt).format("YYYY-MM-DD")
+                    : null;
+                  return (
+                    <Link
+                      key={todo.id}
+                      href="/?tab=todos"
+                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 no-underline transition-colors hover:bg-accent"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-sm">
+                          {todo.title}
+                        </p>
+                        <p className="truncate text-muted-foreground text-xs capitalize">
+                          {todo.priority}
+                        </p>
+                      </div>
+                      {dueLabel && (
+                        <div className="shrink-0 text-right">
+                          <p className="font-medium text-sm">{dueLabel}</p>
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </CardPanel>
+            )}
+          </Card>
+        );
+      })()}
 
       {timeSlots.length > 0 ? (
         <Card>

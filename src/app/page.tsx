@@ -7,6 +7,7 @@ import {
   getDashboardOverviewData,
   getHomeworksTabData,
   getSubscriptionsTabData,
+  getTodosTabData,
 } from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
@@ -44,19 +45,27 @@ export default async function HomePage({
       debugTools: params.debugTools === "1" || params.debugTools === "true",
     };
 
-    const [navStats, overviewData, homeworksData, subscriptionsData] =
-      await Promise.all([
-        getDashboardNavStats(session.user.id, debugOptions),
-        tab === "overview" || tab === "calendar" || tab === "links"
-          ? getDashboardOverviewData(session.user.id, debugOptions)
-          : Promise.resolve(null),
-        tab === "homeworks"
-          ? getHomeworksTabData(session.user.id)
-          : Promise.resolve(null),
-        tab === "subscriptions" || tab === "exams"
-          ? getSubscriptionsTabData(session.user.id)
-          : Promise.resolve(null),
-      ]);
+    const [
+      navStats,
+      overviewData,
+      homeworksData,
+      subscriptionsData,
+      todosData,
+    ] = await Promise.all([
+      getDashboardNavStats(session.user.id, debugOptions),
+      tab === "overview" || tab === "calendar" || tab === "links"
+        ? getDashboardOverviewData(session.user.id, debugOptions)
+        : Promise.resolve(null),
+      tab === "homeworks"
+        ? getHomeworksTabData(session.user.id)
+        : Promise.resolve(null),
+      tab === "subscriptions" || tab === "exams"
+        ? getSubscriptionsTabData(session.user.id)
+        : Promise.resolve(null),
+      tab === "todos" || tab === "overview"
+        ? getTodosTabData(session.user.id)
+        : Promise.resolve(null),
+    ]);
 
     if (!navStats) {
       return (
@@ -73,6 +82,7 @@ export default async function HomePage({
         overviewData={overviewData}
         homeworksData={homeworksData}
         subscriptionsData={subscriptionsData}
+        todosData={todosData}
       />
     );
   }

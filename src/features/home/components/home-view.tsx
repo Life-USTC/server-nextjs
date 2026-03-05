@@ -5,8 +5,10 @@ import type {
   OverviewData,
   SectionOption,
   SubscriptionsTabData,
+  TodoItem,
 } from "@/app/dashboard/dashboard-data";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
+import { TodosPanel } from "@/features/todos/components/todos-panel";
 import { CalendarPanel } from "./calendar-panel";
 import { ExamsPanel } from "./exams-panel";
 import { type HomeTabId, HomeTabNav } from "./home-tab-nav";
@@ -18,6 +20,7 @@ const VALID_TABS: HomeTabId[] = [
   "overview",
   "calendar",
   "homeworks",
+  "todos",
   "exams",
   "subscriptions",
   "links",
@@ -43,6 +46,7 @@ type HomeViewProps = {
     sections: SectionOption[];
   } | null;
   subscriptionsData: SubscriptionsTabData | null;
+  todosData: TodoItem[] | null;
 };
 
 export async function HomeView({
@@ -51,6 +55,7 @@ export async function HomeView({
   overviewData,
   homeworksData,
   subscriptionsData,
+  todosData,
 }: HomeViewProps) {
   const params = await searchParams;
   const currentTab = parseTab(params.tab);
@@ -60,6 +65,7 @@ export async function HomeView({
   const pendingHomeworksCount = navStats.pendingHomeworksCount;
   const hasDueTodayHomework = navStats.highlightPendingHomeworks;
   const examsCount = navStats.examsCount;
+  const pendingTodosCount = navStats.pendingTodosCount;
 
   return (
     <main className="page-main">
@@ -72,12 +78,13 @@ export async function HomeView({
           pendingHomeworksCount={pendingHomeworksCount}
           highlightPendingHomeworks={hasDueTodayHomework}
           examsCount={examsCount}
+          pendingTodosCount={pendingTodosCount}
         />
       </div>
 
       <section className="w-full min-w-0 max-w-5xl space-y-6">
         {currentTab === "overview" && overviewData && (
-          <OverviewPanel data={overviewData} />
+          <OverviewPanel data={overviewData} todosData={todosData ?? []} />
         )}
         {currentTab === "calendar" && overviewData && (
           <CalendarPanel data={overviewData} />
@@ -88,6 +95,7 @@ export async function HomeView({
             sections={homeworksData?.sections ?? []}
           />
         )}
+        {currentTab === "todos" && <TodosPanel todos={todosData ?? []} />}
         {currentTab === "exams" && subscriptionsData && (
           <ExamsPanel data={subscriptionsData} />
         )}
