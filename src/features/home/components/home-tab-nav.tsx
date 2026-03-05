@@ -2,6 +2,7 @@ import {
   BookOpen,
   BookOpenCheck,
   CalendarDays,
+  CheckSquare,
   GraduationCap,
   LayoutDashboard,
   Link2,
@@ -14,6 +15,7 @@ export type HomeTabId =
   | "overview"
   | "calendar"
   | "homeworks"
+  | "todos"
   | "exams"
   | "subscriptions"
   | "links";
@@ -22,6 +24,7 @@ const TAB_IDS: HomeTabId[] = [
   "overview",
   "calendar",
   "homeworks",
+  "todos",
   "exams",
   "subscriptions",
   "links",
@@ -32,17 +35,20 @@ export async function HomeTabNav({
   pendingHomeworksCount = 0,
   highlightPendingHomeworks = false,
   examsCount = 0,
+  pendingTodosCount = 0,
 }: {
   currentTab: HomeTabId;
   pendingHomeworksCount?: number;
   highlightPendingHomeworks?: boolean;
   examsCount?: number;
+  pendingTodosCount?: number;
 }) {
   const t = await getTranslations("meDashboard.nav");
   const tabLabels: Record<HomeTabId, string> = {
     overview: t("overview.title"),
     calendar: t("calendar.title"),
     homeworks: t("homeworks.title"),
+    todos: t("todos.title"),
     exams: t("exams.title"),
     subscriptions: t("subscriptions.title"),
     links: t("links.title"),
@@ -51,6 +57,7 @@ export async function HomeTabNav({
     overview: LayoutDashboard,
     calendar: CalendarDays,
     homeworks: BookOpenCheck,
+    todos: CheckSquare,
     exams: GraduationCap,
     subscriptions: BookOpen,
     links: Link2,
@@ -100,6 +107,13 @@ export async function HomeTabNav({
               <span className="inline-flex items-center gap-1">
                 <span>{tabLabels[tabId]}</span>
                 <span className="tabular-nums opacity-70">({examsCount})</span>
+              </span>
+            ) : tabId === "todos" ? (
+              <span className="inline-flex items-center gap-1">
+                <span>{tabLabels[tabId]}</span>
+                <span className="tabular-nums opacity-70">
+                  ({pendingTodosCount})
+                </span>
               </span>
             ) : (
               tabLabels[tabId]
