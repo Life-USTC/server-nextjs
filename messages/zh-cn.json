@@ -227,7 +227,9 @@
     "moderationTitle": "内容审核",
     "moderationDescription": "查看并处理评论与封禁。",
     "usersTitle": "用户管理",
-    "usersDescription": "查询与浏览所有用户。"
+    "usersDescription": "查询与浏览所有用户。",
+    "oauthTitle": "OAuth 客户端",
+    "oauthDescription": "管理下游 OAuth 2.0 应用程序。"
   },
   "adminUsers": {
     "title": "用户管理",
@@ -1182,5 +1184,57 @@
     "noteLabel": "备注",
     "suspensionDetails": "封禁详情",
     "defaultBanReason": "您因为于 {date} 在 {url} 页面下发表的评论「{content}」被封禁"
+  },
+  "welcome": {
+    "title": "欢迎！",
+    "description": "请填写一些基本信息以开始使用。",
+    "saving": "保存中…",
+    "continue": "继续",
+    "skip": "跳过"
+  },
+  "adminOAuth": {
+    "title": "OAuth 客户端",
+    "subtitle": "管理可通过本服务器进行身份验证的 OAuth 2.0 应用程序。",
+    "createClient": "创建客户端",
+    "createClientDescription": "注册新的 OAuth 2.0 应用程序。",
+    "clientName": "应用名称",
+    "clientNamePlaceholder": "我的应用",
+    "clientDescription": "描述（可选）",
+    "clientDescriptionPlaceholder": "该应用的用途是什么？",
+    "redirectUris": "回调 URI",
+    "redirectUrisPlaceholder": "https://myapp.example.com/callback",
+    "redirectUrisHint": "每行一个 URI，必须使用 https://（或 http://localhost）。",
+    "scopes": "允许的权限范围",
+    "scopesHint": "以空格分隔的权限范围列表。默认值：profile",
+    "cancel": "取消",
+    "create": "创建",
+    "creating": "创建中…",
+    "createError": "错误",
+    "updateError": "错误",
+    "deleteError": "错误",
+    "clientCreated": "客户端已创建",
+    "clientCreatedDescription": "请立即保存客户端密钥，此后将不再显示。",
+    "clientIdLabel": "客户端 ID",
+    "clientSecretLabel": "客户端密钥",
+    "saveSecretHint": "这是密钥唯一一次展示，请妥善保存。",
+    "done": "完成",
+    "noClients": "暂无已注册的 OAuth 客户端。",
+    "active": "活跃",
+    "inactive": "停用",
+    "activate": "启用",
+    "deactivate": "停用",
+    "delete": "删除"
+  },
+  "oauth": {
+    "authorize": {
+      "title": "授权应用",
+      "requestingAccess": "{app} 请求访问您的账户。",
+      "permissionsLabel": "该应用将能够：",
+      "scopeProfile": "读取您的姓名、用户名和头像",
+      "approve": "授权",
+      "deny": "拒绝",
+      "authorizing": "授权中…",
+      "denying": "拒绝中…"
+    }
   }
 }

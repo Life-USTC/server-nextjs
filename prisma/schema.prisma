@@ -753,6 +753,10 @@ model User {
   homeworkCompletions  HomeworkCompletion[]
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]
+
+  oauthClientsCreated     OAuthClient[]             @relation("OAuthClientCreatedBy")
+  oauthAuthorizationCodes OAuthAuthorizationCode[]
+  oauthAccessTokens       OAuthAccessToken[]
 }
 
 
@@ -1008,4 +1012,77 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, credentialID])
+}
+
+// OAuth 2.0 provider (downstream clients)
+
+model OAuthClient {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  clientId    String  @unique @default(cuid())
+  // Random high-entropy secret stored as-is; used with timingSafeEqual comparison
+  clientSecret String
+  redirectUris String[]
+  scopes       String[] @default(["profile"])
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   User?   @relation("OAuthClientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  authorizationCodes OAuthAuthorizationCode[]
+  accessTokens       OAuthAccessToken[]
+
+  @@index([clientId])
+  @@index([createdById])
+}
+
+model OAuthAuthorizationCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  redirectUri String
+  scopes      String[]
+
+  // PKCE support
+  codeChallenge       String?
+  codeChallengeMethod String?
+
+  oauthClientId String
+  oauthClient   OAuthClient @relation(fields: [oauthClientId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([code])
+  @@index([oauthClientId])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OAuthAccessToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  expiresAt DateTime?
+  scopes    String[]
+
+  oauthClientId String
+  oauthClient   OAuthClient @relation(fields: [oauthClientId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([token])
+  @@index([oauthClientId])
+  @@index([userId])
+  @@index([expiresAt])
 }

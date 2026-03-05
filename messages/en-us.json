@@ -227,7 +227,9 @@
     "moderationTitle": "Moderation",
     "moderationDescription": "Review and manage comments and suspensions.",
     "usersTitle": "User Management",
-    "usersDescription": "Search and browse all users."
+    "usersDescription": "Search and browse all users.",
+    "oauthTitle": "OAuth Clients",
+    "oauthDescription": "Manage downstream OAuth 2.0 applications."
   },
   "adminUsers": {
     "title": "User Management",
@@ -1182,5 +1184,57 @@
     "noteLabel": "Note",
     "suspensionDetails": "Suspension Details",
     "defaultBanReason": "You have been banned for your comment \"{content}\" posted on {url} at {date}."
+  },
+  "welcome": {
+    "title": "Welcome!",
+    "description": "Please tell us a bit about yourself to get started.",
+    "saving": "Saving...",
+    "continue": "Continue",
+    "skip": "Skip for now"
+  },
+  "adminOAuth": {
+    "title": "OAuth Clients",
+    "subtitle": "Manage OAuth 2.0 applications that can authenticate via this server.",
+    "createClient": "Create Client",
+    "createClientDescription": "Register a new OAuth 2.0 application.",
+    "clientName": "Application Name",
+    "clientNamePlaceholder": "My Application",
+    "clientDescription": "Description (optional)",
+    "clientDescriptionPlaceholder": "What does this application do?",
+    "redirectUris": "Redirect URIs",
+    "redirectUrisPlaceholder": "https://myapp.example.com/callback",
+    "redirectUrisHint": "One URI per line. Must use https:// (or http://localhost).",
+    "scopes": "Allowed Scopes",
+    "scopesHint": "Space-separated list of scopes. Default: profile",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating...",
+    "createError": "Error",
+    "updateError": "Error",
+    "deleteError": "Error",
+    "clientCreated": "Client Created",
+    "clientCreatedDescription": "Save the client secret now — it will not be shown again.",
+    "clientIdLabel": "Client ID",
+    "clientSecretLabel": "Client Secret",
+    "saveSecretHint": "This is the only time this secret is shown. Store it securely.",
+    "done": "Done",
+    "noClients": "No OAuth clients registered yet.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "delete": "Delete"
+  },
+  "oauth": {
+    "authorize": {
+      "title": "Authorize Application",
+      "requestingAccess": "{app} is requesting access to your account.",
+      "permissionsLabel": "This application will be able to:",
+      "scopeProfile": "Read your name, username, and profile picture",
+      "approve": "Approve",
+      "deny": "Deny",
+      "authorizing": "Authorizing...",
+      "denying": "Denying..."
+    }
   }
 }

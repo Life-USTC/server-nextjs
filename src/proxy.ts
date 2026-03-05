@@ -45,11 +45,34 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
+// Paths that should not trigger the profile-completion redirect
+const PROFILE_CHECK_EXCLUDED_PATHS = new Set([
+  "/welcome",
+  "/signin",
+  "/oauth/authorize",
+]);
+
 export default auth((request) => {
   if (!request.nextUrl) {
     // This handles requests that are not NextRequest (e.g., in some edge cases or tests)
     // But typically with auth wrapper, request is NextAuthRequest which extends NextRequest
     return NextResponse.next();
+  }
+
+  const pathname = request.nextUrl.pathname;
+
+  // Redirect signed-in users with incomplete profiles to the welcome page
+  const sessionUser = request.auth?.user;
+  if (
+    sessionUser &&
+    !PROFILE_CHECK_EXCLUDED_PATHS.has(pathname) &&
+    (!sessionUser.name || !sessionUser.username)
+  ) {
+    const welcomeUrl = new URL("/welcome", request.url);
+    if (pathname !== "/") {
+      welcomeUrl.searchParams.set("next", pathname);
+    }
+    return NextResponse.redirect(welcomeUrl);
   }
 
   const locale = getLocale(request);
