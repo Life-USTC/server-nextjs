@@ -236,6 +236,12 @@ export const adminCommentsQuerySchema = z.object({
   limit: integerStringSchema.optional(),
 });
 
+export const adminDescriptionsQuerySchema = z.object({
+  targetType: z.enum(["section", "course", "teacher", "homework"]).optional(),
+  page: integerStringSchema.optional(),
+  limit: integerStringSchema.optional(),
+});
+
 export const commentsQuerySchema = z.object({
   targetType: commentTargetTypeSchema,
   targetId: z.string().optional(),

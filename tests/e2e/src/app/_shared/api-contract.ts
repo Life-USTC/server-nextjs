@@ -225,6 +225,7 @@ export async function assertApiContract(
     routePath === "/api/calendar-subscriptions/current" ||
     routePath === "/api/admin/comments" ||
     routePath === "/api/admin/comments/[id]" ||
+    routePath === "/api/admin/descriptions" ||
     routePath === "/api/admin/users" ||
     routePath === "/api/admin/users/[id]" ||
     routePath === "/api/admin/suspensions" ||

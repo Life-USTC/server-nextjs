@@ -133,7 +133,7 @@ export async function GET(request: Request) {
       prisma.comment.findMany({
         where,
         include: COMMENT_INCLUDE,
-        orderBy: { createdAt: "desc" },
+        orderBy: { updatedAt: "desc" },
         skip: pagination.skip,
         take: pagination.pageSize,
       }),

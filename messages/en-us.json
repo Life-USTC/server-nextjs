@@ -1198,6 +1198,11 @@
     "targetTypeSection": "Section",
     "targetTypeSectionTeacher": "Section + Teacher",
     "targetTypeHomework": "Homework",
-    "totalResults": "total: {count}"
+    "totalResults": "total: {count}",
+    "descriptionsTab": "Descriptions",
+    "lastEditedAt": "Last Edited",
+    "lastEditor": "Editor",
+    "searchSuspensionsPlaceholder": "Search by user name or reason...",
+    "searchDescriptionsPlaceholder": "Search description content, editor or target..."
   }
 }

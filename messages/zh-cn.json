@@ -1198,6 +1198,11 @@
     "targetTypeSection": "课程小节",
     "targetTypeSectionTeacher": "课程小节·教师",
     "targetTypeHomework": "作业",
-    "totalResults": "共 {count} 条"
+    "totalResults": "共 {count} 条",
+    "descriptionsTab": "课程介绍",
+    "lastEditedAt": "最后编辑时间",
+    "lastEditor": "编辑者",
+    "searchSuspensionsPlaceholder": "搜索用户名或原因...",
+    "searchDescriptionsPlaceholder": "搜索介绍内容、编辑者或目标..."
   }
 }

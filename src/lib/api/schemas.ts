@@ -758,6 +758,31 @@ export const adminSuspensionResponseSchema = createEntityResponseSchema(
   adminSuspensionSchema,
 );
 
+export const adminDescriptionSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+  lastEditedAt: dateTimeSchema.nullable(),
+  lastEditedById: z.string().nullable(),
+  sectionId: z.number().int().nullable(),
+  courseId: z.number().int().nullable(),
+  teacherId: z.number().int().nullable(),
+  homeworkId: z.string().nullable(),
+  lastEditedBy: z
+    .object({ id: z.string(), name: z.string().nullable() })
+    .nullable(),
+  section: z.object({ jwId: z.number().int(), code: z.string() }).nullable(),
+  course: z
+    .object({ jwId: z.number().int(), code: z.string(), nameCn: z.string() })
+    .nullable(),
+  teacher: z.object({ id: z.number().int(), nameCn: z.string() }).nullable(),
+  homework: z.object({ id: z.string(), title: z.string() }).nullable(),
+});
+
+export const adminDescriptionsPaginatedResponseSchema =
+  createPaginatedResponseSchema(adminDescriptionSchema);
+
 export const adminStatsResponseSchema = z.object({
   stats: z.object({
     totalUsers: z.number().int().nonnegative(),
