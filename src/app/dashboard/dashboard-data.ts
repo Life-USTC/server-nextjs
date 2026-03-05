@@ -43,6 +43,7 @@ export type DashboardNavStats = {
   pendingHomeworksCount: number;
   highlightPendingHomeworks: boolean;
   examsCount: number;
+  pendingTodosCount: number;
 };
 
 export async function getDashboardNavStats(
@@ -82,12 +83,19 @@ export async function getDashboardNavStats(
   if (!user) return null;
 
   const sectionIds = user.subscribedSections.map((section) => section.id);
+
+  // Always count pending todos regardless of section subscriptions
+  const pendingTodosCount = await basePrisma.todo.count({
+    where: { userId, completed: false },
+  });
+
   if (sectionIds.length === 0) {
     return {
       user: { id: user.id, name: user.name, username: user.username },
       pendingHomeworksCount: 0,
       highlightPendingHomeworks: false,
       examsCount: 0,
+      pendingTodosCount,
     };
   }
 
@@ -149,6 +157,7 @@ export async function getDashboardNavStats(
     pendingHomeworksCount,
     highlightPendingHomeworks: dueTodayCount > 0,
     examsCount,
+    pendingTodosCount,
   };
 }
 
@@ -633,3 +642,32 @@ export async function getSubscriptionsTabData(userId: string) {
 export type SubscriptionsTabData = Awaited<
   ReturnType<typeof getSubscriptionsTabData>
 >;
+
+export type TodoItem = {
+  id: string;
+  title: string;
+  content: string | null;
+  completed: boolean;
+  priority: "low" | "medium" | "high";
+  dueAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
+  const todos = await basePrisma.todo.findMany({
+    where: { userId },
+    orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
+  });
+
+  return todos.map((todo) => ({
+    id: todo.id,
+    title: todo.title,
+    content: todo.content ?? null,
+    completed: todo.completed,
+    priority: todo.priority as "low" | "medium" | "high",
+    dueAt: todo.dueAt?.toISOString() ?? null,
+    createdAt: todo.createdAt.toISOString(),
+    updatedAt: todo.updatedAt.toISOString(),
+  }));
+}
