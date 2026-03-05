@@ -36,6 +36,27 @@
           },
           {
             "in": "query",
+            "name": "targetType",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "course",
+                "teacher",
+                "section",
+                "homework",
+                "sectionTeacher"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "limit",
             "schema": {},
             "required": false
@@ -47,7 +68,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/adminCommentsResponseSchema"
+                  "$ref": "#/components/schemas/adminCommentsPaginatedResponseSchema"
                 }
               }
             }
@@ -90,6 +111,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/adminModeratedCommentResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/stats": {
+      "get": {
+        "operationId": "get-api-admin-stats",
+        "summary": "Get admin overview statistics.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminStatsResponseSchema"
                 }
               }
             }
@@ -228,6 +272,37 @@
       }
     },
     "/api/admin/users/{id}": {
+      "get": {
+        "operationId": "get-api-admin-users-{id}",
+        "summary": "Get user details for admin including recent comments and suspensions.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminUserDetailResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "operationId": "patch-api-admin-users-{id}",
         "summary": "Update one user.",
@@ -1818,6 +1893,23 @@
               "deleted"
             ]
           },
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "course",
+              "teacher",
+              "section",
+              "homework",
+              "sectionTeacher"
+            ]
+          },
+          "page": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
           "limit": {
             "allOf": [
               {
@@ -1827,20 +1919,8 @@
           }
         }
       },
-      "adminCommentsResponseSchema": {
-        "type": "object",
-        "properties": {
-          "comments": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/adminCommentSchema"
-            }
-          }
-        },
-        "required": [
-          "comments"
-        ]
-      },
+      "adminCommentsPaginatedResponseSchema": {},
+      "adminStatsResponseSchema": {},
       "adminSuspensionResponseSchema": {
         "type": "object",
         "properties": {
@@ -1888,6 +1968,7 @@
           "userId"
         ]
       },
+      "adminUserDetailResponseSchema": {},
       "adminUpdateUserRequestSchema": {
         "type": "object",
         "properties": {
@@ -4263,172 +4344,6 @@
           "updatedAt",
           "lastEditedAt",
           "lastEditedBy"
-        ]
-      },
-      "adminCommentSchema": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "$ref": "#/components/schemas/dateTimeSchema"
-          },
-          "updatedAt": {
-            "$ref": "#/components/schemas/dateTimeSchema"
-          },
-          "deletedAt": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dateTimeSchema"
-              }
-            ]
-          },
-          "moderatedAt": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dateTimeSchema"
-              }
-            ]
-          },
-          "user": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "nullable": true
-              }
-            },
-            "required": [
-              "name"
-            ],
-            "nullable": true
-          },
-          "section": {
-            "type": "object",
-            "properties": {
-              "jwId": {
-                "type": "integer"
-              },
-              "code": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "jwId",
-              "code"
-            ],
-            "nullable": true
-          },
-          "course": {
-            "type": "object",
-            "properties": {
-              "jwId": {
-                "type": "integer"
-              },
-              "code": {
-                "type": "string"
-              },
-              "nameCn": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "jwId",
-              "code",
-              "nameCn"
-            ],
-            "nullable": true
-          },
-          "teacher": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "integer"
-              },
-              "nameCn": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "nameCn"
-            ],
-            "nullable": true
-          },
-          "homework": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "title": {
-                "type": "string"
-              },
-              "section": {
-                "type": "object",
-                "properties": {
-                  "code": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "code"
-                ]
-              }
-            },
-            "required": [
-              "id",
-              "title",
-              "section"
-            ],
-            "nullable": true
-          },
-          "sectionTeacher": {
-            "type": "object",
-            "properties": {
-              "section": {
-                "type": "object",
-                "properties": {
-                  "jwId": {
-                    "type": "integer"
-                  },
-                  "code": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "jwId",
-                  "code"
-                ]
-              },
-              "teacher": {
-                "type": "object",
-                "properties": {
-                  "nameCn": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "nameCn"
-                ]
-              }
-            },
-            "required": [
-              "section",
-              "teacher"
-            ],
-            "nullable": true
-          }
-        },
-        "required": [
-          "createdAt",
-          "updatedAt",
-          "deletedAt",
-          "moderatedAt",
-          "user",
-          "section",
-          "course",
-          "teacher",
-          "homework",
-          "sectionTeacher"
         ]
       },
       "buildingWithCampusSchema": {
