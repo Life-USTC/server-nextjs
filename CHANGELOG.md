@@ -1,3 +1,10 @@
+# [0.40.0](https://github.com/Life-USTC/server-nextjs/compare/v0.39.0...v0.40.0) (2026-03-05)
+
+
+### Features
+
+* add TODO support ([95c3108](https://github.com/Life-USTC/server-nextjs/commit/95c3108fbeb2dbac8246e2589610c819575b0d37))
+
 # [0.39.0](https://github.com/Life-USTC/server-nextjs/compare/v0.38.0...v0.39.0) (2026-03-03)
 
 
