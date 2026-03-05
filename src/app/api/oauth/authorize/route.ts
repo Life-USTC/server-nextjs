@@ -36,7 +36,7 @@ export async function POST(request: Request) {
 
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId: client_id },
-    select: { id: true, redirectUris: true },
+    select: { id: true, redirectUris: true, scopes: true },
   });
 
   if (!client) {
@@ -50,7 +50,20 @@ export async function POST(request: Request) {
     );
   }
 
-  const scopes = scope?.split(" ").filter(Boolean) ?? ["openid", "profile"];
+  const requested = scope?.split(" ").filter(Boolean) ?? client.scopes;
+  // Only grant scopes that the client is registered for
+  const scopes = requested.filter((s) => client.scopes.includes(s));
+
+  if (scopes.length === 0) {
+    return NextResponse.json(
+      {
+        error: "invalid_scope",
+        error_description:
+          "None of the requested scopes are allowed for this client",
+      },
+      { status: 400 },
+    );
+  }
   const code = generateToken();
 
   await prisma.oAuthCode.create({

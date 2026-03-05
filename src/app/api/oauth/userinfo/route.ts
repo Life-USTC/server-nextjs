@@ -45,6 +45,19 @@ export async function GET(request: Request) {
   const { user } = accessToken;
   const scopes = accessToken.scopes;
 
+  // OIDC requires the "openid" scope for userinfo access
+  if (!scopes.includes("openid")) {
+    return NextResponse.json(
+      { error: "insufficient_scope" },
+      {
+        status: 403,
+        headers: {
+          "WWW-Authenticate": 'Bearer error="insufficient_scope"',
+        },
+      },
+    );
+  }
+
   const response: Record<string, unknown> = {
     sub: user.id,
   };
