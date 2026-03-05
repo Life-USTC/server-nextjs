@@ -227,7 +227,11 @@
     "moderationTitle": "内容审核",
     "moderationDescription": "查看并处理评论与封禁。",
     "usersTitle": "用户管理",
-    "usersDescription": "查询与浏览所有用户。"
+    "usersDescription": "查询与浏览所有用户。",
+    "statsTotalUsers": "用户总数",
+    "statsActiveSuspensions": "生效封禁",
+    "statsSoftbannedComments": "隐藏评论",
+    "statsDeletedComments": "已删除评论"
   },
   "adminUsers": {
     "title": "用户管理",
@@ -250,7 +254,13 @@
     "saveAction": "保存更改",
     "suspendTitle": "封禁用户",
     "updateSuccess": "更新成功",
-    "updateFailed": "更新失败"
+    "updateFailed": "更新失败",
+    "tabEdit": "编辑",
+    "tabComments": "评论",
+    "tabSuspensions": "封禁记录",
+    "noUserComments": "该用户没有评论",
+    "noUserSuspensions": "没有封禁记录",
+    "liftedBy": "由 {name} 解除"
   },
   "myComments": {
     "title": "我的评论",
@@ -1181,6 +1191,13 @@
     "statusLabel": "当前状态",
     "noteLabel": "备注",
     "suspensionDetails": "封禁详情",
-    "defaultBanReason": "您因为于 {date} 在 {url} 页面下发表的评论「{content}」被封禁"
+    "defaultBanReason": "您因为于 {date} 在 {url} 页面下发表的评论「{content}」被封禁",
+    "targetTypeAll": "全部类型",
+    "targetTypeCourse": "课程",
+    "targetTypeTeacher": "教师",
+    "targetTypeSection": "课程小节",
+    "targetTypeSectionTeacher": "课程小节·教师",
+    "targetTypeHomework": "作业",
+    "totalResults": "共 {count} 条"
   }
 }

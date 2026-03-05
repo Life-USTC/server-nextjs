@@ -229,6 +229,10 @@ export const adminUsersQuerySchema = z.object({
 
 export const adminCommentsQuerySchema = z.object({
   status: z.enum(["active", "softbanned", "deleted"]).optional(),
+  targetType: z
+    .enum(["course", "teacher", "section", "homework", "sectionTeacher"])
+    .optional(),
+  page: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
 });
 

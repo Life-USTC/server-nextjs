@@ -718,10 +718,10 @@ export const adminCommentSchema = adminCommentBaseSchema.extend({
     .nullable(),
 });
 
-export const adminCommentsResponseSchema = createCollectionResponseSchema(
-  "comments",
-  adminCommentSchema,
-);
+export const adminCommentsResponseSchema =
+  createPaginatedResponseSchema(adminCommentSchema);
+
+export const adminCommentsPaginatedResponseSchema = adminCommentsResponseSchema;
 
 export const adminModeratedCommentSchema = adminCommentBaseSchema;
 
@@ -757,6 +757,68 @@ export const adminSuspensionResponseSchema = createEntityResponseSchema(
   "suspension",
   adminSuspensionSchema,
 );
+
+export const adminStatsResponseSchema = z.object({
+  stats: z.object({
+    totalUsers: z.number().int().nonnegative(),
+    activeSuspensions: z.number().int().nonnegative(),
+    comments: z.object({
+      active: z.number().int().nonnegative(),
+      softbanned: z.number().int().nonnegative(),
+      deleted: z.number().int().nonnegative(),
+      total: z.number().int().nonnegative(),
+    }),
+  }),
+});
+
+const adminUserDetailSuspensionSchema = adminSuspensionBaseSchema.extend({
+  createdBy: z
+    .object({ id: z.string(), name: z.string().nullable() })
+    .nullable(),
+  liftedBy: z
+    .object({ id: z.string(), name: z.string().nullable() })
+    .nullable(),
+});
+
+export const adminUserDetailResponseSchema = z.object({
+  user: adminUserListItemSchema,
+  recentComments: z.array(
+    adminCommentBaseSchema.extend({
+      course: z
+        .object({
+          jwId: z.number().int(),
+          code: z.string(),
+          nameCn: z.string(),
+        })
+        .nullable(),
+      teacher: z
+        .object({ id: z.number().int(), nameCn: z.string() })
+        .nullable(),
+      section: z
+        .object({ jwId: z.number().int(), code: z.string() })
+        .nullable(),
+      homework: z
+        .object({
+          id: z.string(),
+          title: z.string(),
+          section: z.object({ code: z.string().nullable() }).nullable(),
+        })
+        .nullable(),
+      sectionTeacher: z
+        .object({
+          section: z
+            .object({
+              jwId: z.number().int().nullable(),
+              code: z.string().nullable(),
+            })
+            .nullable(),
+          teacher: z.object({ nameCn: z.string() }).nullable(),
+        })
+        .nullable(),
+    }),
+  ),
+  suspensions: z.array(adminUserDetailSuspensionSchema),
+});
 
 const uploadSummarySchema = UploadModelSchema.pick({
   id: true,

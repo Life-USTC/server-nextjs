@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { badRequest, handleRouteError, unauthorized } from "@/lib/api/helpers";
+import {
+  badRequest,
+  handleRouteError,
+  notFound,
+  unauthorized,
+} from "@/lib/api/helpers";
 import {
   adminUpdateUserRequestSchema,
   resourceIdPathParamsSchema,
@@ -30,6 +35,113 @@ async function parseUserId(
   }
 
   return parsed.data.id;
+}
+
+/**
+ * Get user details for admin including recent comments and suspensions.
+ * @pathParams resourceIdPathParamsSchema
+ * @response adminUserDetailResponseSchema
+ * @response 404:openApiErrorSchema
+ */
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const admin = await requireAdmin();
+  if (!admin) {
+    return unauthorized();
+  }
+
+  const parsed = await parseUserId(params);
+  if (parsed instanceof NextResponse) {
+    return parsed;
+  }
+  const id = parsed;
+
+  try {
+    const [user, recentComments, suspensions] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          isAdmin: true,
+          createdAt: true,
+          verifiedEmails: { select: { email: true }, take: 1 },
+        },
+      }),
+      prisma.comment.findMany({
+        where: { userId: id },
+        select: {
+          id: true,
+          body: true,
+          status: true,
+          createdAt: true,
+          moderationNote: true,
+          course: { select: { jwId: true, code: true, nameCn: true } },
+          teacher: { select: { id: true, nameCn: true } },
+          section: { select: { jwId: true, code: true } },
+          homework: {
+            select: {
+              id: true,
+              title: true,
+              section: { select: { code: true } },
+            },
+          },
+          sectionTeacher: {
+            select: {
+              section: { select: { jwId: true, code: true } },
+              teacher: { select: { nameCn: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+      }),
+      prisma.userSuspension.findMany({
+        where: { userId: id },
+        select: {
+          id: true,
+          createdAt: true,
+          expiresAt: true,
+          liftedAt: true,
+          reason: true,
+          note: true,
+          createdBy: { select: { id: true, name: true } },
+          liftedBy: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    if (!user) {
+      return notFound("User not found");
+    }
+
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        isAdmin: user.isAdmin,
+        email: user.verifiedEmails?.[0]?.email ?? null,
+        createdAt: user.createdAt.toISOString(),
+      },
+      recentComments: recentComments.map((c) => ({
+        ...c,
+        createdAt: c.createdAt.toISOString(),
+      })),
+      suspensions: suspensions.map((s) => ({
+        ...s,
+        createdAt: s.createdAt.toISOString(),
+        expiresAt: s.expiresAt?.toISOString() ?? null,
+        liftedAt: s.liftedAt?.toISOString() ?? null,
+      })),
+    });
+  } catch (error) {
+    return handleRouteError("Failed to fetch user details", error);
+  }
 }
 
 /**

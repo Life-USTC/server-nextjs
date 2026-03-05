@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -40,9 +41,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
-import { adminUserResponseSchema } from "@/lib/api/schemas";
+import {
+  adminUserDetailResponseSchema,
+  adminUserResponseSchema,
+} from "@/lib/api/schemas";
 
 type AdminUser = {
   id: string;
@@ -51,6 +56,37 @@ type AdminUser = {
   isAdmin: boolean;
   email: string | null;
   createdAt: string;
+};
+
+type UserDetailComment = {
+  id: string;
+  body: string;
+  status: "active" | "softbanned" | "deleted";
+  createdAt: string;
+  moderationNote: string | null;
+  course: { jwId: number; code: string; nameCn: string } | null;
+  teacher: { id: number; nameCn: string } | null;
+  section: { jwId: number; code: string } | null;
+  homework: {
+    id: string;
+    title: string;
+    section: { code: string | null } | null;
+  } | null;
+  sectionTeacher: {
+    section: { jwId: number | null; code: string | null } | null;
+    teacher: { nameCn: string } | null;
+  } | null;
+};
+
+type UserDetailSuspension = {
+  id: string;
+  createdAt: string;
+  expiresAt: string | null;
+  liftedAt: string | null;
+  reason: string | null;
+  note: string | null;
+  createdBy: { id: string; name: string | null } | null;
+  liftedBy: { id: string; name: string | null } | null;
 };
 
 type AdminUsersTableProps = {
@@ -92,6 +128,11 @@ export function AdminUsersTable({
   const [suspendDuration, setSuspendDuration] = useState("3d");
   const [suspendExpiresAt, setSuspendExpiresAt] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
+  const [userComments, setUserComments] = useState<UserDetailComment[]>([]);
+  const [userSuspensions, setUserSuspensions] = useState<
+    UserDetailSuspension[]
+  >([]);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   const formatter = useMemo(
     () =>
@@ -110,7 +151,7 @@ export function AdminUsersTable({
     return query ? `/admin/users?${query}` : "/admin/users";
   };
 
-  const openDialog = (user: AdminUser) => {
+  const openDialog = async (user: AdminUser) => {
     setSelectedUser(user);
     setEditName(user.name ?? "");
     setEditUsername(user.username ?? "");
@@ -118,7 +159,28 @@ export function AdminUsersTable({
     setSuspendDuration("3d");
     setSuspendExpiresAt("");
     setSuspendReason("");
+    setUserComments([]);
+    setUserSuspensions([]);
     setDialogOpen(true);
+
+    // Fetch user details (comments + suspensions)
+    setIsLoadingDetail(true);
+    try {
+      const result = await apiClient.GET("/api/admin/users/{id}", {
+        params: { path: { id: user.id } },
+      });
+      if (result.response.ok && result.data) {
+        const parsed = adminUserDetailResponseSchema.safeParse(result.data);
+        if (parsed.success) {
+          setUserComments(parsed.data.recentComments as UserDetailComment[]);
+          setUserSuspensions(parsed.data.suspensions as UserDetailSuspension[]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch user details", error);
+    } finally {
+      setIsLoadingDetail(false);
+    }
   };
 
   const calculateExpiresAt = () => {
@@ -242,7 +304,7 @@ export function AdminUsersTable({
             <TableRow
               key={entry.id}
               className="cursor-pointer hover:bg-muted/50"
-              onClick={() => openDialog(entry)}
+              onClick={() => void openDialog(entry)}
             >
               <TableCell className="font-medium">{entry.name ?? "—"}</TableCell>
               <TableCell>{entry.username ?? "—"}</TableCell>
@@ -317,99 +379,245 @@ export function AdminUsersTable({
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogPopup className="max-w-xl">
+        <DialogPopup className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t("editTitle")}</DialogTitle>
             <DialogDescription>{t("editDescription")}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 p-4">
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>{t("nameLabel")}</Label>
-                <Input
-                  value={editName}
-                  onChange={(event) => setEditName(event.target.value)}
-                  placeholder={t("name")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t("usernameLabel")}</Label>
-                <Input
-                  value={editUsername}
-                  onChange={(event) => setEditUsername(event.target.value)}
-                  placeholder={t("username")}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={editIsAdmin}
-                  onCheckedChange={(value) => setEditIsAdmin(Boolean(value))}
-                />
-                <span className="text-sm">{t("adminToggleLabel")}</span>
-              </div>
-            </div>
+          <Tabs defaultValue="edit">
+            <TabsList className="px-4 pt-2">
+              <TabsTab value="edit">{t("tabEdit")}</TabsTab>
+              <TabsTab value="comments">
+                {t("tabComments")} ({userComments.length})
+              </TabsTab>
+              <TabsTab value="suspensions">
+                {t("tabSuspensions")} ({userSuspensions.length})
+              </TabsTab>
+            </TabsList>
 
-            {selectedUser && (
-              <div className="space-y-3 border-t pt-4">
-                <h4 className="font-medium text-destructive">
-                  {t("suspendTitle")}
-                </h4>
-                <div className="grid gap-4 sm:grid-cols-2">
+            <TabsPanel value="edit">
+              <div className="space-y-6 p-4">
+                <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label>{tModeration("durationLabel")}</Label>
-                    <Select
-                      value={suspendDuration}
-                      onValueChange={(value) =>
-                        setSuspendDuration(value ?? "3d")
-                      }
-                      items={DURATION_OPTIONS.map((opt) => ({
-                        value: opt.value,
-                        label: tModeration(opt.labelKey),
-                      }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectPopup>
-                        {DURATION_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {tModeration(opt.labelKey)}
-                          </SelectItem>
-                        ))}
-                      </SelectPopup>
-                    </Select>
+                    <Label>{t("nameLabel")}</Label>
+                    <Input
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      placeholder={t("name")}
+                    />
                   </div>
-                  {suspendDuration === "custom" && (
+                  <div className="space-y-2">
+                    <Label>{t("usernameLabel")}</Label>
+                    <Input
+                      value={editUsername}
+                      onChange={(event) => setEditUsername(event.target.value)}
+                      placeholder={t("username")}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={editIsAdmin}
+                      onCheckedChange={(value) =>
+                        setEditIsAdmin(Boolean(value))
+                      }
+                    />
+                    <span className="text-sm">{t("adminToggleLabel")}</span>
+                  </div>
+                </div>
+
+                {selectedUser && (
+                  <div className="space-y-3 border-t pt-4">
+                    <h4 className="font-medium text-destructive">
+                      {t("suspendTitle")}
+                    </h4>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>{tModeration("durationLabel")}</Label>
+                        <Select
+                          value={suspendDuration}
+                          onValueChange={(value) =>
+                            setSuspendDuration(value ?? "3d")
+                          }
+                          items={DURATION_OPTIONS.map((opt) => ({
+                            value: opt.value,
+                            label: tModeration(opt.labelKey),
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectPopup>
+                            {DURATION_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                {tModeration(opt.labelKey)}
+                              </SelectItem>
+                            ))}
+                          </SelectPopup>
+                        </Select>
+                      </div>
+                      {suspendDuration === "custom" && (
+                        <div className="space-y-2">
+                          <Label>{tModeration("suspendExpires")}</Label>
+                          <Input
+                            type="datetime-local"
+                            value={suspendExpiresAt}
+                            onChange={(event) =>
+                              setSuspendExpiresAt(event.target.value)
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
-                      <Label>{tModeration("suspendExpires")}</Label>
+                      <Label>{tModeration("reason")}</Label>
                       <Input
-                        type="datetime-local"
-                        value={suspendExpiresAt}
+                        value={suspendReason}
                         onChange={(event) =>
-                          setSuspendExpiresAt(event.target.value)
+                          setSuspendReason(event.target.value)
                         }
+                        placeholder={tModeration("suspendReason")}
                       />
                     </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>{tModeration("reason")}</Label>
-                  <Input
-                    value={suspendReason}
-                    onChange={(event) => setSuspendReason(event.target.value)}
-                    placeholder={tModeration("suspendReason")}
-                  />
-                </div>
-                <Button
-                  variant="destructive"
-                  onClick={handleSuspend}
-                  disabled={isSuspending}
-                >
-                  {tModeration("suspendAction")}
-                </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleSuspend}
+                      disabled={isSuspending}
+                    >
+                      {tModeration("suspendAction")}
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </TabsPanel>
+
+            <TabsPanel value="comments">
+              <div className="max-h-80 overflow-y-auto p-4">
+                {isLoadingDetail ? (
+                  <p className="text-muted-foreground text-sm">
+                    {tModeration("loading")}
+                  </p>
+                ) : userComments.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    {t("noUserComments")}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {userComments.map((comment) => {
+                      const statusLabel =
+                        comment.status === "softbanned"
+                          ? tModeration("statusSoftbanned")
+                          : comment.status === "deleted"
+                            ? tModeration("statusDeleted")
+                            : tModeration("statusActive");
+                      const targetLabel =
+                        comment.homework?.title ??
+                        comment.sectionTeacher?.teacher?.nameCn ??
+                        comment.section?.code ??
+                        comment.course?.nameCn ??
+                        comment.teacher?.nameCn ??
+                        "—";
+                      return (
+                        <div
+                          key={comment.id}
+                          className="rounded-md border p-3 text-sm"
+                        >
+                          <div className="mb-1 flex items-center gap-2">
+                            <Badge
+                              variant={
+                                comment.status === "active"
+                                  ? "default"
+                                  : comment.status === "softbanned"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {statusLabel}
+                            </Badge>
+                            <span className="text-muted-foreground text-xs">
+                              {targetLabel}
+                            </span>
+                            <span className="ml-auto text-muted-foreground text-xs">
+                              {formatter.format(new Date(comment.createdAt))}
+                            </span>
+                          </div>
+                          <p className="line-clamp-3 text-muted-foreground">
+                            {comment.body}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </TabsPanel>
+
+            <TabsPanel value="suspensions">
+              <div className="max-h-80 overflow-y-auto p-4">
+                {isLoadingDetail ? (
+                  <p className="text-muted-foreground text-sm">
+                    {tModeration("loading")}
+                  </p>
+                ) : userSuspensions.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    {t("noUserSuspensions")}
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {userSuspensions.map((suspension) => (
+                      <div
+                        key={suspension.id}
+                        className="rounded-md border p-3 text-sm"
+                      >
+                        <div className="mb-1 flex items-center gap-2">
+                          <Badge
+                            variant={
+                              suspension.liftedAt ? "outline" : "destructive"
+                            }
+                          >
+                            {suspension.liftedAt
+                              ? tModeration("lifted")
+                              : tModeration("active")}
+                          </Badge>
+                          <span className="text-muted-foreground text-xs">
+                            {formatter.format(new Date(suspension.createdAt))}
+                          </span>
+                          {suspension.expiresAt && !suspension.liftedAt && (
+                            <span className="ml-auto text-muted-foreground text-xs">
+                              {tModeration("expiresAt", {
+                                date: formatter.format(
+                                  new Date(suspension.expiresAt),
+                                ),
+                              })}
+                            </span>
+                          )}
+                          {!suspension.expiresAt && !suspension.liftedAt && (
+                            <span className="ml-auto text-muted-foreground text-xs">
+                              {tModeration("permanent")}
+                            </span>
+                          )}
+                        </div>
+                        {suspension.reason && (
+                          <p className="text-muted-foreground">
+                            {suspension.reason}
+                          </p>
+                        )}
+                        {suspension.liftedBy && (
+                          <p className="mt-1 text-muted-foreground text-xs">
+                            {t("liftedBy", {
+                              name:
+                                suspension.liftedBy.name ??
+                                suspension.liftedBy.id,
+                            })}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsPanel>
+          </Tabs>
+
           <DialogFooter>
             <DialogClose render={<Button variant="outline" />}>
               {tModeration("cancelButton")}

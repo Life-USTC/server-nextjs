@@ -227,7 +227,11 @@
     "moderationTitle": "Moderation",
     "moderationDescription": "Review and manage comments and suspensions.",
     "usersTitle": "User Management",
-    "usersDescription": "Search and browse all users."
+    "usersDescription": "Search and browse all users.",
+    "statsTotalUsers": "Total Users",
+    "statsActiveSuspensions": "Active Suspensions",
+    "statsSoftbannedComments": "Hidden Comments",
+    "statsDeletedComments": "Deleted Comments"
   },
   "adminUsers": {
     "title": "User Management",
@@ -250,7 +254,13 @@
     "saveAction": "Save changes",
     "suspendTitle": "Suspend user",
     "updateSuccess": "Updated successfully",
-    "updateFailed": "Update failed"
+    "updateFailed": "Update failed",
+    "tabEdit": "Edit",
+    "tabComments": "Comments",
+    "tabSuspensions": "Suspensions",
+    "noUserComments": "No comments from this user",
+    "noUserSuspensions": "No suspension records",
+    "liftedBy": "Lifted by {name}"
   },
   "myComments": {
     "title": "My Comments",
@@ -1181,6 +1191,13 @@
     "statusLabel": "Current Status",
     "noteLabel": "Note",
     "suspensionDetails": "Suspension Details",
-    "defaultBanReason": "You have been banned for your comment \"{content}\" posted on {url} at {date}."
+    "defaultBanReason": "You have been banned for your comment \"{content}\" posted on {url} at {date}.",
+    "targetTypeAll": "All Types",
+    "targetTypeCourse": "Course",
+    "targetTypeTeacher": "Teacher",
+    "targetTypeSection": "Section",
+    "targetTypeSectionTeacher": "Section + Teacher",
+    "targetTypeHomework": "Homework",
+    "totalResults": "total: {count}"
   }
 }

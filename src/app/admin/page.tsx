@@ -38,9 +38,20 @@ export default async function AdminHomePage() {
     notFound();
   }
 
-  const [t, tCommon] = await Promise.all([
+  const [
+    t,
+    tCommon,
+    totalUsers,
+    activeSuspensions,
+    softbannedComments,
+    deletedComments,
+  ] = await Promise.all([
     getTranslations("admin"),
     getTranslations("common"),
+    prisma.user.count(),
+    prisma.userSuspension.count({ where: { liftedAt: null } }),
+    prisma.comment.count({ where: { status: "softbanned" } }),
+    prisma.comment.count({ where: { status: "deleted" } }),
   ]);
 
   return (
@@ -59,6 +70,33 @@ export default async function AdminHomePage() {
       <div className="mt-8 mb-8">
         <h1 className="mb-2 text-display">{t("title")}</h1>
         <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
+      </div>
+
+      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>{t("statsTotalUsers")}</CardDescription>
+            <CardTitle className="text-3xl">{totalUsers}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>{t("statsActiveSuspensions")}</CardDescription>
+            <CardTitle className="text-3xl">{activeSuspensions}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>{t("statsSoftbannedComments")}</CardDescription>
+            <CardTitle className="text-3xl">{softbannedComments}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>{t("statsDeletedComments")}</CardDescription>
+            <CardTitle className="text-3xl">{deletedComments}</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">

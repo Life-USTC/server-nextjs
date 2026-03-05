@@ -16,6 +16,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -38,12 +47,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
-  adminCommentsResponseSchema,
+  adminCommentsPaginatedResponseSchema,
   adminSuspensionsResponseSchema,
 } from "@/lib/api/schemas";
 
 type CommentStatus = "active" | "softbanned" | "deleted";
 type CommentStatusFilter = CommentStatus | "all";
+type CommentTargetTypeFilter =
+  | "all"
+  | "course"
+  | "teacher"
+  | "section"
+  | "homework"
+  | "sectionTeacher";
 
 type AdminComment = {
   id: string;
@@ -96,9 +112,11 @@ const DURATION_OPTIONS = [
 type CommentFiltersProps = {
   searchQuery: string;
   statusFilter: CommentStatusFilter;
+  targetTypeFilter: CommentTargetTypeFilter;
   showStatusFilter?: boolean;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: CommentStatusFilter) => void;
+  onTargetTypeChange: (value: CommentTargetTypeFilter) => void;
   t: ReturnType<typeof useTranslations>;
 };
 
@@ -154,7 +172,12 @@ export function ModerationDashboard() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] =
     useState<CommentStatusFilter>("active");
+  const [targetTypeFilter, setTargetTypeFilter] =
+    useState<CommentTargetTypeFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalComments, setTotalComments] = useState(0);
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<AdminComment | null>(
@@ -180,33 +203,45 @@ export function ModerationDashboard() {
     [locale],
   );
 
-  const loadData = useCallback(async () => {
+  const loadComments = useCallback(async () => {
     setLoading(true);
     try {
-      const commentPromise =
-        statusFilter === "all"
-          ? apiClient.GET("/api/admin/comments")
-          : apiClient.GET("/api/admin/comments", {
-              params: {
-                query: { status: statusFilter },
-              },
-            });
-
-      const suspensionPromise = apiClient.GET("/api/admin/suspensions");
-
-      const [commentResult, suspensionResult] = await Promise.all([
-        commentPromise,
-        suspensionPromise,
-      ]);
+      const commentResult = await apiClient.GET("/api/admin/comments", {
+        params: {
+          query: {
+            ...(statusFilter !== "all" ? { status: statusFilter } : {}),
+            ...(targetTypeFilter !== "all"
+              ? { targetType: targetTypeFilter }
+              : {}),
+            page: String(currentPage),
+          },
+        },
+      });
 
       if (commentResult.response.ok && commentResult.data) {
-        const parsed = adminCommentsResponseSchema.safeParse(
+        const parsed = adminCommentsPaginatedResponseSchema.safeParse(
           commentResult.data,
         );
         if (parsed.success) {
-          setComments(parsed.data.comments);
+          setComments(parsed.data.data);
+          setTotalPages(parsed.data.pagination.totalPages);
+          setTotalComments(parsed.data.pagination.total);
         }
       }
+    } catch (error) {
+      console.error("Failed to load comments", error);
+      toast({
+        title: t("updateFailed"),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, targetTypeFilter, currentPage, t, toast]);
+
+  const loadSuspensions = useCallback(async () => {
+    try {
+      const suspensionResult = await apiClient.GET("/api/admin/suspensions");
 
       if (suspensionResult.response.ok && suspensionResult.data) {
         const parsed = adminSuspensionsResponseSchema.safeParse(
@@ -217,19 +252,17 @@ export function ModerationDashboard() {
         }
       }
     } catch (error) {
-      console.error("Failed to load moderation data", error);
-      toast({
-        title: t("updateFailed"),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error("Failed to load suspensions", error);
     }
-  }, [statusFilter, t, toast]);
+  }, []);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    void loadComments();
+  }, [loadComments]);
+
+  useEffect(() => {
+    void loadSuspensions();
+  }, [loadSuspensions]);
 
   const getTargetLink = (comment: AdminComment) => {
     let url = "/";
@@ -327,7 +360,7 @@ export function ModerationDashboard() {
         title: t("updateSuccess"),
         variant: "success",
       });
-      await loadData();
+      await loadComments();
       setDetailDialogOpen(false);
     } catch (error) {
       console.error("Failed to update comment", error);
@@ -358,7 +391,7 @@ export function ModerationDashboard() {
         title: t("suspendSuccess"),
         variant: "success",
       });
-      await loadData();
+      await loadComments();
       setDetailDialogOpen(false);
     } catch (error) {
       console.error("Failed to suspend user", error);
@@ -392,7 +425,7 @@ export function ModerationDashboard() {
         variant: "success",
       });
       setLiftDialogOpen(false);
-      await loadData();
+      await loadSuspensions();
     } catch (error) {
       console.error("Failed to lift suspension", error);
       toast({
@@ -429,7 +462,7 @@ export function ModerationDashboard() {
       <Tabs defaultValue="comments">
         <TabsList>
           <TabsTab value="comments">
-            {t("commentsTab")} ({comments.length})
+            {t("commentsTab")} ({totalComments})
           </TabsTab>
           <TabsTab value="suspensions">
             {t("suspensionsTab")} ({suspensions.length})
@@ -440,8 +473,19 @@ export function ModerationDashboard() {
           <CommentFilters
             searchQuery={searchQuery}
             statusFilter={statusFilter}
-            onSearchChange={setSearchQuery}
-            onStatusChange={setStatusFilter}
+            targetTypeFilter={targetTypeFilter}
+            onSearchChange={(value) => {
+              setSearchQuery(value);
+              setCurrentPage(1);
+            }}
+            onStatusChange={(value) => {
+              setStatusFilter(value);
+              setCurrentPage(1);
+            }}
+            onTargetTypeChange={(value) => {
+              setTargetTypeFilter(value);
+              setCurrentPage(1);
+            }}
             t={t}
           />
 
@@ -453,6 +497,11 @@ export function ModerationDashboard() {
             <>
               <p className="mb-3 text-muted-foreground text-sm">
                 {t("showingResults", { count: filteredComments.length })}
+                {totalComments > filteredComments.length && (
+                  <span className="ml-1 text-muted-foreground">
+                    ({t("totalResults", { count: totalComments })})
+                  </span>
+                )}
               </p>
               <CommentsTable
                 comments={filteredComments}
@@ -461,6 +510,93 @@ export function ModerationDashboard() {
                 getTargetLink={getTargetLink}
                 t={t}
               />
+              {totalPages > 1 && (
+                <Pagination className="mt-4">
+                  <PaginationContent>
+                    {currentPage > 1 && (
+                      <PaginationItem>
+                        <PaginationPrevious
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(currentPage - 1);
+                          }}
+                        />
+                      </PaginationItem>
+                    )}
+                    {(() => {
+                      const maxVisible = 7;
+                      const half = Math.floor(maxVisible / 2);
+                      let start = Math.max(1, currentPage - half);
+                      const end = Math.min(totalPages, start + maxVisible - 1);
+                      start = Math.max(1, end - maxVisible + 1);
+                      const pages: number[] = [];
+                      for (let i = start; i <= end; i++) pages.push(i);
+                      return (
+                        <>
+                          {start > 1 && (
+                            <>
+                              <PaginationItem>
+                                <PaginationLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentPage(1);
+                                  }}
+                                >
+                                  1
+                                </PaginationLink>
+                              </PaginationItem>
+                              {start > 2 && <PaginationEllipsis />}
+                            </>
+                          )}
+                          {pages.map((pageNum) => (
+                            <PaginationItem key={pageNum}>
+                              <PaginationLink
+                                href="#"
+                                isActive={pageNum === currentPage}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setCurrentPage(pageNum);
+                                }}
+                              >
+                                {pageNum}
+                              </PaginationLink>
+                            </PaginationItem>
+                          ))}
+                          {end < totalPages && (
+                            <>
+                              {end < totalPages - 1 && <PaginationEllipsis />}
+                              <PaginationItem>
+                                <PaginationLink
+                                  href="#"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setCurrentPage(totalPages);
+                                  }}
+                                >
+                                  {totalPages}
+                                </PaginationLink>
+                              </PaginationItem>
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
+                    {currentPage < totalPages && (
+                      <PaginationItem>
+                        <PaginationNext
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setCurrentPage(currentPage + 1);
+                          }}
+                        />
+                      </PaginationItem>
+                    )}
+                  </PaginationContent>
+                </Pagination>
+              )}
             </>
           )}
         </TabsPanel>
@@ -469,9 +605,11 @@ export function ModerationDashboard() {
           <CommentFilters
             searchQuery={searchQuery}
             statusFilter={statusFilter}
+            targetTypeFilter={targetTypeFilter}
             showStatusFilter={false}
             onSearchChange={setSearchQuery}
             onStatusChange={setStatusFilter}
+            onTargetTypeChange={setTargetTypeFilter}
             t={t}
           />
 
@@ -529,9 +667,11 @@ export function ModerationDashboard() {
 function CommentFilters({
   searchQuery,
   statusFilter,
+  targetTypeFilter,
   showStatusFilter = true,
   onSearchChange,
   onStatusChange,
+  onTargetTypeChange,
   t,
 }: CommentFiltersProps) {
   return (
@@ -573,6 +713,49 @@ function CommentFilters({
             <SelectItem value="active">{t("filterActive")}</SelectItem>
             <SelectItem value="softbanned">{t("filterSoftbanned")}</SelectItem>
             <SelectItem value="deleted">{t("filterDeleted")}</SelectItem>
+          </SelectPopup>
+        </Select>
+      )}
+      {showStatusFilter && (
+        <Select
+          value={targetTypeFilter}
+          onValueChange={(value) => {
+            const validTypes = [
+              "all",
+              "course",
+              "teacher",
+              "section",
+              "homework",
+              "sectionTeacher",
+            ] as const;
+            const next: CommentTargetTypeFilter = validTypes.includes(
+              value as (typeof validTypes)[number],
+            )
+              ? (value as CommentTargetTypeFilter)
+              : "all";
+            onTargetTypeChange(next);
+          }}
+          items={[
+            { value: "all", label: t("targetTypeAll") },
+            { value: "course", label: t("targetTypeCourse") },
+            { value: "teacher", label: t("targetTypeTeacher") },
+            { value: "section", label: t("targetTypeSection") },
+            { value: "sectionTeacher", label: t("targetTypeSectionTeacher") },
+            { value: "homework", label: t("targetTypeHomework") },
+          ]}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectPopup>
+            <SelectItem value="all">{t("targetTypeAll")}</SelectItem>
+            <SelectItem value="course">{t("targetTypeCourse")}</SelectItem>
+            <SelectItem value="teacher">{t("targetTypeTeacher")}</SelectItem>
+            <SelectItem value="section">{t("targetTypeSection")}</SelectItem>
+            <SelectItem value="sectionTeacher">
+              {t("targetTypeSectionTeacher")}
+            </SelectItem>
+            <SelectItem value="homework">{t("targetTypeHomework")}</SelectItem>
           </SelectPopup>
         </Select>
       )}
