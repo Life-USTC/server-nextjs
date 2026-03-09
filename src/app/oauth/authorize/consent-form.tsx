@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
-import { buildOAuthErrorRedirectUri } from "@/lib/oauth/utils";
+import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 
 interface OAuthConsentFormProps {
   clientName: string;

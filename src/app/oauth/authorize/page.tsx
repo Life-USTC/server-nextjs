@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
-import { buildOAuthErrorRedirectUri } from "@/lib/oauth/utils";
+import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 import { OAuthConsentForm } from "./consent-form";
 
 export async function generateMetadata(): Promise<Metadata> {

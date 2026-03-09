@@ -44,28 +44,6 @@ export async function verifyOAuthClientSecret(
   return timingSafeEqual(expectedHash, actualHash);
 }
 
-export function buildOAuthErrorRedirectUri({
-  redirectUri,
-  error,
-  state,
-  errorDescription,
-}: {
-  redirectUri: string;
-  error: string;
-  state?: string;
-  errorDescription?: string;
-}): string {
-  const url = new URL(redirectUri);
-  url.searchParams.set("error", error);
-  if (state) {
-    url.searchParams.set("state", state);
-  }
-  if (errorDescription) {
-    url.searchParams.set("error_description", errorDescription);
-  }
-  return url.toString();
-}
-
 /** Default lifetime for authorization codes (10 minutes). */
 export const CODE_LIFETIME_MS = 10 * 60 * 1000;
 

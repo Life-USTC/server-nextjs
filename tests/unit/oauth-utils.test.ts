@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 import {
   ACCESS_TOKEN_LIFETIME_MS,
-  buildOAuthErrorRedirectUri,
   CODE_LIFETIME_MS,
   generateToken,
   hashOAuthClientSecret,
