@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
+import { buildOAuthErrorRedirectUri } from "@/lib/oauth/utils";
 
 interface OAuthConsentFormProps {
   clientName: string;
@@ -29,6 +30,21 @@ export function OAuthConsentForm({
 }: OAuthConsentFormProps) {
   const t = useTranslations("oauth");
   const [loading, setLoading] = useState(false);
+
+  const redirectWithError = ({
+    error,
+    errorDescription,
+  }: {
+    error: string;
+    errorDescription?: string;
+  }) => {
+    window.location.href = buildOAuthErrorRedirectUri({
+      redirectUri,
+      error,
+      state,
+      errorDescription,
+    });
+  };
 
   return (
     <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
@@ -53,24 +69,38 @@ export function OAuthConsentForm({
             action={async () => {
               setLoading(true);
 
-              const res = await fetch("/api/oauth/authorize", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  client_id: clientId,
-                  redirect_uri: redirectUri,
-                  scope: scopes.join(" "),
-                  state,
-                }),
-              });
+              try {
+                const res = await fetch("/api/oauth/authorize", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    client_id: clientId,
+                    redirect_uri: redirectUri,
+                    scope: scopes.join(" "),
+                    state,
+                  }),
+                });
 
-              if (!res.ok) {
+                const data = (await res.json().catch(() => null)) as {
+                  redirect?: string;
+                  error?: string;
+                  error_description?: string;
+                } | null;
+
+                if (!res.ok || !data?.redirect) {
+                  redirectWithError({
+                    error: data?.error ?? "server_error",
+                    errorDescription: data?.error_description,
+                  });
+                  return;
+                }
+
+                window.location.href = data.redirect;
+              } catch {
                 setLoading(false);
+                redirectWithError({ error: "server_error" });
                 return;
               }
-
-              const data = await res.json();
-              window.location.href = data.redirect;
             }}
           >
             <div className="flex gap-3">
@@ -79,10 +109,7 @@ export function OAuthConsentForm({
                 variant="outline"
                 className="flex-1"
                 onClick={() => {
-                  const url = new URL(redirectUri);
-                  url.searchParams.set("error", "access_denied");
-                  if (state) url.searchParams.set("state", state);
-                  window.location.href = url.toString();
+                  redirectWithError({ error: "access_denied" });
                 }}
               >
                 {t("deny")}

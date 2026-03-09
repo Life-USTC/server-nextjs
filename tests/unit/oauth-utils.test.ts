@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ACCESS_TOKEN_LIFETIME_MS,
+  buildOAuthErrorRedirectUri,
   CODE_LIFETIME_MS,
   generateToken,
   hashOAuthClientSecret,
@@ -40,6 +41,19 @@ describe("oauth/utils", () => {
     await expect(verifyOAuthClientSecret(secret, hash)).resolves.toBe(true);
     await expect(verifyOAuthClientSecret("wrong-secret", hash)).resolves.toBe(
       false,
+    );
+  });
+
+  it("builds OAuth error redirect URIs", () => {
+    expect(
+      buildOAuthErrorRedirectUri({
+        redirectUri: "https://client.example/callback",
+        error: "invalid_scope",
+        state: "abc123",
+        errorDescription: "Scope is not allowed",
+      }),
+    ).toBe(
+      "https://client.example/callback?error=invalid_scope&state=abc123&error_description=Scope+is+not+allowed",
     );
   });
 });

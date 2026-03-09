@@ -201,6 +201,21 @@ describe("oauth routes", () => {
     expect(prismaMock.oAuthCode.findUnique).not.toHaveBeenCalled();
   });
 
+  it("returns invalid_request for malformed non-form token requests", async () => {
+    const request = new Request("http://localhost/api/oauth/token", {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: "not-form-data",
+    });
+
+    const response = await token(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "invalid_request" });
+    expect(prismaMock.oAuthClient.findUnique).not.toHaveBeenCalled();
+  });
+
   it("returns invalid_grant instead of throwing when a code is already consumed", async () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",

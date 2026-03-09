@@ -26,10 +26,14 @@ export async function POST(request: Request) {
       return errorResponse("invalid_request", 400);
     }
   } else {
-    const formData = await request.formData();
-    params = Object.fromEntries(
-      [...formData.entries()].map(([k, v]) => [k, String(v)]),
-    );
+    try {
+      const formData = await request.formData();
+      params = Object.fromEntries(
+        [...formData.entries()].map(([k, v]) => [k, String(v)]),
+      );
+    } catch {
+      return errorResponse("invalid_request", 400);
+    }
   }
 
   // Support client credentials via Basic auth
