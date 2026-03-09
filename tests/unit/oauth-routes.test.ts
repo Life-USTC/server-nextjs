@@ -21,6 +21,7 @@ const { authMock, prismaMock, revalidatePathMock } = vi.hoisted(() => ({
       create: vi.fn(),
       findUnique: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -60,6 +61,7 @@ describe("oauth routes", () => {
     prismaMock.oAuthAccessToken.create.mockReset();
     prismaMock.oAuthAccessToken.findUnique.mockReset();
     prismaMock.oAuthAccessToken.delete.mockReset();
+    prismaMock.oAuthAccessToken.deleteMany.mockReset();
   });
 
   it("trims requested scopes to the client's registered scopes", async () => {
@@ -155,6 +157,25 @@ describe("oauth routes", () => {
     expect(revalidatePathMock).toHaveBeenCalledWith("/admin/oauth");
   });
 
+  it("rejects unsafe redirect URI schemes during client registration", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "admin-user" },
+    });
+    prismaMock.user.findUnique.mockResolvedValue({ isAdmin: true });
+
+    const formData = new FormData();
+    formData.set("name", "Unsafe Client");
+    formData.set("redirectUris", "javascript:alert(1)");
+
+    const result = await createOAuthClient(formData);
+
+    expect(result).toEqual({
+      error:
+        "Redirect URIs must use https, or http only for localhost/127.0.0.1",
+    });
+    expect(prismaMock.oAuthClient.create).not.toHaveBeenCalled();
+  });
+
   it("requires redirect_uri when exchanging authorization codes", async () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
@@ -221,5 +242,33 @@ describe("oauth routes", () => {
 
     expect(response.status).toBe(400);
     expect(body).toEqual({ error: "invalid_grant" });
+  });
+
+  it("cleans up expired access tokens without throwing on concurrent requests", async () => {
+    prismaMock.oAuthAccessToken.findUnique.mockResolvedValue({
+      id: "expired-token-id",
+      expiresAt: new Date(Date.now() - 60_000),
+      scopes: ["openid"],
+      user: {
+        id: "user-1",
+        name: "Test User",
+        username: "tester",
+        image: "https://example.com/avatar.png",
+      },
+    });
+    prismaMock.oAuthAccessToken.deleteMany.mockResolvedValue({ count: 0 });
+
+    const request = new Request("http://localhost/api/oauth/userinfo", {
+      headers: { authorization: "Bearer expired-token" },
+    });
+
+    const response = await userinfo(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({ error: "invalid_token" });
+    expect(prismaMock.oAuthAccessToken.deleteMany).toHaveBeenCalledWith({
+      where: { id: "expired-token-id" },
+    });
   });
 });

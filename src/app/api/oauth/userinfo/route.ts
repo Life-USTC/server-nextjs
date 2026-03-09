@@ -34,7 +34,9 @@ export async function GET(request: Request) {
   if (!accessToken || accessToken.expiresAt < new Date()) {
     if (accessToken) {
       // Clean up expired token
-      await prisma.oAuthAccessToken.delete({ where: { id: accessToken.id } });
+      await prisma.oAuthAccessToken.deleteMany({
+        where: { id: accessToken.id },
+      });
     }
     return NextResponse.json(
       { error: "invalid_token" },

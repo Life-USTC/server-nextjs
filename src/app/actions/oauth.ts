@@ -36,10 +36,24 @@ export async function createOAuthClient(formData: FormData) {
     .filter(Boolean);
 
   for (const uri of redirectUris) {
+    let parsedUri: URL;
     try {
-      new URL(uri);
+      parsedUri = new URL(uri);
     } catch {
       return { error: `Invalid redirect URI: ${uri}` };
+    }
+
+    const isLocalhost =
+      parsedUri.hostname === "localhost" || parsedUri.hostname === "127.0.0.1";
+    const isAllowedScheme =
+      parsedUri.protocol === "https:" ||
+      (parsedUri.protocol === "http:" && isLocalhost);
+
+    if (!isAllowedScheme) {
+      return {
+        error:
+          "Redirect URIs must use https, or http only for localhost/127.0.0.1",
+      };
     }
   }
 
