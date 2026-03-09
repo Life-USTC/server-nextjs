@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
+import { buildOAuthErrorRedirectUri } from "@/lib/oauth/utils";
 import { OAuthConsentForm } from "./consent-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -37,14 +38,6 @@ export default async function OAuthAuthorizePage({
   }
 
   const t = await getTranslations("oauth");
-
-  if (params.response_type !== "code") {
-    return (
-      <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
-        <p className="text-destructive">{t("errorUnsupportedResponseType")}</p>
-      </main>
-    );
-  }
 
   if (!params.client_id) {
     return (
@@ -88,6 +81,16 @@ export default async function OAuthAuthorizePage({
   const redirectUri =
     params.redirect_uri ??
     (client.redirectUris.length === 1 ? client.redirectUris[0] : null);
+
+  if (params.response_type !== "code" && redirectUri) {
+    redirect(
+      buildOAuthErrorRedirectUri({
+        redirectUri,
+        error: "unsupported_response_type",
+        state: params.state,
+      }),
+    );
+  }
 
   if (!redirectUri) {
     return (
