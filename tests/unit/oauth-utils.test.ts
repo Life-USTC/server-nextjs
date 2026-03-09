@@ -3,6 +3,8 @@ import {
   ACCESS_TOKEN_LIFETIME_MS,
   CODE_LIFETIME_MS,
   generateToken,
+  hashOAuthClientSecret,
+  verifyOAuthClientSecret,
 } from "@/lib/oauth/utils";
 
 describe("oauth/utils", () => {
@@ -28,5 +30,16 @@ describe("oauth/utils", () => {
   it("exports expected lifetime constants", () => {
     expect(CODE_LIFETIME_MS).toBe(10 * 60 * 1000);
     expect(ACCESS_TOKEN_LIFETIME_MS).toBe(60 * 60 * 1000);
+  });
+
+  it("hashes and verifies OAuth client secrets", async () => {
+    const secret = "super-secret-value";
+    const hash = await hashOAuthClientSecret(secret);
+
+    expect(hash).not.toBe(secret);
+    await expect(verifyOAuthClientSecret(secret, hash)).resolves.toBe(true);
+    await expect(verifyOAuthClientSecret("wrong-secret", hash)).resolves.toBe(
+      false,
+    );
   });
 });

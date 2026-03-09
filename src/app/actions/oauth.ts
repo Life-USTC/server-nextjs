@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
-import { generateToken } from "@/lib/oauth/utils";
+import { generateToken, hashOAuthClientSecret } from "@/lib/oauth/utils";
 
 export async function createOAuthClient(formData: FormData) {
   const session = await auth();
@@ -45,11 +45,12 @@ export async function createOAuthClient(formData: FormData) {
 
   const clientId = generateToken(16);
   const clientSecret = generateToken(32);
+  const hashedClientSecret = await hashOAuthClientSecret(clientSecret);
 
   await prisma.oAuthClient.create({
     data: {
       clientId,
-      clientSecret,
+      clientSecret: hashedClientSecret,
       name,
       redirectUris,
     },

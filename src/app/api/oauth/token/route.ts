@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
-import { ACCESS_TOKEN_LIFETIME_MS, generateToken } from "@/lib/oauth/utils";
+import {
+  ACCESS_TOKEN_LIFETIME_MS,
+  generateToken,
+  verifyOAuthClientSecret,
+} from "@/lib/oauth/utils";
 
 /**
  * POST /api/oauth/token
@@ -54,7 +58,10 @@ export async function POST(request: Request) {
     where: { clientId },
   });
 
-  if (!client || client.clientSecret !== clientSecret) {
+  if (
+    !client ||
+    !(await verifyOAuthClientSecret(clientSecret, client.clientSecret))
+  ) {
     return errorResponse("invalid_client", 401);
   }
 
@@ -67,7 +74,7 @@ export async function POST(request: Request) {
   const code = params.code;
   const redirectUri = params.redirect_uri;
 
-  if (!code) {
+  if (!code || !redirectUri) {
     return errorResponse("invalid_request", 400);
   }
 
@@ -79,30 +86,49 @@ export async function POST(request: Request) {
     return errorResponse("invalid_grant", 400);
   }
 
-  if (oauthCode.expiresAt < new Date()) {
-    await prisma.oAuthCode.delete({ where: { id: oauthCode.id } });
+  const now = new Date();
+
+  if (oauthCode.expiresAt < now) {
+    await prisma.oAuthCode.deleteMany({ where: { id: oauthCode.id } });
     return errorResponse("invalid_grant", 400);
   }
 
-  if (redirectUri && oauthCode.redirectUri !== redirectUri) {
+  if (oauthCode.redirectUri !== redirectUri) {
     return errorResponse("invalid_grant", 400);
   }
-
-  // Delete the used code (single-use)
-  await prisma.oAuthCode.delete({ where: { id: oauthCode.id } });
 
   const accessToken = generateToken();
   const expiresIn = Math.floor(ACCESS_TOKEN_LIFETIME_MS / 1000);
+  const consumed = await prisma.$transaction(async (tx) => {
+    const deleted = await tx.oAuthCode.deleteMany({
+      where: {
+        id: oauthCode.id,
+        clientId: client.id,
+        redirectUri,
+        expiresAt: { gte: now },
+      },
+    });
 
-  await prisma.oAuthAccessToken.create({
-    data: {
-      token: accessToken,
-      scopes: oauthCode.scopes,
-      expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
-      clientId: client.id,
-      userId: oauthCode.userId,
-    },
+    if (deleted.count !== 1) {
+      return false;
+    }
+
+    await tx.oAuthAccessToken.create({
+      data: {
+        token: accessToken,
+        scopes: oauthCode.scopes,
+        expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
+        clientId: client.id,
+        userId: oauthCode.userId,
+      },
+    });
+
+    return true;
   });
+
+  if (!consumed) {
+    return errorResponse("invalid_grant", 400);
+  }
 
   return NextResponse.json(
     {
