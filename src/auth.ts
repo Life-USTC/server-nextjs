@@ -227,7 +227,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       const nextToken = token as JWT & {
         isAdmin?: boolean;
         username?: string | null;
@@ -244,17 +244,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return nextToken;
       }
 
-      if (
-        isDev &&
-        typeof nextToken.sub === "string" &&
-        (nextToken.isAdmin === undefined || nextToken.username === undefined)
-      ) {
+      // Refresh token from DB when session is explicitly updated (e.g. after
+      // profile completion) or when fields are missing in dev mode.
+      const shouldRefresh =
+        trigger === "update" ||
+        (isDev &&
+          typeof nextToken.sub === "string" &&
+          (nextToken.isAdmin === undefined ||
+            nextToken.username === undefined));
+
+      if (shouldRefresh && typeof nextToken.sub === "string") {
         const dbUser = await prisma.user.findUnique({
           where: { id: nextToken.sub },
-          select: { isAdmin: true, username: true },
+          select: { name: true, username: true, isAdmin: true },
         });
-        nextToken.isAdmin = dbUser?.isAdmin ?? false;
-        nextToken.username = dbUser?.username ?? null;
+        if (dbUser) {
+          nextToken.name = dbUser.name;
+          nextToken.username = dbUser.username;
+          nextToken.isAdmin = dbUser.isAdmin;
+        }
       }
 
       return nextToken;

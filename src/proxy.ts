@@ -52,6 +52,19 @@ export default auth((request) => {
     return NextResponse.next();
   }
 
+  // Redirect signed-in users with incomplete profiles to /welcome
+  const pathname = request.nextUrl.pathname;
+  const user = request.auth?.user;
+  if (
+    user &&
+    (!user.name || !user.username) &&
+    pathname !== "/welcome" &&
+    pathname !== "/signin" &&
+    !pathname.startsWith("/oauth/")
+  ) {
+    return NextResponse.redirect(new URL("/welcome", request.url));
+  }
+
   const locale = getLocale(request);
 
   // Set locale in request header for next-intl
