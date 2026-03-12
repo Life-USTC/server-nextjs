@@ -78,6 +78,14 @@ export default async function AdminHomePage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/admin/oauth" className="no-underline">
+          <Card className="transition-colors hover:bg-accent/50">
+            <CardHeader>
+              <CardTitle>{t("oauthTitle")}</CardTitle>
+              <CardDescription>{t("oauthDescription")}</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </main>
   );

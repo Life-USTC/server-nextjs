@@ -760,6 +760,8 @@ model User {
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]
   todos                Todo[]
+  oauthCodes           OAuthCode[]
+  oauthAccessTokens    OAuthAccessToken[]
 }
 
 
@@ -1035,4 +1037,64 @@ model Todo {
   @@index([userId])
   @@index([userId, completed])
   @@index([dueAt])
+}
+
+// ─── OAuth Provider Models ───────────────────────────────────
+// These models support Life@USTC acting as an OAuth 2.0 provider
+// for downstream applications (mobile apps, third-party clients).
+
+model OAuthClient {
+  id           String   @id @default(cuid())
+  clientId     String   @unique
+  clientSecret String
+  name         String
+  redirectUris String[]
+  scopes       String[] @default(["openid", "profile"])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  codes        OAuthCode[]
+  accessTokens OAuthAccessToken[]
+}
+
+model OAuthCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  redirectUri String
+  scopes      String[]
+  expiresAt   DateTime
+
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([code])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OAuthAccessToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  scopes    String[]
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
 }
