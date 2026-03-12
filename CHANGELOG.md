@@ -1,3 +1,10 @@
+# [0.41.0](https://github.com/Life-USTC/server-nextjs/compare/v0.40.0...v0.41.0) (2026-03-12)
+
+
+### Features
+
+* profile completion flow + OAuth 2.0 provider ([#21](https://github.com/Life-USTC/server-nextjs/issues/21)) ([c63fa4d](https://github.com/Life-USTC/server-nextjs/commit/c63fa4d845217bba5f1d27d4f2596f30ec48853f))
+
 # [0.40.0](https://github.com/Life-USTC/server-nextjs/compare/v0.39.0...v0.40.0) (2026-03-05)
 
 
