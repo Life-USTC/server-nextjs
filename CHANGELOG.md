@@ -1,3 +1,10 @@
+# [0.42.0](https://github.com/Life-USTC/server-nextjs/compare/v0.41.0...v0.42.0) (2026-03-15)
+
+
+### Features
+
+* enhance settings and dashboard sections with new components and layout ([0df6dbc](https://github.com/Life-USTC/server-nextjs/commit/0df6dbcc182237a21d18d9f5ae167dc2ddaad9d2))
+
 # [0.41.0](https://github.com/Life-USTC/server-nextjs/compare/v0.40.0...v0.41.0) (2026-03-12)
 
 
