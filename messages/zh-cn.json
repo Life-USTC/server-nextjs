@@ -362,6 +362,12 @@
       "descriptionV2": "优先处理今天与近期截止的作业。",
       "dueToday": "今天截止 {count}",
       "dueSoon": "3 天内截止 {count}",
+      "all": "全部 {count}",
+      "etaOverdue": "已过期",
+      "etaMinutes": "还剩 {count} 分钟",
+      "etaHours": "还剩 {count} 小时",
+      "etaToday": "今天截止",
+      "etaDays": "还剩 {count} 天",
       "empty": "没有未完成作业。",
       "noDue": "未设置截止时间",
       "openAll": "打开全部作业"
@@ -421,6 +427,9 @@
     "todos": {
       "title": "待办事项",
       "pending": "待完成 {count}",
+      "dueToday": "今天截止 {count}",
+      "dueSoon": "3 天内截止 {count}",
+      "all": "全部 {count}",
       "viewAll": "查看全部"
     }
   },
@@ -1220,6 +1229,7 @@
     "markComplete": "标记为完成",
     "markIncomplete": "取消完成",
     "editAriaLabel": "编辑待办",
+    "delete": "删除",
     "deleteAriaLabel": "删除待办",
     "cancel": "取消",
     "saving": "保存中...",

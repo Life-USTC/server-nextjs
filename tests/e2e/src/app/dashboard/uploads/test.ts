@@ -6,17 +6,17 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
 
-test("/dashboard/uploads 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/dashboard/uploads", {
+test("/ 未登录访问上传区域时重定向到登录页", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/", {
     expectMainContent: false,
   });
 
   await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
   await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-uploads-unauthorized");
+  await captureStepScreenshot(page, testInfo, "home-uploads-unauthorized");
 });
 
-test("/dashboard/uploads 登录后重定向到首页", async ({ page }, testInfo) => {
+test("/ 登录后展示上传区域", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/");
 
   await expect(page).toHaveURL(/\/(?:\?.*)?$/);
@@ -24,9 +24,7 @@ test("/dashboard/uploads 登录后重定向到首页", async ({ page }, testInfo
   await captureStepScreenshot(page, testInfo, "dashboard-uploads-seed");
 });
 
-test.skip("/dashboard/uploads 可重命名并恢复 seed 文件名", async ({
-  page,
-}, testInfo) => {
+test.skip("/uploads 可重命名并恢复 seed 文件名", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/");
 
   const originalName = DEV_SEED.uploads.firstFilename;
@@ -89,9 +87,7 @@ test.skip("/dashboard/uploads 可重命名并恢复 seed 文件名", async ({
   );
 });
 
-test.skip("/dashboard/uploads 删除弹窗可打开并取消", async ({
-  page,
-}, testInfo) => {
+test.skip("/uploads 删除弹窗可打开并取消", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/");
 
   const originalName = DEV_SEED.uploads.firstFilename;
@@ -118,9 +114,7 @@ test.skip("/dashboard/uploads 删除弹窗可打开并取消", async ({
   );
 });
 
-test.skip("/dashboard/uploads 可上传并出现在列表", async ({
-  page,
-}, testInfo) => {
+test.skip("/uploads 可上传并出现在列表", async ({ page }, testInfo) => {
   test.setTimeout(60000);
   await signInAsDebugUser(page, "/");
 
@@ -171,9 +165,7 @@ test.skip("/dashboard/uploads 可上传并出现在列表", async ({
   await captureStepScreenshot(page, testInfo, "dashboard-uploads-uploaded");
 });
 
-test.skip("/dashboard/uploads 复制链接写入剪贴板", async ({
-  page,
-}, testInfo) => {
+test.skip("/uploads 复制链接写入剪贴板", async ({ page }, testInfo) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await signInAsDebugUser(page, "/");
 
@@ -213,9 +205,7 @@ test.skip("/dashboard/uploads 复制链接写入剪贴板", async ({
   await captureStepScreenshot(page, testInfo, "dashboard-uploads-link-copied");
 });
 
-test.skip("/dashboard/uploads 打开按钮会触发下载跳转", async ({
-  page,
-}, testInfo) => {
+test.skip("/uploads 打开按钮会触发下载跳转", async ({ page }, testInfo) => {
   test.setTimeout(60000);
   await signInAsDebugUser(page, "/");
 
@@ -263,9 +253,7 @@ test.skip("/dashboard/uploads 打开按钮会触发下载跳转", async ({
   await captureStepScreenshot(page, testInfo, "dashboard-uploads-open-clicked");
 });
 
-test.skip("/dashboard/uploads 可确认删除新上传文件", async ({
-  page,
-}, testInfo) => {
+test.skip("/uploads 可确认删除新上传文件", async ({ page }, testInfo) => {
   test.setTimeout(60000);
   await signInAsDebugUser(page, "/");
 

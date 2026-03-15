@@ -224,11 +224,11 @@ export async function assertPageContract(
     return;
   }
 
-  if (routePath === "/comments/guide") {
+  if (routePath === "/guides/markdown-support") {
     await waitForUiSettled(page);
     await expect(page.locator("pre").first()).toBeVisible();
     await expect(page.locator("table").first()).toBeVisible();
-    await maybeCapture(page, testInfo, "comments-guide");
+    await maybeCapture(page, testInfo, "guides-markdown-support");
     return;
   }
 

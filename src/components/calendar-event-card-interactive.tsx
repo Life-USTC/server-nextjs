@@ -55,42 +55,45 @@ export function CalendarEventCardInteractive({
 
   if (hasDetails) {
     return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <div
-              onPointerEnter={() => setOpen(true)}
-              onPointerLeave={() => setOpen(false)}
-            />
-          }
-        >
-          {cardWithLink}
-        </PopoverTrigger>
-        <PopoverPopup
-          side="top"
-          align="start"
-          className="max-h-64 w-64 overflow-auto"
-        >
-          <div className="space-y-2">
-            <p className="font-medium text-sm">{title}</p>
-            <div className="grid gap-1 text-muted-foreground text-xs">
-              {details?.map((detail) => (
-                <div
-                  key={`${detail.label}-${detail.value}`}
-                  className="flex items-baseline gap-2"
-                >
-                  <span className="shrink-0 whitespace-nowrap">
-                    {detail.label}
-                  </span>
-                  <span className="min-w-0 font-medium text-foreground">
-                    {detail.value}
-                  </span>
-                </div>
-              ))}
+      <div className="h-[2.75rem] min-w-0 overflow-hidden">
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger
+            render={
+              <div
+                className="size-full min-h-0 overflow-hidden"
+                onPointerEnter={() => setOpen(true)}
+                onPointerLeave={() => setOpen(false)}
+              />
+            }
+          >
+            {cardWithLink}
+          </PopoverTrigger>
+          <PopoverPopup
+            side="top"
+            align="start"
+            className="max-h-64 w-64 overflow-auto"
+          >
+            <div className="space-y-2">
+              <p className="font-medium text-sm">{title}</p>
+              <div className="grid gap-1 text-muted-foreground text-xs">
+                {details?.map((detail) => (
+                  <div
+                    key={`${detail.label}-${detail.value}`}
+                    className="flex items-baseline gap-2"
+                  >
+                    <span className="shrink-0 whitespace-nowrap">
+                      {detail.label}
+                    </span>
+                    <span className="min-w-0 font-medium text-foreground">
+                      {detail.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        </PopoverPopup>
-      </Popover>
+          </PopoverPopup>
+        </Popover>
+      </div>
     );
   }
 

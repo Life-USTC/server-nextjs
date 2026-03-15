@@ -5,9 +5,10 @@ import { mergeProps } from "@base-ui/react/merge-props";
 import type * as React from "react";
 
 import { cn } from "@/shared/lib/utils";
+import type { ControlSize } from "@/components/ui/types";
 
 type TextareaProps = React.ComponentProps<"textarea"> & {
-  size?: "sm" | "default" | "lg" | number;
+  size?: ControlSize | number;
   unstyled?: boolean;
 };
 

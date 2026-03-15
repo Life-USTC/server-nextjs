@@ -4,7 +4,7 @@ import { cn } from "@/shared/lib/utils";
 export type CalendarEventVariant = "session" | "exam" | "homework";
 
 const BASE_STYLES =
-  "block max-w-full min-h-[2.75rem] min-w-0 cursor-pointer overflow-hidden px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
+  "block max-w-full h-[2.75rem] min-w-0 cursor-pointer overflow-hidden px-2 py-1 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background";
 
 const VARIANT_STYLES: Record<CalendarEventVariant, string> = {
   session:

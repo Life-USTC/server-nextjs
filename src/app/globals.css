@@ -100,11 +100,11 @@
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
   --destructive-foreground: var(--color-red-700);
-  --info: var(--color-blue-500);
+  --info: var(--color-info);
   --info-foreground: var(--color-blue-700);
-  --success: var(--color-emerald-500);
+  --success: var(--color-success);
   --success-foreground: var(--color-emerald-700);
-  --warning: var(--color-amber-500);
+  --warning: var(--color-warning);
   --warning-foreground: var(--color-amber-700);
 }
 
@@ -149,11 +149,11 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.552 0.016 285.938);
   --destructive-foreground: var(--color-red-400);
-  --info: var(--color-blue-500);
+  --info: var(--color-info);
   --info-foreground: var(--color-blue-400);
-  --success: var(--color-emerald-500);
+  --success: var(--color-success);
   --success-foreground: var(--color-emerald-400);
-  --warning: var(--color-amber-500);
+  --warning: var(--color-warning);
   --warning-foreground: var(--color-amber-400);
 }
 

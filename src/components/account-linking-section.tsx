@@ -46,7 +46,7 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
   const canDisconnect = connectedProviders.length > 1;
 
   const handleLink = (providerId: string) => {
-    signIn(providerId, { callbackUrl: "/settings/accounts" });
+    signIn(providerId, { callbackUrl: "/settings?tab=accounts" });
   };
 
   const handleUnlink = async (providerId: string) => {

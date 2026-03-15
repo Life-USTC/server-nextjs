@@ -200,7 +200,7 @@ export function DashboardLinksWithSearch({
               return (
                 <div
                   key={link.slug}
-                  className="group relative min-w-0 overflow-hidden rounded-lg border"
+                  className="group relative min-w-0 overflow-hidden rounded-lg border border-border bg-muted/20 transition-colors hover:bg-accent"
                 >
                   <form
                     action="/api/dashboard-links/visit"
@@ -211,7 +211,7 @@ export function DashboardLinksWithSearch({
                     <input type="hidden" name="slug" value={link.slug} />
                     <button
                       type="submit"
-                      className="block min-h-28 w-full p-2.5 text-left no-underline transition-colors hover:bg-accent"
+                      className="block min-h-20 w-full px-3 py-2.5 text-left no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <div className="mb-1.5 flex items-start gap-1.5">
                         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />

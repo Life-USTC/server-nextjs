@@ -33,7 +33,6 @@ const TAB_IDS: HomeTabId[] = [
 export async function HomeTabNav({
   currentTab,
   pendingHomeworksCount = 0,
-  highlightPendingHomeworks = false,
   examsCount = 0,
   pendingTodosCount = 0,
 }: {
@@ -92,14 +91,7 @@ export async function HomeTabNav({
             {tabId === "homeworks" ? (
               <span className="inline-flex items-center gap-1">
                 <span>{tabLabels[tabId]}</span>
-                <span
-                  className={cn(
-                    "tabular-nums",
-                    highlightPendingHomeworks
-                      ? "text-destructive"
-                      : "opacity-70",
-                  )}
-                >
+                <span className="tabular-nums opacity-70">
                   ({pendingHomeworksCount})
                 </span>
               </span>

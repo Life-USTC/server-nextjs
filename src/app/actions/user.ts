@@ -76,7 +76,6 @@ export async function updateProfile(formData: FormData) {
     revalidatePath("/me");
     revalidatePath("/");
     revalidatePath("/settings");
-    revalidatePath("/settings/profile");
     if (oldProfileUsername) {
       revalidatePath(`/u/${oldProfileUsername}`);
     }
@@ -142,7 +141,6 @@ export async function unlinkAccount(provider: string) {
     revalidatePath("/me");
     revalidatePath("/");
     revalidatePath("/settings");
-    revalidatePath("/settings/accounts");
     return { success: true };
   } catch (error) {
     console.error("Failed to unlink account:", error);

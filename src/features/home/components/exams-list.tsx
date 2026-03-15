@@ -66,31 +66,35 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
 
   return (
     <div className="space-y-4">
-      <CardHeader className="gap-3 px-0">
-        <div className="inline-flex rounded-md border border-border/70 p-1">
-          <Button
-            size="sm"
-            variant={filter === "incomplete" ? "secondary" : "ghost"}
-            onClick={() => setFilter("incomplete")}
-          >
-            {t("filterIncomplete")}
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === "completed" ? "secondary" : "ghost"}
-            onClick={() => setFilter("completed")}
-          >
-            {t("filterCompleted")}
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === "all" ? "secondary" : "ghost"}
-            onClick={() => setFilter("all")}
-          >
-            {t("filterAll")}
-          </Button>
-        </div>
-      </CardHeader>
+      <div className="flex flex-col gap-6">
+        <CardHeader className="gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex rounded-md border border-border/70 p-1">
+              <Button
+                size="sm"
+                variant={filter === "incomplete" ? "secondary" : "ghost"}
+                onClick={() => setFilter("incomplete")}
+              >
+                {t("filterIncomplete")}
+              </Button>
+              <Button
+                size="sm"
+                variant={filter === "completed" ? "secondary" : "ghost"}
+                onClick={() => setFilter("completed")}
+              >
+                {t("filterCompleted")}
+              </Button>
+              <Button
+                size="sm"
+                variant={filter === "all" ? "secondary" : "ghost"}
+                onClick={() => setFilter("all")}
+              >
+                {t("filterAll")}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+      </div>
 
       {filteredExams.length === 0 ? (
         <div className="flex flex-col gap-6">
@@ -100,7 +104,7 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="columns-1 [column-gap:1rem] sm:columns-2 lg:columns-3">
         {filteredExams.map((exam) => {
           const dateLabel = exam.examDate
             ? dayjs(exam.examDate).format("YYYY-MM-DD")
@@ -113,52 +117,38 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
             ? `/sections/${exam.sectionJwId}`
             : `/?tab=subscriptions`;
 
+          const roomSubtitle = exam.rooms?.trim() || null;
+
           return (
-            <Card key={`${exam.sectionId}-${exam.examId}`}>
-              <CardHeader className="pb-2">
-                <CardTitle className="font-medium text-base">
+            <Card
+              key={`${exam.sectionId}-${exam.examId}`}
+              className="mb-4 flex min-h-0 break-inside-avoid flex-col border-border/60"
+            >
+              <CardHeader className="shrink-0 pb-2">
+                <CardTitle className="min-w-0 truncate font-medium text-base">
                   <Link
-                    className="no-underline hover:underline"
+                    className="block truncate no-underline hover:underline"
                     href={sectionHref}
+                    title={exam.courseName ?? undefined}
                   >
                     {exam.courseName ?? "—"}
                   </Link>
                 </CardTitle>
-                <CardDescription>{exam.sectionCode ?? "—"}</CardDescription>
+                {roomSubtitle ? (
+                  <CardDescription className="min-w-0 truncate">
+                    {roomSubtitle}
+                  </CardDescription>
+                ) : null}
               </CardHeader>
-              <CardPanel className="space-y-2 pt-0 text-sm">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="shrink-0 text-muted-foreground">
-                    {tSection("date")}
-                  </span>
-                  <span className="font-semibold text-foreground tabular-nums">
-                    {dateLabel}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="shrink-0 text-muted-foreground">
-                    {tSection("time")}
-                  </span>
-                  <span className="font-semibold text-foreground tabular-nums">
-                    {timeLabel}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="shrink-0 text-muted-foreground">
-                    {tSection("examMode")}
-                  </span>
-                  <span className="font-medium text-muted-foreground">
-                    {exam.examMode ?? "—"}
-                  </span>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="shrink-0 text-muted-foreground">
-                    {tSection("location")}
-                  </span>
-                  <span className="font-medium text-muted-foreground">
-                    {exam.rooms}
-                  </span>
-                </div>
+              <CardPanel className="min-h-0 flex-1 space-y-2 pt-0 text-sm">
+                <p className="font-semibold text-foreground tabular-nums">
+                  {dateLabel} {timeLabel}
+                </p>
+                {exam.examMode ? (
+                  <p className="text-muted-foreground text-xs">
+                    {exam.examMode}
+                  </p>
+                ) : null}
               </CardPanel>
             </Card>
           );

@@ -4,12 +4,13 @@ import { Input as InputPrimitive } from "@base-ui/react/input";
 import type * as React from "react";
 
 import { cn } from "@/shared/lib/utils";
+import type { ControlSize } from "@/components/ui/types";
 
 type InputProps = Omit<
   InputPrimitive.Props & React.RefAttributes<HTMLInputElement>,
   "size"
 > & {
-  size?: "sm" | "default" | "lg" | number;
+  size?: ControlSize | number;
   unstyled?: boolean;
 };
 

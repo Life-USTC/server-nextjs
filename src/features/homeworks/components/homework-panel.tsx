@@ -956,7 +956,7 @@ function HomeworkCardEditForm({
           tabPreviewLabel={tComments("tabPreview")}
           previewEmptyLabel={tComments("previewEmpty")}
           markdownGuideLabel={tComments("markdownGuide")}
-          markdownGuideHref="/comments/guide"
+          markdownGuideHref="/guides/markdown-support"
         />
       </div>
 

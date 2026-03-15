@@ -20,6 +20,8 @@ export type SessionItem = {
   startTime: number;
   endTime: number;
   location: string;
+  /** Teacher names for display (e.g. on overview); may be "—" when none. */
+  teacherDisplay: string;
 };
 
 export type ScheduleTimeItem = {
@@ -78,6 +80,7 @@ export type SectionWithRelations = {
         campus: { namePrimary: string } | null;
       } | null;
     } | null;
+    teachers?: Array<{ namePrimary: string }>;
   }>;
   exams: Array<{
     id: number;

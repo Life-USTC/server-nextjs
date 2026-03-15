@@ -342,7 +342,7 @@ export function DescriptionPanel({
               tabPreviewLabel={t("tabPreview")}
               previewEmptyLabel={t("previewEmpty")}
               markdownGuideLabel={t("markdownGuide")}
-              markdownGuideHref="/comments/guide"
+              markdownGuideHref="/guides/markdown-support"
               disabled={!canEdit}
             />
             <div className="flex flex-wrap justify-end gap-2">

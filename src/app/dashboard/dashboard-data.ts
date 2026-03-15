@@ -277,6 +277,7 @@ export async function getDashboardOverviewData(
                     },
                   },
                 },
+                teachers: true,
               },
               orderBy: [{ date: "asc" }, { startTime: "asc" }],
             },

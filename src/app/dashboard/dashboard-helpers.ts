@@ -76,6 +76,10 @@ export const buildSessions = (
   sections.flatMap((section) =>
     section.schedules.flatMap((schedule) => {
       if (!schedule.date) return [];
+      const teacherDisplay =
+        schedule.teachers && schedule.teachers.length > 0
+          ? schedule.teachers.map((t) => t.namePrimary).join(", ")
+          : "—";
       return [
         {
           id: `s-${section.id}-${schedule.id}`,
@@ -85,6 +89,7 @@ export const buildSessions = (
           startTime: schedule.startTime,
           endTime: schedule.endTime,
           location: formatScheduleLocation(schedule),
+          teacherDisplay,
         },
       ];
     }),

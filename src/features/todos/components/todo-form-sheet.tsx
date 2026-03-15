@@ -29,10 +29,12 @@ type TodoFormSheetProps = {
   mode: "create" | "edit";
   todo?: TodoItem;
   onSaved?: () => void | Promise<void>;
+  onDelete?: (id: string) => void;
   triggerChildren: ReactNode;
   triggerVariant?: "default" | "outline" | "ghost" | "secondary";
   triggerSize?: "default" | "sm" | "lg" | "icon";
   triggerAriaLabel?: string;
+  triggerClassName?: string;
 };
 
 function toLocalInputValue(value: string | null | undefined) {
@@ -55,10 +57,12 @@ export function TodoFormSheet({
   mode,
   todo,
   onSaved,
+  onDelete,
   triggerChildren,
   triggerVariant,
   triggerSize,
   triggerAriaLabel,
+  triggerClassName,
 }: TodoFormSheetProps) {
   const t = useTranslations("todos");
   const tComments = useTranslations("comments");
@@ -150,6 +154,7 @@ export function TodoFormSheet({
             variant={triggerVariant}
             size={triggerSize}
             aria-label={triggerAriaLabel}
+            className={triggerClassName}
           />
         }
       >
@@ -214,21 +219,38 @@ export function TodoFormSheet({
               tabPreviewLabel={tComments("tabPreview")}
               previewEmptyLabel={tComments("previewEmpty")}
               markdownGuideLabel={tComments("markdownGuide")}
-              markdownGuideHref="/comments/guide"
+              markdownGuideHref="/guides/markdown-support"
             />
           </div>
 
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={() => void handleSave()} disabled={saving}>
-              {saving
-                ? t("saving")
-                : mode === "create"
-                  ? t("createAction")
-                  : t("saveChanges")}
-            </Button>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              {mode === "edit" && todo && onDelete ? (
+                <Button
+                  variant="ghost"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => {
+                    onDelete(todo.id);
+                    setOpen(false);
+                  }}
+                  aria-label={t("deleteAriaLabel")}
+                >
+                  {t("delete")}
+                </Button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" onClick={() => setOpen(false)}>
+                {t("cancel")}
+              </Button>
+              <Button onClick={() => void handleSave()} disabled={saving}>
+                {saving
+                  ? t("saving")
+                  : mode === "create"
+                    ? t("createAction")
+                    : t("saveChanges")}
+              </Button>
+            </div>
           </div>
         </SheetPanel>
       </SheetPopup>
