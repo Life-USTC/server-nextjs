@@ -362,6 +362,12 @@
       "descriptionV2": "Prioritize what's due today and soon.",
       "dueToday": "Due today {count}",
       "dueSoon": "Due in 3 days {count}",
+      "all": "All {count}",
+      "etaOverdue": "Overdue",
+      "etaMinutes": "{count}m left",
+      "etaHours": "{count}h left",
+      "etaToday": "Due today",
+      "etaDays": "{count} days left",
       "empty": "No incomplete homework.",
       "noDue": "No due date",
       "openAll": "Open all homework"
@@ -421,6 +427,9 @@
     "todos": {
       "title": "Todos",
       "pending": "Pending {count}",
+      "dueToday": "Due today {count}",
+      "dueSoon": "Due in 3 days {count}",
+      "all": "All {count}",
       "viewAll": "View all"
     }
   },
@@ -1220,6 +1229,7 @@
     "markComplete": "Mark as complete",
     "markIncomplete": "Mark as incomplete",
     "editAriaLabel": "Edit todo",
+    "delete": "Delete",
     "deleteAriaLabel": "Delete todo",
     "cancel": "Cancel",
     "saving": "Saving...",

@@ -4,14 +4,14 @@ import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
-test("/dashboard 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/dashboard", {
+test("/ 未登录重定向到登录页", async ({ page }, testInfo) => {
+  await gotoAndWaitForReady(page, "/?tab=homeworks", {
     expectMainContent: false,
   });
 
   await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
   await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-unauthorized");
+  await captureStepScreenshot(page, testInfo, "home-unauthorized");
 });
 
 test("/ 登录后展示 seed 作业入口", async ({ page }, testInfo) => {

@@ -6,15 +6,21 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardPanel,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import { homeworkCompletionResponseSchema } from "@/lib/api/schemas";
 import { HomeworkCreateSheet } from "./homework-create-sheet";
-import { HomeworkItemCard } from "./homework-item-card";
 
 type HomeworkSummary = {
   id: string;
@@ -248,67 +254,72 @@ export function HomeworkSummaryList({
         </div>
       ) : null}
 
-      {filteredItems.map((homework) => {
-        const section = homework.section;
-        const detailParts = [
-          section?.courseName ?? "",
-          section?.code ?? "",
-          section?.semesterName ?? "",
-        ].filter(Boolean);
-        const href = section?.jwId
-          ? `/sections/${section.jwId}#homework-${homework.id}`
-          : "/sections";
-        const createdAtLabel = t("createdAt", {
-          date: formatter.format(new Date(homework.createdAt)),
-        });
+      <div className="columns-1 [column-gap:1rem] sm:columns-2 lg:columns-3">
+        {filteredItems.map((homework) => {
+          const section = homework.section;
+          const courseLabel = section?.courseName?.trim() || "";
+          const href = section?.jwId
+            ? `/sections/${section.jwId}#homework-${homework.id}`
+            : "/sections";
 
-        return (
-          <HomeworkItemCard
-            key={homework.id}
-            title={homework.title}
-            createdAtLabel={createdAtLabel}
-            secondaryLabel={
-              detailParts.length > 0 ? detailParts.join(" · ") : undefined
-            }
-            headerActions={
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id={`homework-completed-summary-${homework.id}`}
-                    checked={Boolean(homework.completion)}
-                    onCheckedChange={(checked) =>
-                      void handleCompletionToggle(homework.id, checked)
-                    }
-                    disabled={completionSaving[homework.id]}
-                  />
-                  <Label
-                    htmlFor={`homework-completed-summary-${homework.id}`}
-                    className="text-muted-foreground text-xs"
+          return (
+            <Card
+              key={homework.id}
+              className="mb-4 flex min-h-0 break-inside-avoid flex-col border-border/60"
+            >
+              <CardHeader className="shrink-0 pb-2">
+                <CardTitle className="min-w-0 truncate font-medium text-base">
+                  <Link
+                    className="block truncate no-underline hover:underline"
+                    href={href}
+                    title={homework.title}
                   >
-                    {t("completedLabel")}
-                  </Label>
+                    {homework.title}
+                  </Link>
+                </CardTitle>
+                {courseLabel ? (
+                  <CardDescription className="min-w-0 truncate">
+                    {courseLabel}
+                  </CardDescription>
+                ) : null}
+              </CardHeader>
+              <CardPanel className="min-h-0 flex-1 space-y-2 pt-0 text-sm">
+                {homework.description ? (
+                  <div className="mb-8 line-clamp-2 rounded-lg border border-border/60 bg-muted/5 px-2 py-1.5 text-muted-foreground text-xs">
+                    <CommentMarkdown content={homework.description} />
+                  </div>
+                ) : null}
+                <p className="font-semibold text-foreground tabular-nums">
+                  {formatDate(homework.submissionDueAt)}
+                </p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {renderTags(homework)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id={`homework-completed-summary-${homework.id}`}
+                      checked={Boolean(homework.completion)}
+                      onCheckedChange={(checked) =>
+                        void handleCompletionToggle(homework.id, checked)
+                      }
+                      disabled={completionSaving[homework.id]}
+                    />
+                    <Label
+                      htmlFor={`homework-completed-summary-${homework.id}`}
+                      className="sr-only"
+                    >
+                      {homework.completion
+                        ? t("completedLabel")
+                        : t("filterIncomplete")}
+                    </Label>
+                  </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  render={<Link className="no-underline" href={href} />}
-                >
-                  {t("viewDetails")}
-                </Button>
-              </div>
-            }
-            submissionDueLabel={t("submissionDue")}
-            submissionDueValue={formatDate(homework.submissionDueAt)}
-            description={homework.description}
-            descriptionEmptyLabel={t("descriptionEmpty")}
-            startAtLabel={t("submissionStart")}
-            startAtValue={formatDate(homework.submissionStartAt)}
-            publishedAtLabel={t("publishedAt")}
-            publishedAtValue={formatDate(homework.publishedAt)}
-            footerEnd={renderTags(homework)}
-          />
-        );
-      })}
+              </CardPanel>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

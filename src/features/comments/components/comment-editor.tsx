@@ -285,7 +285,7 @@ export function CommentEditor({
           tabPreviewLabel={t("tabPreview")}
           previewEmptyLabel={t("previewEmpty")}
           markdownGuideLabel={t("markdownGuide")}
-          markdownGuideHref="/comments/guide"
+          markdownGuideHref="/guides/markdown-support"
           disabled={!viewer.isAuthenticated || viewer.isSuspended}
           compact={compact}
           isDragActive={isDragActive}

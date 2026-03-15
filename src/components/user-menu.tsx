@@ -62,7 +62,7 @@ export function UserMenu({ className }: UserMenuProps) {
               </MenuItem>
               <MenuSeparator />
               <MenuItem render={<Link href="/" />}>{tCommon("me")}</MenuItem>
-              <MenuItem render={<Link href="/settings/profile" />}>
+              <MenuItem render={<Link href="/settings?tab=profile" />}>
                 {tSettings("title")}
               </MenuItem>
               {session.user?.username ? (

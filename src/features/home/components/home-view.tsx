@@ -82,7 +82,7 @@ export async function HomeView({
         />
       </div>
 
-      <section className="w-full min-w-0 max-w-5xl space-y-6">
+      <section className="w-full min-w-0 space-y-6">
         {currentTab === "overview" && overviewData && (
           <OverviewPanel data={overviewData} todosData={todosData ?? []} />
         )}

@@ -1,7 +1,7 @@
-import { AccountDeletionSection } from "@/components/account-deletion-section";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 export default function SettingsDangerPage() {
-  return <AccountDeletionSection />;
+  redirect("/settings?tab=danger");
 }

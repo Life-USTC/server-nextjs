@@ -1,26 +1,14 @@
 "use client";
 
-import {
-  AlertCircle,
-  CheckCircle2,
-  Circle,
-  Clock,
-  Pencil,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { AlertCircle, Circle, Clock, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardAction,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { cn } from "@/shared/lib/utils";
 import { TodoFormSheet } from "./todo-form-sheet";
@@ -105,9 +93,9 @@ export function TodoList({ todos }: TodoListProps) {
     return optimisticTodos;
   }, [filter, optimisticTodos]);
 
-  const handleToggle = (todo: TodoItem) => {
+  const handleToggle = (todo: TodoItem, nextCompleted?: boolean) => {
     startTransition(async () => {
-      const next = !todo.completed;
+      const next = nextCompleted ?? !todo.completed;
       updateOptimistic({ type: "toggle", id: todo.id, completed: next });
       try {
         await patchTodo(todo.id, { completed: next });
@@ -196,88 +184,88 @@ export function TodoList({ todos }: TodoListProps) {
         </div>
       )}
 
-      {filteredTodos.map((todo) => {
-        const Icon = PriorityIcon[todo.priority];
-        const dueLabel = todo.dueAt
-          ? formatter.format(new Date(todo.dueAt))
-          : null;
-        return (
-          <Card
-            key={todo.id}
-            className={cn("border-border/60", todo.completed && "opacity-60")}
-          >
-            <CardHeader className="gap-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 items-start gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(todo)}
-                    aria-label={
-                      todo.completed ? t("markIncomplete") : t("markComplete")
+      <div className="columns-1 [column-gap:1rem] sm:columns-2 lg:columns-3">
+        {filteredTodos.map((todo) => {
+          const Icon = PriorityIcon[todo.priority];
+          const dueLabel = todo.dueAt
+            ? formatter.format(new Date(todo.dueAt))
+            : null;
+          return (
+            <Card
+              key={todo.id}
+              className={cn(
+                "mb-4 flex min-h-0 break-inside-avoid flex-col border-border/60",
+                todo.completed && "opacity-60",
+              )}
+            >
+              <CardHeader className="shrink-0 pb-2">
+                <CardTitle className="min-w-0 truncate font-medium text-base">
+                  <TodoFormSheet
+                    mode="edit"
+                    todo={todo}
+                    onSaved={() => router.refresh()}
+                    onDelete={handleDelete}
+                    triggerChildren={
+                      <span
+                        className={cn(
+                          "block min-w-0 truncate text-left",
+                          todo.completed &&
+                            "text-muted-foreground line-through",
+                        )}
+                        title={todo.title}
+                      >
+                        {todo.title}
+                      </span>
                     }
-                    className="mt-0.5 shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {todo.completed ? (
-                      <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    ) : (
-                      <Circle className="h-5 w-5" />
-                    )}
-                  </button>
-                  <div className="space-y-1">
-                    <CardTitle
-                      className={cn(
-                        "text-base",
-                        todo.completed && "text-muted-foreground line-through",
-                      )}
-                    >
-                      {todo.title}
-                    </CardTitle>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={priorityVariant[todo.priority]}>
-                        <Icon className="mr-1 h-3 w-3" />
-                        {t(`priority.${todo.priority}`)}
-                      </Badge>
-                      {dueLabel && (
-                        <span className="text-muted-foreground text-xs">
-                          {t("dueLabel")} {dueLabel}
-                        </span>
-                      )}
-                    </div>
+                    triggerVariant="ghost"
+                    triggerSize="default"
+                    triggerAriaLabel={t("editAriaLabel")}
+                    triggerClassName="h-auto w-full justify-start px-0 font-medium text-base hover:bg-transparent"
+                  />
+                </CardTitle>
+              </CardHeader>
+              <CardPanel className="min-h-0 flex-1 space-y-2 pt-0 text-sm">
+                {todo.content ? (
+                  <div className="mb-8 line-clamp-2 rounded-lg border border-border/60 bg-muted/5 px-2 py-1.5 text-muted-foreground text-xs">
+                    <CommentMarkdown content={todo.content} />
                   </div>
-                </div>
-                <CardAction>
-                  <div className="flex items-center gap-1">
-                    <TodoFormSheet
-                      mode="edit"
-                      todo={todo}
-                      onSaved={() => router.refresh()}
-                      triggerChildren={<Pencil className="h-4 w-4" />}
-                      triggerVariant="ghost"
-                      triggerSize="icon"
-                      triggerAriaLabel={t("editAriaLabel")}
+                ) : null}
+                {dueLabel ? (
+                  <p className="font-semibold text-foreground tabular-nums">
+                    {dueLabel}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge
+                      variant={priorityVariant[todo.priority]}
+                      className="border-0 text-xs"
+                    >
+                      <Icon className="mr-0.5 h-3 w-3" />
+                      {t(`priority.${todo.priority}`)}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id={`todo-completed-${todo.id}`}
+                      checked={todo.completed}
+                      onCheckedChange={(checked) =>
+                        void handleToggle(todo, checked)
+                      }
                     />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDelete(todo.id)}
-                      aria-label={t("deleteAriaLabel")}
+                    <Label
+                      htmlFor={`todo-completed-${todo.id}`}
+                      className="sr-only"
                     >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                      {todo.completed ? t("markIncomplete") : t("markComplete")}
+                    </Label>
                   </div>
-                </CardAction>
-              </div>
-            </CardHeader>
-            {todo.content && (
-              <CardPanel>
-                <div className="rounded-lg border border-border/60 bg-muted/5 px-3 py-3">
-                  <CommentMarkdown content={todo.content} />
                 </div>
               </CardPanel>
-            )}
-          </Card>
-        );
-      })}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

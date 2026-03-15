@@ -1,12 +1,14 @@
 import dayjs from "dayjs";
-import { BookOpenCheck, CheckSquare } from "lucide-react";
+import { BookOpenCheck, Calendar, CheckSquare } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import type { OverviewData } from "@/app/dashboard/dashboard-data";
 import type { SessionItem } from "@/app/dashboard/types";
 import { ScheduleSessionLink } from "@/components/schedules/schedule-session-link";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardDescription,
   CardHeader,
   CardPanel,
@@ -23,7 +25,51 @@ import {
 import { DashboardLinksPanel } from "@/features/dashboard-links/components/dashboard-links-panel";
 import type { TodoItem } from "@/features/todos/components/todo-list";
 import { Link } from "@/i18n/routing";
-import { formatDuration, formatTime } from "@/shared/lib/time-utils";
+import { formatTime } from "@/shared/lib/time-utils";
+import { cn } from "@/shared/lib/utils";
+
+type ETAResult = { etaLabel: string; exactTime: string };
+
+function getHomeworkETA(
+  dueAt: Date,
+  referenceNow: dayjs.Dayjs,
+  t: (key: string, values?: Record<string, number | string>) => string,
+): ETAResult {
+  const due = dayjs(dueAt);
+  const exactTime = due.format("YYYY-MM-DD HH:mm");
+  const diffMinutes = due.diff(referenceNow, "minute", true);
+  const diffHours = due.diff(referenceNow, "hour", true);
+  const diffDays = due.diff(referenceNow, "day", true);
+
+  if (diffMinutes <= 0) {
+    return { etaLabel: t("homeworks.etaOverdue"), exactTime };
+  }
+  if (diffMinutes < 60) {
+    return {
+      etaLabel: t("homeworks.etaMinutes", { count: Math.ceil(diffMinutes) }),
+      exactTime,
+    };
+  }
+  if (diffHours < 24 && due.isSame(referenceNow, "day")) {
+    return {
+      etaLabel: t("homeworks.etaHours", { count: Math.floor(diffHours) }),
+      exactTime,
+    };
+  }
+  if (due.isSame(referenceNow, "day")) {
+    return { etaLabel: t("homeworks.etaToday"), exactTime };
+  }
+  if (diffDays < 7) {
+    return {
+      etaLabel: t("homeworks.etaDays", { count: Math.ceil(diffDays) }),
+      exactTime,
+    };
+  }
+  return {
+    etaLabel: t("homeworks.etaDays", { count: Math.ceil(diffDays) }),
+    exactTime,
+  };
+}
 
 export async function OverviewPanel({
   data,
@@ -56,11 +102,25 @@ export async function OverviewPanel({
     const pendingTodosNoTerm = todosData.filter((todo) => !todo.completed);
     return (
       <div className="space-y-6">
-        <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
+        <Card>
+          <CardPanel>
+            <DashboardLinksPanel
+              links={data.overviewLinks}
+              variant="overview"
+            />
+          </CardPanel>
+        </Card>
 
-        <Card className="border-warning/40">
+        <Card className="border-warning/30 bg-warning/5">
           <CardHeader>
-            <CardTitle>{t("termSelection.title")}</CardTitle>
+            <CardTitle>
+              <Link
+                href="/?tab=subscriptions"
+                className="rounded-sm text-inherit no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {t("termSelection.title")}
+              </Link>
+            </CardTitle>
             <CardDescription>
               {hasAnySelection
                 ? t("termSelection.noCurrentTerm", { term: currentTermName })
@@ -84,24 +144,22 @@ export async function OverviewPanel({
           </CardPanel>
         </Card>
 
-        <Card className="border-secondary/30 bg-secondary/5">
+        <Card>
           <CardHeader className="pb-0">
             <CardTitle className="flex items-center gap-2">
-              <CheckSquare className="h-4 w-4" />
-              {t("todos.title")}
+              <Link
+                href="/?tab=todos"
+                className="inline-flex items-center gap-2 rounded-sm text-inherit no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <CheckSquare className="h-4 w-4" />
+                {t("todos.title")}
+              </Link>
             </CardTitle>
           </CardHeader>
           <CardPanel className="flex flex-wrap items-center gap-2">
-            <span className="rounded-md border px-2 py-1 text-muted-foreground text-sm">
+            <Badge variant="outline" size="default" className="border-0">
               {t("todos.pending", { count: pendingTodosNoTerm.length })}
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              render={<Link className="no-underline" href="/?tab=todos" />}
-            >
-              {t("todos.viewAll")}
-            </Button>
+            </Badge>
           </CardPanel>
         </Card>
       </div>
@@ -110,6 +168,18 @@ export async function OverviewPanel({
 
   const hasToday = todaySessions.length > 0;
   const hasTomorrow = tomorrowSessions.length > 0;
+
+  const todayStart = referenceNow.startOf("day");
+  const pendingTodos = todosData.filter((t) => !t.completed);
+  const dueTodayTodos = pendingTodos.filter(
+    (t) => t.dueAt && dayjs(t.dueAt).isSame(todayStart, "day"),
+  );
+  const dueWithin3DaysTodos = pendingTodos.filter(
+    (t) =>
+      t.dueAt &&
+      dayjs(t.dueAt).isAfter(todayStart) &&
+      dayjs(t.dueAt).isBefore(todayStart.add(4, "day")),
+  );
 
   return (
     <div className="space-y-6">
@@ -139,247 +209,304 @@ export async function OverviewPanel({
         </Card>
       )}
 
-      <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {hasToday ? (
-          <Card>
-            <CardHeader className="pb-0">
-              <CardTitle>{t("today.title")}</CardTitle>
-            </CardHeader>
-            <CardPanel className="space-y-2">
-              {todaySessions.map((item: SessionItem) => (
-                <ScheduleSessionLink
-                  key={item.id}
-                  href={
-                    item.sectionJwId
-                      ? `/sections/${item.sectionJwId}`
-                      : "/?tab=subscriptions"
-                  }
-                  courseName={item.courseName}
-                  location={item.location}
-                  timeLabel={`${formatTime(item.startTime)}-${formatTime(item.endTime)}`}
-                  durationLabel={formatDuration(item.startTime, item.endTime)}
-                  variant="detailed"
-                />
-              ))}
-            </CardPanel>
-          </Card>
-        ) : null}
-        {hasTomorrow ? (
-          <Card>
-            <CardHeader className="pb-0">
-              <CardTitle>{t("tomorrow.title")}</CardTitle>
-            </CardHeader>
-            <CardPanel className="space-y-2">
-              {tomorrowSessions.map((item: SessionItem) => (
-                <ScheduleSessionLink
-                  key={item.id}
-                  href={
-                    item.sectionJwId
-                      ? `/sections/${item.sectionJwId}`
-                      : "/?tab=subscriptions"
-                  }
-                  courseName={item.courseName}
-                  location={item.location}
-                  timeLabel={`${formatTime(item.startTime)}-${formatTime(item.endTime)}`}
-                  durationLabel={formatDuration(item.startTime, item.endTime)}
-                  variant="detailed"
-                />
-              ))}
-            </CardPanel>
-          </Card>
-        ) : null}
-      </div>
-
-      {!hasToday && !hasTomorrow && (
-        <Card>
-          <CardPanel>
-            <p className="text-muted-foreground text-sm">
-              {t("today.empty")} {t("tomorrow.empty")}
-            </p>
-          </CardPanel>
-        </Card>
-      )}
-
-      <Card className="border-primary/30 bg-primary/5">
-        <CardHeader className="pb-0">
-          <CardTitle className="flex items-center gap-2">
-            <BookOpenCheck className="h-4 w-4" />
-            {t("homeworks.title")}
-          </CardTitle>
-        </CardHeader>
-        <CardPanel className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md border border-warning/50 bg-warning/10 px-2 py-1 text-sm">
-            {t("homeworks.dueToday", { count: dueToday.length })}
-          </span>
-          <span className="rounded-md border px-2 py-1 text-muted-foreground text-sm">
-            {t("homeworks.dueSoon", { count: dueWithin3Days.length })}
-          </span>
+      <Card>
+        <CardPanel>
+          <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
         </CardPanel>
-        {incompleteHomeworks.length > 0 && (
-          <CardPanel className="box-content space-y-2 pt-3">
-            {incompleteHomeworks.slice(0, 5).map((hw) => {
-              const href = hw.section?.jwId
-                ? `/sections/${hw.section.jwId}#homework-${hw.id}`
-                : "/?tab=homeworks";
-              const dueLabel = hw.submissionDueAt
-                ? dayjs(hw.submissionDueAt).format("YYYY-MM-DD HH:mm")
-                : null;
-              return (
-                <Link
-                  key={hw.id}
-                  href={href}
-                  className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 no-underline transition-colors hover:bg-accent"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-sm">{hw.title}</p>
-                    <p className="truncate text-muted-foreground text-xs">
-                      {hw.section?.course?.namePrimary ?? "—"}
-                    </p>
-                  </div>
-                  {dueLabel && (
-                    <div className="shrink-0 text-right">
-                      <p className="font-medium text-sm">{dueLabel}</p>
-                    </div>
-                  )}
-                </Link>
-              );
-            })}
-          </CardPanel>
-        )}
       </Card>
 
-      {(() => {
-        const pendingTodos = todosData.filter((todo) => !todo.completed);
-        return (
-          <Card className="border-secondary/30 bg-secondary/5">
-            <CardHeader className="pb-0">
-              <CardTitle className="flex items-center gap-2">
-                <CheckSquare className="h-4 w-4" />
-                {t("todos.title")}
-              </CardTitle>
-            </CardHeader>
-            <CardPanel className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md border px-2 py-1 text-muted-foreground text-sm">
-                {t("todos.pending", { count: pendingTodos.length })}
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                render={<Link className="no-underline" href="/?tab=todos" />}
-              >
-                {t("todos.viewAll")}
-              </Button>
-            </CardPanel>
-            {pendingTodos.length > 0 && (
-              <CardPanel className="box-content space-y-2 pt-3">
-                {pendingTodos.slice(0, 5).map((todo) => {
-                  const dueLabel = todo.dueAt
-                    ? dayjs(todo.dueAt).format("YYYY-MM-DD")
-                    : null;
-                  return (
-                    <Link
-                      key={todo.id}
-                      href="/?tab=todos"
-                      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 no-underline transition-colors hover:bg-accent"
-                    >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-sm">
-                          {todo.title}
-                        </p>
-                        <p className="truncate text-muted-foreground text-xs capitalize">
-                          {todo.priority}
-                        </p>
-                      </div>
-                      {dueLabel && (
-                        <div className="shrink-0 text-right">
-                          <p className="font-medium text-sm">{dueLabel}</p>
-                        </div>
-                      )}
-                    </Link>
-                  );
-                })}
-              </CardPanel>
-            )}
-          </Card>
-        );
-      })()}
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="flex items-center gap-2">
+            <Link
+              href="/?tab=calendar"
+              className="inline-flex items-center gap-2 rounded-sm text-inherit no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <Calendar className="h-4 w-4" />
+              {t("nav.calendar.title")}
+            </Link>
+          </CardTitle>
+        </CardHeader>
+        <CardPanel className="space-y-6">
+          <div className="grid gap-4 md:grid-cols-2">
+            <section className="space-y-2">
+              <h3 className="font-medium text-muted-foreground text-sm">
+                {t("today.title")}
+              </h3>
+              {hasToday ? (
+                <div className="space-y-2">
+                  {todaySessions.map((item: SessionItem) => (
+                    <ScheduleSessionLink
+                      key={item.id}
+                      href={
+                        item.sectionJwId
+                          ? `/sections/${item.sectionJwId}`
+                          : "/?tab=subscriptions"
+                      }
+                      courseName={item.courseName}
+                      location={item.teacherDisplay}
+                      timeLabel={formatTime(item.startTime)}
+                      durationLabel={formatTime(item.endTime)}
+                      variant="detailed"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  {t("today.empty")}
+                </p>
+              )}
+            </section>
 
-      {timeSlots.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("week.title")}</CardTitle>
-          </CardHeader>
-          <CardPanel>
-            <div className="overflow-x-auto rounded-md border">
-              <Table className="min-w-[880px] table-fixed">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="sticky left-0 z-10 w-32 bg-card">
-                      {t("week.time")}
-                    </TableHead>
-                    {weekDays.map((day) => (
-                      <TableHead
-                        key={day.format("YYYY-MM-DD")}
-                        className="text-center"
-                      >
-                        {weekDayFormatter.format(day.toDate())}
+            <section className="space-y-2">
+              <h3 className="font-medium text-muted-foreground text-sm">
+                {t("tomorrow.title")}
+              </h3>
+              {hasTomorrow ? (
+                <div className="space-y-2">
+                  {tomorrowSessions.map((item: SessionItem) => (
+                    <ScheduleSessionLink
+                      key={item.id}
+                      href={
+                        item.sectionJwId
+                          ? `/sections/${item.sectionJwId}`
+                          : "/?tab=subscriptions"
+                      }
+                      courseName={item.courseName}
+                      location={item.teacherDisplay}
+                      timeLabel={formatTime(item.startTime)}
+                      durationLabel={formatTime(item.endTime)}
+                      variant="detailed"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  {t("tomorrow.empty")}
+                </p>
+              )}
+            </section>
+          </div>
+
+          <section className="space-y-2">
+            <h3 className="font-medium text-muted-foreground text-sm">
+              {t("week.title")}
+            </h3>
+            {timeSlots.length > 0 ? (
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <Table className="min-w-[880px] table-fixed">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="sticky left-0 z-10 w-32 bg-card">
+                        {t("week.time")}
                       </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timeSlots.map((slot) => (
-                    <TableRow key={slot.key}>
-                      <TableCell className="sticky left-0 z-10 bg-card align-top font-medium text-xs">
-                        {formatTime(slot.startTime)}-{formatTime(slot.endTime)}
-                      </TableCell>
                       {weekDays.map((day) => {
-                        const cellSessions = weeklySessions.filter(
-                          (s) =>
-                            s.startTime === slot.startTime &&
-                            s.endTime === slot.endTime &&
-                            dayjs(s.date).isSame(day, "day"),
-                        );
+                        const isToday = day.isSame(referenceNow, "day");
                         return (
-                          <TableCell
+                          <TableHead
                             key={day.format("YYYY-MM-DD")}
-                            className="p-1 align-top"
+                            className={cn(
+                              "text-center",
+                              isToday &&
+                                "underline decoration-2 decoration-muted-foreground decoration-dotted underline-offset-2",
+                            )}
                           >
-                            {cellSessions.map((s) => (
-                              <Link
-                                key={s.id}
-                                href={
-                                  s.sectionJwId
-                                    ? `/sections/${s.sectionJwId}`
-                                    : "/?tab=subscriptions"
-                                }
-                                className="block truncate rounded border px-1 py-0.5 text-xs no-underline hover:bg-accent"
-                              >
-                                {s.courseName}
-                              </Link>
-                            ))}
-                          </TableCell>
+                            {weekDayFormatter.format(day.toDate())}
+                          </TableHead>
                         );
                       })}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardPanel>
-        </Card>
-      ) : (
+                  </TableHeader>
+                  <TableBody>
+                    {timeSlots.map((slot) => (
+                      <TableRow key={slot.key}>
+                        <TableCell className="sticky left-0 z-10 bg-card align-top font-medium text-xs">
+                          {formatTime(slot.startTime)}-
+                          {formatTime(slot.endTime)}
+                        </TableCell>
+                        {weekDays.map((day) => {
+                          const cellSessions = weeklySessions.filter(
+                            (s) =>
+                              s.startTime === slot.startTime &&
+                              s.endTime === slot.endTime &&
+                              dayjs(s.date).isSame(day, "day"),
+                          );
+                          return (
+                            <TableCell
+                              key={day.format("YYYY-MM-DD")}
+                              className="p-1 align-top"
+                            >
+                              {cellSessions.map((s) => (
+                                <Link
+                                  key={s.id}
+                                  href={
+                                    s.sectionJwId
+                                      ? `/sections/${s.sectionJwId}`
+                                      : "/?tab=subscriptions"
+                                  }
+                                  className="block truncate rounded-md border border-border bg-muted/20 px-1.5 py-0.5 text-xs no-underline transition-colors hover:bg-accent"
+                                >
+                                  {s.courseName}
+                                </Link>
+                              ))}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <p className="text-muted-foreground text-sm">{t("week.empty")}</p>
+            )}
+          </section>
+        </CardPanel>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>{t("week.title")}</CardTitle>
+          <CardHeader className="pb-0">
+            <CardTitle className="flex items-center gap-2">
+              <Link
+                href="/?tab=homeworks"
+                className="inline-flex items-center gap-2 rounded-sm text-inherit no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <BookOpenCheck className="h-4 w-4" />
+                {t("homeworks.title")}
+              </Link>
+            </CardTitle>
+            <CardAction>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Badge
+                  variant="warning"
+                  size="default"
+                  className="w-fit border-0"
+                >
+                  {t("homeworks.dueToday", { count: dueToday.length })}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  size="default"
+                  className="w-fit border-0"
+                >
+                  {t("homeworks.dueSoon", { count: dueWithin3Days.length })}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  size="default"
+                  className="w-fit border-0"
+                >
+                  {t("homeworks.all", { count: incompleteHomeworks.length })}
+                </Badge>
+              </div>
+            </CardAction>
           </CardHeader>
-          <CardPanel>
-            <p className="text-muted-foreground text-sm">{t("week.empty")}</p>
-          </CardPanel>
+          {incompleteHomeworks.length > 0 && (
+            <CardPanel className="box-content space-y-2">
+              {incompleteHomeworks.slice(0, 5).map((hw) => {
+                const href = hw.section?.jwId
+                  ? `/sections/${hw.section.jwId}#homework-${hw.id}`
+                  : "/?tab=homeworks";
+                const eta = hw.submissionDueAt
+                  ? getHomeworkETA(hw.submissionDueAt, referenceNow, t)
+                  : null;
+                return (
+                  <Link
+                    key={hw.id}
+                    href={href}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5 no-underline transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-sm">{hw.title}</p>
+                      <p className="truncate text-muted-foreground text-xs">
+                        {hw.section?.course?.namePrimary ?? "—"}
+                      </p>
+                    </div>
+                    {eta && (
+                      <div className="shrink-0 text-right">
+                        <p className="font-medium text-sm">{eta.etaLabel}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {eta.exactTime}
+                        </p>
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </CardPanel>
+          )}
         </Card>
-      )}
+
+        <Card>
+          <CardHeader className="pb-0">
+            <CardTitle className="flex items-center gap-2">
+              <Link
+                href="/?tab=todos"
+                className="inline-flex items-center gap-2 rounded-sm text-inherit no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <CheckSquare className="h-4 w-4" />
+                {t("todos.title")}
+              </Link>
+            </CardTitle>
+            <CardAction>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <Badge
+                  variant="warning"
+                  size="default"
+                  className="w-fit border-0"
+                >
+                  {t("todos.dueToday", { count: dueTodayTodos.length })}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  size="default"
+                  className="w-fit border-0"
+                >
+                  {t("todos.dueSoon", { count: dueWithin3DaysTodos.length })}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  size="default"
+                  className="w-fit border-0"
+                >
+                  {t("todos.all", { count: pendingTodos.length })}
+                </Badge>
+              </div>
+            </CardAction>
+          </CardHeader>
+          {pendingTodos.length > 0 && (
+            <CardPanel className="box-content space-y-2">
+              {pendingTodos.slice(0, 5).map((todo) => {
+                const dueLabel = todo.dueAt
+                  ? dayjs(todo.dueAt).format("YYYY-MM-DD")
+                  : null;
+                return (
+                  <Link
+                    key={todo.id}
+                    href="/?tab=todos"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5 no-underline transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-sm">
+                        {todo.title}
+                      </p>
+                      <p className="truncate text-muted-foreground text-xs capitalize">
+                        {todo.priority}
+                      </p>
+                    </div>
+                    {dueLabel && (
+                      <div className="shrink-0 text-right">
+                        <p className="font-medium text-sm">{dueLabel}</p>
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </CardPanel>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

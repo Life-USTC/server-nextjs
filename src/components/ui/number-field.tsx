@@ -4,6 +4,7 @@ import { NumberField as NumberFieldPrimitive } from "@base-ui/react/number-field
 import { MinusIcon, PlusIcon } from "lucide-react";
 import * as React from "react";
 import { Label } from "@/components/ui/label";
+import type { ControlSize } from "@/components/ui/types";
 import { cn } from "@/shared/lib/utils";
 
 const NumberFieldContext = React.createContext<{
@@ -16,7 +17,7 @@ function NumberField({
   size = "default",
   ...props
 }: NumberFieldPrimitive.Root.Props & {
-  size?: "sm" | "default" | "lg";
+  size?: ControlSize;
 }) {
   const generatedId = React.useId();
   const fieldId = id ?? generatedId;

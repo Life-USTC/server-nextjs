@@ -179,6 +179,19 @@ async function cleanupScenarioData(userIds: string[]) {
     where: { nameCn: "DEV 测试班级" },
   });
   await prisma.semester.deleteMany({ where: { jwId: SEMESTER_JW_ID } });
+
+  await prisma.todo.deleteMany({
+    where: {
+      userId: { in: userIds },
+      title: { contains: LEGACY_SCENARIO_MARKER },
+    },
+  });
+  await prisma.dashboardLinkClick.deleteMany({
+    where: { userId: { in: userIds } },
+  });
+  await prisma.dashboardLinkPin.deleteMany({
+    where: { userId: { in: userIds } },
+  });
 }
 
 async function main() {
@@ -793,6 +806,33 @@ async function main() {
     await prisma.schedule.create({ data: scheduleData });
   }
 
+  const customPlaceGroup = await prisma.scheduleGroup.findFirst({
+    where: { sectionId: sectionRecords[0].id },
+    select: { id: true },
+  });
+  if (customPlaceGroup) {
+    await prisma.schedule.create({
+      data: {
+        section: { connect: { id: sectionRecords[0].id } },
+        scheduleGroup: { connect: { id: customPlaceGroup.id } },
+        customPlace: "DEV 自定义地点",
+        date: makeDateAt(15, 30, 2),
+        weekday: toWeekday(makeDateAt(15, 30, 2)),
+        startTime: 1530,
+        endTime: 1700,
+        periods: 2,
+        weekIndex: 2,
+        startUnit: 9,
+        endUnit: 10,
+        teachers: {
+          connect: sectionInputs[0].teacherIndexes.map((teacherIndex) => ({
+            id: teachers[teacherIndex].id,
+          })),
+        },
+      },
+    });
+  }
+
   const exams = await Promise.all(
     sectionRecords.map((section, index) =>
       prisma.exam.create({
@@ -858,6 +898,13 @@ async function main() {
       isMajor: true,
       requiresTeam: true,
     },
+    {
+      sectionId: sectionRecords[0].id,
+      title: `${LEGACY_SCENARIO_MARKER} 已删除作业`,
+      submissionDueAt: makeDateAt(23, 0, 5),
+      isMajor: false,
+      requiresTeam: false,
+    },
   ];
 
   const homeworks = await Promise.all(
@@ -900,6 +947,27 @@ async function main() {
       createdAt: makeDateAt(9, 30, -1),
     })),
   });
+
+  const deletedHomework = homeworks[homeworks.length - 1];
+  if (deletedHomework?.title.includes(LEGACY_SCENARIO_MARKER)) {
+    await prisma.homework.update({
+      where: { id: deletedHomework.id },
+      data: {
+        deletedAt: makeDateAt(12, 0, 0),
+        deletedById: debugUser.id,
+      },
+    });
+    await prisma.homeworkAuditLog.create({
+      data: {
+        action: HomeworkAuditAction.deleted,
+        titleSnapshot: deletedHomework.title,
+        sectionId: sectionRecords[0].id,
+        homeworkId: deletedHomework.id,
+        actorId: debugUser.id,
+        createdAt: makeDateAt(12, 5, 0),
+      },
+    });
+  }
 
   const uploads = await Promise.all(
     [
@@ -987,6 +1055,32 @@ async function main() {
     }),
   ]);
 
+  const sectionTeacherRow = await prisma.sectionTeacher.findFirst({
+    where: { sectionId: sectionRecords[0].id },
+    select: { id: true },
+  });
+  if (sectionTeacherRow) {
+    await prisma.comment.create({
+      data: {
+        userId: debugUser.id,
+        sectionTeacherId: sectionTeacherRow.id,
+        body: `${LEGACY_SCENARIO_MARKER} 班级-教师评论：该教师讲解清晰。`,
+        visibility: CommentVisibility.public,
+      },
+    });
+  }
+
+  await prisma.comment.create({
+    data: {
+      userId: debugUser.id,
+      sectionId: sectionRecords[1].id,
+      body: `${LEGACY_SCENARIO_MARKER} 已删除评论，用于列表过滤测试。`,
+      visibility: CommentVisibility.public,
+      status: CommentStatus.deleted,
+      deletedAt: makeDateAt(11, 0, 0),
+    },
+  });
+
   const commentWithAttachment = await prisma.comment.create({
     data: {
       userId: debugUser.id,
@@ -1019,6 +1113,14 @@ async function main() {
     ],
   });
 
+  const homeworkDescriptionContents = [
+    `${LEGACY_SCENARIO_MARKER} 作业要求：提交仓库链接和测试截图。`,
+    "完成系统设计文档，包含模块划分与接口说明，并在评审会上做 10 分钟展示。",
+    "证明题需写出完整推导过程，可参考教材第三章习题 3.2。",
+    "综合运用特征值与特征向量，建议先化简再计算。",
+    "实验报告需包含：实验目的、步骤、数据记录、误差分析与结论。",
+  ];
+
   const descriptions = await Promise.all([
     prisma.description.create({
       data: {
@@ -1048,14 +1150,16 @@ async function main() {
         lastEditedAt: makeDateAt(22, 0, -1),
       },
     }),
-    prisma.description.create({
-      data: {
-        homeworkId: homeworks[0].id,
-        content: `${LEGACY_SCENARIO_MARKER} 作业要求：提交仓库链接和测试截图。`,
-        lastEditedById: debugUser.id,
-        lastEditedAt: makeDateAt(22, 30, -1),
-      },
-    }),
+    ...homeworkDescriptionContents.map((content, index) =>
+      prisma.description.create({
+        data: {
+          homeworkId: homeworks[index].id,
+          content,
+          lastEditedById: debugUser.id,
+          lastEditedAt: makeDateAt(22, 30 + index, -1),
+        },
+      }),
+    ),
   ]);
 
   await prisma.descriptionEdit.createMany({
@@ -1075,6 +1179,87 @@ async function main() {
         set: sectionRecords.map((section) => ({ id: section.id })),
       },
     },
+  });
+
+  const todoSeeds = [
+    {
+      title: `${LEGACY_SCENARIO_MARKER} 今天截止待办`,
+      content: "需今日完成",
+      dueAt: makeDateAt(23, 59, 0),
+      completed: false,
+      priority: "high" as const,
+    },
+    {
+      title: `${LEGACY_SCENARIO_MARKER} 3天内截止待办`,
+      content: null,
+      dueAt: makeDateAt(18, 0, 2),
+      completed: false,
+      priority: "medium" as const,
+    },
+    {
+      title: `${LEGACY_SCENARIO_MARKER} 下周截止待办`,
+      content: null,
+      dueAt: makeDateAt(23, 59, 7),
+      completed: false,
+      priority: "low" as const,
+    },
+    {
+      title: `${LEGACY_SCENARIO_MARKER} 无截止日期待办`,
+      content: null,
+      dueAt: null,
+      completed: false,
+      priority: "medium" as const,
+    },
+    {
+      title: `${LEGACY_SCENARIO_MARKER} 已完成待办`,
+      content: null,
+      dueAt: makeDateAt(20, 0, -1),
+      completed: true,
+      priority: "high" as const,
+    },
+  ];
+  for (const todo of todoSeeds) {
+    await prisma.todo.create({
+      data: {
+        userId: debugUser.id,
+        title: todo.title,
+        content: todo.content,
+        dueAt: todo.dueAt,
+        completed: todo.completed,
+        priority: todo.priority,
+      },
+    });
+  }
+
+  await prisma.dashboardLinkClick.createMany({
+    data: [
+      {
+        userId: debugUser.id,
+        slug: "jw",
+        count: 3,
+        lastClickedAt: makeDateAt(10, 0, 0),
+      },
+      {
+        userId: debugUser.id,
+        slug: "icourse",
+        count: 1,
+        lastClickedAt: makeDateAt(9, 30, 0),
+      },
+      {
+        userId: debugUser.id,
+        slug: "confession-wall",
+        count: 2,
+        lastClickedAt: makeDateAt(14, 0, 0),
+      },
+    ],
+    skipDuplicates: true,
+  });
+  await prisma.dashboardLinkPin.createMany({
+    data: [
+      { userId: debugUser.id, slug: "jw" },
+      { userId: debugUser.id, slug: "confession-wall" },
+    ],
+    skipDuplicates: true,
   });
 
   await prisma.uploadPending.upsert({
@@ -1185,7 +1370,9 @@ async function main() {
   console.log(`用户: ${debugUser.username}`);
   console.log(`管理员: ${adminUser.username}`);
   console.log(`课程数: ${courses.length}, 班级数: ${sectionRecords.length}`);
-  console.log(`作业数: ${homeworks.length}, 上传数: ${uploads.length}`);
+  console.log(
+    `作业数: ${homeworks.length}, 上传数: ${uploads.length}, 待办数: ${todoSeeds.length}`,
+  );
 }
 
 main()
