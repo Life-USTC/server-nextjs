@@ -22,11 +22,9 @@
 |---|---:|---:|---:|---|
 | `/` | ✅ | ☐ | ◑ | 主题切换已测；管理员入口/外链未测 |
 | `/signin` | ✅ | ☐ | ◑ | dev 调试登录已测；callbackUrl/error/已登录重定向未测 |
-| `/dashboard` | ✅ | ✅ | ◑ | 仅测作业入口跳转；时间线/周表/调试卡等未测 |
-| `/dashboard/homeworks` | ✅ | ✅ | ◑ | 可创建作业已测；完成切换/筛选结果/跳转详情未测 |
-| `/dashboard/comments` | ✅ | ✅ | ◑ | 可跳原文已测（弱断言）；分页/面包屑未测 |
-| `/dashboard/uploads` | ✅ | ✅ | ✅ | 上传/复制链接/打开/确认删除/重命名等主流程已测 |
-| `/dashboard/subscriptions/sections` | ✅ | ✅ | ◑ | 复制 iCal、批量导入（取消/确认）已测；日历组件交互未测 |
+| `/dashboard*` | ✅ | ☐ | ☐ | 已移除，返回 404 |
+| `/?tab=homeworks` | ✅ | ☐ | ◑ | 可创建作业已测；完成切换/筛选结果/跳转详情未测 |
+| `/?tab=subscriptions` | ✅ | ☐ | ◑ | 复制 iCal、批量导入（取消/确认）已测；日历组件交互未测 |
 | `/sections` | ✅ | ☐ | ◑ | 列表进详情与搜索帮助/清除筛选已测；分页与更多筛选未测 |
 | `/sections/[jwId]` | ✅ | ☐ | ◑ | 评论发/改/回/点赞已测；作业面板/日历订阅/描述编辑等未测；评论删除未测 |
 | `/teachers` | ✅ | ☐ | ◑ | 列表进详情已测；筛选器/分页未测 |
@@ -38,8 +36,8 @@
 | `/api-docs` | ✅ | ☐ | ◑ | 仅测 Swagger UI 渲染关键文本；Try it out 等未测 |
 | `/settings` | ✅ | ✅ | ✅ | 重定向到 profile 已测 |
 | `/settings/profile` | ✅ | ✅ | ◑ | 初始值与保存/回滚已测；头像选择等未测 |
-| `/settings/uploads` | ✅ | ✅ | ✅ | 重定向到 dashboard/uploads 已测 |
-| `/settings/comments` | ✅ | ✅ | ✅ | 重定向到 dashboard/comments 已测 |
+| `/settings/uploads` | ✅ | ✅ | ✅ | 重定向到 `/` 已测 |
+| `/settings/comments` | ✅ | ✅ | ✅ | 重定向到 `/` 已测 |
 | `/settings/content` | ✅ | ✅ | ✅ | 两个入口点击跳转已测 |
 | `/settings/accounts` | ✅ | ✅ | ◑ | “连接”跳 OAuth 与“仅剩一个账户时断开禁用提示”已测；解绑主流程未测 |
 | `/settings/danger` | ✅ | ✅ | ◑ | 输入 DELETE 启用确认按钮 + 取消关闭已测；真实删除不测（破坏性） |
@@ -53,7 +51,7 @@
 
 按“用户高频 + 风险高 + 交互复杂”排序：
 
-1. 订阅日历交互（`/dashboard/subscriptions/sections`）
+1. 订阅日历交互（`/?tab=subscriptions`）
    - 日历组件：切月/点击事件打开详情的最短路径
 2. 内容页互动（`/courses`、`/teachers`、`/sections`）
    - 分页与多维筛选的最短路径（选择筛选 → URL 参数变化 → 列表变化）
