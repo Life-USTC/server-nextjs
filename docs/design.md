@@ -48,12 +48,6 @@ flowchart TD
     AdminOAuth["/admin/oauth"]
   end
 
-  subgraph Legacy["Legacy dashboard routes"]
-    DashRoot["/dashboard, /dashboard/comments, /dashboard/uploads"]
-    DashHW["/dashboard/homeworks"]
-    DashSubs["/dashboard/subscriptions/sections"]
-  end
-
   ApiDocs["/api-docs"]
 
   Home --> Tabs
@@ -117,19 +111,13 @@ flowchart TD
   AdminModeration --> CourseDetail
   AdminModeration --> TeacherDetail
 
-  DashRoot -. signed in .-> Home
-  DashRoot -. signed out .-> Signin
-  DashHW -. signed in .-> Tabs
-  DashHW -. signed out .-> Signin
-  DashSubs -. signed in .-> Tabs
-  DashSubs -. signed out .-> Signin
 ```
 
 - `/` is the main hub: it links to discovery pages (`/sections`, `/teachers`, `/courses`), tabbed dashboard states (`/?tab=...`), settings, and profile pages via global navigation.
 - `/comments/:id` is a resolver route; it does not render content itself and redirects to the related section/course/teacher anchor.
 - Middleware forces signed-in users with incomplete profiles to `/welcome` before they can use normal pages.
 - Settings pages are connected by a shared sidebar (`/settings/profile`, `/settings/accounts`, `/settings/content`, `/settings/danger`), while `/settings` is an index redirect.
-- Legacy `/dashboard*` routes are compatibility redirects into `/` (or `/?tab=...`) when authenticated, otherwise to `/signin`.
+- Legacy `/dashboard*` routes have been removed.
 
 ## Proposed Layout (Unified Tabs)
 
@@ -235,14 +223,12 @@ flowchart LR
 | `/settings/content` | `/settings?tab=content` |
 | `/settings/danger` | `/settings?tab=danger` |
 | `/comments/guide/` | `/guides/markdown-support/` |
-| `/dashboard/homeworks` | `/?tab=homeworks` |
-| `/dashboard/subscriptions/sections` | `/?tab=subscriptions` |
-| `/dashboard`, `/dashboard/comments`, `/dashboard/uploads` | removed (no direct links) |
+| `/dashboard*` | removed (returns 404) |
 
 - Unify settings UX with the same tab mental model already used by home dashboard tabs.
 - Keep one canonical URL per view, and make menu/sidebar actions point only to canonical routes.
 - Move markdown syntax docs out of comments namespace (`/comments/guide/`) into guides namespace (`/guides/markdown-support/`).
-- Drop old `/dashboard*` links from UI and docs; keep temporary redirects only for migration, then remove them.
+- Keep `/dashboard*` links out of UI and docs.
 
 ## Design System & UI Primitives
 
