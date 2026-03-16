@@ -217,6 +217,7 @@ export async function assertApiContract(
     routePath === "/api/homeworks" ||
     routePath === "/api/homeworks/[id]" ||
     routePath === "/api/homeworks/[id]/completion" ||
+    routePath === "/api/todos/[id]" ||
     routePath === "/api/uploads" ||
     routePath === "/api/uploads/[id]" ||
     routePath === "/api/uploads/[id]/download" ||
@@ -229,7 +230,9 @@ export async function assertApiContract(
     routePath === "/api/admin/users/[id]" ||
     routePath === "/api/admin/suspensions" ||
     routePath === "/api/admin/suspensions/[id]" ||
-    routePath === "/api/users/[userId]/calendar.ics"
+    routePath === "/api/users/[userId]/calendar.ics" ||
+    routePath === "/api/dashboard-links/pin" ||
+    routePath === "/api/dashboard-links/visit"
   ) {
     const probePath = routePath
       .replace("[id]", "invalid-e2e")
@@ -239,6 +242,43 @@ export async function assertApiContract(
     expect(response.status()).toBeGreaterThan(0);
     expect(response.status()).toBeLessThan(500);
     expect([400, 401, 403, 404, 405]).toContain(response.status());
+    return;
+  }
+
+  if (routePath === "/api/todos") {
+    const response = await request.get("/api/todos");
+    expect(response.status()).toBe(401);
+    return;
+  }
+
+  if (routePath === "/api/oauth/authorize") {
+    const response = await request.post("/api/oauth/authorize", {
+      data: {
+        client_id: "invalid-e2e-client",
+        redirect_uri: "http://127.0.0.1:3000/oauth-e2e/callback",
+      },
+    });
+    expect(response.status()).toBe(401);
+    return;
+  }
+
+  if (routePath === "/api/oauth/token") {
+    const response = await request.post("/api/oauth/token", {
+      data: {
+        grant_type: "authorization_code",
+        code: "invalid-e2e-code",
+        redirect_uri: "http://127.0.0.1:3000/oauth-e2e/callback",
+        client_id: "invalid-e2e-client",
+        client_secret: "invalid-e2e-secret",
+      },
+    });
+    expect(response.status()).toBe(401);
+    return;
+  }
+
+  if (routePath === "/api/oauth/userinfo") {
+    const response = await request.get("/api/oauth/userinfo");
+    expect(response.status()).toBe(401);
     return;
   }
 

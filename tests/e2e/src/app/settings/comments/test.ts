@@ -1,15 +1,9 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { expectRequiresSignIn, signInAsDebugUser } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test("/settings/comments 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/settings/comments", {
-    expectMainContent: false,
-  });
-
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+  await expectRequiresSignIn(page, "/settings/comments");
   await captureStepScreenshot(page, testInfo, "settings-comments-unauthorized");
 });
 

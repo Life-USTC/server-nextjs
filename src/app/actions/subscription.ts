@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
+import {
+  buildUserCalendarFeedPath,
+  ensureUserCalendarFeedToken,
+} from "@/lib/calendar-feed-token";
 import { prisma } from "@/lib/db/prisma";
 
 export interface SubscriptionState {
@@ -51,7 +54,7 @@ export async function getSubscriptionState(): Promise<SubscriptionState> {
 
   return {
     userId: user.id,
-    subscriptionIcsUrl: `/api/users/${user.id}/calendar.ics?token=${calendarFeedToken}`,
+    subscriptionIcsUrl: buildUserCalendarFeedPath(user.id, calendarFeedToken),
     subscribedSections: user.subscribedSections.map((s) => s.id),
     isAuthenticated: true,
   };

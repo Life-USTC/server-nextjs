@@ -20,6 +20,7 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
+    "check:e2e": "bun run tools/check-e2e-conventions.ts",
     "hooks:install": "git config core.hooksPath .githooks",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

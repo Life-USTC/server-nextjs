@@ -10,7 +10,10 @@ import {
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
 } from "@/features/dashboard-links/lib/dashboard-links";
-import { ensureUserCalendarFeedToken } from "@/lib/calendar-feed-token";
+import {
+  buildUserCalendarFeedPath,
+  ensureUserCalendarFeedToken,
+} from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 import {
@@ -625,7 +628,7 @@ export async function getSubscriptionsTabData(userId: string) {
     user != null ? await ensureUserCalendarFeedToken(user.id) : null;
   const calendarSubscriptionUrl =
     user != null && calendarFeedToken
-      ? `/api/users/${user.id}/calendar.ics?token=${calendarFeedToken}`
+      ? buildUserCalendarFeedPath(user.id, calendarFeedToken)
       : null;
 
   const currentSemesterId =

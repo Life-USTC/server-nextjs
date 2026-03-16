@@ -45,6 +45,32 @@ test("/?tab=subscriptions 可点击条目跳转班级详情", async ({
   );
 });
 
+test("/?tab=subscriptions 日历可切换月份", async ({ page }, testInfo) => {
+  await signInAsDebugUser(page, "/?tab=subscriptions");
+
+  const monthLabel = page.locator("text=/^\\d{4}\\.\\d{2}$/").first();
+  await expect(monthLabel).toBeVisible();
+  const before = (await monthLabel.textContent())?.trim();
+  expect(before).toBeTruthy();
+
+  await page
+    .getByRole("button", { name: /下个月|Next month/i })
+    .first()
+    .click();
+  await expect(monthLabel).not.toHaveText(before ?? "");
+
+  await page
+    .getByRole("button", { name: /上个月|Previous month/i })
+    .first()
+    .click();
+  await expect(monthLabel).toHaveText(before ?? "");
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "dashboard-subscriptions-calendar-month",
+  );
+});
+
 test("/?tab=subscriptions 复制日历链接", async ({ page }, testInfo) => {
   await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
   await signInAsDebugUser(page, "/?tab=subscriptions");
@@ -62,7 +88,14 @@ test("/?tab=subscriptions 复制日历链接", async ({ page }, testInfo) => {
     navigator.clipboard.readText(),
   );
   expect(clipboardText).toContain("calendar.ics");
-  expect(clipboardText).toContain("token=");
+  expect(clipboardText).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+
+  const calendarResponse = await page.request.get(clipboardText);
+  expect(calendarResponse.status()).toBe(200);
+  expect(calendarResponse.headers()["content-type"]).toContain("text/calendar");
+  const calendarBody = await calendarResponse.text();
+  expect(calendarBody.trim().length).toBeGreaterThan(0);
+  expect(calendarBody).toContain("BEGIN:VCALENDAR");
   await captureStepScreenshot(
     page,
     testInfo,

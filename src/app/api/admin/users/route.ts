@@ -3,12 +3,14 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
 import {
   buildPaginatedResponse,
-  getPagination,
   handleRouteError,
+  normalizePagination,
+  parseOptionalInt,
   unauthorized,
 } from "@/lib/api/helpers";
 import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { ADMIN_USERS_PAGE_SIZE } from "@/app/admin/users/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +36,12 @@ export async function GET(request: NextRequest) {
     return handleRouteError("Invalid user query", parsedQuery.error, 400);
   }
 
-  const pagination = getPagination(searchParams);
+  const pagination = normalizePagination({
+    page: parseOptionalInt(parsedQuery.data.page) ?? undefined,
+    pageSize:
+      parseOptionalInt(parsedQuery.data.limit) ?? ADMIN_USERS_PAGE_SIZE,
+    maxPageSize: 100,
+  });
   const search = parsedQuery.data.search ?? "";
 
   try {

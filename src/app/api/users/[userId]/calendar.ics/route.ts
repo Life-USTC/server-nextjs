@@ -13,6 +13,21 @@ import { createMultiSectionCalendar } from "@/lib/ical";
 
 export const dynamic = "force-dynamic";
 
+function parseUserCalendarIdentifier(rawUserId: string) {
+  const separatorIndex = rawUserId.indexOf(":");
+  if (separatorIndex === -1) {
+    return {
+      userId: rawUserId,
+      tokenFromPath: null,
+    };
+  }
+
+  return {
+    userId: rawUserId.slice(0, separatorIndex),
+    tokenFromPath: rawUserId.slice(separatorIndex + 1),
+  };
+}
+
 /**
  * Generate calendar ICS for a user's selected sections.
  * @pathParams userCalendarPathParamsSchema
@@ -32,8 +47,11 @@ export async function GET(
       return invalidParamResponse("user ID");
     }
 
-    const { userId } = parsedParams.data;
-    const token = new URL(request.url).searchParams.get("token")?.trim();
+    const { userId: rawUserId } = parsedParams.data;
+    const { userId, tokenFromPath } = parseUserCalendarIdentifier(rawUserId);
+    const token =
+      tokenFromPath?.trim() ||
+      new URL(request.url).searchParams.get("token")?.trim();
 
     let user = null;
 

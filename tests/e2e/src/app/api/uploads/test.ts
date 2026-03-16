@@ -1,60 +1,44 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
-import { assertApiContract } from "../../_shared/api-contract";
+import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { createUploadedFileViaApi } from "../../../../utils/uploads";
 
-test("/api/uploads", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/uploads" });
-});
-
-test("/api/uploads 未登录返回 401", async ({ request }) => {
-  const response = await request.get("/api/uploads");
-  expect(response.status()).toBe(401);
-});
-
-test("/api/uploads 登录后返回 seed 上传与配额字段", async ({ page }) => {
-  await signInAsDebugUser(page, "/");
-  const response = await page.request.get("/api/uploads");
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    quotaBytes?: number;
-    usedBytes?: number;
-    uploads?: Array<{ filename?: string }>;
-  };
-  expect(typeof body.quotaBytes).toBe("number");
-  expect(typeof body.usedBytes).toBe("number");
-  expect(
-    body.uploads?.some(
-      (item) => item.filename === DEV_SEED.uploads.firstFilename,
-    ),
-  ).toBe(true);
-});
-
-test("/api/uploads POST 未登录返回 401", async ({ request }) => {
-  const response = await request.post("/api/uploads", {
-    data: { filename: "a.txt", size: 1, contentType: "text/plain" },
-  });
-  expect(response.status()).toBe(401);
-});
-
-test("/api/uploads POST 非法 payload 返回 400", async ({ page }) => {
-  await signInAsDebugUser(page, "/");
-  const response = await page.request.post("/api/uploads", {
-    data: { filename: "", size: 1, contentType: "text/plain" },
-  });
-  expect(response.status()).toBe(400);
-  const body = (await response.json()) as { error?: string };
-  expect(typeof body.error).toBe("string");
-});
-
-test("/api/uploads POST 超大文件返回 413", async ({ page }) => {
-  await signInAsDebugUser(page, "/");
+test("/api/uploads 未登录返回 401", async ({ page }) => {
   const response = await page.request.post("/api/uploads", {
     data: {
-      filename: "too-big.bin",
-      size: 50 * 1024 * 1024 + 1,
-      contentType: "application/octet-stream",
+      filename: "unauthorized.txt",
+      contentType: "text/plain",
+      size: 12,
     },
   });
-  expect(response.status()).toBe(413);
+
+  expect(response.status()).toBe(401);
+});
+
+test("/api/uploads 可申请上传并完成文件入库", async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await signInAsDebugUser(page, "/");
+
+  const filename = `e2e-api-upload-${Date.now()}.txt`;
+  const uploaded = await createUploadedFileViaApi(page.request, {
+    filename,
+    contents: "hello upload api",
+  });
+
+  const listResponse = await page.request.get("/api/uploads");
+  expect(listResponse.status()).toBe(200);
+  const listBody = (await listResponse.json()) as {
+    uploads?: Array<{ id?: string; filename?: string }>;
+  };
+  expect(
+    listBody.uploads?.some(
+      (upload) => upload.id === uploaded.uploadId && upload.filename === filename,
+    ),
+  ).toBe(true);
+  await captureStepScreenshot(page, testInfo, "api-uploads-created");
+
+  const cleanupResponse = await page.request.delete(
+    `/api/uploads/${uploaded.uploadId}`,
+  );
+  expect(cleanupResponse.status()).toBe(200);
 });

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { getSeedSectionSemesterFixture } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -64,4 +65,26 @@ test("/sections 搜索帮助与清除筛选可用", async ({ page }, testInfo) =
     await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
     await captureStepScreenshot(page, testInfo, "sections-clear");
   }
+});
+
+test("/sections 学期筛选可更新 URL 并保留 seed 班级结果", async ({
+  page,
+}, testInfo) => {
+  const filter = getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
+  await gotoAndWaitForReady(page, "/sections");
+
+  if (!filter.semesterName) {
+    await expect(page.locator("#main-content")).toBeVisible();
+    return;
+  }
+
+  await page.getByRole("combobox").first().click();
+  await page
+    .getByRole("option", { name: new RegExp(filter.semesterName) })
+    .first()
+    .click();
+
+  await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));
+  await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "sections-filter-semester");
 });
