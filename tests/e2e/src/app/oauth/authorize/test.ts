@@ -13,15 +13,24 @@ function buildAuthorizeUrl(params: Record<string, string>) {
   return `/oauth/authorize?${new URLSearchParams(params).toString()}`;
 }
 
+function getPrimaryRedirectUri(client: { redirectUris: string[] }) {
+  const redirectUri = client.redirectUris[0];
+  if (typeof redirectUri !== "string") {
+    throw new Error("Expected OAuth fixture client to include a redirect URI");
+  }
+  return redirectUri;
+}
+
 test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, testInfo) => {
   const client = await createOAuthClientFixture();
+  const redirectUri = getPrimaryRedirectUri(client);
 
   try {
     await gotoAndWaitForReady(
       page,
       buildAuthorizeUrl({
         client_id: client.clientId,
-        redirect_uri: client.redirectUris[0]!,
+        redirect_uri: redirectUri,
         response_type: "code",
         scope: "openid profile",
         state: "redirect-state",
@@ -54,6 +63,7 @@ test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) 
 
 test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testInfo) => {
   const client = await createOAuthClientFixture();
+  const redirectUri = getPrimaryRedirectUri(client);
 
   try {
     await signInAsDebugUser(page, "/");
@@ -61,7 +71,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
       page,
       buildAuthorizeUrl({
         client_id: client.clientId,
-        redirect_uri: client.redirectUris[0]!,
+        redirect_uri: redirectUri,
         response_type: "code",
         scope: "openid profile",
         state: "deny-state",
@@ -82,6 +92,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
 
 test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInfo) => {
   const client = await createOAuthClientFixture();
+  const redirectUri = getPrimaryRedirectUri(client);
 
   try {
     await signInAsDebugUser(page, "/");
@@ -89,7 +100,7 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
       page,
       buildAuthorizeUrl({
         client_id: client.clientId,
-        redirect_uri: client.redirectUris[0]!,
+        redirect_uri: redirectUri,
         response_type: "code",
         scope: "openid profile",
         state: "allow-state",
