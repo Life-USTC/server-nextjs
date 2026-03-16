@@ -1,4 +1,4 @@
-name: "bun run prisma migrate deploy"
+name: Prisma Migrations
 on:
   push:
     paths:
@@ -8,10 +8,10 @@ on:
 
 jobs:
   deploy:
-    name: "bun run prisma migrate deploy"
+    name: "bun run prisma:deploy"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -28,6 +28,6 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Apply all pending migrations to the database
-        run: bun run prisma migrate deploy
+        run: bun run prisma:deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

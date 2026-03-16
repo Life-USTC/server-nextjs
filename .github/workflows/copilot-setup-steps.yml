@@ -57,7 +57,10 @@ jobs:
           echo "E2E_MOCK_S3=1" >> "$GITHUB_ENV"
 
       - name: Apply Prisma migrations
-        run: bunx prisma migrate deploy
+        run: bun run prisma:deploy
 
       - name: Generate client and OpenAPI artifacts
         run: bun run prebuild
+
+      - name: Seed data
+        run: bun run dev:seed-scenarios

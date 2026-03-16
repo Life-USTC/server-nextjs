@@ -1,4 +1,4 @@
-name: "bun run check"
+name: Lint
 
 on:
   push:
