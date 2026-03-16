@@ -36,8 +36,11 @@ RUN bun run build
 FROM base AS release
 WORKDIR /usr/src/app
 
-RUN apt update && apt install -y git && rm -rf /var/lib/apt/lists/*
-RUN mkdir -p /usr/src/app/.cache && chown -R bun:bun /usr/src/app
+RUN apt-get update \
+ && apt-get install -y git \
+ && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /usr/src/app/.cache \
+ && chown -R bun:bun /usr/src/app
 
 # Use non-root user provided by Bun image
 USER bun
@@ -49,7 +52,7 @@ COPY --chown=bun:bun --from=prerelease /usr/src/app/.next .next
 COPY --chown=bun:bun --from=prerelease /usr/src/app/tools tools
 COPY --chown=bun:bun --from=prerelease /usr/src/app/public public
 COPY --chown=bun:bun --from=prerelease /usr/src/app/prisma prisma
-COPY --chown=bun:bun --from=prerelease /usr/src/app/src/generated/prisma src/generated/prisma
+COPY --chown=bun:bun --from=prerelease /usr/src/app/src/generated src/generated
 
 # Expose default Next.js port
 EXPOSE 3000/tcp

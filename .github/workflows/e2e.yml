@@ -1,4 +1,4 @@
-name: "bun run test:e2e"
+name: E2E
 
 on:
   push:
@@ -57,7 +57,7 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Apply Prisma migrations
-        run: bunx prisma migrate deploy
+        run: bun run prisma:deploy
 
       - name: Run Biome check
         run: bun run check
