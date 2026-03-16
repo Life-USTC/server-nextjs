@@ -8,7 +8,11 @@ test("/?tab=calendar 未登录可访问", async ({ page }, testInfo) => {
 
   await expect(page).toHaveURL(/\/\?tab=calendar$/);
   await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-calendar-unauthorized");
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "dashboard-calendar-unauthorized",
+  );
 });
 
 test("/?tab=calendar 登录后展示学期日历并可进入班级页", async ({
@@ -23,10 +27,16 @@ test("/?tab=calendar 登录后展示学期日历并可进入班级页", async ({
   await sectionLink.click();
 
   await expect(page).toHaveURL(/\/sections\/\d+/);
-  await captureStepScreenshot(page, testInfo, "dashboard-calendar-section-link");
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "dashboard-calendar-section-link",
+  );
 });
 
-test("/?tab=calendar 考试卡片可跳转到 exams tab", async ({ page }, testInfo) => {
+test("/?tab=calendar 考试卡片可跳转到 exams tab", async ({
+  page,
+}, testInfo) => {
   await signInAsDebugUser(page, "/?tab=calendar");
 
   const examLink = page.locator('a[href="/?tab=exams"]').first();

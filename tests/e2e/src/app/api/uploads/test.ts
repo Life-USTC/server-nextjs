@@ -32,7 +32,8 @@ test("/api/uploads 可申请上传并完成文件入库", async ({ page }, testI
   };
   expect(
     listBody.uploads?.some(
-      (upload) => upload.id === uploaded.uploadId && upload.filename === filename,
+      (upload) =>
+        upload.id === uploaded.uploadId && upload.filename === filename,
     ),
   ).toBe(true);
   await captureStepScreenshot(page, testInfo, "api-uploads-created");

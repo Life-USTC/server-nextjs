@@ -85,9 +85,7 @@ test("/courses 搜索与清除按钮可用", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "courses-search-clear");
 });
 
-test("/courses seed 维度筛选参数可保留课程结果", async ({
-  page,
-}, testInfo) => {
+test("/courses seed 维度筛选参数可保留课程结果", async ({ page }, testInfo) => {
   const filters = getSeedCourseFilterFixture(DEV_SEED.course.jwId);
   const params = new URLSearchParams();
   if (filters.educationLevelId) {

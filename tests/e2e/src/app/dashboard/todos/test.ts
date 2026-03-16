@@ -15,7 +15,9 @@ test("/?tab=todos 未登录可访问", async ({ page }, testInfo) => {
 test("/?tab=todos 登录后展示 seed 待办", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/?tab=todos");
 
-  await expect(page.getByText(DEV_SEED.todos.dueTodayTitle).first()).toBeVisible();
+  await expect(
+    page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
 });
 
@@ -23,7 +25,9 @@ test("/?tab=todos 可切换已完成筛选", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/?tab=todos");
 
   await page.getByRole("button", { name: /已完成|Completed/i }).click();
-  await expect(page.getByText(DEV_SEED.todos.completedTitle).first()).toBeVisible();
+  await expect(
+    page.getByText(DEV_SEED.todos.completedTitle).first(),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
 });
 

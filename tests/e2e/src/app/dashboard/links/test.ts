@@ -20,9 +20,7 @@ test("/ 可点击网站 Tab 进入 links 页面", async ({ page }, testInfo) => 
   await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
 });
 
-test("/?tab=links 可搜索网站并支持快捷键聚焦", async ({
-  page,
-}, testInfo) => {
+test("/?tab=links 可搜索网站并支持快捷键聚焦", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/?tab=links");
 
   const searchInput = page.getByRole("searchbox", {
@@ -42,7 +40,9 @@ test("/?tab=links 可搜索网站并支持快捷键聚焦", async ({
   await expect(searchInput).toBeFocused();
 
   await searchInput.fill("邮箱");
-  await expect(page.getByRole("button", { name: /邮箱/i }).first()).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /邮箱/i }).first(),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: /教务系统/i }).first(),
   ).toHaveCount(0);

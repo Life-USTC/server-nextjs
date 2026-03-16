@@ -11,9 +11,7 @@ test("/?tab=exams 未登录可访问", async ({ page }, testInfo) => {
   await captureStepScreenshot(page, testInfo, "dashboard-exams-unauthorized");
 });
 
-test("/?tab=exams 登录后展示考试并支持筛选切换", async ({
-  page,
-}, testInfo) => {
+test("/?tab=exams 登录后展示考试并支持筛选切换", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/?tab=exams");
 
   const allFilter = page.getByRole("button", { name: /全部|All/i });
