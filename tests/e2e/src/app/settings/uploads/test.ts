@@ -1,5 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { expectRequiresSignIn, signInAsDebugUser } from "../../../../utils/auth";
+import {
+  expectRequiresSignIn,
+  signInAsDebugUser,
+} from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test("/settings/uploads 未登录重定向到登录页", async ({ page }, testInfo) => {

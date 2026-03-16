@@ -96,7 +96,10 @@ test("/settings/accounts 多账户时可取消并确认解绑", async ({
     await expect(disconnectButton).toBeEnabled();
     await disconnectButton.click();
 
-    const dialog = page.getByRole("dialog").or(page.getByRole("alertdialog")).first();
+    const dialog = page
+      .getByRole("dialog")
+      .or(page.getByRole("alertdialog"))
+      .first();
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
     await expect(dialog).not.toBeVisible();

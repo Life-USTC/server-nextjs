@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import {
@@ -43,7 +43,9 @@ test("/api/oauth/userinfo", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/oauth/userinfo" });
 });
 
-test("/api/oauth/userinfo openid+profile scope 返回用户信息", async ({ page }) => {
+test("/api/oauth/userinfo openid+profile scope 返回用户信息", async ({
+  page,
+}) => {
   const client = await createOAuthClientFixture();
 
   try {

@@ -93,13 +93,15 @@ export function updateUserProfileById(
   `);
 }
 
-export async function createOAuthClientFixture(options: {
-  name?: string;
-  redirectUris?: string[];
-  scopes?: string[];
-  clientId?: string;
-  clientSecret?: string;
-} = {}) {
+export async function createOAuthClientFixture(
+  options: {
+    name?: string;
+    redirectUris?: string[];
+    scopes?: string[];
+    clientId?: string;
+    clientSecret?: string;
+  } = {},
+) {
   const clientId = options.clientId ?? generateToken(16);
   const clientSecret = options.clientSecret ?? generateToken(24);
   const redirectUris = options.redirectUris ?? [

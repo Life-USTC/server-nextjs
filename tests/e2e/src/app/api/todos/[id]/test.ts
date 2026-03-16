@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../../utils/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
 
@@ -65,11 +65,14 @@ test("/api/todos/[id] 非所有者不能修改待办", async ({ browser }) => {
     );
 
     await signInAsDevAdmin(adminPage, "/");
-    const patchResponse = await adminPage.request.patch(`/api/todos/${todoId}`, {
-      data: {
-        completed: true,
+    const patchResponse = await adminPage.request.patch(
+      `/api/todos/${todoId}`,
+      {
+        data: {
+          completed: true,
+        },
       },
-    });
+    );
     expect(patchResponse.status()).toBe(403);
 
     await debugPage.request.delete(`/api/todos/${todoId}`);

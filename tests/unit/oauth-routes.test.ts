@@ -145,8 +145,13 @@ describe("oauth routes", () => {
     const storedSecret =
       prismaMock.oAuthClient.create.mock.calls[0][0].data.clientSecret;
 
-    if (!("clientSecret" in result) || typeof result.clientSecret !== "string") {
-      throw new Error("Expected OAuth client creation to return a clientSecret");
+    if (
+      !("clientSecret" in result) ||
+      typeof result.clientSecret !== "string"
+    ) {
+      throw new Error(
+        "Expected OAuth client creation to return a clientSecret",
+      );
     }
 
     expect(result).toMatchObject({

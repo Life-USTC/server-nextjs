@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 
-test("/api/dashboard-links/pin 未登录 JSON 请求返回 401", async ({ request }) => {
+test("/api/dashboard-links/pin 未登录 JSON 请求返回 401", async ({
+  request,
+}) => {
   const response = await request.post("/api/dashboard-links/pin", {
     form: {
       slug: "jw",

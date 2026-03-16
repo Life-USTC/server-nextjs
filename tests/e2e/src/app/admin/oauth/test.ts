@@ -37,7 +37,9 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       .getByLabel(/重定向 URI|Redirect URIs/i)
       .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`);
 
-    await page.getByRole("button", { name: /创建客户端|Create Client/i }).click();
+    await page
+      .getByRole("button", { name: /创建客户端|Create Client/i })
+      .click();
 
     await expect(page.getByText(clientName).first()).toBeVisible({
       timeout: 15000,

@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { ADMIN_USERS_PAGE_SIZE } from "@/app/admin/users/constants";
 import { requireAdmin } from "@/lib/admin-utils";
 import {
   buildPaginatedResponse,
@@ -10,7 +11,6 @@ import {
 } from "@/lib/api/helpers";
 import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
-import { ADMIN_USERS_PAGE_SIZE } from "@/app/admin/users/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -38,8 +38,7 @@ export async function GET(request: NextRequest) {
 
   const pagination = normalizePagination({
     page: parseOptionalInt(parsedQuery.data.page) ?? undefined,
-    pageSize:
-      parseOptionalInt(parsedQuery.data.limit) ?? ADMIN_USERS_PAGE_SIZE,
+    pageSize: parseOptionalInt(parsedQuery.data.limit) ?? ADMIN_USERS_PAGE_SIZE,
     maxPageSize: 100,
   });
   const search = parsedQuery.data.search ?? "";

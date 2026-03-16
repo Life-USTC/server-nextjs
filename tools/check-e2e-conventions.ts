@@ -66,9 +66,7 @@ for (const file of walk(e2eRoot)) {
 if (violations.length > 0) {
   console.error("E2E convention check failed:\n");
   for (const violation of violations) {
-    console.error(
-      `${violation.file}:${violation.line} ${violation.rule}`,
-    );
+    console.error(`${violation.file}:${violation.line} ${violation.rule}`);
   }
   process.exit(1);
 }

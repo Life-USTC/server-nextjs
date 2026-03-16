@@ -23,9 +23,13 @@ export function resolveExpectedPath(path: string) {
 
 export async function expectPagePath(page: Page, path: string) {
   const alias = ROUTE_ALIASES.get(path);
-  const candidates = Array.from(new Set([path, alias].filter(Boolean))) as string[];
+  const candidates = Array.from(
+    new Set([path, alias].filter(Boolean)),
+  ) as string[];
   const pattern = candidates
-    .map((candidate) => (candidate === "/" ? "\\/$" : escapeForRegExp(candidate)))
+    .map((candidate) =>
+      candidate === "/" ? "\\/$" : escapeForRegExp(candidate),
+    )
     .join("|");
   await expect(page).toHaveURL(new RegExp(`(?:${pattern})$`));
 }
