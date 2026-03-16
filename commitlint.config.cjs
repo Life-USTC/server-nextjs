@@ -1,4 +1,13 @@
-const scopedTypes = new Set(["build", "ci", "docs", "feat", "fix", "perf", "refactor", "test"]);
+const scopedTypes = new Set([
+  "build",
+  "ci",
+  "docs",
+  "feat",
+  "fix",
+  "perf",
+  "refactor",
+  "test",
+]);
 const documentedScopes = new Set(["api", "auth"]);
 
 function matchesScope(scope) {
@@ -49,7 +58,12 @@ module.exports = {
           const scope = parsed.scope ?? "";
           const body = (parsed.body ?? "").trim();
 
-          if (!(documentedScopes.has(scope) && (type === "feat" || type === "fix"))) {
+          if (
+            !(
+              documentedScopes.has(scope) &&
+              (type === "feat" || type === "fix")
+            )
+          ) {
             return [true];
           }
 
@@ -61,8 +75,12 @@ module.exports = {
         "body-required-for-breaking-change": (parsed) => {
           const raw = parsed.raw ?? "";
           const body = (parsed.body ?? "").trim();
-          const hasBreakingHeader = /^[a-z]+(?:\([^)]+\))?!:/.test(parsed.header ?? "");
-          const hasBreakingFooter = /(^|\n)BREAKING CHANGE: .+/m.test(raw) || /(^|\n)BREAKING-CHANGE: .+/m.test(raw);
+          const hasBreakingHeader = /^[a-z]+(?:\([^)]+\))?!:/.test(
+            parsed.header ?? "",
+          );
+          const hasBreakingFooter =
+            /(^|\n)BREAKING CHANGE: .+/m.test(raw) ||
+            /(^|\n)BREAKING-CHANGE: .+/m.test(raw);
 
           if (!(hasBreakingHeader || hasBreakingFooter)) {
             return [true];
@@ -75,8 +93,12 @@ module.exports = {
         },
         "breaking-change-footer-required": (parsed) => {
           const raw = parsed.raw ?? "";
-          const hasBreakingHeader = /^[a-z]+(?:\([^)]+\))?!:/.test(parsed.header ?? "");
-          const hasBreakingFooter = /(^|\n)BREAKING CHANGE: .+/m.test(raw) || /(^|\n)BREAKING-CHANGE: .+/m.test(raw);
+          const hasBreakingHeader = /^[a-z]+(?:\([^)]+\))?!:/.test(
+            parsed.header ?? "",
+          );
+          const hasBreakingFooter =
+            /(^|\n)BREAKING CHANGE: .+/m.test(raw) ||
+            /(^|\n)BREAKING-CHANGE: .+/m.test(raw);
 
           if (!hasBreakingHeader) {
             return [true];
@@ -99,14 +121,29 @@ module.exports = {
     "header-max-length": [2, "always", 100],
     "scope-format": [2, "always"],
     "scope-required-for-type": [2, "always"],
-    "subject-case": [2, "never", ["sentence-case", "start-case", "pascal-case", "upper-case"]],
+    "subject-case": [
+      2,
+      "never",
+      ["sentence-case", "start-case", "pascal-case", "upper-case"],
+    ],
     "subject-empty": [2, "never"],
     "subject-full-stop": [2, "never", "."],
     "subject-no-pr-suffix": [2, "always"],
     "type-enum": [
       2,
       "always",
-      ["build", "chore", "ci", "docs", "feat", "fix", "perf", "refactor", "revert", "test"],
+      [
+        "build",
+        "chore",
+        "ci",
+        "docs",
+        "feat",
+        "fix",
+        "perf",
+        "refactor",
+        "revert",
+        "test",
+      ],
     ],
   },
 };
