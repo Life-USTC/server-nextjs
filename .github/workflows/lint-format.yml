@@ -1,4 +1,4 @@
-name: Lint & Format
+name: "bun run check"
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   lint:
-    name: Lint and Format Check
+    name: "bun run check"
     runs-on: ubuntu-latest
     permissions:
       contents: write

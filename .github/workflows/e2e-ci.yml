@@ -1,4 +1,4 @@
-name: E2E CI
+name: "bun run test:e2e"
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   e2e:
-    name: Check Build and E2E
+    name: "bun run test:e2e"
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_e2e
