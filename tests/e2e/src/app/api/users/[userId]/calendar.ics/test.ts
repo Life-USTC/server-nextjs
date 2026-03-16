@@ -1,5 +1,9 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../../utils/auth";
+import {
+  ensureUserCalendarFeedFixture,
+  getCurrentSessionUser,
+} from "../../../../../../utils/e2e-db";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
 test("/api/users/[userId]/calendar.ics", async ({ request }) => {
@@ -11,24 +15,37 @@ test("/api/users/[userId]/calendar.ics", async ({ request }) => {
 test("/api/users/[userId]/calendar.ics 仅允许本人访问", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
-  const sessionResponse = await page.request.get("/api/auth/session");
-  expect(sessionResponse.status()).toBe(200);
-  const sessionBody = (await sessionResponse.json()) as {
-    user?: { id?: string };
-  };
-  const userId = sessionBody.user?.id;
-  expect(userId).toBeTruthy();
+  const { id: userId } = await getCurrentSessionUser(page);
 
   const selfCalendar = await page.request.get(
     `/api/users/${userId}/calendar.ics`,
   );
   expect(selfCalendar.status()).toBe(200);
   expect(selfCalendar.headers()["content-type"]).toContain("text/calendar");
+  const selfCalendarBody = await selfCalendar.text();
+  expect(selfCalendarBody.trim().length).toBeGreaterThan(0);
+  expect(selfCalendarBody).toContain("BEGIN:VCALENDAR");
 
   const forbiddenCalendar = await page.request.get(
     "/api/users/not-the-current-user/calendar.ics",
   );
   expect(forbiddenCalendar.status()).toBe(403);
+});
+
+test("/api/users/[userId]/calendar.ics 路径 token 形式可匿名读取非空订阅日历", async ({
+  page,
+  request,
+}) => {
+  await signInAsDebugUser(page, "/");
+  const { id: userId } = await getCurrentSessionUser(page);
+  const feed = ensureUserCalendarFeedFixture(userId);
+
+  const response = await request.get(feed.path);
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("text/calendar");
+  const body = await response.text();
+  expect(body.trim().length).toBeGreaterThan(0);
+  expect(body).toContain("BEGIN:VCALENDAR");
 });
 
 test("/api/users/[userId]/calendar.ics 未登录无 token 返回 401", async ({

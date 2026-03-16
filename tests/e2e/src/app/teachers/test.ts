@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -59,4 +60,25 @@ test("/teachers 搜索与清除按钮可用", async ({ page }, testInfo) => {
   }
 
   await captureStepScreenshot(page, testInfo, "teachers-search-clear");
+});
+
+test("/teachers seed 院系筛选参数可保留教师结果", async ({
+  page,
+}, testInfo) => {
+  const filter = getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
+  await gotoAndWaitForReady(
+    page,
+    `/teachers?departmentId=${filter.departmentId ?? ""}`,
+  );
+
+  if (!filter.departmentName) {
+    await expect(page.locator("#main-content")).toBeVisible();
+    return;
+  }
+
+  await expect(page).toHaveURL(
+    new RegExp(`departmentId=${filter.departmentId}`),
+  );
+  await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "teachers-filter-department");
 });

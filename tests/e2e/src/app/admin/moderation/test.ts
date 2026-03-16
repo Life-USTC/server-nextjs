@@ -1,16 +1,15 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
+import {
+  expectRequiresSignIn,
+  signInAsDebugUser,
+  signInAsDevAdmin,
+} from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test("/admin/moderation 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/admin/moderation", {
-    expectMainContent: false,
-  });
-
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+  await expectRequiresSignIn(page, "/admin/moderation");
   await captureStepScreenshot(page, testInfo, "admin-moderation-unauthorized");
 });
 

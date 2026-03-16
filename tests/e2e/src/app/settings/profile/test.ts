@@ -1,18 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  expectPagePath,
+  expectRequiresSignIn,
+  signInAsDebugUser,
+} from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
 
 test("/settings/profile 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/settings/profile", {
-    expectMainContent: false,
-  });
-
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+  await expectRequiresSignIn(page, "/settings/profile");
   await captureStepScreenshot(page, testInfo, "settings-profile-unauthorized");
 });
 
@@ -21,7 +19,7 @@ test("/settings/profile 登录后展示 seed 用户资料", async ({
 }, testInfo) => {
   await signInAsDebugUser(page, "/settings/profile");
 
-  await expect(page).toHaveURL(/\/settings\/profile(?:\?.*)?$/);
+  await expectPagePath(page, "/settings/profile");
   await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
   await expect(page.locator("input#username")).toHaveValue(
     DEV_SEED.debugUsername,
@@ -34,31 +32,23 @@ test("/settings/profile 可保存姓名并回滚", async ({ page }, testInfo) =>
   await signInAsDebugUser(page, "/settings/profile");
 
   const nameInput = page.locator("input#name");
+  const saveButton = page.getByRole("button", { name: /保存|Save/i });
+  const successToast = page.getByRole("heading", { name: /成功|Success/i });
   const originalName = await nameInput.inputValue();
   const newName = `e2e-${Date.now()}`;
   await nameInput.fill(newName);
 
-  const saveResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/settings/profile") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  await page.getByRole("button", { name: /保存|Save/i }).click();
-  await saveResponse;
+  await saveButton.click();
+  await expect(successToast).toBeVisible();
   await page.waitForLoadState("networkidle");
+  await page.reload();
+  await expect(page.locator("input#name")).toHaveValue(newName);
   await captureStepScreenshot(page, testInfo, "settings-profile-saved");
 
-  await expect(page.locator("input#name")).toHaveValue(newName);
-
   await page.locator("input#name").fill(originalName);
-  const rollbackResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/settings/profile") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  await page.getByRole("button", { name: /保存|Save/i }).click();
-  await rollbackResponse;
+  await saveButton.click();
+  await expect(successToast).toBeVisible();
   await page.waitForLoadState("networkidle");
+  await page.reload();
+  await expect(page.locator("input#name")).toHaveValue(originalName);
 });

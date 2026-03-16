@@ -26,3 +26,7 @@ export async function ensureUserCalendarFeedToken(
 
   return token;
 }
+
+export function buildUserCalendarFeedPath(userId: string, token: string): string {
+  return `/api/users/${userId}:${token}/calendar.ics`;
+}

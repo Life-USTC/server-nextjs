@@ -1,22 +1,20 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser } from "../../../../utils/auth";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  expectPagePath,
+  expectRequiresSignIn,
+  signInAsDebugUser,
+} from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test("/settings/danger 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/settings/danger", {
-    expectMainContent: false,
-  });
-
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+  await expectRequiresSignIn(page, "/settings/danger");
   await captureStepScreenshot(page, testInfo, "settings-danger-unauthorized");
 });
 
 test("/settings/danger 登录后展示删除确认交互", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/settings/danger");
 
-  await expect(page).toHaveURL(/\/settings\/danger(?:\?.*)?$/);
+  await expectPagePath(page, "/settings/danger");
   const openDialogButton = page
     .getByRole("button", { name: /删除|Delete/i })
     .first();

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { getSeedCourseFilterFixture } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
@@ -82,4 +83,25 @@ test("/courses 搜索与清除按钮可用", async ({ page }, testInfo) => {
   }
 
   await captureStepScreenshot(page, testInfo, "courses-search-clear");
+});
+
+test("/courses seed 维度筛选参数可保留课程结果", async ({
+  page,
+}, testInfo) => {
+  const filters = getSeedCourseFilterFixture(DEV_SEED.course.jwId);
+  const params = new URLSearchParams();
+  if (filters.educationLevelId) {
+    params.set("educationLevelId", String(filters.educationLevelId));
+  }
+  if (filters.categoryId) {
+    params.set("categoryId", String(filters.categoryId));
+  }
+  if (filters.classTypeId) {
+    params.set("classTypeId", String(filters.classTypeId));
+  }
+
+  await gotoAndWaitForReady(page, `/courses?${params.toString()}`);
+
+  await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "courses-filter-seed");
 });

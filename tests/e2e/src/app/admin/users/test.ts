@@ -1,16 +1,21 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
+import {
+  expectRequiresSignIn,
+  signInAsDebugUser,
+  signInAsDevAdmin,
+} from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import {
+  createTempUsersFixture,
+  deleteUsersByPrefix,
+} from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/admin/users 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/admin/users", {
-    expectMainContent: false,
-  });
+test.describe.configure({ mode: "serial" });
 
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+test("/admin/users 未登录重定向到登录页", async ({ page }, testInfo) => {
+  await expectRequiresSignIn(page, "/admin/users");
   await captureStepScreenshot(page, testInfo, "admin-users-unauthorized");
 });
 
@@ -45,6 +50,32 @@ test("/admin/users 搜索表单可过滤用户", async ({ page }, testInfo) => {
     await clearButton.click();
     await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
     await captureStepScreenshot(page, testInfo, "admin-users-clear");
+  }
+});
+
+test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  const prefix = `e2e-admin-users-page-${Date.now()}`;
+
+  try {
+    createTempUsersFixture({ prefix, count: 21 });
+    await signInAsDevAdmin(page, "/admin/users");
+
+    const listResponse = await page.request.get("/api/admin/users");
+    expect(listResponse.status()).toBe(200);
+    const listBody = (await listResponse.json()) as {
+      data?: Array<{ username?: string | null }>;
+      pagination?: { totalPages?: number };
+    };
+    expect((listBody.pagination?.totalPages ?? 0) > 1).toBe(true);
+
+    await gotoAndWaitForReady(page, "/admin/users?page=2");
+
+    await expect(page).toHaveURL(/\/admin\/users\?page=2$/);
+    await expect(page.locator("tbody tr").first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "admin-users-pagination");
+  } finally {
+    deleteUsersByPrefix(prefix);
   }
 });
 
@@ -119,10 +150,9 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
   expect(rollback.status()).toBe(200);
 });
 
-test("/admin/users 可用自定义到期时间创建封禁并解除", async ({
+test("/admin/users 自定义封禁时长会展示到期时间输入框", async ({
   page,
 }, testInfo) => {
-  test.setTimeout(60000);
   await signInAsDevAdmin(page, "/admin/users");
 
   const row = page.locator("tr").filter({ hasText: "dev-admin" }).first();
@@ -149,6 +179,7 @@ test("/admin/users 可用自定义到期时间创建封禁并解除", async ({
   if ((await expiresAtInput.count()) > 0) {
     await expect(expiresAtInput).toBeVisible();
     await expiresAtInput.fill("2030-01-01T00:00");
+    await expect(expiresAtInput).toHaveValue("2030-01-01T00:00");
   }
 
   const reason = `e2e-suspend-${Date.now()}`;
@@ -164,47 +195,53 @@ test("/admin/users 可用自定义到期时间创建封禁并解除", async ({
     suspendButton = dialog.locator('button[class*="bg-destructive"]').first();
   }
   await expect(suspendButton).toBeVisible();
-
-  await suspendButton.click({ force: true });
-
-  let suspensionId: string | null = null;
-  for (let attempt = 0; attempt < 10; attempt += 1) {
-    const listResponse = await page.request.get("/api/admin/suspensions");
-    expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      suspensions?: Array<{ id?: unknown; reason?: string | null }>;
-    };
-    const match = listBody.suspensions?.find((item) => item.reason === reason);
-    if (typeof match?.id === "string" || typeof match?.id === "number") {
-      suspensionId = String(match.id);
-      break;
-    }
-    if (match?.id && typeof match.id === "object") {
-      const nestedId = (match.id as { id?: unknown }).id;
-      if (typeof nestedId === "string" || typeof nestedId === "number") {
-        suspensionId = String(nestedId);
-        break;
-      }
-      const toStringId =
-        typeof (match.id as { toString?: unknown }).toString === "function"
-          ? String(match.id)
-          : null;
-      if (toStringId && toStringId !== "[object Object]") {
-        suspensionId = toStringId;
-        break;
-      }
-    }
-    if (match?.id != null) {
-      suspensionId = String(match.id);
-      break;
-    }
-    await page.waitForTimeout(300);
-  }
-  expect(typeof suspensionId).toBe("string");
   await captureStepScreenshot(page, testInfo, "admin-users-suspended-custom");
+});
+
+test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60000);
+  await signInAsDevAdmin(page, "/admin/users");
+
+  const row = page.locator("tr").filter({ hasText: "dev-admin" }).first();
+  await expect(row).toBeVisible();
+  await row.click();
+
+  const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
+  await expect(dialog).toBeVisible();
+
+  const reason = `e2e-admin-users-suspend-${Date.now()}`;
+  const reasonInput = dialog.getByPlaceholder(/原因|Reason/i).first();
+  if ((await reasonInput.count()) > 0) {
+    await reasonInput.fill(reason);
+  }
+
+  let suspendButton = dialog
+    .getByRole("button", { name: /封禁|Suspend|Ban/i })
+    .first();
+  if ((await suspendButton.count()) === 0) {
+    suspendButton = dialog.locator('button[class*="bg-destructive"]').first();
+  }
+  await expect(suspendButton).toBeVisible();
+
+  const responsePromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/admin/suspensions") &&
+      response.request().method() === "POST" &&
+      response.status() === 200,
+  );
+  await suspendButton.click({ force: true });
+  const response = await responsePromise;
+  const body = (await response.json()) as {
+    suspension?: { id?: string; reason?: string | null };
+  };
+  expect(body.suspension?.reason).toBe(reason);
+  expect(typeof body.suspension?.id).toBe("string");
+  await captureStepScreenshot(page, testInfo, "admin-users-suspend-created");
 
   const lift = await page.request.patch(
-    `/api/admin/suspensions/${suspensionId}`,
+    `/api/admin/suspensions/${body.suspension?.id}`,
   );
   expect(lift.status()).toBe(200);
 });

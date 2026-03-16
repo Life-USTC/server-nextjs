@@ -17,14 +17,13 @@ import { Input } from "@/components/ui/input";
 import { Link } from "@/i18n/routing";
 import { requireSignedInUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { ADMIN_USERS_PAGE_SIZE } from "./constants";
 
 const AdminUsersTable = dynamic(() =>
   import("@/components/admin/admin-users-table").then(
     (mod) => mod.AdminUsersTable,
   ),
 );
-
-const PAGE_SIZE = 30;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("adminUsers");
@@ -52,7 +51,7 @@ export default async function AdminUsersPage({
   const searchP = await searchParams;
   const page = Math.max(parseInt(searchP.page ?? "1", 10) || 1, 1);
   const search = searchP.search?.trim() ?? "";
-  const skip = (page - 1) * PAGE_SIZE;
+  const skip = (page - 1) * ADMIN_USERS_PAGE_SIZE;
 
   const where = search
     ? {
@@ -84,7 +83,7 @@ export default async function AdminUsersPage({
       },
       orderBy: { createdAt: "desc" },
       skip,
-      take: PAGE_SIZE,
+      take: ADMIN_USERS_PAGE_SIZE,
     }),
     prisma.user.count({ where }),
     getTranslations("adminUsers"),
@@ -92,7 +91,7 @@ export default async function AdminUsersPage({
     getTranslations("admin"),
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(total / ADMIN_USERS_PAGE_SIZE));
 
   return (
     <main className="page-main">

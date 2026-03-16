@@ -20,11 +20,15 @@ test("/courses/[jwId] 无效参数返回 404", async ({ page }, testInfo) => {
 test("/courses/[jwId] 支持 Tab 切换", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, `/courses/${DEV_SEED.course.jwId}`);
 
-  const tabs = page.getByRole("tab");
-  const count = await tabs.count();
-  if (count >= 2) {
-    await tabs.nth(1).click();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  const nextTab = page.locator('[role="tab"][aria-selected="false"]').first();
+  if ((await nextTab.count()) > 0) {
+    const tabId = await nextTab.getAttribute("id");
+    await nextTab.click();
+    expect(tabId).toBeTruthy();
+    await expect(page.locator(`[role="tab"]#${tabId}`)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await captureStepScreenshot(page, testInfo, "courses-jwId-tab");
   }
 });

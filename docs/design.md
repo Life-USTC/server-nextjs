@@ -117,7 +117,6 @@ flowchart TD
 - `/comments/:id` is a resolver route; it does not render content itself and redirects to the related section/course/teacher anchor.
 - Middleware forces signed-in users with incomplete profiles to `/welcome` before they can use normal pages.
 - Settings pages are connected by a shared sidebar (`/settings/profile`, `/settings/accounts`, `/settings/content`, `/settings/danger`), while `/settings` is an index redirect.
-- Legacy `/dashboard*` routes have been removed.
 
 ## Proposed Layout (Unified Tabs)
 
@@ -223,12 +222,10 @@ flowchart LR
 | `/settings/content` | `/settings?tab=content` |
 | `/settings/danger` | `/settings?tab=danger` |
 | `/comments/guide/` | `/guides/markdown-support/` |
-| `/dashboard*` | removed (returns 404) |
 
 - Unify settings UX with the same tab mental model already used by home dashboard tabs.
 - Keep one canonical URL per view, and make menu/sidebar actions point only to canonical routes.
 - Move markdown syntax docs out of comments namespace (`/comments/guide/`) into guides namespace (`/guides/markdown-support/`).
-- Keep `/dashboard*` links out of UI and docs.
 
 ## Design System & UI Primitives
 

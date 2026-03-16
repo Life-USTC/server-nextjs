@@ -1,17 +1,16 @@
 import { expect, test } from "@playwright/test";
-import { signInAsDebugUser, signInAsDevAdmin } from "../../../utils/auth";
+import {
+  expectRequiresSignIn,
+  signInAsDebugUser,
+  signInAsDevAdmin,
+} from "../../../utils/auth";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
 test("/admin 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/admin", {
-    expectMainContent: false,
+  await expectRequiresSignIn(page, "/admin", {
+    providers: ["ustc", "github", "google"],
   });
-
-  await expect(page).toHaveURL(/\/signin(?:\?.*)?$/);
-  await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Google/i })).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-unauthorized");
 });
 

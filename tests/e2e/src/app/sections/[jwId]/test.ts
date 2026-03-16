@@ -20,11 +20,15 @@ test("/sections/[jwId] 无效参数返回 404", async ({ page }, testInfo) => {
 test("/sections/[jwId] 支持 Tab 切换", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, `/sections/${DEV_SEED.section.jwId}`);
 
-  const tabs = page.getByRole("tab");
-  const count = await tabs.count();
-  if (count >= 2) {
-    await tabs.nth(1).click();
-    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  const nextTab = page.locator('[role="tab"][aria-selected="false"]').first();
+  if ((await nextTab.count()) > 0) {
+    const tabId = await nextTab.getAttribute("id");
+    await nextTab.click();
+    expect(tabId).toBeTruthy();
+    await expect(page.locator(`[role="tab"]#${tabId}`)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
     await captureStepScreenshot(page, testInfo, "sections-jwId-tab");
   }
 });
@@ -71,10 +75,17 @@ test("/sections/[jwId] 登录用户可发布并编辑评论", async ({
   await expect(commentCard).toBeVisible();
   await commentCard.hover();
 
+  const reactionResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/comments/") &&
+      response.url().includes("/reactions") &&
+      response.request().method() === "POST" &&
+      response.status() === 200,
+  );
   await commentCard.getByRole("button", { name: /表情|Reactions/i }).click();
   await page.getByRole("menuitem", { name: /点赞|Upvote/i }).click();
-
-  await page.waitForTimeout(500);
+  await reactionResponse;
+  await expect(commentCard.getByRole("button", { name: /👍/ })).toBeVisible();
   await captureStepScreenshot(page, testInfo, "comment-upvoted");
 
   await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
@@ -203,7 +214,9 @@ test("/sections/[jwId] 登录后可打开日历弹窗并复制链接", async ({
   const subscriptionPlaceholder =
     (await subscriptionUrl.getAttribute("placeholder")) ?? "";
   expect(subscriptionPlaceholder).toContain("/api/users/");
+  expect(subscriptionPlaceholder).toContain(":");
   expect(subscriptionPlaceholder).toContain("/calendar.ics");
+  expect(subscriptionPlaceholder).not.toContain("token=");
 
   const singleRow = dialog.locator("div").filter({ has: singleUrl }).first();
   await singleRow
@@ -231,7 +244,9 @@ test("/sections/[jwId] 登录后可打开日历弹窗并复制链接", async ({
     return navigator.clipboard.readText();
   });
   expect(subscriptionClipboard).toContain("/api/users/");
+  expect(subscriptionClipboard).toContain(":");
   expect(subscriptionClipboard).toContain("/calendar.ics");
+  expect(subscriptionClipboard).not.toContain("token=");
   await captureStepScreenshot(page, testInfo, "section-calendar-links-copied");
 
   await dialog.getByRole("button", { name: /关闭|Close/i }).click();
