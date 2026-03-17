@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "USTC Life Server - Course and schedule management API using Next.js",
+  "packageManager": "bun@1.3.7",
   "engines": {
     "node": ">=22 <23"
   },
