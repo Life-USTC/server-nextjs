@@ -1,3 +1,10 @@
+# [0.43.0](https://github.com/Life-USTC/server-nextjs/compare/v0.42.0...v0.43.0) (2026-03-18)
+
+
+### Features
+
+* **calendar:** enhance calendar functionality with new event types and improved data handling ([c943b4d](https://github.com/Life-USTC/server-nextjs/commit/c943b4d86679c0dc1232782db0fffb527e413eeb))
+
 # [0.42.0](https://github.com/Life-USTC/server-nextjs/compare/v0.41.0...v0.42.0) (2026-03-15)
 
 
