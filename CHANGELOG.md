@@ -1,3 +1,10 @@
+## [0.43.1](https://github.com/Life-USTC/server-nextjs/compare/v0.43.0...v0.43.1) (2026-03-18)
+
+
+### Bug Fixes
+
+* **e2e:** stabilize test and build flows ([4572ba8](https://github.com/Life-USTC/server-nextjs/commit/4572ba819d8fc259c62a1c526bd6d0f51b0919de))
+
 # [0.43.0](https://github.com/Life-USTC/server-nextjs/compare/v0.42.0...v0.43.0) (2026-03-18)
 
 
