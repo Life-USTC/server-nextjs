@@ -474,13 +474,19 @@ export async function getDashboardOverviewData(
         })
       : [];
 
-  const semesterTodos: CalendarTodoItem[] = semesterTodoRows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    dueAt: row.dueAt?.toISOString(),
-    priority: row.priority as "low" | "medium" | "high",
-    content: row.content ?? null,
-  }));
+  const semesterTodos: CalendarTodoItem[] = semesterTodoRows.flatMap((row) =>
+    row.dueAt
+      ? [
+          {
+            id: row.id,
+            title: row.title,
+            dueAt: row.dueAt.toISOString(),
+            priority: row.priority as "low" | "medium" | "high",
+            content: row.content ?? null,
+          },
+        ]
+      : [],
+  );
 
   const defaultCalendarSemesterId = currentSemester?.id ?? null;
   const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
