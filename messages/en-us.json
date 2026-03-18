@@ -59,6 +59,12 @@
     "userNotFound": "User not found",
     "unknown": "Unknown"
   },
+  "CalendarEventCard": {
+    "session": "Class",
+    "exam": "Exam",
+    "homework": "Homework",
+    "todo": "To-do"
+  },
   "subscriptions": {
     "title": "Selected Sections",
     "description": "Manage your selected course sections",
@@ -289,6 +295,15 @@
     "description": "Hi {name}, this dashboard brings together your courses, homework, and schedule.",
     "descriptionV2": "Hi, {name}",
     "fallbackName": "Guest",
+    "calendarViewSemester": "This semester",
+    "calendarViewMonth": "This month",
+    "calendarViewWeek": "This week",
+    "calendarSemesterPrev": "Previous semester",
+    "calendarSemesterNext": "Next semester",
+    "calendarWeek": {
+      "prev": "Previous week",
+      "next": "Next week"
+    },
     "nav": {
       "ariaLabel": "Dashboard section switcher",
       "overview": {
@@ -688,6 +703,9 @@
     "teacher": "Teacher",
     "exams": "Exams ({count})",
     "examDateTBD": "Exam Date TBD",
+    "examType": "Exam Type",
+    "examTypeMidterm": "Midterm",
+    "examTypeFinal": "Final",
     "examMode": "Exam Mode",
     "examCount": "Number of Examinees",
     "viewAllSections": "View all sections for this course",

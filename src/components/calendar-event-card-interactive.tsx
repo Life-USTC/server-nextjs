@@ -1,12 +1,15 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import {
   CalendarEventCard,
   type CalendarEventVariant,
+  calendarEventVariantPopoverClassName,
 } from "@/components/calendar-event-card";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Link } from "@/i18n/routing";
+import { cn } from "@/shared/lib/utils";
 
 export interface CalendarEventDetail {
   label: string;
@@ -16,6 +19,8 @@ export interface CalendarEventDetail {
 export interface CalendarEventCardInteractiveProps {
   variant: CalendarEventVariant;
   title: string;
+  time?: string;
+  location?: string;
   meta?: string;
   href?: string;
   details?: CalendarEventDetail[];
@@ -25,6 +30,8 @@ export interface CalendarEventCardInteractiveProps {
 export function CalendarEventCardInteractive({
   variant,
   title,
+  time,
+  location,
   meta,
   href,
   details,
@@ -32,11 +39,15 @@ export function CalendarEventCardInteractive({
 }: CalendarEventCardInteractiveProps) {
   const [open, setOpen] = useState(false);
   const hasDetails = details && details.length > 0;
+  const tType = useTranslations("CalendarEventCard");
+  const typeLabel = tType(variant);
 
   const card = (
     <CalendarEventCard
       variant={variant}
       title={title}
+      time={time}
+      location={location}
       meta={meta}
       className={className}
     />
@@ -55,9 +66,10 @@ export function CalendarEventCardInteractive({
 
   if (hasDetails) {
     return (
-      <div className="h-[2.75rem] min-w-0 overflow-hidden">
+      <div className="min-h-[2.75rem] min-w-0 overflow-hidden">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger
+            nativeButton={false}
             render={
               <div
                 className="size-full min-h-0 overflow-hidden"
@@ -71,10 +83,18 @@ export function CalendarEventCardInteractive({
           <PopoverPopup
             side="top"
             align="start"
-            className="max-h-64 w-64 overflow-auto"
+            className={cn(
+              "max-h-64 w-64 overflow-auto",
+              calendarEventVariantPopoverClassName[variant],
+            )}
           >
             <div className="space-y-2">
-              <p className="font-medium text-sm">{title}</p>
+              <div className="relative pr-10">
+                <span className="absolute top-0 right-0 text-[0.625rem] text-muted-foreground/85 leading-none">
+                  {typeLabel}
+                </span>
+                <p className="font-medium text-sm">{title}</p>
+              </div>
               <div className="grid gap-1 text-muted-foreground text-xs">
                 {details?.map((detail) => (
                   <div

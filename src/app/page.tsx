@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
 import {
+  getCalendarSubscriptionUrl,
   getDashboardNavStats,
   getDashboardOverviewData,
   getHomeworksTabData,
@@ -20,6 +21,7 @@ type HomeSearchParams = {
   tab?: string;
   debugDate?: string;
   debugTools?: string;
+  calendarSemester?: string;
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -44,23 +46,34 @@ export default async function HomePage({
       debugDate: params.debugDate,
       debugTools: params.debugTools === "1" || params.debugTools === "true",
     };
+    const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
+    const overviewOptions =
+      tab === "calendar" &&
+      Number.isFinite(parsedCalendarSemester) &&
+      parsedCalendarSemester > 0
+        ? { ...debugOptions, calendarSemesterId: parsedCalendarSemester }
+        : debugOptions;
 
     const [
       navStats,
       overviewData,
       homeworksData,
       subscriptionsData,
+      calendarSubscriptionUrl,
       todosData,
     ] = await Promise.all([
       getDashboardNavStats(session.user.id, debugOptions),
       tab === "overview" || tab === "calendar" || tab === "links"
-        ? getDashboardOverviewData(session.user.id, debugOptions)
+        ? getDashboardOverviewData(session.user.id, overviewOptions)
         : Promise.resolve(null),
       tab === "homeworks"
         ? getHomeworksTabData(session.user.id)
         : Promise.resolve(null),
       tab === "subscriptions" || tab === "exams"
         ? getSubscriptionsTabData(session.user.id)
+        : Promise.resolve(null),
+      tab === "calendar"
+        ? getCalendarSubscriptionUrl(session.user.id)
         : Promise.resolve(null),
       tab === "todos" || tab === "overview"
         ? getTodosTabData(session.user.id)
@@ -82,6 +95,11 @@ export default async function HomePage({
         overviewData={overviewData}
         homeworksData={homeworksData}
         subscriptionsData={subscriptionsData}
+        calendarSubscriptionUrl={
+          subscriptionsData?.calendarSubscriptionUrl ??
+          calendarSubscriptionUrl ??
+          null
+        }
         todosData={todosData}
       />
     );
