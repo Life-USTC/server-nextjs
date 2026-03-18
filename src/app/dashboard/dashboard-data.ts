@@ -39,6 +39,8 @@ import type { ExamItem, HomeworkWithSection, SessionItem } from "./types";
 export type OverviewDataOptions = {
   debugDate?: string;
   debugTools?: boolean;
+  /** Calendar tab: show semester/month/week grid for this semester (any known term). */
+  calendarSemesterId?: number;
 };
 
 export type DashboardNavStats = {
@@ -200,6 +202,14 @@ function toDashboardLinkSummary(
   };
 }
 
+export type CalendarTodoItem = {
+  id: string;
+  title: string;
+  dueAt: string;
+  priority: "low" | "medium" | "high";
+  content: string | null;
+};
+
 export type OverviewData = {
   user: { id: string; name: string | null; username: string | null };
   currentTermName: string;
@@ -230,6 +240,17 @@ export type OverviewData = {
   allSessions: SessionItem[];
   allExams: ExamItem[];
   semesterHomeworks: HomeworkWithSection[];
+  /** Incomplete todos with due date within active calendar semester */
+  semesterTodos: CalendarTodoItem[];
+  /** Semesters (chronological) that have ≥1 subscribed section */
+  calendarSemesterPicker: { id: number; nameCn: string }[];
+  /** All semesters by start date; calendar semester prev/next uses this list */
+  calendarSemesterNavList: { id: number; nameCn: string }[];
+  /** Semester id used for calendar grids (may differ via calendarSemester query) */
+  activeCalendarSemesterId: number | null;
+  /** Current academic semester id (omit calendarSemester in URL when equal) */
+  defaultCalendarSemesterId: number | null;
+  activeCalendarSemesterName: string | null;
   dashboardLinks: DashboardLinkSummary[];
   recommendedLinks: DashboardLinkSummary[];
   pinnedLinks: DashboardLinkSummary[];
@@ -284,7 +305,10 @@ export async function getDashboardOverviewData(
               },
               orderBy: [{ date: "asc" }, { startTime: "asc" }],
             },
-            exams: { orderBy: { examDate: "asc" } },
+            exams: {
+              orderBy: { examDate: "asc" },
+              include: { examRooms: true },
+            },
           },
         },
       },
@@ -315,10 +339,48 @@ export async function getDashboardOverviewData(
   } = resolveDashboardSections(allSections, currentSemester);
   const currentTermName = currentSemester?.nameCn ?? "—";
 
-  const homeworks: HomeworkWithSection[] = dashboardSectionIds.length
+  const subscribedSemesterIds = new Set(
+    allSections
+      .map((s) => s.semester?.id)
+      .filter((id): id is number => id != null),
+  );
+  const calendarSemesterPicker = semesters
+    .filter((sem) => subscribedSemesterIds.has(sem.id))
+    .sort((a, b) => dayjs(a.startDate).valueOf() - dayjs(b.startDate).valueOf())
+    .map((s) => ({ id: s.id, nameCn: s.nameCn ?? "—" }));
+
+  const calendarSemesterNavList = semesters.map((s) => ({
+    id: s.id,
+    nameCn: s.nameCn ?? "—",
+  }));
+
+  const calendarSemesterFromUrlValid =
+    options.calendarSemesterId != null &&
+    semesters.some((s) => s.id === options.calendarSemesterId);
+
+  const gridSemesterRow =
+    calendarSemesterFromUrlValid && options.calendarSemesterId != null
+      ? (semesters.find((s) => s.id === options.calendarSemesterId) ?? null)
+      : currentSemester && semesters.some((s) => s.id === currentSemester.id)
+        ? (semesters.find((s) => s.id === currentSemester.id) ?? null)
+        : null;
+
+  const sectionsForCalendarGrid = gridSemesterRow
+    ? allSections.filter((s) => s.semester?.id === gridSemesterRow.id)
+    : [];
+
+  const homeworkSectionIds =
+    calendarSemesterFromUrlValid && options.calendarSemesterId != null
+      ? sectionsForCalendarGrid.length > 0
+        ? sectionsForCalendarGrid.map((s) => s.id)
+        : []
+      : dashboardSectionIds;
+
+  const homeworks: HomeworkWithSection[] = homeworkSectionIds.length
     ? await prisma.homework.findMany({
-        where: { sectionId: { in: dashboardSectionIds }, deletedAt: null },
+        where: { sectionId: { in: homeworkSectionIds }, deletedAt: null },
         include: {
+          description: { select: { content: true } },
           homeworkCompletions: {
             where: { userId },
             select: { completedAt: true },
@@ -362,19 +424,21 @@ export async function getDashboardOverviewData(
   });
 
   const semesterStart =
-    currentSemester?.startDate != null
-      ? dayjs(currentSemester.startDate).startOf("day")
+    gridSemesterRow?.startDate != null
+      ? dayjs(gridSemesterRow.startDate).startOf("day")
       : null;
   const semesterEnd =
-    currentSemester?.endDate != null
-      ? dayjs(currentSemester.endDate).endOf("day")
+    gridSemesterRow?.endDate != null
+      ? dayjs(gridSemesterRow.endDate).endOf("day")
       : null;
   const semesterWeeks =
     semesterStart && semesterEnd && !semesterStart.isAfter(semesterEnd)
       ? getSemesterWeeks(semesterStart, semesterEnd)
       : [];
-  const allSessions = sortSessionsByStart(buildSessions(dashboardSections));
-  const allExams = buildExams(dashboardSections);
+  const allSessions = sortSessionsByStart(
+    buildSessions(sectionsForCalendarGrid),
+  );
+  const allExams = buildExams(sectionsForCalendarGrid);
   const semesterHomeworks =
     semesterStart && semesterEnd
       ? incompleteHomeworks.filter((hw) => {
@@ -386,6 +450,41 @@ export async function getDashboardOverviewData(
           );
         })
       : [];
+
+  const semesterTodoRows =
+    semesterStart && semesterEnd
+      ? await basePrisma.todo.findMany({
+          where: {
+            userId,
+            completed: false,
+            dueAt: {
+              not: null,
+              gte: semesterStart.toDate(),
+              lte: semesterEnd.endOf("day").toDate(),
+            },
+          },
+          orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            title: true,
+            dueAt: true,
+            priority: true,
+            content: true,
+          },
+        })
+      : [];
+
+  const semesterTodos: CalendarTodoItem[] = semesterTodoRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    dueAt: row.dueAt?.toISOString(),
+    priority: row.priority as "low" | "medium" | "high",
+    content: row.content ?? null,
+  }));
+
+  const defaultCalendarSemesterId = currentSemester?.id ?? null;
+  const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
+  const activeCalendarSemesterName = gridSemesterRow?.nameCn ?? null;
 
   const [clickRows, pinRows] = await Promise.all([
     basePrisma.dashboardLinkClick.findMany({
@@ -450,6 +549,12 @@ export async function getDashboardOverviewData(
     allSessions,
     allExams,
     semesterHomeworks,
+    semesterTodos,
+    calendarSemesterPicker,
+    calendarSemesterNavList,
+    activeCalendarSemesterId,
+    defaultCalendarSemesterId,
+    activeCalendarSemesterName,
     dashboardLinks,
     recommendedLinks,
     pinnedLinks,
@@ -641,6 +746,17 @@ export async function getSubscriptionsTabData(userId: string) {
     userId,
     calendarSubscriptionUrl,
   };
+}
+
+export async function getCalendarSubscriptionUrl(userId: string) {
+  const user = await basePrisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  if (!user) return null;
+
+  const token = await ensureUserCalendarFeedToken(user.id);
+  return token ? buildUserCalendarFeedPath(user.id, token) : null;
 }
 
 export type SubscriptionsTabData = Awaited<

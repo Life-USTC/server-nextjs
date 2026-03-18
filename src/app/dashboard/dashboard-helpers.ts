@@ -110,6 +110,11 @@ export const buildExams = (sections: SectionWithRelations[]): ExamItem[] =>
       date: exam.examDate,
       startTime: exam.startTime,
       endTime: exam.endTime,
+      examType: exam.examType ?? null,
+      examMode: exam.examMode ?? null,
+      examTakeCount: exam.examTakeCount ?? null,
+      rooms:
+        exam.examRooms?.map((r) => ({ room: r.room, count: r.count })) ?? [],
     })),
   );
 

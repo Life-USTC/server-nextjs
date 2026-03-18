@@ -1,8 +1,16 @@
 import dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
-import type { OverviewData } from "@/app/dashboard/dashboard-data";
+import type {
+  CalendarTodoItem,
+  OverviewData,
+} from "@/app/dashboard/dashboard-data";
 import type { ExamItem, SessionItem } from "@/app/dashboard/types";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
+import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
+import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
+import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
+import { Link } from "@/i18n/routing";
+import { formatExamTypeLabel } from "@/shared/lib/exam-utils";
 import { formatTime } from "@/shared/lib/time-utils";
 import { cn } from "@/shared/lib/utils";
 
@@ -16,9 +24,60 @@ const WEEKDAY_KEYS = [
   "saturday",
 ] as const;
 
-export async function CalendarPanel({ data }: { data: OverviewData }) {
+type CalendarView = "semester" | "month" | "week";
+
+function parseCalendarView(view: string | undefined): CalendarView {
+  if (view === "month" || view === "week" || view === "semester") return view;
+  return "semester";
+}
+
+function compactLocation(raw: string | null | undefined): string | undefined {
+  const value = raw?.trim();
+  if (!value) return undefined;
+  // UI：卡片里只展示最核心的地点（例如教室），不拼接教学楼/校区等额外信息
+  const first = value.split(" · ")[0]?.trim();
+  return first || undefined;
+}
+
+function parseMonthParam(raw: string | undefined): dayjs.Dayjs | null {
+  if (!raw) return null;
+  const m = dayjs(`${raw}-01`);
+  if (!m.isValid()) return null;
+  return m.startOf("month");
+}
+
+function parseWeekParam(raw: string | undefined): dayjs.Dayjs | null {
+  if (!raw) return null;
+  const d = dayjs(raw);
+  if (!d.isValid()) return null;
+  return d.startOf("day");
+}
+
+function getWeekStart(date: dayjs.Dayjs, weekStartsOn: 0 | 1) {
+  let start = date.startOf("day");
+  while (start.day() !== weekStartsOn) {
+    start = start.subtract(1, "day");
+  }
+  return start;
+}
+
+export async function CalendarPanel({
+  data,
+  calendarSubscriptionUrl,
+  view,
+  month,
+  week,
+}: {
+  data: OverviewData;
+  calendarSubscriptionUrl: string | null;
+  view?: string;
+  month?: string;
+  week?: string;
+}) {
   const t = await getTranslations("meDashboard");
   const tSection = await getTranslations("sectionDetail");
+  const tSubscriptions = await getTranslations("subscriptions");
+  const tTodos = await getTranslations("todos");
   const weekdayLabels = WEEKDAY_KEYS.map((key) => tSection(`weekdays.${key}`));
   const weekLabelTemplate = tSection("weekNumber", { week: "{week}" });
 
@@ -27,170 +86,705 @@ export async function CalendarPanel({ data }: { data: OverviewData }) {
     allSessions,
     allExams,
     semesterHomeworks,
+    semesterTodos,
     todayStart,
+    semesterStart,
+    semesterEnd,
+    referenceNow,
+    calendarSemesterNavList,
+    activeCalendarSemesterId,
+    defaultCalendarSemesterId,
+    activeCalendarSemesterName,
   } = data;
 
   if (semesterWeeks.length === 0) {
     return <p className="text-muted-foreground text-sm">{t("today.empty")}</p>;
   }
 
+  const currentView = parseCalendarView(view);
+  const calendarSemesterSuffix =
+    activeCalendarSemesterId != null &&
+    (defaultCalendarSemesterId == null ||
+      activeCalendarSemesterId !== defaultCalendarSemesterId)
+      ? `&calendarSemester=${activeCalendarSemesterId}`
+      : "";
+  const baseHref = `/?tab=calendar${calendarSemesterSuffix}`;
+  const hrefSemesterCalendar = (semesterId: number) => {
+    const q =
+      defaultCalendarSemesterId != null &&
+      semesterId === defaultCalendarSemesterId
+        ? ""
+        : `&calendarSemester=${semesterId}`;
+    return `/?tab=calendar&calendarView=semester${q}`;
+  };
+  const semesterNavIdx = calendarSemesterNavList.findIndex(
+    (s) => s.id === activeCalendarSemesterId,
+  );
+  const prevSemesterId =
+    semesterNavIdx > 0 ? calendarSemesterNavList[semesterNavIdx - 1]?.id : null;
+  const nextSemesterId =
+    semesterNavIdx >= 0 && semesterNavIdx < calendarSemesterNavList.length - 1
+      ? calendarSemesterNavList[semesterNavIdx + 1]?.id
+      : null;
+
+  const semesterNavDisabledClass =
+    "shrink-0 rounded-md border border-border px-2 py-1 text-sm text-muted-foreground opacity-50";
+
   let weekIndex = 1;
+
+  const sessionsByDay = new Map<string, SessionItem[]>();
+  for (const item of allSessions) {
+    const key = dayjs(item.date).format("YYYY-MM-DD");
+    const list = sessionsByDay.get(key) ?? [];
+    list.push(item);
+    sessionsByDay.set(key, list);
+  }
+  const examsByDay = new Map<string, ExamItem[]>();
+  for (const exam of allExams) {
+    if (!exam.date) continue;
+    const key = dayjs(exam.date).format("YYYY-MM-DD");
+    const list = examsByDay.get(key) ?? [];
+    list.push(exam);
+    examsByDay.set(key, list);
+  }
+  const homeworksByDay = new Map<string, typeof semesterHomeworks>();
+  for (const hw of semesterHomeworks) {
+    if (!hw.submissionDueAt) continue;
+    const key = dayjs(hw.submissionDueAt).format("YYYY-MM-DD");
+    const list = homeworksByDay.get(key) ?? [];
+    list.push(hw);
+    homeworksByDay.set(key, list);
+  }
+  const todosByDay = new Map<string, CalendarTodoItem[]>();
+  for (const todo of semesterTodos) {
+    const key = dayjs(todo.dueAt).format("YYYY-MM-DD");
+    const list = todosByDay.get(key) ?? [];
+    list.push(todo);
+    todosByDay.set(key, list);
+  }
+
+  const weekStartsOn: 0 | 1 = 0;
+  const monthBase = parseMonthParam(month) ?? referenceNow.startOf("month");
+  const currentMonthLabel = monthBase.format("YYYY.MM");
+  const monthPrev = monthBase.subtract(1, "month");
+  const monthNext = monthBase.add(1, "month");
+
+  const monthGridStart = getWeekStart(monthBase, weekStartsOn);
+  const monthGridDays = Array.from({ length: 42 }, (_, i) =>
+    monthGridStart.add(i, "day"),
+  );
+  const monthWeeks = Array.from({ length: 6 }, (_, idx) =>
+    monthGridDays.slice(idx * 7, idx * 7 + 7),
+  );
+
+  const resolveWeekNumber = (weekStart: dayjs.Dayjs) => {
+    if (!semesterStart || !semesterEnd) return null;
+    const start = dayjs(semesterStart);
+    const end = dayjs(semesterEnd);
+    const weekEnd = weekStart.add(6, "day");
+    if (weekEnd.isBefore(start, "day") || weekStart.isAfter(end, "day"))
+      return null;
+    const semesterWeekStart = getWeekStart(start, weekStartsOn);
+    return weekStart.diff(semesterWeekStart, "week") + 1;
+  };
+
+  const weekNavHrefBase = `${baseHref}&calendarView=week`;
+  const weekNavStart = getWeekStart(
+    parseWeekParam(week) ?? getWeekStart(referenceNow, weekStartsOn),
+    weekStartsOn,
+  );
+  const weekNavPrev = weekNavStart.subtract(7, "day");
+  const weekNavNext = weekNavStart.add(7, "day");
+  const weekNavNumber = resolveWeekNumber(weekNavStart);
+  const weekNavLabel =
+    weekNavNumber != null
+      ? weekLabelTemplate.replace("{week}", String(weekNavNumber))
+      : "—";
+  const weekNavLink = (d: dayjs.Dayjs) =>
+    `${weekNavHrefBase}&calendarWeek=${d.format("YYYY-MM-DD")}`;
+
+  const contextNavBtnClass =
+    "rounded-md border border-border px-2 py-1 text-sm no-underline hover:bg-accent/50 shrink-0";
 
   return (
     <div className="min-w-0 space-y-3">
-      <div className="overflow-x-auto">
-        <div className="min-w-[640px]">
-          <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-xl border border-border bg-border/60">
-            <div className="rounded-tl-lg bg-muted/20 px-2 py-3 text-center font-medium text-muted-foreground text-xs">
-              {tSection("weekLabel")}
-            </div>
-            {weekdayLabels.map((label) => (
-              <div
-                key={label}
-                className="bg-muted/20 px-1 py-3 text-center font-medium text-muted-foreground text-xs"
-              >
-                {label}
-              </div>
-            ))}
-            {semesterWeeks.map((week) => {
-              const weekLabel = weekLabelTemplate.replace(
-                "{week}",
-                String(weekIndex),
-              );
-              weekIndex += 1;
+      <div className="grid grid-cols-1 items-center gap-y-2 border-border/60 border-b pb-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:gap-y-0">
+        <div className="flex justify-start">
+          <div className="inline-flex shrink-0 overflow-hidden rounded-md border border-border">
+            {(
+              [
+                { id: "semester", labelKey: "calendarViewSemester" as const },
+                { id: "month", labelKey: "calendarViewMonth" as const },
+                { id: "week", labelKey: "calendarViewWeek" as const },
+              ] as const
+            ).map((item) => {
+              const active = currentView === item.id;
               return (
-                <div key={week[0].format("YYYY-MM-DD")} className="contents">
-                  <div className="flex items-start justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
-                    <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
-                      {weekLabel}
-                    </span>
-                  </div>
-                  {week.map((day) => {
-                    const dateKey = day.format("YYYY-MM-DD");
-                    const daySessions = allSessions.filter((item) =>
-                      dayjs(item.date).isSame(day, "day"),
-                    );
-                    const dayExams = allExams.filter(
-                      (item) =>
-                        item.date && dayjs(item.date).isSame(day, "day"),
-                    );
-                    const dayHomeworks = semesterHomeworks.filter(
-                      (hw) =>
-                        hw.submissionDueAt &&
-                        dayjs(hw.submissionDueAt).isSame(day, "day"),
-                    );
-                    const isToday = day.isSame(todayStart, "day");
-
-                    return (
-                      <div
-                        key={dateKey}
-                        className="min-h-[7rem] min-w-0 overflow-hidden border-border/40 bg-background p-1.5 text-xs"
-                      >
-                        <div className="mb-1.5 flex items-center justify-between">
-                          <span
-                            className={cn(
-                              "font-semibold tabular-nums",
-                              isToday &&
-                                "inline-flex size-6 items-center justify-center rounded-full bg-foreground text-background",
-                            )}
-                          >
-                            {day.format("D")}
-                          </span>
-                          {day.date() === 1 && (
-                            <span className="text-[0.65rem] text-muted-foreground">
-                              {day.format("M月")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0 space-y-1 overflow-hidden">
-                          {daySessions.map((item: SessionItem) => {
-                            const timeLabel = `${formatTime(item.startTime)}-${formatTime(item.endTime)}`;
-                            const meta = [timeLabel, item.location]
-                              .filter(Boolean)
-                              .join(" · ");
-                            return (
-                              <CalendarEventCardInteractive
-                                key={item.id}
-                                href={
-                                  item.sectionJwId
-                                    ? `/sections/${item.sectionJwId}`
-                                    : "/?tab=subscriptions"
-                                }
-                                variant="session"
-                                title={item.courseName}
-                                meta={meta || undefined}
-                                details={[
-                                  {
-                                    label: tSection("time"),
-                                    value: timeLabel,
-                                  },
-                                  {
-                                    label: tSection("location"),
-                                    value: item.location,
-                                  },
-                                ].filter((d) => d.value)}
-                              />
-                            );
-                          })}
-                          {dayExams.map((exam: ExamItem) => {
-                            const timeLabel =
-                              exam.startTime != null && exam.endTime != null
-                                ? `${formatTime(exam.startTime)}-${formatTime(exam.endTime)}`
-                                : "";
-                            return (
-                              <CalendarEventCardInteractive
-                                key={exam.id}
-                                href="/?tab=exams"
-                                variant="exam"
-                                title={exam.courseName}
-                                meta={timeLabel || undefined}
-                                details={
-                                  timeLabel
-                                    ? [
-                                        {
-                                          label: tSection("time"),
-                                          value: timeLabel,
-                                        },
-                                      ]
-                                    : undefined
-                                }
-                              />
-                            );
-                          })}
-                          {dayHomeworks.map((hw) => {
-                            const timeMeta = hw.submissionDueAt
-                              ? dayjs(hw.submissionDueAt).format("HH:mm")
-                              : "";
-                            return (
-                              <CalendarEventCardInteractive
-                                key={hw.id}
-                                href="/?tab=homeworks"
-                                variant="homework"
-                                title={hw.title}
-                                meta={timeMeta ? `DDL ${timeMeta}` : undefined}
-                                details={
-                                  timeMeta
-                                    ? [
-                                        {
-                                          label: tSection("time"),
-                                          value: timeMeta,
-                                        },
-                                      ]
-                                    : undefined
-                                }
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Link
+                  key={item.id}
+                  href={`${baseHref}&calendarView=${item.id}`}
+                  className={cn(
+                    "px-3 py-1.5 text-sm no-underline transition-colors",
+                    active
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  )}
+                >
+                  {t(item.labelKey)}
+                </Link>
               );
             })}
           </div>
         </div>
+        <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
+          {currentView === "month" ? (
+            <>
+              <Link
+                href={`${baseHref}&calendarView=month&calendarMonth=${monthPrev.format("YYYY-MM")}`}
+                className={contextNavBtnClass}
+              >
+                {tSection("previousMonth")}
+              </Link>
+              <span className="min-w-0 max-w-[12rem] shrink truncate text-center font-medium text-foreground text-sm sm:max-w-none">
+                {currentMonthLabel}
+              </span>
+              <Link
+                href={`${baseHref}&calendarView=month&calendarMonth=${monthNext.format("YYYY-MM")}`}
+                className={contextNavBtnClass}
+              >
+                {tSection("nextMonth")}
+              </Link>
+            </>
+          ) : currentView === "week" ? (
+            <>
+              <Link
+                href={weekNavLink(weekNavPrev)}
+                className={contextNavBtnClass}
+              >
+                {t("calendarWeek.prev")}
+              </Link>
+              <span className="min-w-0 shrink text-center font-medium text-foreground text-sm">
+                {weekNavLabel}
+              </span>
+              <Link
+                href={weekNavLink(weekNavNext)}
+                className={contextNavBtnClass}
+              >
+                {t("calendarWeek.next")}
+              </Link>
+            </>
+          ) : (
+            <>
+              {prevSemesterId != null ? (
+                <Link
+                  href={hrefSemesterCalendar(prevSemesterId)}
+                  className={contextNavBtnClass}
+                >
+                  {t("calendarSemesterPrev")}
+                </Link>
+              ) : (
+                <span className={semesterNavDisabledClass} aria-disabled>
+                  {t("calendarSemesterPrev")}
+                </span>
+              )}
+              <span className="min-w-0 max-w-[min(100%,14rem)] shrink truncate text-center font-medium text-foreground text-sm">
+                {activeCalendarSemesterName ?? "—"}
+              </span>
+              {nextSemesterId != null ? (
+                <Link
+                  href={hrefSemesterCalendar(nextSemesterId)}
+                  className={contextNavBtnClass}
+                >
+                  {t("calendarSemesterNext")}
+                </Link>
+              ) : (
+                <span className={semesterNavDisabledClass} aria-disabled>
+                  {t("calendarSemesterNext")}
+                </span>
+              )}
+            </>
+          )}
+        </div>
+        <div className="flex justify-center sm:shrink-0 sm:justify-end">
+          {calendarSubscriptionUrl ? (
+            <CopyCalendarLinkButton
+              url={calendarSubscriptionUrl}
+              label={tSubscriptions("iCalLink")}
+              copiedMessage={tSubscriptions("linkCopied")}
+              copiedDescription={tSubscriptions("linkCopiedDescription")}
+            />
+          ) : null}
+        </div>
       </div>
+
+      {currentView === "month" ? (
+        <div className="space-y-2">
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60">
+                <div className="rounded-tl-lg bg-muted/10 px-2 py-3 text-center font-medium text-muted-foreground text-xs">
+                  {tSection("weekLabel")}
+                </div>
+                {weekdayLabels.map((label) => (
+                  <div
+                    key={label}
+                    className="bg-muted/10 px-1 py-3 text-center font-medium text-muted-foreground text-xs"
+                  >
+                    {label}
+                  </div>
+                ))}
+
+                {monthWeeks.map((weekDaysInGrid) => {
+                  const ws = weekDaysInGrid[0];
+                  const wKey = ws.format("YYYY-MM-DD");
+                  const wn = resolveWeekNumber(ws);
+                  const wLabel =
+                    wn != null
+                      ? weekLabelTemplate.replace("{week}", String(wn))
+                      : "—";
+                  return (
+                    <div key={wKey} className="contents">
+                      <div className="flex items-start justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
+                        <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
+                          {wLabel}
+                        </span>
+                      </div>
+                      {weekDaysInGrid.map((day) => {
+                        const dateKey = day.format("YYYY-MM-DD");
+                        const isToday = day.isSame(todayStart, "day");
+                        const isCurrentMonth =
+                          day.month() === monthBase.month();
+                        const daySessions = sessionsByDay.get(dateKey) ?? [];
+                        const dayExams = examsByDay.get(dateKey) ?? [];
+                        const dayHomeworks = homeworksByDay.get(dateKey) ?? [];
+                        const dayTodos = todosByDay.get(dateKey) ?? [];
+                        return (
+                          <div
+                            key={dateKey}
+                            className={cn(
+                              "min-h-[7rem] min-w-0 overflow-hidden bg-background p-1.5 text-xs",
+                              !isCurrentMonth && "opacity-60",
+                            )}
+                          >
+                            <div className="mb-1.5 flex items-center justify-between">
+                              <span
+                                className={cn(
+                                  "inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full font-semibold tabular-nums leading-none",
+                                  isToday
+                                    ? "bg-foreground text-background"
+                                    : "text-foreground",
+                                )}
+                              >
+                                {day.format("D")}
+                              </span>
+                              {day.date() === 1 && (
+                                <span className="text-[0.65rem] text-muted-foreground">
+                                  {day.format("M 月")}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="min-w-0 space-y-1 overflow-hidden">
+                              {daySessions.map((item: SessionItem) => {
+                                const timeLabel = `${formatTime(item.startTime)}-${formatTime(item.endTime)}`;
+                                const location = compactLocation(item.location);
+                                const details = [
+                                  { label: tSection("time"), value: timeLabel },
+                                  ...(location
+                                    ? [
+                                        {
+                                          label: tSection("location"),
+                                          value: location,
+                                        },
+                                      ]
+                                    : []),
+                                  ...(item.teacherDisplay
+                                    ? [
+                                        {
+                                          label: tSection("teacher"),
+                                          value: item.teacherDisplay,
+                                        },
+                                      ]
+                                    : []),
+                                ];
+                                return (
+                                  <CalendarEventCardInteractive
+                                    key={item.id}
+                                    href={
+                                      item.sectionJwId
+                                        ? `/sections/${item.sectionJwId}`
+                                        : "/?tab=subscriptions"
+                                    }
+                                    variant="session"
+                                    title={item.courseName}
+                                    time={timeLabel}
+                                    details={details}
+                                  />
+                                );
+                              })}
+                              {dayExams.map((exam: ExamItem) => {
+                                const timeLabel =
+                                  exam.startTime != null && exam.endTime != null
+                                    ? `${formatTime(exam.startTime)}-${formatTime(exam.endTime)}`
+                                    : "";
+                                const roomLabel = exam.rooms
+                                  .map((r) => r.room)
+                                  .filter(Boolean)
+                                  .join("、");
+                                return (
+                                  <CalendarEventCardInteractive
+                                    key={exam.id}
+                                    href="/?tab=exams"
+                                    variant="exam"
+                                    title={exam.courseName}
+                                    time={timeLabel || undefined}
+                                    details={[
+                                      ...(timeLabel
+                                        ? [
+                                            {
+                                              label: tSection("time"),
+                                              value: timeLabel,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(exam.examMode
+                                        ? [
+                                            {
+                                              label: tSection("examMode"),
+                                              value: exam.examMode,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(exam.examType != null
+                                        ? [
+                                            {
+                                              label: tSection("examType"),
+                                              value: formatExamTypeLabel(
+                                                exam.examType,
+                                                tSection,
+                                              ),
+                                            },
+                                          ]
+                                        : []),
+                                      ...(roomLabel
+                                        ? [
+                                            {
+                                              label: tSection("location"),
+                                              value: roomLabel,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(exam.examTakeCount != null
+                                        ? [
+                                            {
+                                              label: tSection("examCount"),
+                                              value: String(exam.examTakeCount),
+                                            },
+                                          ]
+                                        : []),
+                                    ]}
+                                  />
+                                );
+                              })}
+                              {dayHomeworks.map((hw) => {
+                                const timeMeta = hw.submissionDueAt
+                                  ? dayjs(hw.submissionDueAt).format("HH:mm")
+                                  : "";
+                                const descRaw =
+                                  hw.description?.content?.trim() ?? "";
+                                const desc = descRaw
+                                  ? descRaw.replace(/\s+/g, " ").slice(0, 120)
+                                  : "";
+                                return (
+                                  <CalendarEventCardInteractive
+                                    key={hw.id}
+                                    href="/?tab=homeworks"
+                                    variant="homework"
+                                    title={hw.title}
+                                    time={
+                                      timeMeta
+                                        ? `${tTodos("dueLabel")} ${timeMeta}`
+                                        : undefined
+                                    }
+                                    details={[
+                                      ...(timeMeta
+                                        ? [
+                                            {
+                                              label: tTodos("dueAtLabel"),
+                                              value: timeMeta,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(desc
+                                        ? [
+                                            {
+                                              label: tTodos("contentLabel"),
+                                              value: desc,
+                                            },
+                                          ]
+                                        : []),
+                                    ]}
+                                  />
+                                );
+                              })}
+                              <CalendarDayTodoCards todos={dayTodos} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : currentView === "week" ? (
+        <DashboardWeekCalendar
+          data={{
+            allSessions,
+            allExams,
+            semesterHomeworks,
+            semesterTodos,
+            todayStart,
+            semesterStart,
+            semesterEnd,
+            referenceNow,
+          }}
+          week={week}
+          navHrefBase={`${baseHref}&calendarView=week`}
+          weekQueryKey="calendarWeek"
+          showWeekNav={false}
+        />
+      ) : (
+        <div className="space-y-2">
+          <div className="overflow-x-auto">
+            <div className="min-w-[640px]">
+              <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60">
+                <div className="rounded-tl-lg bg-muted/10 px-2 py-3 text-center font-medium text-muted-foreground text-xs">
+                  {tSection("weekLabel")}
+                </div>
+                {weekdayLabels.map((label) => (
+                  <div
+                    key={label}
+                    className="bg-muted/10 px-1 py-3 text-center font-medium text-muted-foreground text-xs"
+                  >
+                    {label}
+                  </div>
+                ))}
+                {semesterWeeks.map((week) => {
+                  const weekLabel = weekLabelTemplate.replace(
+                    "{week}",
+                    String(weekIndex),
+                  );
+                  weekIndex += 1;
+                  return (
+                    <div
+                      key={week[0].format("YYYY-MM-DD")}
+                      className="contents"
+                    >
+                      <div className="flex items-start justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
+                        <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
+                          {weekLabel}
+                        </span>
+                      </div>
+                      {week.map((day) => {
+                        const dateKey = day.format("YYYY-MM-DD");
+                        const daySessions = allSessions.filter((item) =>
+                          dayjs(item.date).isSame(day, "day"),
+                        );
+                        const dayExams = allExams.filter(
+                          (item) =>
+                            item.date && dayjs(item.date).isSame(day, "day"),
+                        );
+                        const dayHomeworks = semesterHomeworks.filter(
+                          (hw) =>
+                            hw.submissionDueAt &&
+                            dayjs(hw.submissionDueAt).isSame(day, "day"),
+                        );
+                        const dayTodos = semesterTodos.filter((todo) =>
+                          dayjs(todo.dueAt).isSame(day, "day"),
+                        );
+                        const isToday = day.isSame(todayStart, "day");
+
+                        return (
+                          <div
+                            key={dateKey}
+                            className="min-h-[7rem] min-w-0 overflow-hidden bg-background p-1.5 text-xs"
+                          >
+                            <div className="mb-1.5 flex items-center justify-between">
+                              <span
+                                className={cn(
+                                  "inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full font-semibold tabular-nums leading-none",
+                                  isToday
+                                    ? "bg-foreground text-background"
+                                    : "text-foreground",
+                                )}
+                              >
+                                {day.format("D")}
+                              </span>
+                              {day.date() === 1 && (
+                                <span className="text-[0.65rem] text-muted-foreground">
+                                  {day.format("M 月")}
+                                </span>
+                              )}
+                            </div>
+                            <div className="min-w-0 space-y-1 overflow-hidden">
+                              {daySessions.map((item: SessionItem) => {
+                                const timeLabel = `${formatTime(item.startTime)}-${formatTime(item.endTime)}`;
+                                const location = compactLocation(item.location);
+                                const details = [
+                                  { label: tSection("time"), value: timeLabel },
+                                  ...(location
+                                    ? [
+                                        {
+                                          label: tSection("location"),
+                                          value: location,
+                                        },
+                                      ]
+                                    : []),
+                                  ...(item.teacherDisplay
+                                    ? [
+                                        {
+                                          label: tSection("teacher"),
+                                          value: item.teacherDisplay,
+                                        },
+                                      ]
+                                    : []),
+                                ];
+                                return (
+                                  <CalendarEventCardInteractive
+                                    key={item.id}
+                                    href={
+                                      item.sectionJwId
+                                        ? `/sections/${item.sectionJwId}`
+                                        : "/?tab=subscriptions"
+                                    }
+                                    variant="session"
+                                    title={item.courseName}
+                                    time={timeLabel}
+                                    details={details}
+                                  />
+                                );
+                              })}
+                              {dayExams.map((exam: ExamItem) => {
+                                const timeLabel =
+                                  exam.startTime != null && exam.endTime != null
+                                    ? `${formatTime(exam.startTime)}-${formatTime(exam.endTime)}`
+                                    : "";
+                                const roomLabel = exam.rooms
+                                  .map((r) => r.room)
+                                  .filter(Boolean)
+                                  .join("、");
+                                return (
+                                  <CalendarEventCardInteractive
+                                    key={exam.id}
+                                    href="/?tab=exams"
+                                    variant="exam"
+                                    title={exam.courseName}
+                                    time={timeLabel || undefined}
+                                    details={[
+                                      ...(timeLabel
+                                        ? [
+                                            {
+                                              label: tSection("time"),
+                                              value: timeLabel,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(exam.examMode
+                                        ? [
+                                            {
+                                              label: tSection("examMode"),
+                                              value: exam.examMode,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(exam.examType != null
+                                        ? [
+                                            {
+                                              label: tSection("examType"),
+                                              value: formatExamTypeLabel(
+                                                exam.examType,
+                                                tSection,
+                                              ),
+                                            },
+                                          ]
+                                        : []),
+                                      ...(roomLabel
+                                        ? [
+                                            {
+                                              label: tSection("location"),
+                                              value: roomLabel,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(exam.examTakeCount != null
+                                        ? [
+                                            {
+                                              label: tSection("examCount"),
+                                              value: String(exam.examTakeCount),
+                                            },
+                                          ]
+                                        : []),
+                                    ]}
+                                  />
+                                );
+                              })}
+                              {dayHomeworks.map((hw) => {
+                                const timeMeta = hw.submissionDueAt
+                                  ? dayjs(hw.submissionDueAt).format("HH:mm")
+                                  : "";
+                                const descRaw =
+                                  hw.description?.content?.trim() ?? "";
+                                const desc = descRaw
+                                  ? descRaw.replace(/\s+/g, " ").slice(0, 120)
+                                  : "";
+                                return (
+                                  <CalendarEventCardInteractive
+                                    key={hw.id}
+                                    href="/?tab=homeworks"
+                                    variant="homework"
+                                    title={hw.title}
+                                    time={
+                                      timeMeta
+                                        ? `${tTodos("dueLabel")} ${timeMeta}`
+                                        : undefined
+                                    }
+                                    details={[
+                                      ...(timeMeta
+                                        ? [
+                                            {
+                                              label: tTodos("dueAtLabel"),
+                                              value: timeMeta,
+                                            },
+                                          ]
+                                        : []),
+                                      ...(desc
+                                        ? [
+                                            {
+                                              label: tTodos("contentLabel"),
+                                              value: desc,
+                                            },
+                                          ]
+                                        : []),
+                                    ]}
+                                  />
+                                );
+                              })}
+                              <CalendarDayTodoCards todos={dayTodos} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

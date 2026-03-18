@@ -36,6 +36,10 @@ function parseTab(tab: string | undefined): HomeTabId {
 type HomeViewProps = {
   searchParams: Promise<{
     tab?: string;
+    calendarView?: string;
+    calendarMonth?: string;
+    calendarWeek?: string;
+    overviewWeek?: string;
     debugDate?: string;
     debugTools?: string;
   }>;
@@ -46,6 +50,7 @@ type HomeViewProps = {
     sections: SectionOption[];
   } | null;
   subscriptionsData: SubscriptionsTabData | null;
+  calendarSubscriptionUrl: string | null;
   todosData: TodoItem[] | null;
 };
 
@@ -55,6 +60,7 @@ export async function HomeView({
   overviewData,
   homeworksData,
   subscriptionsData,
+  calendarSubscriptionUrl,
   todosData,
 }: HomeViewProps) {
   const params = await searchParams;
@@ -84,10 +90,20 @@ export async function HomeView({
 
       <section className="w-full min-w-0 space-y-6">
         {currentTab === "overview" && overviewData && (
-          <OverviewPanel data={overviewData} todosData={todosData ?? []} />
+          <OverviewPanel
+            data={overviewData}
+            todosData={todosData ?? []}
+            overviewWeek={params.overviewWeek}
+          />
         )}
         {currentTab === "calendar" && overviewData && (
-          <CalendarPanel data={overviewData} />
+          <CalendarPanel
+            data={overviewData}
+            calendarSubscriptionUrl={calendarSubscriptionUrl}
+            view={params.calendarView}
+            month={params.calendarMonth}
+            week={params.calendarWeek}
+          />
         )}
         {currentTab === "homeworks" && (
           <HomeworksPanel

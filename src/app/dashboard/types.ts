@@ -5,6 +5,7 @@ export type HomeworkWithSection = {
   id: string;
   title: string;
   submissionDueAt: Date | null;
+  description?: { content: string } | null;
   homeworkCompletions: Array<{ completedAt: Date }>;
   section: {
     jwId: number | null;
@@ -36,6 +37,10 @@ export type ExamItem = {
   date: Date | null;
   startTime: number | null;
   endTime: number | null;
+  examType: number | null;
+  examMode: string | null;
+  examTakeCount: number | null;
+  rooms: Array<{ room: string; count: number }>;
 };
 
 export type TimeSlot = {
@@ -87,6 +92,10 @@ export type SectionWithRelations = {
     examDate: Date | null;
     startTime: number | null;
     endTime: number | null;
+    examType: number | null;
+    examTakeCount: number | null;
+    examMode: string | null;
+    examRooms: Array<{ room: string; count: number }>;
   }>;
 };
 

@@ -166,8 +166,8 @@ export function EventCalendar({
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-border/60 border-b px-2 py-2">
+    <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-border/60 border-b bg-muted/10 px-2 py-2">
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground text-sm">
             {monthLabel}
@@ -260,9 +260,10 @@ export function EventCalendar({
                           <div className="flex items-center justify-between">
                             <span
                               className={cn(
-                                "font-semibold text-xs",
-                                isToday &&
-                                  "inline-flex size-5 items-center justify-center rounded-full bg-foreground text-background",
+                                "inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full font-semibold text-xs tabular-nums leading-none",
+                                isToday
+                                  ? "bg-foreground text-background"
+                                  : "text-foreground",
                               )}
                             >
                               {day.format("D")}
@@ -299,7 +300,7 @@ export function EventCalendar({
       </div>
 
       {unscheduledEvents.length > 0 && (
-        <div className="rounded-lg border border-border/60 bg-background p-2">
+        <div className="m-2 rounded-lg border border-border/60 bg-background p-2">
           <div className="font-medium text-muted-foreground text-xs">
             {unscheduledLabel}
           </div>

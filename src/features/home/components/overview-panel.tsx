@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { BookOpenCheck, Calendar, CheckSquare } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import type { OverviewData } from "@/app/dashboard/dashboard-data";
 import type { SessionItem } from "@/app/dashboard/types";
 import { ScheduleSessionLink } from "@/components/schedules/schedule-session-link";
@@ -14,29 +14,34 @@ import {
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { DashboardLinksPanel } from "@/features/dashboard-links/components/dashboard-links-panel";
+import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
 import type { TodoItem } from "@/features/todos/components/todo-list";
 import { Link } from "@/i18n/routing";
-import { formatTime } from "@/shared/lib/time-utils";
-import { cn } from "@/shared/lib/utils";
+import {
+  formatSmartDate,
+  formatSmartDateTime,
+  formatTime,
+} from "@/shared/lib/time-utils";
 
 type ETAResult = { etaLabel: string; exactTime: string };
+
+/** 副标题只展示教室等核心地点（与日历卡片一致，不含教学楼/校区后缀） */
+function sessionRoomSubtitle(location: string | undefined): string {
+  const raw = location?.trim();
+  if (!raw) return "—";
+  const first = raw.split(" · ")[0]?.trim();
+  return first || "—";
+}
 
 function getHomeworkETA(
   dueAt: Date,
   referenceNow: dayjs.Dayjs,
   t: (key: string, values?: Record<string, number | string>) => string,
+  locale: string,
 ): ETAResult {
   const due = dayjs(dueAt);
-  const exactTime = due.format("YYYY-MM-DD HH:mm");
+  const exactTime = formatSmartDateTime(dueAt, referenceNow.toDate(), locale);
   const diffMinutes = due.diff(referenceNow, "minute", true);
   const diffHours = due.diff(referenceNow, "hour", true);
   const diffDays = due.diff(referenceNow, "day", true);
@@ -74,25 +79,31 @@ function getHomeworkETA(
 export async function OverviewPanel({
   data,
   todosData,
+  overviewWeek,
 }: {
   data: OverviewData;
   todosData: TodoItem[];
+  overviewWeek?: string;
 }) {
   const t = await getTranslations("meDashboard");
   const _tCommon = await getTranslations("common");
+  const locale = await getLocale();
   const {
     hasAnySelection,
     hasCurrentTermSelection,
     currentTermName,
     todaySessions,
     tomorrowSessions,
-    weeklySessions,
-    weekDays,
-    timeSlots,
+    allSessions,
+    allExams,
+    semesterHomeworks,
+    semesterTodos,
+    todayStart: overviewTodayStart,
+    semesterStart,
+    semesterEnd,
     incompleteHomeworks,
     dueToday,
     dueWithin3Days,
-    weekDayFormatter,
     showDebugTools,
     referenceNow,
     busiestDate,
@@ -244,7 +255,7 @@ export async function OverviewPanel({
                           : "/?tab=subscriptions"
                       }
                       courseName={item.courseName}
-                      location={item.teacherDisplay}
+                      location={sessionRoomSubtitle(item.location)}
                       timeLabel={formatTime(item.startTime)}
                       durationLabel={formatTime(item.endTime)}
                       variant="detailed"
@@ -273,7 +284,7 @@ export async function OverviewPanel({
                           : "/?tab=subscriptions"
                       }
                       courseName={item.courseName}
-                      location={item.teacherDisplay}
+                      location={sessionRoomSubtitle(item.location)}
                       timeLabel={formatTime(item.startTime)}
                       durationLabel={formatTime(item.endTime)}
                       variant="detailed"
@@ -288,78 +299,34 @@ export async function OverviewPanel({
             </section>
           </div>
 
-          <section className="space-y-2">
-            <h3 className="font-medium text-muted-foreground text-sm">
-              {t("week.title")}
-            </h3>
-            {timeSlots.length > 0 ? (
-              <div className="overflow-x-auto rounded-lg border border-border">
-                <Table className="min-w-[880px] table-fixed">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="sticky left-0 z-10 w-32 bg-card">
-                        {t("week.time")}
-                      </TableHead>
-                      {weekDays.map((day) => {
-                        const isToday = day.isSame(referenceNow, "day");
-                        return (
-                          <TableHead
-                            key={day.format("YYYY-MM-DD")}
-                            className={cn(
-                              "text-center",
-                              isToday &&
-                                "underline decoration-2 decoration-muted-foreground decoration-dotted underline-offset-2",
-                            )}
-                          >
-                            {weekDayFormatter.format(day.toDate())}
-                          </TableHead>
-                        );
-                      })}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {timeSlots.map((slot) => (
-                      <TableRow key={slot.key}>
-                        <TableCell className="sticky left-0 z-10 bg-card align-top font-medium text-xs">
-                          {formatTime(slot.startTime)}-
-                          {formatTime(slot.endTime)}
-                        </TableCell>
-                        {weekDays.map((day) => {
-                          const cellSessions = weeklySessions.filter(
-                            (s) =>
-                              s.startTime === slot.startTime &&
-                              s.endTime === slot.endTime &&
-                              dayjs(s.date).isSame(day, "day"),
-                          );
-                          return (
-                            <TableCell
-                              key={day.format("YYYY-MM-DD")}
-                              className="p-1 align-top"
-                            >
-                              {cellSessions.map((s) => (
-                                <Link
-                                  key={s.id}
-                                  href={
-                                    s.sectionJwId
-                                      ? `/sections/${s.sectionJwId}`
-                                      : "/?tab=subscriptions"
-                                  }
-                                  className="block truncate rounded-md border border-border bg-muted/20 px-1.5 py-0.5 text-xs no-underline transition-colors hover:bg-accent"
-                                >
-                                  {s.courseName}
-                                </Link>
-                              ))}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">{t("week.empty")}</p>
-            )}
+          <section className="space-y-2 border-border/60 border-t pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-medium text-muted-foreground text-sm">
+                {t("week.title")}
+              </h3>
+              <Link
+                href="/?tab=calendar&calendarView=week"
+                className="text-muted-foreground text-xs no-underline hover:text-foreground hover:underline"
+              >
+                {t("week.viewCalendar")}
+              </Link>
+            </div>
+            <DashboardWeekCalendar
+              data={{
+                allSessions,
+                allExams,
+                semesterHomeworks,
+                semesterTodos,
+                todayStart: overviewTodayStart,
+                semesterStart,
+                semesterEnd,
+                referenceNow,
+              }}
+              week={overviewWeek}
+              navHrefBase="/?tab=overview"
+              weekQueryKey="overviewWeek"
+              showWeekNav={false}
+            />
           </section>
         </CardPanel>
       </Card>
@@ -409,7 +376,7 @@ export async function OverviewPanel({
                   ? `/sections/${hw.section.jwId}#homework-${hw.id}`
                   : "/?tab=homeworks";
                 const eta = hw.submissionDueAt
-                  ? getHomeworkETA(hw.submissionDueAt, referenceNow, t)
+                  ? getHomeworkETA(hw.submissionDueAt, referenceNow, t, locale)
                   : null;
                 return (
                   <Link
@@ -479,7 +446,7 @@ export async function OverviewPanel({
             <CardPanel className="box-content space-y-2">
               {pendingTodos.slice(0, 5).map((todo) => {
                 const dueLabel = todo.dueAt
-                  ? dayjs(todo.dueAt).format("YYYY-MM-DD")
+                  ? formatSmartDate(todo.dueAt, referenceNow.toDate(), locale)
                   : null;
                 return (
                   <Link

@@ -59,6 +59,12 @@
     "userNotFound": "未找到用户",
     "unknown": "未知"
   },
+  "CalendarEventCard": {
+    "session": "课程",
+    "exam": "考试",
+    "homework": "作业",
+    "todo": "待办"
+  },
   "subscriptions": {
     "title": "已选课班级",
     "description": "管理您的已选课班级",
@@ -289,6 +295,15 @@
     "description": "你好，{name}。这里集中展示你的课程、作业与安排。",
     "descriptionV2": "你好，{name}",
     "fallbackName": "访客",
+    "calendarViewSemester": "本学期",
+    "calendarViewMonth": "本月",
+    "calendarViewWeek": "本周",
+    "calendarSemesterPrev": "上一学期",
+    "calendarSemesterNext": "下一学期",
+    "calendarWeek": {
+      "prev": "上一周",
+      "next": "下一周"
+    },
     "nav": {
       "ariaLabel": "仪表盘页面切换",
       "overview": {
@@ -300,7 +315,7 @@
         "description": "本周课表与作业截止"
       },
       "subscriptions": {
-        "title": "选课管理",
+        "title": "选课",
         "description": "批量导入并维护已选班级"
       },
       "homeworks": {
@@ -317,11 +332,11 @@
         "filterEmpty": "当前筛选下暂无考试"
       },
       "links": {
-        "title": "网站导航",
+        "title": "网站",
         "description": "浏览全部常用网站并管理置顶"
       },
       "todos": {
-        "title": "待办事项",
+        "title": "代办",
         "description": "管理个人待办任务"
       }
     },
@@ -688,6 +703,9 @@
     "teacher": "教师",
     "exams": "考试 ({count})",
     "examDateTBD": "考试日期待定",
+    "examType": "考试类型",
+    "examTypeMidterm": "期中考试",
+    "examTypeFinal": "期末考试",
     "examMode": "考试方式",
     "examCount": "考试人数",
     "viewAllSections": "查看这门课全部开课班级",
