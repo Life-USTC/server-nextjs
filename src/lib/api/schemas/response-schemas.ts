@@ -34,7 +34,7 @@ import {
   UploadModelSchema,
   UserModelSchema,
   UserSuspensionModelSchema,
-} from "@/generated/zod/schemas/variants/pure/index";
+} from "@/generated/zod/schemas/variants/pure";
 
 const dateTimeSchema = z.string().datetime();
 

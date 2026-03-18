@@ -45,29 +45,25 @@ test("/?tab=subscriptions 可点击条目跳转班级详情", async ({
   );
 });
 
-test("/?tab=subscriptions 日历可切换月份", async ({ page }, testInfo) => {
+test("/?tab=subscriptions 退选按钮可进入确认状态", async ({
+  page,
+}, testInfo) => {
   await signInAsDebugUser(page, "/?tab=subscriptions");
 
-  const monthLabel = page.locator("text=/^\\d{4}\\.\\d{2}$/").first();
-  await expect(monthLabel).toBeVisible();
-  const before = (await monthLabel.textContent())?.trim();
-  expect(before).toBeTruthy();
+  const firstRow = page.locator("tbody tr").first();
+  await expect(firstRow).toBeVisible();
+  await firstRow.hover();
 
-  await page
-    .getByRole("button", { name: /下个月|Next month/i })
-    .first()
-    .click();
-  await expect(monthLabel).not.toHaveText(before ?? "");
-
-  await page
-    .getByRole("button", { name: /上个月|Previous month/i })
-    .first()
-    .click();
-  await expect(monthLabel).toHaveText(before ?? "");
+  const optOutButton = firstRow.getByRole("button", { name: /移除|Opt out/i });
+  await expect(optOutButton).toBeVisible();
+  await optOutButton.click();
+  await expect(
+    firstRow.getByRole("button", { name: /确认|Confirm/i }),
+  ).toBeVisible();
   await captureStepScreenshot(
     page,
     testInfo,
-    "dashboard-subscriptions-calendar-month",
+    "dashboard-subscriptions-opt-out-confirm",
   );
 });
 
