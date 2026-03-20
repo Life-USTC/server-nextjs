@@ -3,6 +3,7 @@ import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 const DEV_DEBUG_LOGIN_BUTTON = /Debug User \(Dev\)|调试用户（开发）/i;
 const DEV_ADMIN_LOGIN_BUTTON = /Admin User \(Dev\)|调试管理员（开发）/i;
+const SESSION_RETRY_ATTEMPTS = 3;
 
 const ROUTE_ALIASES = new Map<string, string>([
   ["/settings/accounts", "/settings?tab=accounts"],
@@ -42,6 +43,39 @@ const SIGN_IN_PROVIDER_LABELS: Record<SignInProvider, RegExp> = {
   google: /Google/i,
 };
 
+async function expectAuthenticatedSession(
+  page: Page,
+  options: { isAdmin?: boolean } = {},
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= SESSION_RETRY_ATTEMPTS; attempt += 1) {
+    try {
+      const sessionResponse = await page.request.get("/api/auth/session");
+      expect(sessionResponse.status()).toBe(200);
+      const session = (await sessionResponse.json()) as {
+        user?: { id?: string; isAdmin?: boolean };
+      };
+
+      expect(typeof session.user?.id).toBe("string");
+      if (options.isAdmin) {
+        expect(session.user?.isAdmin).toBe(true);
+      }
+
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt === SESSION_RETRY_ATTEMPTS) {
+        throw error;
+      }
+
+      await page.waitForTimeout(250 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 export async function expectRequiresSignIn(
   page: Page,
   path: string,
@@ -78,12 +112,7 @@ export async function signInAsDebugUser(
   await expectPagePath(page, expectedPath);
   await waitForUiSettled(page);
   await expect(page.locator("#main-content")).toBeVisible();
-  const sessionResponse = await page.request.get("/api/auth/session");
-  expect(sessionResponse.status()).toBe(200);
-  const session = (await sessionResponse.json()) as {
-    user?: { id?: string };
-  };
-  expect(typeof session.user?.id).toBe("string");
+  await expectAuthenticatedSession(page);
 }
 
 export async function signInAsDevAdmin(
@@ -103,11 +132,5 @@ export async function signInAsDevAdmin(
   await expectPagePath(page, expectedPath);
   await waitForUiSettled(page);
   await expect(page.locator("#main-content")).toBeVisible();
-  const sessionResponse = await page.request.get("/api/auth/session");
-  expect(sessionResponse.status()).toBe(200);
-  const session = (await sessionResponse.json()) as {
-    user?: { id?: string; isAdmin?: boolean };
-  };
-  expect(typeof session.user?.id).toBe("string");
-  expect(session.user?.isAdmin).toBe(true);
+  await expectAuthenticatedSession(page, { isAdmin: true });
 }
