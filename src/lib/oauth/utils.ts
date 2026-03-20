@@ -1,4 +1,5 @@
 import {
+  createHash,
   randomBytes,
   scrypt as scryptCallback,
   timingSafeEqual,
@@ -7,6 +8,13 @@ import { promisify } from "node:util";
 
 const scrypt = promisify(scryptCallback);
 const CLIENT_SECRET_HASH_VERSION = "s1";
+
+export const OAUTH_PUBLIC_CLIENT_AUTH_METHOD = "none";
+export const OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD = "client_secret_basic";
+export const OAUTH_CLIENT_SECRET_POST_AUTH_METHOD = "client_secret_post";
+export const OAUTH_CODE_CHALLENGE_METHOD_S256 = "S256";
+export const MCP_TOOLS_SCOPE = "mcp:tools";
+export const DEFAULT_OAUTH_CLIENT_SCOPES = ["openid", "profile"] as const;
 
 /** Generate a cryptographically random token string (URL-safe base64). */
 export function generateToken(bytes = 32): string {
@@ -42,6 +50,26 @@ export async function verifyOAuthClientSecret(
   )) as Buffer;
 
   return timingSafeEqual(expectedHash, actualHash);
+}
+
+export function generateCodeChallenge(codeVerifier: string): string {
+  return createHash("sha256").update(codeVerifier).digest("base64url");
+}
+
+export function verifyPkceCodeVerifier({
+  codeChallenge,
+  codeChallengeMethod,
+  codeVerifier,
+}: {
+  codeChallenge: string;
+  codeChallengeMethod: string;
+  codeVerifier: string;
+}): boolean {
+  if (codeChallengeMethod !== OAUTH_CODE_CHALLENGE_METHOD_S256) {
+    return false;
+  }
+
+  return generateCodeChallenge(codeVerifier) === codeChallenge;
 }
 
 /** Default lifetime for authorization codes (10 minutes). */

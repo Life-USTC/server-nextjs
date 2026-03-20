@@ -38,6 +38,7 @@ export default async function AdminOAuthPage() {
         id: true,
         clientId: true,
         name: true,
+        tokenEndpointAuthMethod: true,
         redirectUris: true,
         scopes: true,
         createdAt: true,

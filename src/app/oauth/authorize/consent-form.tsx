@@ -19,6 +19,9 @@ interface OAuthConsentFormProps {
   redirectUri: string;
   scopes: string[];
   state?: string;
+  codeChallenge?: string;
+  codeChallengeMethod?: string;
+  resource?: string;
 }
 
 export function OAuthConsentForm({
@@ -27,6 +30,9 @@ export function OAuthConsentForm({
   redirectUri,
   scopes,
   state,
+  codeChallenge,
+  codeChallengeMethod,
+  resource,
 }: OAuthConsentFormProps) {
   const t = useTranslations("oauth");
   const [loading, setLoading] = useState(false);
@@ -78,6 +84,9 @@ export function OAuthConsentForm({
                     redirect_uri: redirectUri,
                     scope: scopes.join(" "),
                     state,
+                    code_challenge: codeChallenge,
+                    code_challenge_method: codeChallengeMethod,
+                    resource,
                   }),
                 });
 
