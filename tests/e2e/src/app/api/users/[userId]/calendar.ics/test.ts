@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../../utils/auth";
+import { DEV_SEED } from "../../../../../../utils/dev-seed";
 import {
   ensureUserCalendarFeedFixture,
   getCurrentSessionUser,
@@ -25,6 +26,11 @@ test("/api/users/[userId]/calendar.ics 仅允许本人访问", async ({ page }) 
   const selfCalendarBody = await selfCalendar.text();
   expect(selfCalendarBody.trim().length).toBeGreaterThan(0);
   expect(selfCalendarBody).toContain("BEGIN:VCALENDAR");
+  expect(selfCalendarBody).toContain(DEV_SEED.homeworks.title);
+  expect(selfCalendarBody).toContain(DEV_SEED.todos.dueTodayTitle);
+  expect(selfCalendarBody).toContain(`${DEV_SEED.course.nameCn} - 期中考试`);
+  expect(selfCalendarBody).not.toContain(DEV_SEED.todos.completedTitle);
+  expect(selfCalendarBody).not.toContain("[DEV-SCENARIO] 已删除作业");
 
   const forbiddenCalendar = await page.request.get(
     "/api/users/not-the-current-user/calendar.ics",
