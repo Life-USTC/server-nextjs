@@ -55,6 +55,7 @@ test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) 
       redirect_uri: `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`,
       response_type: "code",
     }),
+    { waitUntil: "load" },
   );
 
   await expect(page.getByText(/无效客户端|Invalid client/i)).toBeVisible();
