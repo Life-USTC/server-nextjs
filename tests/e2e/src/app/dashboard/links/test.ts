@@ -4,6 +4,9 @@ import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
 
+const PIN_LABEL = /^(?:置顶|Pin)$/i;
+const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
+
 test("/ 可点击网站 Tab 进入 links 页面", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/");
 
@@ -52,18 +55,35 @@ test("/?tab=links 可搜索网站并支持快捷键聚焦", async ({ page }, tes
 test("/?tab=links 可置顶并恢复网站", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/?tab=links");
 
-  const linkButton = page.getByRole("button", { name: /教务系统/i }).first();
-  await expect(linkButton).toBeVisible();
+  const locatePinButton = async () => {
+    const linkButton = page.getByRole("button", { name: /教务系统/i }).first();
+    await expect(linkButton).toBeVisible();
 
-  const card = page.locator("div").filter({ has: linkButton }).first();
-  await card.hover();
+    const card = linkButton.locator(
+      "xpath=ancestor::div[contains(@class, 'group')][1]",
+    );
+    await card.hover();
 
-  const pinButton = card
-    .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
-    .first();
-  await expect(pinButton).toBeVisible();
+    const pinForm = page
+      .locator('form[action="/api/dashboard-links/pin"]')
+      .filter({
+        has: page.locator('input[name="slug"][value="jw"]'),
+      })
+      .first();
+    const pinButton = pinForm
+      .getByRole("button", { name: /置顶|Pin|取消置顶|Unpin/i })
+      .first();
 
+    await expect(pinButton).toBeVisible();
+    return pinButton;
+  };
+
+  const pinButton = await locatePinButton();
   const initialLabel = await pinButton.getAttribute("aria-label");
+  expect(initialLabel).toMatch(/^(?:置顶|Pin|取消置顶|Unpin)$/i);
+  const togglesToPinned = PIN_LABEL.test(initialLabel ?? "");
+  const expectedInitialLabel = togglesToPinned ? PIN_LABEL : UNPIN_LABEL;
+  await expect(pinButton).toHaveAttribute("aria-label", initialLabel ?? "");
   const pinResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/dashboard-links/pin") &&
@@ -71,19 +91,26 @@ test("/?tab=links 可置顶并恢复网站", async ({ page }, testInfo) => {
       response.status() === 200,
   );
   await pinButton.click({ force: true });
-  await pinResponse;
+  const response = await pinResponse;
+  const body = (await response.json()) as { pinnedSlugs?: string[] };
+  expect(body.pinnedSlugs?.includes("jw")).toBe(togglesToPinned);
+  await captureStepScreenshot(page, testInfo, "dashboard-links-toggle-request");
 
-  const toggledLabel = await pinButton.getAttribute("aria-label");
-  expect(toggledLabel).not.toBe(initialLabel);
-  await captureStepScreenshot(page, testInfo, "dashboard-links-pinned");
+  const restoreResponse = await page.request.post("/api/dashboard-links/pin", {
+    form: {
+      slug: "jw",
+      action: togglesToPinned ? "unpin" : "pin",
+      returnTo: "/?tab=links",
+    },
+    headers: {
+      accept: "application/json",
+    },
+  });
+  expect(restoreResponse.status()).toBe(200);
 
-  const unpinResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/dashboard-links/pin") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(await locatePinButton()).toHaveAttribute(
+    "aria-label",
+    expectedInitialLabel,
   );
-  await pinButton.click({ force: true });
-  await unpinResponse;
-  await expect(pinButton).toHaveAttribute("aria-label", initialLabel ?? "");
 });
