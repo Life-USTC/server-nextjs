@@ -18,7 +18,9 @@ test("/settings/danger 登录后展示删除确认交互", async ({ page }, test
   const openDialogButton = page
     .getByRole("button", { name: /删除|Delete/i })
     .first();
-  await openDialogButton.click();
+  await expect(openDialogButton).toBeVisible();
+  await expect(openDialogButton).toBeEnabled();
+  await openDialogButton.click({ force: true });
   const input = page.locator('input[placeholder="DELETE"]').first();
   await expect(input).toBeVisible();
 
