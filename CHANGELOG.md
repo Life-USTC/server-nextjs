@@ -1,3 +1,10 @@
+## [0.45.2](https://github.com/Life-USTC/server-nextjs/compare/v0.45.1...v0.45.2) (2026-03-20)
+
+
+### Bug Fixes
+
+* **e2e:** stabilize flaky settings and dashboard link tests ([c5b3aef](https://github.com/Life-USTC/server-nextjs/commit/c5b3aefd85ac176e0e65a2f4bfef12bd8c57f6c4))
+
 ## [0.45.1](https://github.com/Life-USTC/server-nextjs/compare/v0.45.0...v0.45.1) (2026-03-20)
 
 
