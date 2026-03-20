@@ -1,3 +1,10 @@
+## [0.45.1](https://github.com/Life-USTC/server-nextjs/compare/v0.45.0...v0.45.1) (2026-03-20)
+
+
+### Bug Fixes
+
+* **e2e:** retry post-login session checks ([5b16f35](https://github.com/Life-USTC/server-nextjs/commit/5b16f357488c304bd6d1773d5130bd482c29036b))
+
 # [0.45.0](https://github.com/Life-USTC/server-nextjs/compare/v0.44.0...v0.45.0) (2026-03-20)
 
 
