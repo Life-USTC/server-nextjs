@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
-import { CODE_LIFETIME_MS, generateToken } from "@/lib/oauth/utils";
+import {
+  CODE_LIFETIME_MS,
+  generateToken,
+  OAUTH_CODE_CHALLENGE_METHOD_S256,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/utils";
 
 /**
  * POST /api/oauth/authorize
@@ -20,6 +25,9 @@ export async function POST(request: Request) {
     redirect_uri?: string;
     scope?: string;
     state?: string;
+    code_challenge?: string;
+    code_challenge_method?: string;
+    resource?: string;
   };
 
   try {
@@ -28,7 +36,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
-  const { client_id, redirect_uri, scope, state } = body;
+  const {
+    client_id,
+    redirect_uri,
+    scope,
+    state,
+    code_challenge,
+    code_challenge_method,
+    resource,
+  } = body;
 
   if (!client_id || !redirect_uri) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
@@ -36,7 +52,12 @@ export async function POST(request: Request) {
 
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId: client_id },
-    select: { id: true, redirectUris: true, scopes: true },
+    select: {
+      id: true,
+      redirectUris: true,
+      scopes: true,
+      tokenEndpointAuthMethod: true,
+    },
   });
 
   if (!client) {
@@ -64,6 +85,34 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  if (
+    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
+    (!code_challenge ||
+      code_challenge_method !== OAUTH_CODE_CHALLENGE_METHOD_S256)
+  ) {
+    return NextResponse.json(
+      {
+        error: "invalid_request",
+        error_description:
+          "Public clients must provide code_challenge with code_challenge_method=S256",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    code_challenge_method &&
+    code_challenge_method !== OAUTH_CODE_CHALLENGE_METHOD_S256
+  ) {
+    return NextResponse.json(
+      {
+        error: "invalid_request",
+        error_description: "Unsupported code_challenge_method",
+      },
+      { status: 400 },
+    );
+  }
   const code = generateToken();
 
   await prisma.oAuthCode.create({
@@ -71,6 +120,9 @@ export async function POST(request: Request) {
       code,
       redirectUri: redirect_uri,
       scopes,
+      codeChallenge: code_challenge ?? null,
+      codeChallengeMethod: code_challenge_method ?? null,
+      resource: resource ?? null,
       expiresAt: new Date(Date.now() + CODE_LIFETIME_MS),
       clientId: client.id,
       userId: session.user.id,

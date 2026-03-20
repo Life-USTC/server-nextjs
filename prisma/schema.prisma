@@ -1044,12 +1044,13 @@ model Todo {
 // for downstream applications (mobile apps, third-party clients).
 
 model OAuthClient {
-  id           String   @id @default(cuid())
-  clientId     String   @unique
-  clientSecret String
-  name         String
-  redirectUris String[]
-  scopes       String[] @default(["openid", "profile"])
+  id                      String   @id @default(cuid())
+  clientId                String   @unique
+  clientSecret            String?
+  tokenEndpointAuthMethod String   @default("client_secret_basic")
+  name                    String
+  redirectUris            String[]
+  scopes                  String[] @default(["openid", "profile"])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1059,11 +1060,14 @@ model OAuthClient {
 }
 
 model OAuthCode {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  redirectUri String
-  scopes      String[]
-  expiresAt   DateTime
+  id                 String   @id @default(cuid())
+  code               String   @unique
+  redirectUri        String
+  scopes             String[]
+  codeChallenge      String?
+  codeChallengeMethod String?
+  resource           String?
+  expiresAt          DateTime
 
   createdAt DateTime @default(now())
 
@@ -1083,6 +1087,7 @@ model OAuthAccessToken {
   id        String   @id @default(cuid())
   token     String   @unique
   scopes    String[]
+  resource  String?
   expiresAt DateTime
 
   createdAt DateTime @default(now())

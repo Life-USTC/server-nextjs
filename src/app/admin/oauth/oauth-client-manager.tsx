@@ -20,6 +20,7 @@ interface OAuthClientInfo {
   id: string;
   clientId: string;
   name: string;
+  tokenEndpointAuthMethod: string;
   redirectUris: string[];
   scopes: string[];
   createdAt: string;
@@ -35,7 +36,7 @@ export function OAuthClientManager({
   const [loading, setLoading] = useState(false);
   const [createdCredentials, setCreatedCredentials] = useState<{
     clientId: string;
-    clientSecret: string;
+    clientSecret: string | null;
   } | null>(null);
 
   async function onCreateClient(formData: FormData) {
@@ -49,10 +50,11 @@ export function OAuthClientManager({
         description: result.error,
         variant: "destructive",
       });
-    } else if (result.clientId && result.clientSecret) {
+    } else if (result.clientId) {
       setCreatedCredentials({
         clientId: result.clientId,
-        clientSecret: result.clientSecret,
+        clientSecret:
+          typeof result.clientSecret === "string" ? result.clientSecret : null,
       });
       toast({
         title: t("createSuccess"),
@@ -112,6 +114,36 @@ export function OAuthClientManager({
                 {t("redirectUrisHint")}
               </p>
             </Field>
+            <Field>
+              <FieldLabel htmlFor="tokenEndpointAuthMethod">
+                {t("clientType")}
+              </FieldLabel>
+              <select
+                id="tokenEndpointAuthMethod"
+                name="tokenEndpointAuthMethod"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                defaultValue="client_secret_basic"
+              >
+                <option value="client_secret_basic">
+                  {t("clientTypeConfidential")}
+                </option>
+                <option value="none">{t("clientTypePublic")}</option>
+              </select>
+              <p className="mt-1 text-muted-foreground text-xs">
+                {t("clientTypeHint")}
+              </p>
+            </Field>
+            <Field className="flex items-center gap-2">
+              <input
+                id="enableMcp"
+                name="enableMcp"
+                type="checkbox"
+                defaultChecked
+              />
+              <FieldLabel htmlFor="enableMcp" className="font-normal">
+                {t("enableMcpScope")}
+              </FieldLabel>
+            </Field>
             <Button type="submit" disabled={loading}>
               {loading ? t("creating") : t("createClient")}
             </Button>
@@ -136,7 +168,7 @@ export function OAuthClientManager({
             <Field>
               <FieldLabel>{t("clientSecretLabel")}</FieldLabel>
               <code className="block rounded bg-muted p-2 font-mono text-sm">
-                {createdCredentials.clientSecret}
+                {createdCredentials.clientSecret ?? t("publicClientNoSecret")}
               </code>
             </Field>
             <Button
@@ -170,7 +202,16 @@ export function OAuthClientManager({
                       {t("clientIdLabel")}: {client.clientId}
                     </p>
                     <p className="text-muted-foreground text-xs">
+                      {t("clientType")}:{" "}
+                      {client.tokenEndpointAuthMethod === "none"
+                        ? t("clientTypePublic")
+                        : t("clientTypeConfidential")}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
                       {t("redirectUris")}: {client.redirectUris.join(", ")}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {t("scopesLabel")}: {client.scopes.join(", ")}
                     </p>
                   </div>
                   <Button

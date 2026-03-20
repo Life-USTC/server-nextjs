@@ -100,10 +100,16 @@ export async function createOAuthClientFixture(
     scopes?: string[];
     clientId?: string;
     clientSecret?: string;
+    tokenEndpointAuthMethod?: "client_secret_basic" | "none";
   } = {},
 ) {
   const clientId = options.clientId ?? generateToken(16);
-  const clientSecret = options.clientSecret ?? generateToken(24);
+  const tokenEndpointAuthMethod =
+    options.tokenEndpointAuthMethod ?? "client_secret_basic";
+  const clientSecret =
+    tokenEndpointAuthMethod === "none"
+      ? null
+      : (options.clientSecret ?? generateToken(24));
   const redirectUris = options.redirectUris ?? [
     `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`,
   ];
@@ -114,6 +120,7 @@ export async function createOAuthClientFixture(
     id: string;
     clientId: string;
     name: string;
+    tokenEndpointAuthMethod: string;
     redirectUris: string[];
     scopes: string[];
   }>(`
@@ -123,7 +130,12 @@ export async function createOAuthClientFixture(
     const client = await prisma.oAuthClient.create({
       data: {
         clientId: ${JSON.stringify(clientId)},
-        clientSecret: await hashOAuthClientSecret(${JSON.stringify(clientSecret)}),
+        clientSecret: ${
+          clientSecret
+            ? `await hashOAuthClientSecret(${JSON.stringify(clientSecret)})`
+            : "null"
+        },
+        tokenEndpointAuthMethod: ${JSON.stringify(tokenEndpointAuthMethod)},
         name: ${JSON.stringify(name)},
         redirectUris: ${JSON.stringify(redirectUris)},
         scopes: ${JSON.stringify(scopes)},
@@ -132,6 +144,7 @@ export async function createOAuthClientFixture(
         id: true,
         clientId: true,
         name: true,
+        tokenEndpointAuthMethod: true,
         redirectUris: true,
         scopes: true,
       },

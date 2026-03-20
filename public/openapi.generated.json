@@ -12,6 +12,48 @@
     }
   ],
   "paths": {
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "get-.well-known-oauth-authorization-server",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/comments": {
       "get": {
         "operationId": "get-api-admin-comments",
@@ -1011,6 +1053,60 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/mcp": {
+      "get": {
+        "operationId": "get-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }

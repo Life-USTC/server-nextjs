@@ -4,6 +4,10 @@ import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
 import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
+import {
+  OAUTH_CODE_CHALLENGE_METHOD_S256,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/utils";
 import { OAuthConsentForm } from "./consent-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,6 +26,9 @@ export default async function OAuthAuthorizePage({
     response_type?: string;
     scope?: string;
     state?: string;
+    code_challenge?: string;
+    code_challenge_method?: string;
+    resource?: string;
   }>;
 }) {
   const [session, params] = await Promise.all([auth(), searchParams]);
@@ -49,7 +56,13 @@ export default async function OAuthAuthorizePage({
 
   const client = await prisma.oAuthClient.findUnique({
     where: { clientId: params.client_id },
-    select: { clientId: true, name: true, redirectUris: true, scopes: true },
+    select: {
+      clientId: true,
+      name: true,
+      redirectUris: true,
+      scopes: true,
+      tokenEndpointAuthMethod: true,
+    },
   });
 
   if (!client) {
@@ -100,6 +113,24 @@ export default async function OAuthAuthorizePage({
     );
   }
 
+  const requiresPkce =
+    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
+  if (
+    requiresPkce &&
+    (!params.code_challenge ||
+      params.code_challenge_method !== OAUTH_CODE_CHALLENGE_METHOD_S256)
+  ) {
+    redirect(
+      buildOAuthErrorRedirectUri({
+        redirectUri,
+        error: "invalid_request",
+        state: params.state,
+        errorDescription:
+          "Public clients must use PKCE with code_challenge_method=S256",
+      }),
+    );
+  }
+
   return (
     <OAuthConsentForm
       clientName={client.name}
@@ -107,6 +138,9 @@ export default async function OAuthAuthorizePage({
       redirectUri={redirectUri}
       scopes={requestedScopes}
       state={params.state}
+      codeChallenge={params.code_challenge}
+      codeChallengeMethod={params.code_challenge_method}
+      resource={params.resource}
     />
   );
 }

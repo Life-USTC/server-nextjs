@@ -43,6 +43,7 @@ import { POST as authorize } from "@/app/api/oauth/authorize/route";
 import { POST as token } from "@/app/api/oauth/token/route";
 import { GET as userinfo } from "@/app/api/oauth/userinfo/route";
 import {
+  generateCodeChallenge,
   hashOAuthClientSecret,
   verifyOAuthClientSecret,
 } from "@/lib/oauth/utils";
@@ -72,6 +73,7 @@ describe("oauth routes", () => {
       id: "client-db-id",
       redirectUris: ["https://client.example/callback"],
       scopes: ["openid"],
+      tokenEndpointAuthMethod: "client_secret_basic",
     });
     prismaMock.oAuthCode.create.mockResolvedValue({});
 
@@ -185,10 +187,40 @@ describe("oauth routes", () => {
     expect(prismaMock.oAuthClient.create).not.toHaveBeenCalled();
   });
 
+  it("creates public OAuth clients without issuing a secret", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "admin-user" },
+    });
+    prismaMock.user.findUnique.mockResolvedValue({ isAdmin: true });
+    prismaMock.oAuthClient.create.mockResolvedValue({});
+
+    const formData = new FormData();
+    formData.set("name", "Public Client");
+    formData.set("redirectUris", "https://client.example/callback");
+    formData.set("tokenEndpointAuthMethod", "none");
+    formData.set("enableMcp", "true");
+
+    const result = await createOAuthClient(formData);
+
+    expect(result).toMatchObject({
+      success: true,
+      clientId: expect.any(String),
+      clientSecret: null,
+    });
+    expect(prismaMock.oAuthClient.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        clientSecret: null,
+        tokenEndpointAuthMethod: "none",
+        scopes: ["openid", "profile", "mcp:tools"],
+      }),
+    });
+  });
+
   it("requires redirect_uri when exchanging authorization codes", async () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
+      tokenEndpointAuthMethod: "client_secret_basic",
     });
 
     const request = new Request("http://localhost/api/oauth/token", {
@@ -229,6 +261,7 @@ describe("oauth routes", () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
+      tokenEndpointAuthMethod: "client_secret_basic",
     });
     prismaMock.oAuthCode.findUnique.mockResolvedValue({
       id: "code-db-id",
@@ -237,6 +270,9 @@ describe("oauth routes", () => {
       expiresAt: new Date(Date.now() + 60_000),
       scopes: ["openid"],
       userId: "user-1",
+      codeChallenge: null,
+      codeChallengeMethod: null,
+      resource: null,
     });
     prismaMock.$transaction.mockImplementation(async (callback) =>
       callback({
@@ -266,6 +302,61 @@ describe("oauth routes", () => {
 
     expect(response.status).toBe(400);
     expect(body).toEqual({ error: "invalid_grant" });
+  });
+
+  it("supports public clients using PKCE", async () => {
+    const codeVerifier =
+      "public-client-verifier-012345678901234567890123456789";
+
+    prismaMock.oAuthClient.findUnique.mockResolvedValue({
+      id: "client-db-id",
+      clientSecret: null,
+      tokenEndpointAuthMethod: "none",
+    });
+    prismaMock.oAuthCode.findUnique.mockResolvedValue({
+      id: "code-db-id",
+      clientId: "client-db-id",
+      redirectUri: "https://client.example/callback",
+      expiresAt: new Date(Date.now() + 60_000),
+      scopes: ["openid", "mcp:tools"],
+      userId: "user-1",
+      codeChallenge: generateCodeChallenge(codeVerifier),
+      codeChallengeMethod: "S256",
+      resource: "http://localhost/api/mcp",
+    });
+    prismaMock.$transaction.mockImplementation(async (callback) =>
+      callback({
+        oAuthCode: {
+          deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        oAuthAccessToken: {
+          create: vi.fn(),
+        },
+      }),
+    );
+
+    const request = new Request("http://localhost/api/oauth/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        client_id: "public-client-id",
+        code: "auth-code",
+        code_verifier: codeVerifier,
+        redirect_uri: "https://client.example/callback",
+        resource: "http://localhost/api/mcp",
+      }),
+    });
+
+    const response = await token(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      access_token: expect.any(String),
+      token_type: "Bearer",
+      scope: "openid mcp:tools",
+    });
   });
 
   it("cleans up expired access tokens without throwing on concurrent requests", async () => {

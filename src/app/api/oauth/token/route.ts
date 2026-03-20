@@ -3,7 +3,9 @@ import { prisma } from "@/lib/db/prisma";
 import {
   ACCESS_TOKEN_LIFETIME_MS,
   generateToken,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
   verifyOAuthClientSecret,
+  verifyPkceCodeVerifier,
 } from "@/lib/oauth/utils";
 
 /**
@@ -39,6 +41,7 @@ export async function POST(request: Request) {
   // Support client credentials via Basic auth
   let clientId = params.client_id;
   let clientSecret = params.client_secret;
+  let usedBasicAuth = false;
 
   const authHeader = request.headers.get("authorization");
   if (authHeader?.startsWith("Basic ")) {
@@ -48,13 +51,14 @@ export async function POST(request: Request) {
       if (colonIndex !== -1) {
         clientId = decodeURIComponent(decoded.slice(0, colonIndex));
         clientSecret = decodeURIComponent(decoded.slice(colonIndex + 1));
+        usedBasicAuth = true;
       }
     } catch {
       return errorResponse("invalid_client", 401);
     }
   }
 
-  if (!clientId || !clientSecret) {
+  if (!clientId) {
     return errorResponse("invalid_client", 401);
   }
 
@@ -62,11 +66,29 @@ export async function POST(request: Request) {
     where: { clientId },
   });
 
-  if (
-    !client ||
-    !(await verifyOAuthClientSecret(clientSecret, client.clientSecret))
-  ) {
+  if (!client) {
     return errorResponse("invalid_client", 401);
+  }
+
+  const isPublicClient =
+    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
+
+  if (isPublicClient) {
+    if (usedBasicAuth || clientSecret) {
+      return errorResponse("invalid_client", 401);
+    }
+  } else {
+    if (!clientSecret || !client.clientSecret) {
+      return errorResponse("invalid_client", 401);
+    }
+
+    const verifiedSecret = await verifyOAuthClientSecret(
+      clientSecret,
+      client.clientSecret,
+    );
+    if (!verifiedSecret) {
+      return errorResponse("invalid_client", 401);
+    }
   }
 
   const grantType = params.grant_type;
@@ -77,6 +99,8 @@ export async function POST(request: Request) {
 
   const code = params.code;
   const redirectUri = params.redirect_uri;
+  const codeVerifier = params.code_verifier;
+  const resource = params.resource;
 
   if (!code || !redirectUri) {
     return errorResponse("invalid_request", 400);
@@ -101,6 +125,28 @@ export async function POST(request: Request) {
     return errorResponse("invalid_grant", 400);
   }
 
+  if (oauthCode.resource && resource && oauthCode.resource !== resource) {
+    return errorResponse("invalid_target", 400);
+  }
+
+  if (oauthCode.codeChallenge) {
+    if (!codeVerifier) {
+      return errorResponse("invalid_request", 400);
+    }
+
+    const isValidVerifier = verifyPkceCodeVerifier({
+      codeChallenge: oauthCode.codeChallenge,
+      codeChallengeMethod: oauthCode.codeChallengeMethod ?? "",
+      codeVerifier,
+    });
+
+    if (!isValidVerifier) {
+      return errorResponse("invalid_grant", 400);
+    }
+  } else if (isPublicClient) {
+    return errorResponse("invalid_grant", 400);
+  }
+
   const accessToken = generateToken();
   const expiresIn = Math.floor(ACCESS_TOKEN_LIFETIME_MS / 1000);
   const consumed = await prisma.$transaction(async (tx) => {
@@ -121,6 +167,7 @@ export async function POST(request: Request) {
       data: {
         token: accessToken,
         scopes: oauthCode.scopes,
+        resource: oauthCode.resource,
         expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
         clientId: client.id,
         userId: oauthCode.userId,

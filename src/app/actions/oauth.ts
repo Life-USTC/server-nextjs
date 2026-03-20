@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
-import { generateToken, hashOAuthClientSecret } from "@/lib/oauth/utils";
+import {
+  DEFAULT_OAUTH_CLIENT_SCOPES,
+  generateToken,
+  hashOAuthClientSecret,
+  MCP_TOOLS_SCOPE,
+  OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/utils";
 
 export async function createOAuthClient(formData: FormData) {
   const session = await auth();
@@ -22,6 +29,11 @@ export async function createOAuthClient(formData: FormData) {
 
   const name = (formData.get("name") as string)?.trim();
   const redirectUrisRaw = (formData.get("redirectUris") as string)?.trim();
+  const tokenEndpointAuthMethod =
+    (formData.get("tokenEndpointAuthMethod") as string)?.trim() ||
+    OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
+  const enableMcp =
+    formData.get("enableMcp") === "on" || formData.get("enableMcp") === "true";
 
   if (!name) {
     return { error: "Name is required" };
@@ -58,15 +70,33 @@ export async function createOAuthClient(formData: FormData) {
   }
 
   const clientId = generateToken(16);
-  const clientSecret = generateToken(32);
-  const hashedClientSecret = await hashOAuthClientSecret(clientSecret);
+  const scopes = enableMcp
+    ? [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE]
+    : [...DEFAULT_OAUTH_CLIENT_SCOPES];
+
+  if (
+    tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
+    tokenEndpointAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+  ) {
+    return { error: "Unsupported token endpoint auth method" };
+  }
+
+  const clientSecret =
+    tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+      ? null
+      : generateToken(32);
+  const hashedClientSecret = clientSecret
+    ? await hashOAuthClientSecret(clientSecret)
+    : null;
 
   await prisma.oAuthClient.create({
     data: {
       clientId,
       clientSecret: hashedClientSecret,
+      tokenEndpointAuthMethod,
       name,
       redirectUris,
+      scopes,
     },
   });
 

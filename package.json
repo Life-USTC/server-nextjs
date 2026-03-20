@@ -43,6 +43,7 @@
     "@base-ui/react": "^1.2.0",
     "@mdx-js/mdx": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
+    "@modelcontextprotocol/sdk": "1.27.1",
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.4.2",
