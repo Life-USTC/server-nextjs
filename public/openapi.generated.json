@@ -1913,7 +1913,7 @@
     "/api/users/{userId}/calendar.ics": {
       "get": {
         "operationId": "get-api-users-{userId}-calendar.ics",
-        "summary": "Generate calendar ICS for a user's selected sections.",
+        "summary": "Generate calendar ICS for a user's subscribed sections and personal deadlines.",
         "description": "",
         "tags": [
           "Calendar"

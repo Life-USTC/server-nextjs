@@ -9,7 +9,7 @@ import {
 } from "@/lib/api/helpers";
 import { userCalendarPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
-import { createMultiSectionCalendar } from "@/lib/ical";
+import { createUserCalendar } from "@/lib/ical";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ function parseUserCalendarIdentifier(rawUserId: string) {
 }
 
 /**
- * Generate calendar ICS for a user's selected sections.
+ * Generate calendar ICS for a user's subscribed sections and personal deadlines.
  * @pathParams userCalendarPathParamsSchema
  * @response 200:binary
  * @response 401:openApiErrorSchema
@@ -53,40 +53,13 @@ export async function GET(
       tokenFromPath?.trim() ||
       new URL(request.url).searchParams.get("token")?.trim();
 
-    let user = null;
-
     if (token) {
-      user = await prisma.user.findFirst({
+      const user = await prisma.user.findFirst({
         where: {
           id: userId,
           calendarFeedToken: token,
         },
-        include: {
-          subscribedSections: {
-            include: {
-              course: true,
-              schedules: {
-                include: {
-                  room: {
-                    include: {
-                      building: {
-                        include: {
-                          campus: true,
-                        },
-                      },
-                    },
-                  },
-                  teachers: true,
-                },
-              },
-              exams: {
-                include: {
-                  examRooms: true,
-                },
-              },
-            },
-          },
-        },
+        select: { id: true },
       });
 
       if (!user) {
@@ -103,42 +76,120 @@ export async function GET(
         return forbidden("You can only access your own calendar");
       }
 
-      user = await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: {
-          subscribedSections: {
-            include: {
-              course: true,
-              schedules: {
-                include: {
-                  room: {
-                    include: {
-                      building: {
-                        include: {
-                          campus: true,
-                        },
+        select: { id: true },
+      });
+
+      if (!user) {
+        return notFound("User not found");
+      }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        subscribedSections: {
+          include: {
+            course: true,
+            schedules: {
+              include: {
+                room: {
+                  include: {
+                    building: {
+                      include: {
+                        campus: true,
                       },
                     },
                   },
-                  teachers: true,
                 },
+                teachers: true,
               },
-              exams: {
-                include: {
-                  examRooms: true,
-                },
+            },
+            exams: {
+              include: {
+                examRooms: true,
               },
             },
           },
         },
-      });
+        todos: {
+          where: {
+            completed: false,
+            dueAt: { not: null },
+          },
+          orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            dueAt: true,
+            priority: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return notFound("User not found");
     }
 
-    if (!user || user.subscribedSections.length === 0) {
-      return notFound("No selected sections found");
+    const sectionIds = user.subscribedSections.map((section) => section.id);
+    const homeworks = sectionIds.length
+      ? await prisma.homework.findMany({
+          where: {
+            deletedAt: null,
+            sectionId: { in: sectionIds },
+            submissionDueAt: { not: null },
+            homeworkCompletions: {
+              none: {
+                userId,
+              },
+            },
+          },
+          include: {
+            description: {
+              select: {
+                content: true,
+              },
+            },
+            section: {
+              include: {
+                course: true,
+              },
+            },
+          },
+          orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
+        })
+      : [];
+
+    const todos = user.todos.flatMap((todo) =>
+      todo.dueAt
+        ? [
+            {
+              id: todo.id,
+              title: todo.title,
+              content: todo.content ?? null,
+              dueAt: todo.dueAt,
+              priority: todo.priority as "low" | "medium" | "high",
+            },
+          ]
+        : [],
+    );
+
+    if (
+      user.subscribedSections.length === 0 &&
+      homeworks.length === 0 &&
+      todos.length === 0
+    ) {
+      return notFound("No calendar items found");
     }
 
-    const calendar = await createMultiSectionCalendar(user.subscribedSections);
+    const calendar = await createUserCalendar({
+      sections: user.subscribedSections,
+      homeworks,
+      todos,
+    });
     const icsData = calendar.toString();
 
     return new NextResponse(icsData, {
