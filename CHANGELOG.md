@@ -1,3 +1,11 @@
+## [0.45.3](https://github.com/Life-USTC/server-nextjs/compare/v0.45.2...v0.45.3) (2026-03-20)
+
+
+### Bug Fixes
+
+* **e2e:** relax oauth invalid-client readiness ([8450f97](https://github.com/Life-USTC/server-nextjs/commit/8450f97706b78fc306015671e11b6951d8b383fd))
+* **mcp:** use public origin for oauth metadata ([9299674](https://github.com/Life-USTC/server-nextjs/commit/92996748e3ef27bac83ed41950d18bc6086a40d2))
+
 ## [0.45.2](https://github.com/Life-USTC/server-nextjs/compare/v0.45.1...v0.45.2) (2026-03-20)
 
 
