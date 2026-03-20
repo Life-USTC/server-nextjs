@@ -1,3 +1,10 @@
+# [0.44.0](https://github.com/Life-USTC/server-nextjs/compare/v0.43.1...v0.44.0) (2026-03-20)
+
+
+### Features
+
+* **api:** include homework and todos in user calendar feed ([4a3807e](https://github.com/Life-USTC/server-nextjs/commit/4a3807e5fd6f589975cfaf2fd7c7f7dfbd7f8af8))
+
 ## [0.43.1](https://github.com/Life-USTC/server-nextjs/compare/v0.43.0...v0.43.1) (2026-03-18)
 
 
