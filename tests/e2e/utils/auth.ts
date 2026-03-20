@@ -47,33 +47,24 @@ async function expectAuthenticatedSession(
   page: Page,
   options: { isAdmin?: boolean } = {},
 ) {
-  let lastError: unknown;
+  await expect(async () => {
+    const sessionResponse = await page.request.get("/api/auth/session");
+    expect(sessionResponse.status()).toBe(200);
+    const session = (await sessionResponse.json()) as {
+      user?: { id?: string; isAdmin?: boolean };
+    };
 
-  for (let attempt = 1; attempt <= SESSION_RETRY_ATTEMPTS; attempt += 1) {
-    try {
-      const sessionResponse = await page.request.get("/api/auth/session");
-      expect(sessionResponse.status()).toBe(200);
-      const session = (await sessionResponse.json()) as {
-        user?: { id?: string; isAdmin?: boolean };
-      };
-
-      expect(typeof session.user?.id).toBe("string");
-      if (options.isAdmin) {
-        expect(session.user?.isAdmin).toBe(true);
-      }
-
-      return;
-    } catch (error) {
-      lastError = error;
-      if (attempt === SESSION_RETRY_ATTEMPTS) {
-        throw error;
-      }
-
-      await page.waitForTimeout(250 * attempt);
+    expect(typeof session.user?.id).toBe("string");
+    if (options.isAdmin) {
+      expect(session.user?.isAdmin).toBe(true);
     }
-  }
-
-  throw lastError;
+  }).toPass({
+    intervals: Array.from(
+      { length: SESSION_RETRY_ATTEMPTS - 1 },
+      (_, index) => 250 * (index + 1),
+    ),
+    timeout: 2_000,
+  });
 }
 
 export async function expectRequiresSignIn(
