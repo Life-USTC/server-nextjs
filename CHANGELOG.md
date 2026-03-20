@@ -1,3 +1,15 @@
+# [0.45.0](https://github.com/Life-USTC/server-nextjs/compare/v0.44.0...v0.45.0) (2026-03-20)
+
+
+### Bug Fixes
+
+* **e2e:** retry post-login session checks ([cfb191d](https://github.com/Life-USTC/server-nextjs/commit/cfb191d33a1382ba6c749f46b5c87019bca1f629))
+
+
+### Features
+
+* **mcp:** add oauth-protected server support ([08adec2](https://github.com/Life-USTC/server-nextjs/commit/08adec2befdf873390c7c95e5d960c971b64d0f3))
+
 # [0.44.0](https://github.com/Life-USTC/server-nextjs/compare/v0.43.1...v0.44.0) (2026-03-20)
 
 
