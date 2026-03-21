@@ -1,3 +1,10 @@
+# [0.46.0](https://github.com/Life-USTC/server-nextjs/compare/v0.45.3...v0.46.0) (2026-03-21)
+
+
+### Features
+
+* **oauth:** add dynamic client registration ([b0a3a3e](https://github.com/Life-USTC/server-nextjs/commit/b0a3a3ed16c5a3066bd2d800434f242fd59b030e))
+
 ## [0.45.3](https://github.com/Life-USTC/server-nextjs/compare/v0.45.2...v0.45.3) (2026-03-20)
 
 
