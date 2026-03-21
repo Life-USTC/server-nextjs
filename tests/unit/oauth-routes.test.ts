@@ -40,6 +40,7 @@ vi.mock("next/cache", () => ({
 
 import { createOAuthClient } from "@/app/actions/oauth";
 import { POST as authorize } from "@/app/api/oauth/authorize/route";
+import { POST as register } from "@/app/api/oauth/register/route";
 import { POST as token } from "@/app/api/oauth/token/route";
 import { GET as userinfo } from "@/app/api/oauth/userinfo/route";
 import {
@@ -214,6 +215,69 @@ describe("oauth routes", () => {
         scopes: ["openid", "profile", "mcp:tools"],
       }),
     });
+  });
+
+  it("registers dynamic public OAuth clients for PKCE", async () => {
+    prismaMock.oAuthClient.create.mockResolvedValue({});
+
+    const request = new Request("http://localhost/api/oauth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_name: "Codex MCP Client",
+        redirect_uris: ["http://127.0.0.1:9876/callback"],
+        grant_types: ["authorization_code"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+        scope: "openid profile mcp:tools",
+      }),
+    });
+
+    const response = await register(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(body).toMatchObject({
+      client_id: expect.any(String),
+      client_name: "Codex MCP Client",
+      redirect_uris: ["http://127.0.0.1:9876/callback"],
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+      scope: "openid profile mcp:tools",
+    });
+    expect(prismaMock.oAuthClient.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        clientSecret: null,
+        tokenEndpointAuthMethod: "none",
+        name: "Codex MCP Client",
+        redirectUris: ["http://127.0.0.1:9876/callback"],
+        scopes: ["openid", "profile", "mcp:tools"],
+      }),
+    });
+  });
+
+  it("rejects invalid redirect URIs during dynamic registration", async () => {
+    const request = new Request("http://localhost/api/oauth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_name: "Bad Client",
+        redirect_uris: ["http://example.com/callback"],
+        token_endpoint_auth_method: "none",
+      }),
+    });
+
+    const response = await register(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({
+      error: "invalid_client_metadata",
+      error_description:
+        "Redirect URIs must use https, or http only for localhost/127.0.0.1",
+    });
+    expect(prismaMock.oAuthClient.create).not.toHaveBeenCalled();
   });
 
   it("requires redirect_uri when exchanging authorization codes", async () => {

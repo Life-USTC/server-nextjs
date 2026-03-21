@@ -44,7 +44,7 @@ export function OAuthClientManager({
     const result = await createOAuthClient(formData);
     setLoading(false);
 
-    if (result.error) {
+    if ("error" in result) {
       toast({
         title: t("createError"),
         description: result.error,

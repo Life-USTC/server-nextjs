@@ -4,6 +4,10 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
 import {
+  resolveOAuthClientScopes,
+  validateOAuthRedirectUris,
+} from "@/lib/oauth/client-registration";
+import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   generateToken,
   hashOAuthClientSecret,
@@ -12,7 +16,13 @@ import {
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/utils";
 
-export async function createOAuthClient(formData: FormData) {
+type CreateOAuthClientResult =
+  | { error: string }
+  | { success: true; clientId: string; clientSecret: string | null };
+
+export async function createOAuthClient(
+  formData: FormData,
+): Promise<CreateOAuthClientResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { error: "Not authenticated" };
@@ -47,32 +57,21 @@ export async function createOAuthClient(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
 
-  for (const uri of redirectUris) {
-    let parsedUri: URL;
-    try {
-      parsedUri = new URL(uri);
-    } catch {
-      return { error: `Invalid redirect URI: ${uri}` };
-    }
-
-    const isLocalhost =
-      parsedUri.hostname === "localhost" || parsedUri.hostname === "127.0.0.1";
-    const isAllowedScheme =
-      parsedUri.protocol === "https:" ||
-      (parsedUri.protocol === "http:" && isLocalhost);
-
-    if (!isAllowedScheme) {
-      return {
-        error:
-          "Redirect URIs must use https, or http only for localhost/127.0.0.1",
-      };
-    }
+  const redirectUrisResult = validateOAuthRedirectUris(redirectUris);
+  if ("error" in redirectUrisResult) {
+    return { error: redirectUrisResult.error };
   }
 
   const clientId = generateToken(16);
-  const scopes = enableMcp
-    ? [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE]
-    : [...DEFAULT_OAUTH_CLIENT_SCOPES];
+  const scopesResult = resolveOAuthClientScopes({
+    defaultScopes: enableMcp
+      ? [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE]
+      : [...DEFAULT_OAUTH_CLIENT_SCOPES],
+  });
+  if ("error" in scopesResult) {
+    return { error: scopesResult.error };
+  }
+  const scopes = scopesResult.scopes;
 
   if (
     tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
@@ -95,8 +94,8 @@ export async function createOAuthClient(formData: FormData) {
       clientSecret: hashedClientSecret,
       tokenEndpointAuthMethod,
       name,
-      redirectUris,
-      scopes,
+      redirectUris: [...redirectUrisResult.redirectUris],
+      scopes: [...scopes],
     },
   });
 
