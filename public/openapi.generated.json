@@ -1209,6 +1209,27 @@
         }
       }
     },
+    "/api/oauth/register": {
+      "post": {
+        "operationId": "post-api-oauth-register",
+        "summary": "POST /api/oauth/register",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/oauth/token": {
       "post": {
         "operationId": "post-api-oauth-token",

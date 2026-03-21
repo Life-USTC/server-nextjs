@@ -1,5 +1,6 @@
 export const MCP_ROUTE_PATH = "/api/mcp";
 export const OAUTH_AUTHORIZATION_PATH = "/oauth/authorize";
+export const OAUTH_REGISTRATION_PATH = "/api/oauth/register";
 export const OAUTH_TOKEN_PATH = "/api/oauth/token";
 export const OAUTH_AUTHORIZATION_SERVER_METADATA_PATH =
   "/.well-known/oauth-authorization-server";

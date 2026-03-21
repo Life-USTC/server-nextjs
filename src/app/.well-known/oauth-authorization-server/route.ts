@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   getOAuthIssuerUrl,
   OAUTH_AUTHORIZATION_PATH,
+  OAUTH_REGISTRATION_PATH,
   OAUTH_TOKEN_PATH,
 } from "@/lib/mcp/urls";
 import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
@@ -15,6 +16,10 @@ export async function GET(request: Request) {
     issuer: issuerUrl.toString(),
     authorization_endpoint: new URL(
       OAUTH_AUTHORIZATION_PATH,
+      issuerUrl,
+    ).toString(),
+    registration_endpoint: new URL(
+      OAUTH_REGISTRATION_PATH,
       issuerUrl,
     ).toString(),
     token_endpoint: new URL(OAUTH_TOKEN_PATH, issuerUrl).toString(),
