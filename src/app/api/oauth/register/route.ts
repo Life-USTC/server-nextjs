@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { validateDynamicClientRegistration } from "@/lib/oauth/client-registration";
-import { generateToken } from "@/lib/oauth/utils";
+import {
+  generateToken,
+  hashOAuthClientSecret,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/utils";
 
 /**
  * POST /api/oauth/register
  *
- * OAuth 2.0 Dynamic Client Registration for public PKCE clients.
- * Used by MCP clients such as Codex to self-register before starting OAuth.
+ * OAuth 2.0 Dynamic Client Registration.
+ * Supports public PKCE clients and confidential clients authenticated with
+ * client_secret_basic or client_secret_post.
  */
 export async function POST(request: Request) {
   let body: {
@@ -48,11 +53,18 @@ export async function POST(request: Request) {
 
   const createdAt = Math.floor(Date.now() / 1000);
   const clientId = generateToken(16);
+  const clientSecret =
+    validated.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+      ? null
+      : generateToken(32);
+  const hashedClientSecret = clientSecret
+    ? await hashOAuthClientSecret(clientSecret)
+    : null;
 
   await prisma.oAuthClient.create({
     data: {
       clientId,
-      clientSecret: null,
+      clientSecret: hashedClientSecret,
       tokenEndpointAuthMethod: validated.tokenEndpointAuthMethod,
       name: validated.clientName,
       redirectUris: [...validated.redirectUris],
@@ -70,6 +82,12 @@ export async function POST(request: Request) {
       response_types: validated.responseTypes,
       token_endpoint_auth_method: validated.tokenEndpointAuthMethod,
       scope: validated.scopes.join(" "),
+      ...(clientSecret
+        ? {
+            client_secret: clientSecret,
+            client_secret_expires_at: 0,
+          }
+        : {}),
     },
     { status: 201 },
   );

@@ -1,6 +1,8 @@
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   MCP_TOOLS_SCOPE,
+  OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
+  OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/utils";
 
@@ -17,7 +19,10 @@ type DynamicClientRegistrationResult =
   | {
       clientName: string;
       redirectUris: string[];
-      tokenEndpointAuthMethod: typeof OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
+      tokenEndpointAuthMethod:
+        | typeof OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+        | typeof OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD
+        | typeof OAUTH_CLIENT_SECRET_POST_AUTH_METHOD;
       grantTypes: string[];
       responseTypes: string[];
       scopes: string[];
@@ -102,10 +107,14 @@ export function validateDynamicClientRegistration(options: {
 
   const tokenEndpointAuthMethod =
     options.tokenEndpointAuthMethod ?? OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
-  if (tokenEndpointAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
+  if (
+    tokenEndpointAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
+    tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
+    tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_POST_AUTH_METHOD
+  ) {
     return {
       error:
-        "Dynamic client registration only supports public PKCE clients with token_endpoint_auth_method=none",
+        "Dynamic client registration only supports token_endpoint_auth_method values none, client_secret_basic, and client_secret_post",
     };
   }
 

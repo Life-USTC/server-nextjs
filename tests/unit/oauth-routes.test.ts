@@ -257,6 +257,45 @@ describe("oauth routes", () => {
     });
   });
 
+  it("registers dynamic confidential OAuth clients and hashes the secret", async () => {
+    prismaMock.oAuthClient.create.mockResolvedValue({});
+
+    const request = new Request("http://localhost/api/oauth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_name: "Connector Client",
+        redirect_uris: ["https://chat.openai.com/aip/test/oauth/callback"],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "client_secret_basic",
+        scope: "openid profile mcp:tools",
+      }),
+    });
+
+    const response = await register(request);
+    const body = await response.json();
+    const storedSecret =
+      prismaMock.oAuthClient.create.mock.calls[0][0].data.clientSecret;
+
+    expect(response.status).toBe(201);
+    expect(body).toMatchObject({
+      client_id: expect.any(String),
+      client_name: "Connector Client",
+      redirect_uris: ["https://chat.openai.com/aip/test/oauth/callback"],
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "client_secret_basic",
+      client_secret: expect.any(String),
+      client_secret_expires_at: 0,
+      scope: "openid profile mcp:tools",
+    });
+    expect(storedSecret).not.toBe(body.client_secret);
+    await expect(
+      verifyOAuthClientSecret(body.client_secret, storedSecret),
+    ).resolves.toBe(true);
+  });
+
   it("rejects invalid redirect URIs during dynamic registration", async () => {
     const request = new Request("http://localhost/api/oauth/register", {
       method: "POST",
