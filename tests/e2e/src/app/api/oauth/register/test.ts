@@ -11,6 +11,23 @@ test("/api/oauth/register", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/oauth/register" });
 });
 
+test("OAuth authorization-server metadata advertises dynamic registration and refresh tokens", async ({
+  request,
+}) => {
+  const response = await request.get("/.well-known/oauth-authorization-server");
+
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    registration_endpoint?: string;
+    grant_types_supported?: string[];
+  };
+  expect(body.registration_endpoint).toContain("/api/oauth/register");
+  expect(body.grant_types_supported).toEqual([
+    "authorization_code",
+    "refresh_token",
+  ]);
+});
+
 test("/api/oauth/register 可注册公共客户端并完成 PKCE 换取 token", async ({
   page,
   request,
@@ -118,7 +135,10 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
     };
     expect(typeof registrationBody.client_id).toBe("string");
     expect(typeof registrationBody.client_secret).toBe("string");
-    expect(registrationBody.grant_types).toEqual(["authorization_code"]);
+    expect(registrationBody.grant_types).toEqual([
+      "authorization_code",
+      "refresh_token",
+    ]);
     expect(registrationBody.token_endpoint_auth_method).toBe(
       "client_secret_basic",
     );
@@ -158,10 +178,35 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
 
     const tokenBody = (await tokenResponse.json()) as {
       access_token?: string;
+      refresh_token?: string;
       scope?: string;
     };
     expect(typeof tokenBody.access_token).toBe("string");
+    expect(typeof tokenBody.refresh_token).toBe("string");
     expect(tokenBody.scope).toBe("openid profile mcp:tools");
+
+    const refreshResponse = await request.post("/api/oauth/token", {
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${registrationBody.client_id}:${registrationBody.client_secret}`,
+        ).toString("base64")}`,
+      },
+      data: {
+        grant_type: "refresh_token",
+        refresh_token: tokenBody.refresh_token,
+        scope: "openid profile",
+      },
+    });
+    expect(refreshResponse.status()).toBe(200);
+
+    const refreshBody = (await refreshResponse.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      scope?: string;
+    };
+    expect(typeof refreshBody.access_token).toBe("string");
+    expect(typeof refreshBody.refresh_token).toBe("string");
+    expect(refreshBody.scope).toBe("openid profile");
   } finally {
     deleteOAuthClientsByName(clientName);
   }

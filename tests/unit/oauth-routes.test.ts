@@ -23,6 +23,11 @@ const { authMock, prismaMock, revalidatePathMock } = vi.hoisted(() => ({
       delete: vi.fn(),
       deleteMany: vi.fn(),
     },
+    oAuthRefreshToken: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      deleteMany: vi.fn(),
+    },
   },
 }));
 
@@ -46,6 +51,7 @@ import { GET as userinfo } from "@/app/api/oauth/userinfo/route";
 import {
   generateCodeChallenge,
   hashOAuthClientSecret,
+  hashOAuthRefreshToken,
   verifyOAuthClientSecret,
 } from "@/lib/oauth/utils";
 
@@ -64,6 +70,9 @@ describe("oauth routes", () => {
     prismaMock.oAuthAccessToken.findUnique.mockReset();
     prismaMock.oAuthAccessToken.delete.mockReset();
     prismaMock.oAuthAccessToken.deleteMany.mockReset();
+    prismaMock.oAuthRefreshToken.create.mockReset();
+    prismaMock.oAuthRefreshToken.findUnique.mockReset();
+    prismaMock.oAuthRefreshToken.deleteMany.mockReset();
   });
 
   it("trims requested scopes to the client's registered scopes", async () => {
@@ -212,9 +221,49 @@ describe("oauth routes", () => {
       data: expect.objectContaining({
         clientSecret: null,
         tokenEndpointAuthMethod: "none",
+        grantTypes: ["authorization_code"],
         scopes: ["openid", "profile", "mcp:tools"],
       }),
     });
+  });
+
+  it("creates clients with fine-grained scopes and client_secret_post", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "admin-user" },
+    });
+    prismaMock.user.findUnique.mockResolvedValue({ isAdmin: true });
+    prismaMock.oAuthClient.create.mockResolvedValue({});
+
+    const formData = new FormData();
+    formData.set("name", "Post Client");
+    formData.set("redirectUris", "https://client.example/callback");
+    formData.set("tokenEndpointAuthMethod", "client_secret_post");
+    formData.append("scopes", "openid");
+    formData.append("scopes", "mcp:tools");
+
+    const result = await createOAuthClient(formData);
+    const storedSecret =
+      prismaMock.oAuthClient.create.mock.calls[0][0].data.clientSecret;
+
+    if (
+      !("clientSecret" in result) ||
+      typeof result.clientSecret !== "string"
+    ) {
+      throw new Error(
+        "Expected OAuth client creation to return a clientSecret",
+      );
+    }
+
+    expect(prismaMock.oAuthClient.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tokenEndpointAuthMethod: "client_secret_post",
+        grantTypes: ["authorization_code", "refresh_token"],
+        scopes: ["openid", "mcp:tools"],
+      }),
+    });
+    await expect(
+      verifyOAuthClientSecret(result.clientSecret, storedSecret),
+    ).resolves.toBe(true);
   });
 
   it("registers dynamic public OAuth clients for PKCE", async () => {
@@ -252,6 +301,7 @@ describe("oauth routes", () => {
         tokenEndpointAuthMethod: "none",
         name: "Codex MCP Client",
         redirectUris: ["http://127.0.0.1:9876/callback"],
+        grantTypes: ["authorization_code"],
         scopes: ["openid", "profile", "mcp:tools"],
       }),
     });
@@ -283,7 +333,7 @@ describe("oauth routes", () => {
       client_id: expect.any(String),
       client_name: "Connector Client",
       redirect_uris: ["https://chat.openai.com/aip/test/oauth/callback"],
-      grant_types: ["authorization_code"],
+      grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: "client_secret_basic",
       client_secret: expect.any(String),
@@ -324,6 +374,7 @@ describe("oauth routes", () => {
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
       tokenEndpointAuthMethod: "client_secret_basic",
+      grantTypes: ["authorization_code", "refresh_token"],
     });
 
     const request = new Request("http://localhost/api/oauth/token", {
@@ -365,6 +416,7 @@ describe("oauth routes", () => {
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
       tokenEndpointAuthMethod: "client_secret_basic",
+      grantTypes: ["authorization_code", "refresh_token"],
     });
     prismaMock.oAuthCode.findUnique.mockResolvedValue({
       id: "code-db-id",
@@ -415,6 +467,7 @@ describe("oauth routes", () => {
       id: "client-db-id",
       clientSecret: null,
       tokenEndpointAuthMethod: "none",
+      grantTypes: ["authorization_code"],
     });
     prismaMock.oAuthCode.findUnique.mockResolvedValue({
       id: "code-db-id",
@@ -460,6 +513,126 @@ describe("oauth routes", () => {
       token_type: "Bearer",
       scope: "openid mcp:tools",
     });
+  });
+
+  it("issues refresh tokens when the client supports refresh_token", async () => {
+    prismaMock.oAuthClient.findUnique.mockResolvedValue({
+      id: "client-db-id",
+      clientSecret: await hashOAuthClientSecret("top-secret"),
+      tokenEndpointAuthMethod: "client_secret_basic",
+      grantTypes: ["authorization_code", "refresh_token"],
+    });
+    prismaMock.oAuthCode.findUnique.mockResolvedValue({
+      id: "code-db-id",
+      clientId: "client-db-id",
+      redirectUri: "https://client.example/callback",
+      expiresAt: new Date(Date.now() + 60_000),
+      scopes: ["openid", "profile"],
+      userId: "user-1",
+      codeChallenge: null,
+      codeChallengeMethod: null,
+      resource: null,
+    });
+    const createRefreshTokenMock = vi.fn();
+    prismaMock.$transaction.mockImplementation(async (callback) =>
+      callback({
+        oAuthCode: {
+          deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
+        oAuthAccessToken: {
+          create: vi.fn(),
+        },
+        oAuthRefreshToken: {
+          create: createRefreshTokenMock,
+        },
+      }),
+    );
+
+    const request = new Request("http://localhost/api/oauth/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        client_id: "client-id",
+        client_secret: "top-secret",
+        code: "auth-code",
+        redirect_uri: "https://client.example/callback",
+      }),
+    });
+
+    const response = await token(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      access_token: expect.any(String),
+      refresh_token: expect.any(String),
+      token_type: "Bearer",
+      scope: "openid profile",
+    });
+    expect(createRefreshTokenMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rotates refresh tokens during refresh_token exchange", async () => {
+    prismaMock.oAuthClient.findUnique.mockResolvedValue({
+      id: "client-db-id",
+      clientSecret: await hashOAuthClientSecret("top-secret"),
+      tokenEndpointAuthMethod: "client_secret_basic",
+      grantTypes: ["authorization_code", "refresh_token"],
+    });
+    prismaMock.oAuthRefreshToken.findUnique.mockResolvedValue({
+      id: "refresh-db-id",
+      tokenHash: hashOAuthRefreshToken("refresh-token"),
+      scopes: ["openid", "profile", "mcp:tools"],
+      resource: "http://localhost/api/mcp",
+      expiresAt: new Date(Date.now() + 60_000),
+      clientId: "client-db-id",
+      userId: "user-1",
+    });
+    const deleteRefreshTokenMock = vi.fn().mockResolvedValue({ count: 1 });
+    const createRefreshTokenMock = vi.fn();
+    prismaMock.$transaction.mockImplementation(async (callback) =>
+      callback({
+        oAuthRefreshToken: {
+          deleteMany: deleteRefreshTokenMock,
+          create: createRefreshTokenMock,
+        },
+        oAuthAccessToken: {
+          create: vi.fn(),
+        },
+      }),
+    );
+
+    const request = new Request("http://localhost/api/oauth/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        client_id: "client-id",
+        client_secret: "top-secret",
+        refresh_token: "refresh-token",
+        scope: "openid profile",
+        resource: "http://localhost/api/mcp",
+      }),
+    });
+
+    const response = await token(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      access_token: expect.any(String),
+      refresh_token: expect.any(String),
+      token_type: "Bearer",
+      scope: "openid profile",
+    });
+    expect(prismaMock.oAuthRefreshToken.findUnique).toHaveBeenCalledWith({
+      where: {
+        tokenHash: hashOAuthRefreshToken("refresh-token"),
+      },
+    });
+    expect(deleteRefreshTokenMock).toHaveBeenCalledTimes(1);
+    expect(createRefreshTokenMock).toHaveBeenCalledTimes(1);
   });
 
   it("cleans up expired access tokens without throwing on concurrent requests", async () => {

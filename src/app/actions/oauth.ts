@@ -13,6 +13,7 @@ import {
   hashOAuthClientSecret,
   MCP_TOOLS_SCOPE,
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
+  OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/utils";
 
@@ -42,6 +43,10 @@ export async function createOAuthClient(
   const tokenEndpointAuthMethod =
     (formData.get("tokenEndpointAuthMethod") as string)?.trim() ||
     OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
+  const requestedScopes = formData
+    .getAll("scopes")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
   const enableMcp =
     formData.get("enableMcp") === "on" || formData.get("enableMcp") === "true";
 
@@ -67,6 +72,7 @@ export async function createOAuthClient(
     defaultScopes: enableMcp
       ? [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE]
       : [...DEFAULT_OAUTH_CLIENT_SCOPES],
+    requestedScopes: requestedScopes.length > 0 ? requestedScopes : undefined,
   });
   if ("error" in scopesResult) {
     return { error: scopesResult.error };
@@ -75,6 +81,7 @@ export async function createOAuthClient(
 
   if (
     tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
+    tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_POST_AUTH_METHOD &&
     tokenEndpointAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD
   ) {
     return { error: "Unsupported token endpoint auth method" };
@@ -87,6 +94,10 @@ export async function createOAuthClient(
   const hashedClientSecret = clientSecret
     ? await hashOAuthClientSecret(clientSecret)
     : null;
+  const grantTypes =
+    tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+      ? ["authorization_code"]
+      : ["authorization_code", "refresh_token"];
 
   await prisma.oAuthClient.create({
     data: {
@@ -95,6 +106,7 @@ export async function createOAuthClient(
       tokenEndpointAuthMethod,
       name,
       redirectUris: [...redirectUrisResult.redirectUris],
+      grantTypes,
       scopes: [...scopes],
     },
   });

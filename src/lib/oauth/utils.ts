@@ -21,6 +21,10 @@ export function generateToken(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
 }
 
+export function hashOAuthRefreshToken(token: string): string {
+  return createHash("sha256").update(token).digest("base64url");
+}
+
 export async function hashOAuthClientSecret(secret: string): Promise<string> {
   const salt = randomBytes(16);
   const hash = (await scrypt(secret, salt, 32)) as Buffer;
@@ -77,3 +81,6 @@ export const CODE_LIFETIME_MS = 10 * 60 * 1000;
 
 /** Default lifetime for access tokens (1 hour). */
 export const ACCESS_TOKEN_LIFETIME_MS = 60 * 60 * 1000;
+
+/** Default lifetime for refresh tokens (30 days). */
+export const REFRESH_TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;

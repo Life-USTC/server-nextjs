@@ -762,6 +762,7 @@ model User {
   todos                Todo[]
   oauthCodes           OAuthCode[]
   oauthAccessTokens    OAuthAccessToken[]
+  oauthRefreshTokens   OAuthRefreshToken[]
 }
 
 
@@ -1050,13 +1051,15 @@ model OAuthClient {
   tokenEndpointAuthMethod String   @default("client_secret_basic")
   name                    String
   redirectUris            String[]
+  grantTypes              String[] @default(["authorization_code"])
   scopes                  String[] @default(["openid", "profile"])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  codes        OAuthCode[]
-  accessTokens OAuthAccessToken[]
+  codes         OAuthCode[]
+  accessTokens  OAuthAccessToken[]
+  refreshTokens OAuthRefreshToken[]
 }
 
 model OAuthCode {
@@ -1099,6 +1102,27 @@ model OAuthAccessToken {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([token])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OAuthRefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  scopes    String[]
+  resource  String?
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
   @@index([clientId])
   @@index([userId])
   @@index([expiresAt])

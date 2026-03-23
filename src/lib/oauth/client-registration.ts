@@ -32,6 +32,10 @@ const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set(
   DEFAULT_DYNAMIC_OAUTH_CLIENT_SCOPES,
 );
+const SUPPORTED_DYNAMIC_GRANT_TYPES = new Set([
+  "authorization_code",
+  "refresh_token",
+]);
 
 export function validateOAuthRedirectUris(
   redirectUris: string[],
@@ -127,7 +131,15 @@ export function validateDynamicClientRegistration(options: {
         'Dynamic client registration requires grant_types to include "authorization_code"',
     };
   }
-  const grantTypes = ["authorization_code"];
+  const invalidGrantTypes = requestedGrantTypes.filter(
+    (grantType) => !SUPPORTED_DYNAMIC_GRANT_TYPES.has(grantType),
+  );
+  if (invalidGrantTypes.length > 0) {
+    return {
+      error: `Unsupported grant_types requested: ${invalidGrantTypes.join(", ")}`,
+    };
+  }
+  const grantTypes = [...new Set(requestedGrantTypes)];
 
   const requestedResponseTypes = options.responseTypes?.filter(Boolean) ?? [
     "code",
