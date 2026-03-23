@@ -1,3 +1,10 @@
+# [0.47.0](https://github.com/Life-USTC/server-nextjs/compare/v0.46.0...v0.47.0) (2026-03-23)
+
+
+### Features
+
+* **oauth:** support confidential dynamic registration ([6a57566](https://github.com/Life-USTC/server-nextjs/commit/6a575660ff5b512b2a00d572583928b144f91de8))
+
 # [0.46.0](https://github.com/Life-USTC/server-nextjs/compare/v0.45.3...v0.46.0) (2026-03-21)
 
 
