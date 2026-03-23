@@ -1,3 +1,10 @@
+# [0.48.0](https://github.com/Life-USTC/server-nextjs/compare/v0.47.0...v0.48.0) (2026-03-23)
+
+
+### Features
+
+* **oauth:** support refresh tokens and improve admin ui ([e143cef](https://github.com/Life-USTC/server-nextjs/commit/e143ceff2a1d831e46764449de0de542c378f13d))
+
 # [0.47.0](https://github.com/Life-USTC/server-nextjs/compare/v0.46.0...v0.47.0) (2026-03-23)
 
 
