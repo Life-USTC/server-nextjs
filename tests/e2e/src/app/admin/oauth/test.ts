@@ -51,9 +51,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       page.getByRole("button", { name: /复制密钥|Copy secret/i }).first(),
     ).toBeVisible();
     await expect(
-      page
-        .getByText(/Verify your identity|验证您的身份/i)
-        .first(),
+      page.getByText(/Verify your identity|验证您的身份/i).first(),
     ).toBeVisible();
     await expect(
       page
