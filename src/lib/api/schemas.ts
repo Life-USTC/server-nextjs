@@ -35,7 +35,7 @@ import {
   UploadModelSchema,
   UserModelSchema,
   UserSuspensionModelSchema,
-} from "@/generated/zod/schemas/variants/pure";
+} from "@/lib/api/model-schemas";
 import type {
   descriptionUpsertRequestSchema,
   homeworkCreateRequestSchema,
