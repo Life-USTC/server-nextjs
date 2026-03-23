@@ -44,12 +44,28 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     await expect(page.getByText(clientName).first()).toBeVisible({
       timeout: 15000,
     });
-    await expect(page.getByText(/Client ID/i).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /复制 ID|Copy ID/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /复制密钥|Copy secret/i }).first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByText(/Verify your identity|验证您的身份/i)
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByText(/Call MCP tools on your behalf|代表您调用 MCP 工具/i)
+        .first(),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-oauth-created");
 
     const row = page
-      .getByText(clientName, { exact: true })
-      .locator("xpath=ancestor::div[contains(@class,'rounded-lg')][1]");
+      .locator("div.rounded-xl.border.p-4")
+      .filter({ has: page.getByText(clientName, { exact: true }) })
+      .first();
     await row.getByRole("button", { name: /删除|Delete/i }).click();
 
     await expect(page.getByText(clientName)).toHaveCount(0, {

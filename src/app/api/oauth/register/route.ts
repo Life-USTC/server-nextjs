@@ -68,6 +68,7 @@ export async function POST(request: Request) {
       tokenEndpointAuthMethod: validated.tokenEndpointAuthMethod,
       name: validated.clientName,
       redirectUris: [...validated.redirectUris],
+      grantTypes: [...validated.grantTypes],
       scopes: [...validated.scopes],
     },
   });

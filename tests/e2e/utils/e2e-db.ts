@@ -98,9 +98,13 @@ export async function createOAuthClientFixture(
     name?: string;
     redirectUris?: string[];
     scopes?: string[];
+    grantTypes?: string[];
     clientId?: string;
     clientSecret?: string;
-    tokenEndpointAuthMethod?: "client_secret_basic" | "none";
+    tokenEndpointAuthMethod?:
+      | "client_secret_basic"
+      | "client_secret_post"
+      | "none";
   } = {},
 ) {
   const clientId = options.clientId ?? generateToken(16);
@@ -113,6 +117,11 @@ export async function createOAuthClientFixture(
   const redirectUris = options.redirectUris ?? [
     `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`,
   ];
+  const grantTypes =
+    options.grantTypes ??
+    (tokenEndpointAuthMethod === "none"
+      ? ["authorization_code"]
+      : ["authorization_code", "refresh_token"]);
   const scopes = options.scopes ?? ["openid", "profile"];
   const name = options.name ?? `e2e-oauth-${Date.now()}`;
 
@@ -138,6 +147,7 @@ export async function createOAuthClientFixture(
         tokenEndpointAuthMethod: ${JSON.stringify(tokenEndpointAuthMethod)},
         name: ${JSON.stringify(name)},
         redirectUris: ${JSON.stringify(redirectUris)},
+        grantTypes: ${JSON.stringify(grantTypes)},
         scopes: ${JSON.stringify(scopes)},
       },
       select: {
@@ -146,6 +156,7 @@ export async function createOAuthClientFixture(
         name: true,
         tokenEndpointAuthMethod: true,
         redirectUris: true,
+        grantTypes: true,
         scopes: true,
       },
     });
