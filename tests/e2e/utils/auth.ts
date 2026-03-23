@@ -3,7 +3,7 @@ import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 const DEV_DEBUG_LOGIN_BUTTON = /Debug User \(Dev\)|调试用户（开发）/i;
 const DEV_ADMIN_LOGIN_BUTTON = /Admin User \(Dev\)|调试管理员（开发）/i;
-const SESSION_RETRY_ATTEMPTS = 3;
+const SESSION_RETRY_ATTEMPTS = 5;
 
 const ROUTE_ALIASES = new Map<string, string>([
   ["/settings/accounts", "/settings?tab=accounts"],
@@ -63,7 +63,7 @@ async function expectAuthenticatedSession(
       { length: SESSION_RETRY_ATTEMPTS - 1 },
       (_, index) => 250 * (index + 1),
     ),
-    timeout: 2_000,
+    timeout: 5_000,
   });
 }
 

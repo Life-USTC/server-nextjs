@@ -87,3 +87,82 @@ test("/api/oauth/register 可注册公共客户端并完成 PKCE 换取 token", 
     deleteOAuthClientsByName(clientName);
   }
 });
+
+test("/api/oauth/register 可注册 confidential client 并使用 client_secret 换取 token", async ({
+  page,
+  request,
+}) => {
+  const clientName = `connector-dcr-e2e-${Date.now()}`;
+  const redirectUri = "https://chat.openai.com/aip/test/oauth/callback";
+
+  try {
+    const registrationResponse = await request.post("/api/oauth/register", {
+      data: {
+        client_name: clientName,
+        redirect_uris: [redirectUri],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "client_secret_basic",
+        scope: "openid profile mcp:tools",
+      },
+    });
+
+    expect(registrationResponse.status()).toBe(201);
+    const registrationBody = (await registrationResponse.json()) as {
+      client_id?: string;
+      client_secret?: string;
+      grant_types?: string[];
+      token_endpoint_auth_method?: string;
+      redirect_uris?: string[];
+      scope?: string;
+    };
+    expect(typeof registrationBody.client_id).toBe("string");
+    expect(typeof registrationBody.client_secret).toBe("string");
+    expect(registrationBody.grant_types).toEqual(["authorization_code"]);
+    expect(registrationBody.token_endpoint_auth_method).toBe(
+      "client_secret_basic",
+    );
+    expect(registrationBody.redirect_uris).toEqual([redirectUri]);
+    expect(registrationBody.scope).toBe("openid profile mcp:tools");
+
+    await signInAsDebugUser(page, "/");
+
+    const authorizeResponse = await page.request.post("/api/oauth/authorize", {
+      data: {
+        client_id: registrationBody.client_id,
+        redirect_uri: redirectUri,
+        scope: "openid profile mcp:tools",
+      },
+    });
+    expect(authorizeResponse.status()).toBe(200);
+
+    const authorizeBody = (await authorizeResponse.json()) as {
+      redirect?: string;
+    };
+    const code = new URL(authorizeBody.redirect ?? "").searchParams.get("code");
+    expect(typeof code).toBe("string");
+
+    const tokenResponse = await request.post("/api/oauth/token", {
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${registrationBody.client_id}:${registrationBody.client_secret}`,
+        ).toString("base64")}`,
+      },
+      data: {
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      },
+    });
+    expect(tokenResponse.status()).toBe(200);
+
+    const tokenBody = (await tokenResponse.json()) as {
+      access_token?: string;
+      scope?: string;
+    };
+    expect(typeof tokenBody.access_token).toBe("string");
+    expect(tokenBody.scope).toBe("openid profile mcp:tools");
+  } finally {
+    deleteOAuthClientsByName(clientName);
+  }
+});
