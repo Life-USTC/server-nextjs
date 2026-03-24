@@ -31,6 +31,7 @@ export async function GET(request: Request) {
       "client_secret_post",
       "none",
     ],
+    client_id_metadata_document_supported: true,
     scopes_supported: ["openid", "profile", MCP_TOOLS_SCOPE],
   });
 }

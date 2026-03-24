@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db/prisma";
+import { resolveOAuthClient } from "@/lib/oauth/client-resolver";
 import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 import {
   OAUTH_CODE_CHALLENGE_METHOD_S256,
@@ -54,24 +54,16 @@ export default async function OAuthAuthorizePage({
     );
   }
 
-  const client = await prisma.oAuthClient.findUnique({
-    where: { clientId: params.client_id },
-    select: {
-      clientId: true,
-      name: true,
-      redirectUris: true,
-      scopes: true,
-      tokenEndpointAuthMethod: true,
-    },
-  });
+  const resolvedClient = await resolveOAuthClient(params.client_id);
 
-  if (!client) {
+  if ("error" in resolvedClient) {
     return (
       <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
         <p className="text-destructive">{t("errorInvalidClient")}</p>
       </main>
     );
   }
+  const client = resolvedClient.client;
 
   if (
     params.redirect_uri &&

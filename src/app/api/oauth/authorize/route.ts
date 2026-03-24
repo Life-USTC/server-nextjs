@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
+import { getMcpServerUrl } from "@/lib/mcp/urls";
+import { resolveOAuthClient } from "@/lib/oauth/client-resolver";
 import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
   CODE_LIFETIME_MS,
   generateToken,
+  MCP_TOOLS_SCOPE,
+  normalizeResourceIndicator,
   OAUTH_CODE_CHALLENGE_METHOD_S256,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  resourceIndicatorsMatch,
 } from "@/lib/oauth/utils";
 
 type AuthorizeRequestBody = {
@@ -18,6 +23,12 @@ type AuthorizeRequestBody = {
   code_challenge_method?: string;
   resource?: string;
 };
+type RequestedResourceValidationResult =
+  | { resource: string | undefined }
+  | {
+      error: "invalid_request" | "invalid_target";
+      errorDescription: string;
+    };
 
 function getOptionalString(
   value: FormDataEntryValue | string | null | undefined,
@@ -71,6 +82,51 @@ async function parseAuthorizeBody(
       resource: getOptionalString(params.get("resource")),
     };
   }
+}
+
+function validateRequestedResource({
+  request,
+  resource,
+  scopes,
+}: {
+  request: Request;
+  resource?: string;
+  scopes: string[];
+}): RequestedResourceValidationResult {
+  const mcpServerResource = getMcpServerUrl(request);
+
+  if (!resource) {
+    if (scopes.includes(MCP_TOOLS_SCOPE)) {
+      return {
+        error: "invalid_request",
+        errorDescription:
+          'resource is required when requesting the "mcp:tools" scope',
+      } as const;
+    }
+
+    return { resource: undefined } as const;
+  }
+
+  let normalizedResource: string;
+  try {
+    normalizedResource = normalizeResourceIndicator(resource);
+  } catch {
+    return {
+      error: "invalid_target",
+      errorDescription:
+        "resource must be a valid absolute URI without fragment",
+    } as const;
+  }
+
+  if (!resourceIndicatorsMatch(normalizedResource, mcpServerResource)) {
+    return {
+      error: "invalid_target",
+      errorDescription:
+        "This authorization server only issues resource-bound tokens for its MCP endpoint",
+    } as const;
+  }
+
+  return { resource: normalizedResource } as const;
 }
 
 /**
@@ -131,28 +187,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }
 
-    const client = await prisma.oAuthClient.findUnique({
-      where: { clientId: client_id },
-      select: {
-        id: true,
-        redirectUris: true,
-        scopes: true,
-        tokenEndpointAuthMethod: true,
-      },
-    });
-
-    if (!client) {
+    const resolvedClient = await resolveOAuthClient(client_id);
+    if ("error" in resolvedClient) {
       logOAuthEvent("warn", {
         route: "/api/oauth/authorize",
         event: "invalid_client",
         status: 400,
-        reason: "client not found",
+        reason: resolvedClient.errorDescription,
         clientId: client_id,
         redirectUri: redirect_uri,
         userId: session.user.id,
       });
       return NextResponse.json({ error: "invalid_client" }, { status: 400 });
     }
+    const client = resolvedClient.client;
 
     if (!client.redirectUris.includes(redirect_uri)) {
       logOAuthEvent("warn", {
@@ -189,6 +237,31 @@ export async function POST(request: Request) {
           error: "invalid_scope",
           error_description:
             "None of the requested scopes are allowed for this client",
+        },
+        { status: 400 },
+      );
+    }
+
+    const resourceResult = validateRequestedResource({
+      request,
+      resource,
+      scopes,
+    });
+    if ("error" in resourceResult) {
+      logOAuthEvent("warn", {
+        route: "/api/oauth/authorize",
+        event: resourceResult.error,
+        status: 400,
+        reason: resourceResult.errorDescription,
+        clientId: client_id,
+        redirectUri: redirect_uri,
+        resource: resource ?? null,
+        userId: session.user.id,
+      });
+      return NextResponse.json(
+        {
+          error: resourceResult.error,
+          error_description: resourceResult.errorDescription,
         },
         { status: 400 },
       );
@@ -248,7 +321,7 @@ export async function POST(request: Request) {
         scopes,
         codeChallenge: code_challenge ?? null,
         codeChallengeMethod: code_challenge_method ?? null,
-        resource: resource ?? null,
+        resource: resourceResult.resource ?? null,
         expiresAt: new Date(Date.now() + CODE_LIFETIME_MS),
         clientId: client.id,
         userId: session.user.id,
