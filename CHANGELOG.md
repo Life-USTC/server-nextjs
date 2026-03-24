@@ -1,3 +1,10 @@
+## [0.48.1](https://github.com/Life-USTC/server-nextjs/compare/v0.48.0...v0.48.1) (2026-03-24)
+
+
+### Bug Fixes
+
+* **oauth:** harden auth flows and admin ui ([9e994b3](https://github.com/Life-USTC/server-nextjs/commit/9e994b3a6eb83839f2c42378401a7c0e5caf1ed8))
+
 # [0.48.0](https://github.com/Life-USTC/server-nextjs/compare/v0.47.0...v0.48.0) (2026-03-23)
 
 
