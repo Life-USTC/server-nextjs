@@ -214,11 +214,30 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
         expect.arrayContaining([
           "get_my_profile",
           "list_my_todos",
+          "create_my_todo",
+          "update_my_todo",
+          "delete_my_todo",
+          "list_my_homeworks",
+          "set_my_homework_completion",
+          "list_my_schedules",
+          "list_my_exams",
+          "get_my_overview",
+          "get_my_7days_timeline",
           "search_courses",
+          "match_section_codes",
+          "get_my_calendar_subscription",
+          "subscribe_my_sections_by_codes",
           "get_section_by_jw_id",
           "list_homeworks_by_section",
           "list_schedules_by_section",
           "list_exams_by_section",
+        ]),
+      );
+      expect(tools.tools.map((tool) => tool.name)).not.toEqual(
+        expect.arrayContaining([
+          "list_comments",
+          "create_comment",
+          "set_comment_reaction",
         ]),
       );
 
@@ -282,6 +301,7 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
       const sectionPayload = parseTextContent(sectionResult) as {
         found?: boolean;
         section?: {
+          id?: number;
           jwId?: number;
           code?: string | null;
           course?: { code?: string | null; namePrimary?: string | null };
@@ -348,6 +368,231 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
       expect(examsPayload.found).toBe(true);
       expect(examsPayload.section?.jwId).toBe(DEV_SEED.section.jwId);
       expect((examsPayload.exams?.length ?? 0) > 0).toBe(true);
+
+      const myHomeworksResult = await mcpClient.callTool({
+        name: "list_my_homeworks",
+        arguments: {
+          completed: false,
+          limit: 30,
+          locale: "zh-cn",
+        },
+      });
+      const myHomeworksPayload = parseTextContent(myHomeworksResult) as {
+        homeworks?: Array<{ id?: string; title?: string }>;
+      };
+      expect(
+        myHomeworksPayload.homeworks?.some(
+          (homework) => homework.title === DEV_SEED.homeworks.title,
+        ),
+      ).toBe(true);
+      const firstHomeworkId = myHomeworksPayload.homeworks?.[0]?.id;
+      expect(typeof firstHomeworkId).toBe("string");
+
+      const setCompletionTrueResult = await mcpClient.callTool({
+        name: "set_my_homework_completion",
+        arguments: {
+          homeworkId: firstHomeworkId,
+          completed: true,
+        },
+      });
+      const setCompletionTruePayload = parseTextContent(
+        setCompletionTrueResult,
+      ) as {
+        success?: boolean;
+        completion?: { completed?: boolean };
+      };
+      expect(setCompletionTruePayload.success).toBe(true);
+      expect(setCompletionTruePayload.completion?.completed).toBe(true);
+
+      const setCompletionFalseResult = await mcpClient.callTool({
+        name: "set_my_homework_completion",
+        arguments: {
+          homeworkId: firstHomeworkId,
+          completed: false,
+        },
+      });
+      const setCompletionFalsePayload = parseTextContent(
+        setCompletionFalseResult,
+      ) as {
+        success?: boolean;
+        completion?: { completed?: boolean };
+      };
+      expect(setCompletionFalsePayload.success).toBe(true);
+      expect(setCompletionFalsePayload.completion?.completed).toBe(false);
+
+      const mySchedulesResult = await mcpClient.callTool({
+        name: "list_my_schedules",
+        arguments: {
+          limit: 30,
+          locale: "zh-cn",
+        },
+      });
+      const mySchedulesPayload = parseTextContent(mySchedulesResult) as {
+        schedules?: Array<{ id?: number }>;
+      };
+      expect((mySchedulesPayload.schedules?.length ?? 0) > 0).toBe(true);
+
+      const myExamsResult = await mcpClient.callTool({
+        name: "list_my_exams",
+        arguments: {
+          includeDateUnknown: true,
+          limit: 30,
+          locale: "zh-cn",
+        },
+      });
+      const myExamsPayload = parseTextContent(myExamsResult) as {
+        exams?: Array<{ id?: number }>;
+      };
+      expect((myExamsPayload.exams?.length ?? 0) > 0).toBe(true);
+
+      const overviewResult = await mcpClient.callTool({
+        name: "get_my_overview",
+        arguments: {
+          locale: "zh-cn",
+        },
+      });
+      const overviewPayload = parseTextContent(overviewResult) as {
+        overview?: {
+          pendingTodosCount?: number;
+          pendingHomeworksCount?: number;
+          todaySchedulesCount?: number;
+          upcomingExamsCount?: number;
+        };
+      };
+      expect(typeof overviewPayload.overview?.pendingTodosCount).toBe("number");
+      expect(typeof overviewPayload.overview?.pendingHomeworksCount).toBe(
+        "number",
+      );
+      expect(typeof overviewPayload.overview?.todaySchedulesCount).toBe(
+        "number",
+      );
+      expect(typeof overviewPayload.overview?.upcomingExamsCount).toBe(
+        "number",
+      );
+
+      const timelineResult = await mcpClient.callTool({
+        name: "get_my_7days_timeline",
+        arguments: {
+          locale: "zh-cn",
+        },
+      });
+      const timelinePayload = parseTextContent(timelineResult) as {
+        total?: number;
+        events?: Array<{ type?: string; at?: string | null }>;
+      };
+      expect(typeof timelinePayload.total).toBe("number");
+      expect((timelinePayload.events?.length ?? 0) > 0).toBe(true);
+      expect(
+        timelinePayload.events?.some((event) =>
+          ["schedule", "homework_due", "exam", "todo_due"].includes(
+            event.type ?? "",
+          ),
+        ),
+      ).toBe(true);
+
+      const matchSectionCodesResult = await mcpClient.callTool({
+        name: "match_section_codes",
+        arguments: {
+          codes: [DEV_SEED.section.code, "NOT-EXIST-CODE"],
+          locale: "zh-cn",
+        },
+      });
+      const matchSectionCodesPayload = parseTextContent(
+        matchSectionCodesResult,
+      ) as {
+        success?: boolean;
+        matchedCodes?: string[];
+        unmatchedCodes?: string[];
+      };
+      expect(matchSectionCodesPayload.success).toBe(true);
+      expect(matchSectionCodesPayload.matchedCodes).toContain(
+        DEV_SEED.section.code,
+      );
+      expect(matchSectionCodesPayload.unmatchedCodes).toContain(
+        "NOT-EXIST-CODE",
+      );
+
+      const todoTitle = `[MCP-E2E-TODO] ${Date.now()}`;
+      const createTodoResult = await mcpClient.callTool({
+        name: "create_my_todo",
+        arguments: {
+          title: todoTitle,
+          content: "todo created by mcp e2e",
+          priority: "medium",
+          dueAt: new Date().toISOString(),
+        },
+      });
+      const createTodoPayload = parseTextContent(createTodoResult) as {
+        success?: boolean;
+        id?: string;
+      };
+      expect(createTodoPayload.success).toBe(true);
+      expect(typeof createTodoPayload.id).toBe("string");
+
+      const updateTodoResult = await mcpClient.callTool({
+        name: "update_my_todo",
+        arguments: {
+          id: createTodoPayload.id,
+          title: `${todoTitle}-updated`,
+          completed: true,
+        },
+      });
+      const updateTodoPayload = parseTextContent(updateTodoResult) as {
+        success?: boolean;
+      };
+      expect(updateTodoPayload.success).toBe(true);
+
+      const deleteTodoResult = await mcpClient.callTool({
+        name: "delete_my_todo",
+        arguments: {
+          id: createTodoPayload.id,
+        },
+      });
+      const deleteTodoPayload = parseTextContent(deleteTodoResult) as {
+        success?: boolean;
+      };
+      expect(deleteTodoPayload.success).toBe(true);
+
+      const calendarSubscriptionResult = await mcpClient.callTool({
+        name: "get_my_calendar_subscription",
+        arguments: {
+          locale: "zh-cn",
+        },
+      });
+      const calendarSubscriptionPayload = parseTextContent(
+        calendarSubscriptionResult,
+      ) as {
+        success?: boolean;
+        subscription?: {
+          userId?: string;
+          sections?: Array<{ id?: number }>;
+          calendarPath?: string;
+        };
+      };
+      expect(calendarSubscriptionPayload.success).toBe(true);
+      expect(calendarSubscriptionPayload.subscription?.userId).toBe(
+        currentUser.id,
+      );
+      expect(
+        (calendarSubscriptionPayload.subscription?.sections?.length ?? 0) > 0,
+      ).toBe(true);
+      expect(calendarSubscriptionPayload.subscription?.calendarPath).toContain(
+        "/api/users/",
+      );
+
+      const subscribeResult = await mcpClient.callTool({
+        name: "subscribe_my_sections_by_codes",
+        arguments: {
+          codes: [DEV_SEED.section.code],
+          locale: "zh-cn",
+        },
+      });
+      const subscribePayload = parseTextContent(subscribeResult) as {
+        success?: boolean;
+        matchedCodes?: string[];
+      };
+      expect(subscribePayload.success).toBe(true);
+      expect(subscribePayload.matchedCodes).toContain(DEV_SEED.section.code);
 
       const missingSectionResult = await mcpClient.callTool({
         name: "get_section_by_jw_id",
