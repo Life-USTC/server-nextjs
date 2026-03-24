@@ -139,6 +139,15 @@ export function validateDynamicClientRegistration(options: {
       error: `Unsupported grant_types requested: ${invalidGrantTypes.join(", ")}`,
     };
   }
+  if (
+    tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
+    requestedGrantTypes.includes("refresh_token")
+  ) {
+    return {
+      error:
+        'Public dynamic clients may only register "authorization_code" grant_types',
+    };
+  }
   const grantTypes = [...new Set(requestedGrantTypes)];
 
   const requestedResponseTypes = options.responseTypes?.filter(Boolean) ?? [

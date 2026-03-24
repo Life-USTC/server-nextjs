@@ -77,6 +77,9 @@ export function AdminUsersTable({
   totalPages,
   search,
 }: AdminUsersTableProps) {
+  const suspendDurationLabelId = "admin-user-suspend-duration-label";
+  const suspendExpiresInputId = "admin-user-suspend-expires-at";
+  const suspendReasonInputId = "admin-user-suspend-reason";
   const t = useTranslations("adminUsers");
   const tModeration = useTranslations("moderation");
   const locale = useLocale();
@@ -356,7 +359,9 @@ export function AdminUsersTable({
                 </h4>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>{tModeration("durationLabel")}</Label>
+                    <Label id={suspendDurationLabelId}>
+                      {tModeration("durationLabel")}
+                    </Label>
                     <Select
                       value={suspendDuration}
                       onValueChange={(value) =>
@@ -367,7 +372,7 @@ export function AdminUsersTable({
                         label: tModeration(opt.labelKey),
                       }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger aria-labelledby={suspendDurationLabelId}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectPopup>
@@ -381,8 +386,11 @@ export function AdminUsersTable({
                   </div>
                   {suspendDuration === "custom" && (
                     <div className="space-y-2">
-                      <Label>{tModeration("suspendExpires")}</Label>
+                      <Label htmlFor={suspendExpiresInputId}>
+                        {tModeration("suspendExpires")}
+                      </Label>
                       <Input
+                        id={suspendExpiresInputId}
                         type="datetime-local"
                         value={suspendExpiresAt}
                         onChange={(event) =>
@@ -393,8 +401,11 @@ export function AdminUsersTable({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label>{tModeration("reason")}</Label>
+                  <Label htmlFor={suspendReasonInputId}>
+                    {tModeration("reason")}
+                  </Label>
                   <Input
+                    id={suspendReasonInputId}
                     value={suspendReason}
                     onChange={(event) => setSuspendReason(event.target.value)}
                     placeholder={tModeration("suspendReason")}

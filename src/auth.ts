@@ -17,6 +17,7 @@ type OAuthProfile = {
 };
 
 const isDev = process.env.NODE_ENV === "development";
+const allowDebugAuth = isDev || process.env.E2E_DEBUG_AUTH === "1";
 const DEV_DEBUG_PROVIDER_ID = "dev-debug";
 const DEV_ADMIN_PROVIDER_ID = "dev-admin";
 const DEV_DEBUG_USERNAME =
@@ -67,7 +68,7 @@ const adapter: Adapter = {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter,
   session: {
-    strategy: isDev ? "jwt" : "database",
+    strategy: allowDebugAuth ? "jwt" : "database",
   },
   pages: {
     signIn: "/signin",
@@ -79,7 +80,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       allowDangerousEmailAccountLinking: false,
     }),
-    ...(isDev
+    ...(allowDebugAuth
       ? [
           Credentials({
             id: DEV_DEBUG_PROVIDER_ID,
@@ -176,7 +177,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         account.provider === DEV_DEBUG_PROVIDER_ID ||
         account.provider === DEV_ADMIN_PROVIDER_ID
       ) {
-        return isDev;
+        return allowDebugAuth;
       }
 
       if (isDev) {

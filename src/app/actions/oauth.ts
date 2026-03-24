@@ -7,6 +7,7 @@ import {
   resolveOAuthClientScopes,
   validateOAuthRedirectUris,
 } from "@/lib/oauth/client-registration";
+import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   generateToken,
@@ -99,17 +100,36 @@ export async function createOAuthClient(
       ? ["authorization_code"]
       : ["authorization_code", "refresh_token"];
 
-  await prisma.oAuthClient.create({
-    data: {
-      clientId,
-      clientSecret: hashedClientSecret,
-      tokenEndpointAuthMethod,
-      name,
-      redirectUris: [...redirectUrisResult.redirectUris],
-      grantTypes,
-      scopes: [...scopes],
-    },
-  });
+  try {
+    await prisma.oAuthClient.create({
+      data: {
+        clientId,
+        clientSecret: hashedClientSecret,
+        tokenEndpointAuthMethod,
+        name,
+        redirectUris: [...redirectUrisResult.redirectUris],
+        grantTypes,
+        scopes: [...scopes],
+      },
+    });
+  } catch (error) {
+    logOAuthEvent(
+      "error",
+      {
+        route: "/admin/oauth",
+        event: "admin_client_create_failed",
+        status: 500,
+        reason: "failed to persist oauth client from admin panel",
+        clientId,
+        registeredAuthMethod: tokenEndpointAuthMethod,
+        redirectUri: redirectUrisResult.redirectUris[0] ?? null,
+        scope: scopes,
+        userId: session.user.id,
+      },
+      error,
+    );
+    return { error: "Failed to create OAuth client" };
+  }
 
   revalidatePath("/admin/oauth");
 
@@ -131,7 +151,22 @@ export async function deleteOAuthClient(clientDbId: string) {
     return { error: "Not authorized" };
   }
 
-  await prisma.oAuthClient.delete({ where: { id: clientDbId } });
+  try {
+    await prisma.oAuthClient.delete({ where: { id: clientDbId } });
+  } catch (error) {
+    logOAuthEvent(
+      "error",
+      {
+        route: "/admin/oauth",
+        event: "admin_client_delete_failed",
+        status: 500,
+        reason: "failed to delete oauth client from admin panel",
+        userId: session.user.id,
+      },
+      error,
+    );
+    return { error: "Failed to delete OAuth client" };
+  }
 
   revalidatePath("/admin/oauth");
   return { success: true };

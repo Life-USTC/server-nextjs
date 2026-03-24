@@ -95,12 +95,21 @@ export async function signInAsDebugUser(
     page,
     `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
   );
-  await page
+  const debugButton = page
     .getByRole("button", { name: DEV_DEBUG_LOGIN_BUTTON })
-    .first()
-    .click();
+    .first();
+  await expect(debugButton).toBeVisible();
+  await debugButton.click();
 
-  await expectPagePath(page, expectedPath);
+  await expect(async () => {
+    await expectPagePath(page, expectedPath);
+  }).toPass({
+    intervals: Array.from(
+      { length: SESSION_RETRY_ATTEMPTS - 1 },
+      (_, index) => 250 * (index + 1),
+    ),
+    timeout: 10_000,
+  });
   await waitForUiSettled(page);
   await expect(page.locator("#main-content")).toBeVisible();
   await expectAuthenticatedSession(page);
@@ -115,12 +124,21 @@ export async function signInAsDevAdmin(
     page,
     `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
   );
-  await page
+  const adminButton = page
     .getByRole("button", { name: DEV_ADMIN_LOGIN_BUTTON })
-    .first()
-    .click();
+    .first();
+  await expect(adminButton).toBeVisible();
+  await adminButton.click();
 
-  await expectPagePath(page, expectedPath);
+  await expect(async () => {
+    await expectPagePath(page, expectedPath);
+  }).toPass({
+    intervals: Array.from(
+      { length: SESSION_RETRY_ATTEMPTS - 1 },
+      (_, index) => 250 * (index + 1),
+    ),
+    timeout: 10_000,
+  });
   await waitForUiSettled(page);
   await expect(page.locator("#main-content")).toBeVisible();
   await expectAuthenticatedSession(page, { isAdmin: true });

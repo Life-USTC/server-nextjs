@@ -27,7 +27,7 @@ function inferOrigin(origin?: string) {
   if (origin) {
     return origin;
   }
-  return "http://127.0.0.1:3000";
+  return "http://localhost:3000";
 }
 
 export const s3Bucket = isMockS3Enabled()

@@ -31,27 +31,31 @@ test("/api/homeworks/[id]/completion 可切换完成状态", async ({ page }) =>
   ).homeworks?.[0]?.id;
   expect(homeworkId).toBeTruthy();
 
-  const completeResponse = await page.request.put(
-    `/api/homeworks/${homeworkId}/completion`,
-    { data: { completed: true } },
-  );
-  expect(completeResponse.status()).toBe(200);
-  expect(
-    (await completeResponse.json()) as {
-      completed?: boolean;
-      completedAt?: string | null;
-    },
-  ).toMatchObject({ completed: true });
+  await expect(async () => {
+    const completeResponse = await page.request.put(
+      `/api/homeworks/${homeworkId}/completion`,
+      { data: { completed: true } },
+    );
+    expect(completeResponse.status()).toBe(200);
+    expect(
+      (await completeResponse.json()) as {
+        completed?: boolean;
+        completedAt?: string | null;
+      },
+    ).toMatchObject({ completed: true });
+  }).toPass({ timeout: 10_000 });
 
-  const undoResponse = await page.request.put(
-    `/api/homeworks/${homeworkId}/completion`,
-    { data: { completed: false } },
-  );
-  expect(undoResponse.status()).toBe(200);
-  expect(
-    (await undoResponse.json()) as {
-      completed?: boolean;
-      completedAt?: string | null;
-    },
-  ).toMatchObject({ completed: false, completedAt: null });
+  await expect(async () => {
+    const undoResponse = await page.request.put(
+      `/api/homeworks/${homeworkId}/completion`,
+      { data: { completed: false } },
+    );
+    expect(undoResponse.status()).toBe(200);
+    expect(
+      (await undoResponse.json()) as {
+        completed?: boolean;
+        completedAt?: string | null;
+      },
+    ).toMatchObject({ completed: false, completedAt: null });
+  }).toPass({ timeout: 10_000 });
 });

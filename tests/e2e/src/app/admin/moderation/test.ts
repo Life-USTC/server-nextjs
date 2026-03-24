@@ -114,7 +114,9 @@ test("/admin/moderation 目标链接可跳转到原页面锚点", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDevAdmin(page, `/sections/${DEV_SEED.section.jwId}`);
+  const sectionPath = `/sections/${DEV_SEED.section.jwId}`;
+  await signInAsDevAdmin(page, sectionPath);
+  await gotoAndWaitForReady(page, sectionPath);
 
   const commentsTab = page.getByRole("tab", { name: /评论|Comments/i }).first();
   await expect(commentsTab).toBeVisible();

@@ -58,7 +58,9 @@ test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) 
     { waitUntil: "load" },
   );
 
-  await expect(page.getByText(/无效客户端|Invalid client/i)).toBeVisible();
+  await expect(
+    page.getByText(/无效客户端|Invalid client/i).first(),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "oauth-authorize-invalid-client");
 });
 

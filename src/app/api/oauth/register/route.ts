@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { validateDynamicClientRegistration } from "@/lib/oauth/client-registration";
+import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
   generateToken,
   hashOAuthClientSecret,
@@ -27,6 +28,12 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
+    logOAuthEvent("warn", {
+      route: "/api/oauth/register",
+      event: "invalid_client_metadata",
+      status: 400,
+      reason: "dynamic registration body could not be parsed",
+    });
     return NextResponse.json(
       { error: "invalid_client_metadata" },
       { status: 400 },
@@ -42,6 +49,15 @@ export async function POST(request: Request) {
     scope: body.scope,
   });
   if ("error" in validated) {
+    logOAuthEvent("warn", {
+      route: "/api/oauth/register",
+      event: "invalid_client_metadata",
+      status: 400,
+      reason: validated.error,
+      registeredAuthMethod: body.token_endpoint_auth_method ?? null,
+      redirectUri: body.redirect_uris?.[0] ?? null,
+      scope: body.scope ?? null,
+    });
     return NextResponse.json(
       {
         error: "invalid_client_metadata",
@@ -61,17 +77,35 @@ export async function POST(request: Request) {
     ? await hashOAuthClientSecret(clientSecret)
     : null;
 
-  await prisma.oAuthClient.create({
-    data: {
-      clientId,
-      clientSecret: hashedClientSecret,
-      tokenEndpointAuthMethod: validated.tokenEndpointAuthMethod,
-      name: validated.clientName,
-      redirectUris: [...validated.redirectUris],
-      grantTypes: [...validated.grantTypes],
-      scopes: [...validated.scopes],
-    },
-  });
+  try {
+    await prisma.oAuthClient.create({
+      data: {
+        clientId,
+        clientSecret: hashedClientSecret,
+        tokenEndpointAuthMethod: validated.tokenEndpointAuthMethod,
+        name: validated.clientName,
+        redirectUris: [...validated.redirectUris],
+        grantTypes: [...validated.grantTypes],
+        scopes: [...validated.scopes],
+      },
+    });
+  } catch (error) {
+    logOAuthEvent(
+      "error",
+      {
+        route: "/api/oauth/register",
+        event: "registration_failed",
+        status: 500,
+        reason: "failed to persist dynamic client registration",
+        clientId,
+        registeredAuthMethod: validated.tokenEndpointAuthMethod,
+        redirectUri: validated.redirectUris[0] ?? null,
+        scope: validated.scopes,
+      },
+      error,
+    );
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
 
   return NextResponse.json(
     {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, KeyRound, Link2, ShieldCheck } from "lucide-react";
+import { Copy, Link2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { createOAuthClient, deleteOAuthClient } from "@/app/actions/oauth";
@@ -17,7 +17,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/shared/lib/utils";
@@ -92,7 +91,7 @@ function getClientTypeBadgeVariant(method: string) {
 }
 
 function getClientTypeLabel(
-  t: (key: string, values?: Record<string, string>) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
   method: string,
 ) {
   if (method === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
@@ -108,6 +107,53 @@ function getScopeInputId(scope: string) {
   return `oauth-scope-${scope.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
 }
 
+function parseRedirectUris(value: string) {
+  return value
+    .split("\n")
+    .map((uri) => uri.trim())
+    .filter(Boolean);
+}
+
+function CopyField({
+  label,
+  value,
+  copyLabel,
+  onCopy,
+  disabled = false,
+}: {
+  label: string;
+  value: string;
+  copyLabel: string;
+  onCopy: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <Field className="space-y-2">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="flex items-stretch gap-2">
+        <button
+          type="button"
+          className="flex-1 overflow-x-auto rounded-lg border bg-muted/40 px-3 py-2 text-left font-mono text-sm transition-colors hover:bg-muted"
+          onClick={onCopy}
+          disabled={disabled}
+        >
+          {value}
+        </button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onCopy}
+          disabled={disabled}
+        >
+          <Copy className="size-4" />
+          {copyLabel}
+        </Button>
+      </div>
+    </Field>
+  );
+}
+
 export function OAuthClientManager({
   clients,
 }: {
@@ -121,12 +167,19 @@ export function OAuthClientManager({
     useState<string>(DEFAULT_AUTH_METHOD);
   const [selectedScopes, setSelectedScopes] =
     useState<string[]>(DEFAULT_SCOPE_VALUES);
+  const [redirectDraft, setRedirectDraft] = useState("");
   const [createdCredentials, setCreatedCredentials] =
     useState<CreatedCredentials | null>(null);
 
   const selectedAuthMethodMeta = AUTH_METHOD_OPTIONS.find(
     (option) => option.value === selectedAuthMethod,
   );
+  const draftRedirectUris = parseRedirectUris(redirectDraft);
+  const publicClientCount = clients.filter(
+    (client) =>
+      client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+  ).length;
+  const confidentialClientCount = clients.length - publicClientCount;
 
   async function copyValue(value: string, description: string) {
     try {
@@ -147,10 +200,9 @@ export function OAuthClientManager({
 
   async function onCreateClient(formData: FormData) {
     const name = String(formData.get("name") ?? "").trim();
-    const redirectUris = String(formData.get("redirectUris") ?? "")
-      .split("\n")
-      .map((value) => value.trim())
-      .filter(Boolean);
+    const redirectUris = parseRedirectUris(
+      String(formData.get("redirectUris") ?? ""),
+    );
     const tokenEndpointAuthMethod =
       String(formData.get("tokenEndpointAuthMethod") ?? DEFAULT_AUTH_METHOD) ||
       DEFAULT_AUTH_METHOD;
@@ -183,6 +235,7 @@ export function OAuthClientManager({
     });
     setSelectedAuthMethod(DEFAULT_AUTH_METHOD);
     setSelectedScopes([...DEFAULT_SCOPE_VALUES]);
+    setRedirectDraft("");
     setFormKey((current) => current + 1);
     toast({
       title: t("createSuccess"),
@@ -218,6 +271,33 @@ export function OAuthClientManager({
 
   return (
     <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardPanel className="space-y-1 py-5">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+              {t("overviewClients")}
+            </p>
+            <p className="font-semibold text-2xl">{clients.length}</p>
+          </CardPanel>
+        </Card>
+        <Card>
+          <CardPanel className="space-y-1 py-5">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+              {t("overviewConfidential")}
+            </p>
+            <p className="font-semibold text-2xl">{confidentialClientCount}</p>
+          </CardPanel>
+        </Card>
+        <Card>
+          <CardPanel className="space-y-1 py-5">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+              {t("overviewPublic")}
+            </p>
+            <p className="font-semibold text-2xl">{publicClientCount}</p>
+          </CardPanel>
+        </Card>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(19rem,1fr)]">
         <Card>
           <CardHeader>
@@ -234,7 +314,7 @@ export function OAuthClientManager({
                 <ShieldCheck className="mt-0.5 size-4" />
                 <AlertTitle>{t("panelSecurityTitle")}</AlertTitle>
                 <AlertDescription>
-                  <p>{t("panelSecurityDescription")}</p>
+                  {t("panelSecurityDescription")}
                 </AlertDescription>
               </Alert>
 
@@ -276,21 +356,35 @@ export function OAuthClientManager({
                 </Field>
 
                 <Field className="lg:col-span-2">
-                  <FieldLabel htmlFor="redirectUris">
-                    {t("redirectUris")}
-                  </FieldLabel>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <FieldLabel htmlFor="redirectUris">
+                      {t("redirectUris")}
+                    </FieldLabel>
+                    <span className="text-muted-foreground text-xs">
+                      {t("previewRedirectCount", {
+                        count: draftRedirectUris.length,
+                      })}
+                    </span>
+                  </div>
                   <Textarea
                     id="redirectUris"
                     name="redirectUris"
                     className="min-h-28 font-mono text-sm"
                     placeholder={t("redirectUrisPlaceholder")}
+                    value={redirectDraft}
+                    onChange={(event) => setRedirectDraft(event.target.value)}
                     required
                   />
                   <FieldDescription>{t("redirectUrisHint")}</FieldDescription>
                 </Field>
 
                 <Field className="lg:col-span-2">
-                  <FieldLabel>{t("permissionsTitle")}</FieldLabel>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <FieldLabel>{t("permissionsTitle")}</FieldLabel>
+                    <span className="text-muted-foreground text-xs">
+                      {t("previewScopeCount", { count: selectedScopes.length })}
+                    </span>
+                  </div>
                   <FieldDescription>{t("permissionsHint")}</FieldDescription>
 
                   <div className="grid gap-3 md:grid-cols-3">
@@ -342,9 +436,7 @@ export function OAuthClientManager({
                 </Field>
               </div>
 
-              <Separator />
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
                 <p className="text-muted-foreground text-xs">
                   {t("createClientFootnote")}
                 </p>
@@ -385,114 +477,111 @@ export function OAuthClientManager({
                   ))}
                 </div>
 
-                <Field>
-                  <FieldLabel>{t("clientIdLabel")}</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 overflow-x-auto rounded-lg bg-muted px-3 py-2 font-mono text-sm">
-                      {createdCredentials.clientId}
-                    </code>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        copyValue(
-                          createdCredentials.clientId,
-                          t("clientIdCopied"),
-                        )
-                      }
-                    >
-                      <Copy className="size-4" />
-                      {t("copyClientId")}
-                    </Button>
-                  </div>
-                </Field>
-
-                <Field>
-                  <FieldLabel>{t("clientSecretLabel")}</FieldLabel>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 overflow-x-auto rounded-lg bg-muted px-3 py-2 font-mono text-sm">
-                      {createdCredentials.clientSecret ??
-                        t("publicClientNoSecret")}
-                    </code>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!createdCredentials.clientSecret}
-                      onClick={() => {
-                        if (!createdCredentials.clientSecret) return;
-                        copyValue(
-                          createdCredentials.clientSecret,
-                          t("clientSecretCopied"),
-                        );
-                      }}
-                    >
-                      <KeyRound className="size-4" />
-                      {t("copyClientSecret")}
-                    </Button>
-                  </div>
-                </Field>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() =>
-                    copyValue(
-                      JSON.stringify(
-                        {
-                          client_id: createdCredentials.clientId,
-                          client_secret: createdCredentials.clientSecret,
-                          redirect_uris: createdCredentials.redirectUris,
-                          token_endpoint_auth_method:
-                            createdCredentials.tokenEndpointAuthMethod,
-                          scopes: createdCredentials.scopes,
-                        },
-                        null,
-                        2,
-                      ),
-                      t("credentialsCopied"),
-                    )
+                <CopyField
+                  label={t("clientIdLabel")}
+                  value={createdCredentials.clientId}
+                  copyLabel={t("copyClientId")}
+                  onCopy={() =>
+                    copyValue(createdCredentials.clientId, t("clientIdCopied"))
                   }
-                >
-                  <Copy className="size-4" />
-                  {t("copyCredentials")}
-                </Button>
+                />
+
+                <CopyField
+                  label={t("clientSecretLabel")}
+                  value={
+                    createdCredentials.clientSecret ?? t("publicClientNoSecret")
+                  }
+                  copyLabel={t("copyClientSecret")}
+                  disabled={!createdCredentials.clientSecret}
+                  onCopy={() => {
+                    if (!createdCredentials.clientSecret) return;
+                    copyValue(
+                      createdCredentials.clientSecret,
+                      t("clientSecretCopied"),
+                    );
+                  }}
+                />
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      copyValue(
+                        JSON.stringify(
+                          {
+                            client_id: createdCredentials.clientId,
+                            client_secret: createdCredentials.clientSecret,
+                            redirect_uris: createdCredentials.redirectUris,
+                            token_endpoint_auth_method:
+                              createdCredentials.tokenEndpointAuthMethod,
+                            scopes: createdCredentials.scopes,
+                          },
+                          null,
+                          2,
+                        ),
+                        t("credentialsCopied"),
+                      )
+                    }
+                  >
+                    <Copy className="size-4" />
+                    {t("copyCredentials")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setCreatedCredentials(null)}
+                  >
+                    {t("dismissCredentials")}
+                  </Button>
+                </div>
               </CardPanel>
             </Card>
           ) : null}
 
           <Card>
             <CardHeader>
-              <CardTitle>{t("panelGuideTitle")}</CardTitle>
-              <CardDescription>{t("panelGuideDescription")}</CardDescription>
+              <CardTitle>{t("previewTitle")}</CardTitle>
+              <CardDescription>{t("previewDescription")}</CardDescription>
             </CardHeader>
-            <CardPanel className="space-y-3 text-muted-foreground text-sm">
-              <div className="flex items-start gap-3 rounded-xl border p-3">
-                <ShieldCheck className="mt-0.5 size-4 shrink-0 text-info" />
-                <div>
-                  <p className="font-medium text-foreground">
-                    {t("guidePermissionsTitle")}
-                  </p>
-                  <p>{t("guidePermissionsDescription")}</p>
+            <CardPanel className="space-y-4">
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    variant={getClientTypeBadgeVariant(selectedAuthMethod)}
+                  >
+                    {getClientTypeLabel(t, selectedAuthMethod)}
+                  </Badge>
+                  <span className="text-muted-foreground text-xs">
+                    {t("previewScopeCount", { count: selectedScopes.length })}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedScopes.map((scope) => (
+                    <Badge key={scope} variant="outline">
+                      {t(`scope_${scope}`, { fallback: scope })}
+                    </Badge>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-start gap-3 rounded-xl border p-3">
-                <Link2 className="mt-0.5 size-4 shrink-0 text-info" />
-                <div>
-                  <p className="font-medium text-foreground">
-                    {t("guideRedirectTitle")}
-                  </p>
-                  <p>{t("guideRedirectDescription")}</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-xl border p-3">
-                <KeyRound className="mt-0.5 size-4 shrink-0 text-info" />
-                <div>
-                  <p className="font-medium text-foreground">
-                    {t("guideSecretTitle")}
-                  </p>
-                  <p>{t("guideSecretDescription")}</p>
+
+              <div className="rounded-xl border bg-muted/20 p-4">
+                <div className="flex items-start gap-3">
+                  <Link2 className="mt-0.5 size-4 shrink-0 text-info" />
+                  <div className="min-w-0 space-y-2">
+                    <p className="font-medium text-sm">
+                      {t("previewRedirectCount", {
+                        count: draftRedirectUris.length,
+                      })}
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      {draftRedirectUris[0]
+                        ? t("previewPrimaryRedirect", {
+                            redirectUri: draftRedirectUris[0],
+                          })
+                        : t("redirectUrisHint")}
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardPanel>
@@ -513,60 +602,31 @@ export function OAuthClientManager({
               {clients.map((client) => (
                 <div key={client.id} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="space-y-3">
-                      <div className="space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-medium">{client.name}</p>
-                          <Badge
-                            variant={getClientTypeBadgeVariant(
-                              client.tokenEndpointAuthMethod,
-                            )}
-                          >
-                            {getClientTypeLabel(
-                              t,
-                              client.tokenEndpointAuthMethod,
-                            )}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground text-xs">
+                    <div className="min-w-0 space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{client.name}</p>
+                        <Badge
+                          variant={getClientTypeBadgeVariant(
+                            client.tokenEndpointAuthMethod,
+                          )}
+                        >
+                          {getClientTypeLabel(
+                            t,
+                            client.tokenEndpointAuthMethod,
+                          )}
+                        </Badge>
+                        <span className="text-muted-foreground text-xs">
                           {t("createdAtLabel")}:{" "}
                           {new Date(client.createdAt).toLocaleString()}
-                        </p>
+                        </span>
                       </div>
 
-                      <div className="space-y-2">
-                        <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                          {t("clientIdLabel")}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <code className="max-w-full overflow-x-auto rounded-lg bg-muted px-3 py-2 font-mono text-xs">
-                            {client.clientId}
-                          </code>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              copyValue(client.clientId, t("clientIdCopied"))
-                            }
-                          >
-                            <Copy className="size-4" />
-                            {t("copyClientId")}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                          {t("permissionsTitle")}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {client.scopes.map((scope) => (
-                            <Badge key={scope} variant="outline">
-                              {t(`scope_${scope}`, { fallback: scope })}
-                            </Badge>
-                          ))}
-                        </div>
+                      <div className="flex flex-wrap gap-2">
+                        {client.scopes.map((scope) => (
+                          <Badge key={scope} variant="outline">
+                            {t(`scope_${scope}`, { fallback: scope })}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
 
@@ -580,35 +640,48 @@ export function OAuthClientManager({
                     </Button>
                   </div>
 
-                  <Separator className="my-4" />
+                  <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <CopyField
+                      label={t("clientIdLabel")}
+                      value={client.clientId}
+                      copyLabel={t("copyClientId")}
+                      onCopy={() =>
+                        copyValue(client.clientId, t("clientIdCopied"))
+                      }
+                    />
 
-                  <div className="space-y-2">
-                    <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                      {t("redirectUris")}
-                    </p>
-                    <div className="grid gap-2">
-                      {client.redirectUris.map((redirectUri) => (
-                        <div
-                          key={redirectUri}
-                          className="flex items-center gap-2 rounded-lg border bg-muted/30 p-2"
-                        >
-                          <code className="flex-1 overflow-x-auto font-mono text-xs">
-                            {redirectUri}
-                          </code>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              copyValue(redirectUri, t("redirectUriCopied"))
-                            }
+                    <Field className="space-y-2">
+                      <FieldLabel>{t("redirectUris")}</FieldLabel>
+                      <div className="space-y-2 rounded-lg border bg-muted/20 p-3">
+                        {client.redirectUris.map((redirectUri) => (
+                          <div
+                            key={redirectUri}
+                            className="flex items-center gap-2 rounded-md bg-background px-2 py-2"
                           >
-                            <Copy className="size-4" />
-                            {t("copyRedirectUri")}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                            <button
+                              type="button"
+                              className="min-w-0 flex-1 truncate text-left font-mono text-xs hover:text-foreground"
+                              onClick={() =>
+                                copyValue(redirectUri, t("redirectUriCopied"))
+                              }
+                            >
+                              {redirectUri}
+                            </button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                copyValue(redirectUri, t("redirectUriCopied"))
+                              }
+                            >
+                              <Copy className="size-4" />
+                              {t("copyRedirectUri")}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </Field>
                   </div>
                 </div>
               ))}

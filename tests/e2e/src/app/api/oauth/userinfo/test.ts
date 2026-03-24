@@ -25,13 +25,26 @@ async function issueAccessToken(
   const code = new URL(redirect ?? "").searchParams.get("code");
   expect(code).toBeTruthy();
 
+  const headers =
+    client.tokenEndpointAuthMethod === "client_secret_basic"
+      ? {
+          Authorization: `Basic ${Buffer.from(
+            `${client.clientId}:${client.clientSecret}`,
+          ).toString("base64")}`,
+        }
+      : undefined;
   const tokenResponse = await page.request.post("/api/oauth/token", {
+    headers,
     data: {
       grant_type: "authorization_code",
       code,
       redirect_uri: client.redirectUris[0],
-      client_id: client.clientId,
-      client_secret: client.clientSecret,
+      ...(headers
+        ? {}
+        : {
+            client_id: client.clientId,
+            client_secret: client.clientSecret,
+          }),
     },
   });
   expect(tokenResponse.status()).toBe(200);

@@ -54,6 +54,27 @@
         }
       }
     },
+    "/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-.well-known-openid-configuration",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/comments": {
       "get": {
         "operationId": "get-api-admin-comments",
