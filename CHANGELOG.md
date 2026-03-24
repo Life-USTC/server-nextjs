@@ -1,3 +1,10 @@
+# [0.50.0](https://github.com/Life-USTC/server-nextjs/compare/v0.49.0...v0.50.0) (2026-03-24)
+
+
+### Features
+
+* **mcp:** add overview timeline and todo toolchain ([fd5229e](https://github.com/Life-USTC/server-nextjs/commit/fd5229e14c2d040ce36fcdd2bf6df7c48f18be0f))
+
 # [0.49.0](https://github.com/Life-USTC/server-nextjs/compare/v0.48.2...v0.49.0) (2026-03-24)
 
 
