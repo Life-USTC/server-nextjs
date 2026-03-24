@@ -216,6 +216,9 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
           "list_my_todos",
           "search_courses",
           "get_section_by_jw_id",
+          "list_homeworks_by_section",
+          "list_schedules_by_section",
+          "list_exams_by_section",
         ]),
       );
 
@@ -291,6 +294,60 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
       expect(sectionPayload.section?.course?.namePrimary).toBe(
         DEV_SEED.course.nameCn,
       );
+
+      const homeworksResult = await mcpClient.callTool({
+        name: "list_homeworks_by_section",
+        arguments: {
+          sectionJwId: DEV_SEED.section.jwId,
+          includeDeleted: false,
+          locale: "zh-cn",
+        },
+      });
+      const homeworksPayload = parseTextContent(homeworksResult) as {
+        found?: boolean;
+        section?: { jwId?: number };
+        homeworks?: Array<{ title?: string }>;
+      };
+      expect(homeworksPayload.found).toBe(true);
+      expect(homeworksPayload.section?.jwId).toBe(DEV_SEED.section.jwId);
+      expect(
+        homeworksPayload.homeworks?.some(
+          (homework) => homework.title === DEV_SEED.homeworks.title,
+        ),
+      ).toBe(true);
+
+      const schedulesResult = await mcpClient.callTool({
+        name: "list_schedules_by_section",
+        arguments: {
+          sectionJwId: DEV_SEED.section.jwId,
+          limit: 20,
+          locale: "zh-cn",
+        },
+      });
+      const schedulesPayload = parseTextContent(schedulesResult) as {
+        found?: boolean;
+        section?: { jwId?: number };
+        schedules?: Array<{ id?: number }>;
+      };
+      expect(schedulesPayload.found).toBe(true);
+      expect(schedulesPayload.section?.jwId).toBe(DEV_SEED.section.jwId);
+      expect((schedulesPayload.schedules?.length ?? 0) > 0).toBe(true);
+
+      const examsResult = await mcpClient.callTool({
+        name: "list_exams_by_section",
+        arguments: {
+          sectionJwId: DEV_SEED.section.jwId,
+          locale: "zh-cn",
+        },
+      });
+      const examsPayload = parseTextContent(examsResult) as {
+        found?: boolean;
+        section?: { jwId?: number };
+        exams?: Array<{ id?: number }>;
+      };
+      expect(examsPayload.found).toBe(true);
+      expect(examsPayload.section?.jwId).toBe(DEV_SEED.section.jwId);
+      expect((examsPayload.exams?.length ?? 0) > 0).toBe(true);
 
       const missingSectionResult = await mcpClient.callTool({
         name: "get_section_by_jw_id",
