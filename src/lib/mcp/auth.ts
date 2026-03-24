@@ -1,7 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { prisma } from "@/lib/db/prisma";
-import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
-import { getOAuthProtectedResourceMetadataUrl } from "./urls";
+import { MCP_TOOLS_SCOPE, resourceIndicatorsMatch } from "@/lib/oauth/utils";
+import { getMcpServerUrl, getOAuthProtectedResourceMetadataUrl } from "./urls";
 
 const INVALID_TOKEN_ERROR = "invalid_token";
 const INSUFFICIENT_SCOPE_ERROR = "insufficient_scope";
@@ -139,6 +139,19 @@ export async function authenticateMcpRequest(
   const authInfo = await verifyAccessToken(token);
   if ("error" in authInfo) {
     return { response: buildAuthErrorResponse(request, authInfo) };
+  }
+
+  if (
+    !authInfo.resource ||
+    !resourceIndicatorsMatch(authInfo.resource, getMcpServerUrl(request))
+  ) {
+    return {
+      response: buildAuthErrorResponse(request, {
+        error: INVALID_TOKEN_ERROR,
+        status: 401,
+        description: "Access token is not bound to this MCP resource",
+      }),
+    };
   }
 
   if (!authInfo.scopes.includes(MCP_TOOLS_SCOPE)) {

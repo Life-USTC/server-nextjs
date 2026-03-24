@@ -1,3 +1,4 @@
+import { OAuthClientMetadataSchema } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { validateDynamicClientRegistration } from "@/lib/oauth/client-registration";
@@ -16,17 +17,10 @@ import {
  * client_secret_basic or client_secret_post.
  */
 export async function POST(request: Request) {
-  let body: {
-    client_name?: string;
-    redirect_uris?: string[];
-    grant_types?: string[];
-    response_types?: string[];
-    token_endpoint_auth_method?: string;
-    scope?: string;
-  };
+  let rawBody: unknown;
 
   try {
-    body = await request.json();
+    rawBody = await request.json();
   } catch {
     logOAuthEvent("warn", {
       route: "/api/oauth/register",
@@ -40,6 +34,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const parsedBody = OAuthClientMetadataSchema.safeParse(rawBody);
+  if (!parsedBody.success) {
+    logOAuthEvent("warn", {
+      route: "/api/oauth/register",
+      event: "invalid_client_metadata",
+      status: 400,
+      reason: "dynamic registration body did not match OAuth client metadata",
+    });
+    return NextResponse.json(
+      { error: "invalid_client_metadata" },
+      { status: 400 },
+    );
+  }
+
+  const body = parsedBody.data;
   const validated = validateDynamicClientRegistration({
     clientName: body.client_name,
     redirectUris: body.redirect_uris,

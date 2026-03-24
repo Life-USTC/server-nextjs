@@ -18,9 +18,11 @@ test("OAuth authorization-server metadata advertises dynamic registration and re
 
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
+    client_id_metadata_document_supported?: boolean;
     registration_endpoint?: string;
     grant_types_supported?: string[];
   };
+  expect(body.client_id_metadata_document_supported).toBe(true);
   expect(body.registration_endpoint).toContain("/api/oauth/register");
   expect(body.grant_types_supported).toEqual([
     "authorization_code",
@@ -36,12 +38,14 @@ test("OpenID discovery metadata advertises OAuth and userinfo endpoints", async 
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     authorization_endpoint?: string;
+    client_id_metadata_document_supported?: boolean;
     token_endpoint?: string;
     registration_endpoint?: string;
     userinfo_endpoint?: string;
     grant_types_supported?: string[];
   };
   expect(body.authorization_endpoint).toContain("/oauth/authorize");
+  expect(body.client_id_metadata_document_supported).toBe(true);
   expect(body.token_endpoint).toContain("/api/oauth/token");
   expect(body.registration_endpoint).toContain("/api/oauth/register");
   expect(body.userinfo_endpoint).toContain("/api/oauth/userinfo");
@@ -156,6 +160,7 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
 }) => {
   const clientName = `connector-dcr-e2e-${Date.now()}`;
   const redirectUri = "https://chat.openai.com/aip/test/oauth/callback";
+  const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
 
   try {
     const registrationResponse = await request.post("/api/oauth/register", {
@@ -197,6 +202,7 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
         client_id: registrationBody.client_id,
         redirect_uri: redirectUri,
         scope: "openid profile mcp:tools",
+        resource,
       },
     });
     expect(authorizeResponse.status()).toBe(200);
@@ -217,6 +223,7 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
         grant_type: "authorization_code",
         code,
         redirect_uri: redirectUri,
+        resource,
       },
     });
     expect(tokenResponse.status()).toBe(200);
@@ -240,6 +247,7 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
         grant_type: "refresh_token",
         refresh_token: tokenBody.refresh_token,
         scope: "openid profile",
+        resource,
       },
     });
     expect(refreshResponse.status()).toBe(200);

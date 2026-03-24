@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { authMock, prismaMock, revalidatePathMock } = vi.hoisted(() => ({
   authMock: vi.fn(),
@@ -43,11 +43,13 @@ vi.mock("next/cache", () => ({
   revalidatePath: revalidatePathMock,
 }));
 
+import { GET as oauthAuthorizationServerMetadata } from "@/app/.well-known/oauth-authorization-server/route";
 import { createOAuthClient } from "@/app/actions/oauth";
 import { POST as authorize } from "@/app/api/oauth/authorize/route";
 import { POST as register } from "@/app/api/oauth/register/route";
 import { POST as token } from "@/app/api/oauth/token/route";
 import { GET as userinfo } from "@/app/api/oauth/userinfo/route";
+import { authenticateMcpRequest } from "@/lib/mcp/auth";
 import {
   generateCodeChallenge,
   hashOAuthClientSecret,
@@ -73,6 +75,10 @@ describe("oauth routes", () => {
     prismaMock.oAuthRefreshToken.create.mockReset();
     prismaMock.oAuthRefreshToken.findUnique.mockReset();
     prismaMock.oAuthRefreshToken.deleteMany.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("trims requested scopes to the client's registered scopes", async () => {
@@ -372,6 +378,82 @@ describe("oauth routes", () => {
     ).resolves.toBe(true);
   });
 
+  it("advertises client_id metadata document support", async () => {
+    const response = await oauthAuthorizationServerMetadata(
+      new Request("http://localhost/.well-known/oauth-authorization-server"),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.client_id_metadata_document_supported).toBe(true);
+  });
+
+  it("accepts URL client_ids backed by metadata documents", async () => {
+    authMock.mockResolvedValue({
+      user: { id: "user-1" },
+    });
+    prismaMock.oAuthClient.findUnique.mockResolvedValueOnce(null);
+    prismaMock.oAuthClient.create.mockResolvedValue({
+      id: "client-db-id",
+      clientId: "https://client.example.com/.well-known/oauth-client.json",
+      clientSecret: null,
+      tokenEndpointAuthMethod: "none",
+      name: "Metadata Client",
+      redirectUris: ["http://127.0.0.1:8787/callback"],
+      grantTypes: ["authorization_code"],
+      scopes: ["openid", "profile", "mcp:tools"],
+    });
+    prismaMock.oAuthCode.create.mockResolvedValue({});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          client_id: "https://client.example.com/.well-known/oauth-client.json",
+          client_name: "Metadata Client",
+          redirect_uris: ["http://127.0.0.1:8787/callback"],
+          grant_types: ["authorization_code"],
+          response_types: ["code"],
+          token_endpoint_auth_method: "none",
+          scope: "openid profile mcp:tools",
+        }),
+      }),
+    );
+
+    const request = new Request("http://localhost/api/oauth/authorize", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_id: "https://client.example.com/.well-known/oauth-client.json",
+        redirect_uri: "http://127.0.0.1:8787/callback",
+        scope: "openid profile mcp:tools",
+        code_challenge: generateCodeChallenge(
+          "metadata-client-verifier-012345678901234567890123456789",
+        ),
+        code_challenge_method: "S256",
+        resource: "http://localhost/api/mcp",
+      }),
+    });
+
+    const response = await authorize(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.redirect).toContain("code=");
+    expect(prismaMock.oAuthClient.create).toHaveBeenCalledWith({
+      data: {
+        clientId: "https://client.example.com/.well-known/oauth-client.json",
+        clientSecret: null,
+        tokenEndpointAuthMethod: "none",
+        name: "Metadata Client",
+        redirectUris: ["http://127.0.0.1:8787/callback"],
+        grantTypes: ["authorization_code"],
+        scopes: ["openid", "profile", "mcp:tools"],
+      },
+      select: expect.any(Object),
+    });
+  });
+
   it("rejects invalid redirect URIs during dynamic registration", async () => {
     const request = new Request("http://localhost/api/oauth/register", {
       method: "POST",
@@ -570,6 +652,51 @@ describe("oauth routes", () => {
     });
   });
 
+  it("rejects mcp-scoped code exchange when resource is omitted", async () => {
+    const codeVerifier =
+      "public-client-verifier-012345678901234567890123456789";
+
+    prismaMock.oAuthClient.findUnique.mockResolvedValue({
+      id: "client-db-id",
+      clientId: "public-client-id",
+      clientSecret: null,
+      tokenEndpointAuthMethod: "none",
+      grantTypes: ["authorization_code"],
+      name: "Public Client",
+      redirectUris: ["https://client.example/callback"],
+      scopes: ["openid", "mcp:tools"],
+    });
+    prismaMock.oAuthCode.findUnique.mockResolvedValue({
+      id: "code-db-id",
+      clientId: "client-db-id",
+      redirectUri: "https://client.example/callback",
+      expiresAt: new Date(Date.now() + 60_000),
+      scopes: ["openid", "mcp:tools"],
+      userId: "user-1",
+      codeChallenge: generateCodeChallenge(codeVerifier),
+      codeChallengeMethod: "S256",
+      resource: "http://localhost/api/mcp",
+    });
+
+    const request = new Request("http://localhost/api/oauth/token", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        client_id: "public-client-id",
+        code: "auth-code",
+        code_verifier: codeVerifier,
+        redirect_uri: "https://client.example/callback",
+      }),
+    });
+
+    const response = await token(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "invalid_target" });
+  });
+
   it("issues refresh tokens when the client supports refresh_token", async () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
@@ -715,6 +842,39 @@ describe("oauth routes", () => {
     expect(body).toEqual({ error: "invalid_token" });
     expect(prismaMock.oAuthAccessToken.deleteMany).toHaveBeenCalledWith({
       where: { id: "expired-token-id" },
+    });
+  });
+
+  it("rejects MCP requests when the token is not resource-bound", async () => {
+    prismaMock.oAuthAccessToken.findUnique.mockResolvedValue({
+      id: "token-1",
+      token: "valid-token",
+      expiresAt: new Date(Date.now() + 60_000),
+      scopes: ["mcp:tools"],
+      resource: null,
+      client: {
+        clientId: "client-id",
+      },
+      user: {
+        id: "user-1",
+        name: "Test User",
+        username: "tester",
+      },
+    });
+
+    const result = await authenticateMcpRequest(
+      new Request("http://localhost/api/mcp", {
+        headers: { authorization: "Bearer valid-token" },
+      }),
+    );
+
+    if (!("response" in result)) {
+      throw new Error("Expected MCP authentication to fail");
+    }
+
+    expect(result.response.status).toBe(401);
+    await expect(result.response.json()).resolves.toEqual({
+      error: "invalid_token",
     });
   });
 });

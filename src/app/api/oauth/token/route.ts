@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getMcpServerUrl } from "@/lib/mcp/urls";
+import { resolveOAuthClient } from "@/lib/oauth/client-resolver";
 import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
   ACCESS_TOKEN_LIFETIME_MS,
   generateToken,
   hashOAuthRefreshToken,
+  MCP_TOOLS_SCOPE,
+  normalizeResourceIndicator,
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
   OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
   REFRESH_TOKEN_LIFETIME_MS,
+  resourceIndicatorsMatch,
+  type SupportedOAuthClientAuthMethod,
   verifyOAuthClientSecret,
   verifyPkceCodeVerifier,
 } from "@/lib/oauth/utils";
@@ -16,14 +22,26 @@ import {
 type TokenParams = Record<string, string>;
 type OAuthClientRecord = {
   id: string;
+  clientId: string;
   clientSecret: string | null;
-  tokenEndpointAuthMethod: string;
+  tokenEndpointAuthMethod: SupportedOAuthClientAuthMethod;
   grantTypes: string[];
 };
-type RequestClientAuthMethod =
-  | typeof OAUTH_PUBLIC_CLIENT_AUTH_METHOD
-  | typeof OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD
-  | typeof OAUTH_CLIENT_SECRET_POST_AUTH_METHOD;
+type RequestClientAuthMethod = SupportedOAuthClientAuthMethod;
+type StoredResourceValidationResult =
+  | { resource: string | undefined }
+  | {
+      error: "invalid_target";
+      status: number;
+      reason: string;
+    };
+type McpAudienceResourceValidationResult =
+  | { resource: string | undefined }
+  | {
+      error: "invalid_request" | "invalid_target";
+      status: number;
+      reason: string;
+    };
 
 /**
  * POST /api/oauth/token
@@ -56,6 +74,7 @@ export async function POST(request: Request) {
 
     if (grantType === "authorization_code") {
       return exchangeAuthorizationCode({
+        request,
         client: authenticatedClient.client,
         params: parsedParams,
       });
@@ -63,6 +82,7 @@ export async function POST(request: Request) {
 
     if (grantType === "refresh_token") {
       return exchangeRefreshToken({
+        request,
         client: authenticatedClient.client,
         params: parsedParams,
       });
@@ -171,27 +191,19 @@ async function authenticateClient(
     return { error: true, response: errorResponse("invalid_client", 401) };
   }
 
-  const client = await prisma.oAuthClient.findUnique({
-    where: { clientId },
-    select: {
-      id: true,
-      clientSecret: true,
-      tokenEndpointAuthMethod: true,
-      grantTypes: true,
-    },
-  });
-
-  if (!client) {
+  const resolvedClient = await resolveOAuthClient(clientId);
+  if ("error" in resolvedClient) {
     logOAuthEvent("warn", {
       route: "/api/oauth/token",
       event: "invalid_client_auth",
       status: 401,
-      reason: "unknown client_id",
+      reason: resolvedClient.errorDescription,
       clientId,
       requestAuthMethod,
     });
     return { error: true, response: errorResponse("invalid_client", 401) };
   }
+  const client = resolvedClient.client;
 
   if (
     client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
@@ -287,10 +299,92 @@ async function authenticateClient(
   };
 }
 
+function validateStoredResourceBinding({
+  actualResource,
+  requestedResource,
+}: {
+  actualResource: string | null;
+  requestedResource?: string;
+}): StoredResourceValidationResult {
+  if (!actualResource && !requestedResource) {
+    return { resource: undefined } as const;
+  }
+
+  if (!actualResource || !requestedResource) {
+    return {
+      error: "invalid_target",
+      status: 400,
+      reason: "resource must match the original authorization request exactly",
+    } as const;
+  }
+
+  try {
+    if (!resourceIndicatorsMatch(actualResource, requestedResource)) {
+      return {
+        error: "invalid_target",
+        status: 400,
+        reason:
+          "resource must match the original authorization request exactly",
+      } as const;
+    }
+  } catch {
+    return {
+      error: "invalid_target",
+      status: 400,
+      reason: "resource must be a valid absolute URI without fragment",
+    } as const;
+  }
+
+  return { resource: normalizeResourceIndicator(actualResource) } as const;
+}
+
+function validateMcpAudienceResource({
+  request,
+  resource,
+  scopes,
+}: {
+  request: Request;
+  resource?: string;
+  scopes: string[];
+}): McpAudienceResourceValidationResult {
+  if (!scopes.includes(MCP_TOOLS_SCOPE)) {
+    return { resource } as const;
+  }
+
+  if (!resource) {
+    return {
+      error: "invalid_request",
+      status: 400,
+      reason: 'resource is required when requesting the "mcp:tools" scope',
+    } as const;
+  }
+
+  try {
+    if (!resourceIndicatorsMatch(resource, getMcpServerUrl(request))) {
+      return {
+        error: "invalid_target",
+        status: 400,
+        reason:
+          "This authorization server only issues resource-bound tokens for its MCP endpoint",
+      } as const;
+    }
+  } catch {
+    return {
+      error: "invalid_target",
+      status: 400,
+      reason: "resource must be a valid absolute URI without fragment",
+    } as const;
+  }
+
+  return { resource: normalizeResourceIndicator(resource) } as const;
+}
+
 async function exchangeAuthorizationCode({
+  request,
   client,
   params,
 }: {
+  request: Request;
   client: OAuthClientRecord;
   params: TokenParams;
 }) {
@@ -371,18 +465,44 @@ async function exchangeAuthorizationCode({
     return errorResponse("invalid_grant", 400);
   }
 
-  if (oauthCode.resource && resource && oauthCode.resource !== resource) {
+  const resourceBindingResult = validateStoredResourceBinding({
+    actualResource: oauthCode.resource,
+    requestedResource: resource,
+  });
+  if ("error" in resourceBindingResult) {
     logOAuthEvent("warn", {
       route: "/api/oauth/token",
-      event: "invalid_target",
-      status: 400,
-      reason: "resource mismatch",
+      event: resourceBindingResult.error,
+      status: resourceBindingResult.status,
+      reason: resourceBindingResult.reason,
       grantType: "authorization_code",
       clientId: params.client_id,
       redirectUri,
       resource,
     });
-    return errorResponse("invalid_target", 400);
+    return errorResponse(
+      resourceBindingResult.error,
+      resourceBindingResult.status,
+    );
+  }
+
+  const mcpAudienceResult = validateMcpAudienceResource({
+    request,
+    resource: resourceBindingResult.resource,
+    scopes: oauthCode.scopes,
+  });
+  if ("error" in mcpAudienceResult) {
+    logOAuthEvent("warn", {
+      route: "/api/oauth/token",
+      event: mcpAudienceResult.error,
+      status: mcpAudienceResult.status,
+      reason: mcpAudienceResult.reason,
+      grantType: "authorization_code",
+      clientId: params.client_id,
+      redirectUri,
+      resource,
+    });
+    return errorResponse(mcpAudienceResult.error, mcpAudienceResult.status);
   }
 
   const isPublicClient =
@@ -453,7 +573,7 @@ async function exchangeAuthorizationCode({
       data: {
         token: accessToken,
         scopes: oauthCode.scopes,
-        resource: oauthCode.resource,
+        resource: mcpAudienceResult.resource ?? null,
         expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
         clientId: client.id,
         userId: oauthCode.userId,
@@ -465,7 +585,7 @@ async function exchangeAuthorizationCode({
         data: {
           tokenHash: hashOAuthRefreshToken(refreshToken),
           scopes: oauthCode.scopes,
-          resource: oauthCode.resource,
+          resource: mcpAudienceResult.resource ?? null,
           expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
           clientId: client.id,
           userId: oauthCode.userId,
@@ -497,9 +617,11 @@ async function exchangeAuthorizationCode({
 }
 
 async function exchangeRefreshToken({
+  request,
   client,
   params,
 }: {
+  request: Request;
   client: OAuthClientRecord;
   params: TokenParams;
 }) {
@@ -581,22 +703,45 @@ async function exchangeRefreshToken({
     return errorResponse("invalid_scope", 400);
   }
 
-  const resource = params.resource;
-  if (resource && resource !== refreshTokenRecord.resource) {
+  const resourceBindingResult = validateStoredResourceBinding({
+    actualResource: refreshTokenRecord.resource,
+    requestedResource: params.resource,
+  });
+  if ("error" in resourceBindingResult) {
     logOAuthEvent("warn", {
       route: "/api/oauth/token",
-      event: "invalid_target",
-      status: 400,
-      reason: "refresh token resource mismatch",
+      event: resourceBindingResult.error,
+      status: resourceBindingResult.status,
+      reason: resourceBindingResult.reason,
       grantType: "refresh_token",
       clientId: params.client_id,
-      resource,
+      resource: params.resource,
     });
-    return errorResponse("invalid_target", 400);
+    return errorResponse(
+      resourceBindingResult.error,
+      resourceBindingResult.status,
+    );
   }
 
   const grantedScopes =
     requestedScopes.length > 0 ? requestedScopes : refreshTokenRecord.scopes;
+  const mcpAudienceResult = validateMcpAudienceResource({
+    request,
+    resource: resourceBindingResult.resource,
+    scopes: grantedScopes,
+  });
+  if ("error" in mcpAudienceResult) {
+    logOAuthEvent("warn", {
+      route: "/api/oauth/token",
+      event: mcpAudienceResult.error,
+      status: mcpAudienceResult.status,
+      reason: mcpAudienceResult.reason,
+      grantType: "refresh_token",
+      clientId: params.client_id,
+      resource: params.resource,
+    });
+    return errorResponse(mcpAudienceResult.error, mcpAudienceResult.status);
+  }
   const nextAccessToken = generateToken();
   const nextRefreshToken = generateToken();
   const expiresIn = Math.floor(ACCESS_TOKEN_LIFETIME_MS / 1000);
@@ -618,7 +763,7 @@ async function exchangeRefreshToken({
       data: {
         token: nextAccessToken,
         scopes: grantedScopes,
-        resource: refreshTokenRecord.resource,
+        resource: mcpAudienceResult.resource ?? null,
         expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
         clientId: client.id,
         userId: refreshTokenRecord.userId,
@@ -629,7 +774,7 @@ async function exchangeRefreshToken({
       data: {
         tokenHash: hashOAuthRefreshToken(nextRefreshToken),
         scopes: grantedScopes,
-        resource: refreshTokenRecord.resource,
+        resource: mcpAudienceResult.resource ?? null,
         expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
         clientId: client.id,
         userId: refreshTokenRecord.userId,
