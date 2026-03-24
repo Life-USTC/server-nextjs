@@ -1,3 +1,10 @@
+# [0.49.0](https://github.com/Life-USTC/server-nextjs/compare/v0.48.2...v0.49.0) (2026-03-24)
+
+
+### Features
+
+* **mcp:** add section homework schedule and exam query tools ([408f1f1](https://github.com/Life-USTC/server-nextjs/commit/408f1f117c86540e164e8e6d17da4438690461ea))
+
 ## [0.48.2](https://github.com/Life-USTC/server-nextjs/compare/v0.48.1...v0.48.2) (2026-03-24)
 
 
