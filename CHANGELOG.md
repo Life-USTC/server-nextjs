@@ -1,3 +1,10 @@
+## [0.48.2](https://github.com/Life-USTC/server-nextjs/compare/v0.48.1...v0.48.2) (2026-03-24)
+
+
+### Bug Fixes
+
+* **mcp:** update according to spec ([f08262d](https://github.com/Life-USTC/server-nextjs/commit/f08262d6da482141f7e5d5803c170ac1aefa2ecc))
+
 ## [0.48.1](https://github.com/Life-USTC/server-nextjs/compare/v0.48.0...v0.48.1) (2026-03-24)
 
 
