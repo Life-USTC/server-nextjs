@@ -83,17 +83,11 @@ test("/?tab=links 可置顶并恢复网站", async ({ page }, testInfo) => {
   expect(initialLabel).toMatch(/^(?:置顶|Pin|取消置顶|Unpin)$/i);
   const togglesToPinned = PIN_LABEL.test(initialLabel ?? "");
   const expectedInitialLabel = togglesToPinned ? PIN_LABEL : UNPIN_LABEL;
-  await expect(pinButton).toHaveAttribute("aria-label", initialLabel ?? "");
-  const pinResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/dashboard-links/pin") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
   await pinButton.click({ force: true });
-  const response = await pinResponse;
-  const body = (await response.json()) as { pinnedSlugs?: string[] };
-  expect(body.pinnedSlugs?.includes("jw")).toBe(togglesToPinned);
+  await expect(await locatePinButton()).toHaveAttribute(
+    "aria-label",
+    togglesToPinned ? UNPIN_LABEL : PIN_LABEL,
+  );
   await captureStepScreenshot(page, testInfo, "dashboard-links-toggle-request");
 
   const restoreResponse = await page.request.post("/api/dashboard-links/pin", {

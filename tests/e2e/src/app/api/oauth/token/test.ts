@@ -37,12 +37,15 @@ test("/api/oauth/token 可用授权码换取 access token", async ({ page }) => 
     const code = await issueCode(page, client);
 
     const response = await page.request.post("/api/oauth/token", {
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${client.clientId}:${client.clientSecret}`,
+        ).toString("base64")}`,
+      },
       data: {
         grant_type: "authorization_code",
         code,
         redirect_uri: client.redirectUris[0],
-        client_id: client.clientId,
-        client_secret: client.clientSecret,
       },
     });
     expect(response.status()).toBe(200);
@@ -55,6 +58,57 @@ test("/api/oauth/token 可用授权码换取 access token", async ({ page }) => 
     expect(typeof body.access_token).toBe("string");
     expect(body.token_type).toBe("Bearer");
     expect(body.scope).toBe("openid profile");
+  } finally {
+    await deleteOAuthClientFixture(client.id);
+  }
+});
+
+test("/api/oauth/token client_secret_post 客户端必须使用请求体密钥", async ({
+  page,
+}) => {
+  const client = await createOAuthClientFixture({
+    tokenEndpointAuthMethod: "client_secret_post",
+  });
+
+  try {
+    await signInAsDebugUser(page, "/");
+    const code = await issueCode(page, client);
+
+    const rejectedResponse = await page.request.post("/api/oauth/token", {
+      headers: {
+        Authorization: `Basic ${Buffer.from(
+          `${client.clientId}:${client.clientSecret}`,
+        ).toString("base64")}`,
+      },
+      data: {
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: client.redirectUris[0],
+      },
+    });
+    expect(rejectedResponse.status()).toBe(401);
+    expect(await rejectedResponse.json()).toEqual({ error: "invalid_client" });
+
+    const freshCode = await issueCode(page, client);
+    const acceptedResponse = await page.request.post("/api/oauth/token", {
+      data: {
+        grant_type: "authorization_code",
+        client_id: client.clientId,
+        client_secret: client.clientSecret,
+        code: freshCode,
+        redirect_uri: client.redirectUris[0],
+      },
+    });
+    expect(acceptedResponse.status()).toBe(200);
+
+    const body = (await acceptedResponse.json()) as {
+      access_token?: string;
+      refresh_token?: string;
+      token_type?: string;
+    };
+    expect(typeof body.access_token).toBe("string");
+    expect(typeof body.refresh_token).toBe("string");
+    expect(body.token_type).toBe("Bearer");
   } finally {
     await deleteOAuthClientFixture(client.id);
   }

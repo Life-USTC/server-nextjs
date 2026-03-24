@@ -162,31 +162,22 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
   const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
   await expect(dialog).toBeVisible();
 
-  const durationSelect = dialog.getByRole("combobox").first();
-  if ((await durationSelect.count()) > 0) {
-    await durationSelect.click();
-    const customOption = page
-      .getByRole("option", { name: /自定义|Custom/i })
-      .first();
-    if ((await customOption.count()) > 0) {
-      await customOption.click();
-    } else {
-      await page.keyboard.press("Escape");
-    }
-  }
+  const durationSelect = dialog.getByRole("combobox", {
+    name: /封禁时长|Duration/i,
+  });
+  await expect(durationSelect).toBeVisible();
+  await durationSelect.click();
+  await page.getByRole("option", { name: /自定义|Custom/i }).click();
 
-  const expiresAtInput = dialog.locator('input[type="datetime-local"]').first();
-  if ((await expiresAtInput.count()) > 0) {
-    await expect(expiresAtInput).toBeVisible();
-    await expiresAtInput.fill("2030-01-01T00:00");
-    await expect(expiresAtInput).toHaveValue("2030-01-01T00:00");
-  }
+  const expiresAtInput = dialog.getByLabel(/到期时间|Expires At/i);
+  await expect(expiresAtInput).toBeVisible();
+  await expiresAtInput.fill("2030-01-01T00:00");
+  await expect(expiresAtInput).toHaveValue("2030-01-01T00:00");
 
   const reason = `e2e-suspend-${Date.now()}`;
-  const reasonInput = dialog.getByPlaceholder(/原因|Reason/i).first();
-  if ((await reasonInput.count()) > 0) {
-    await reasonInput.fill(reason);
-  }
+  const reasonInput = dialog.getByLabel(/原因|Reason/i);
+  await expect(reasonInput).toBeVisible();
+  await reasonInput.fill(reason);
 
   let suspendButton = dialog
     .getByRole("button", { name: /封禁|Suspend|Ban/i })
@@ -212,10 +203,9 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
   await expect(dialog).toBeVisible();
 
   const reason = `e2e-admin-users-suspend-${Date.now()}`;
-  const reasonInput = dialog.getByPlaceholder(/原因|Reason/i).first();
-  if ((await reasonInput.count()) > 0) {
-    await reasonInput.fill(reason);
-  }
+  const reasonInput = dialog.getByLabel(/原因|Reason/i);
+  await expect(reasonInput).toBeVisible();
+  await reasonInput.fill(reason);
 
   let suspendButton = dialog
     .getByRole("button", { name: /封禁|Suspend|Ban/i })

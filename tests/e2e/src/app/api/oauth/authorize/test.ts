@@ -14,7 +14,7 @@ test("/api/oauth/authorize 未登录返回 401", async ({ request }) => {
   const response = await request.post("/api/oauth/authorize", {
     data: {
       client_id: "missing",
-      redirect_uri: "http://127.0.0.1:3000/oauth-e2e/callback",
+      redirect_uri: "http://localhost:3000/oauth-e2e/callback",
     },
   });
   expect(response.status()).toBe(401);

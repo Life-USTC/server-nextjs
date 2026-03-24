@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Link, useRouter } from "@/i18n/routing";
+import { Link } from "@/i18n/routing";
 import { apiClient } from "@/lib/api/client";
 import {
   Menu,
@@ -21,7 +21,6 @@ export default function BottomBar() {
   const themeT = useTranslations("theme");
   const a11yT = useTranslations("accessibility");
   const locale = useLocale();
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -47,8 +46,8 @@ export default function BottomBar() {
         throw new Error("Failed to change language");
       }
 
-      // Refresh the page to apply the new locale
-      router.refresh();
+      // Reload so cookie-backed locale updates apply consistently in production.
+      window.location.reload();
     } catch (error) {
       console.error("Failed to change language:", error);
     }

@@ -28,6 +28,29 @@ test("OAuth authorization-server metadata advertises dynamic registration and re
   ]);
 });
 
+test("OpenID discovery metadata advertises OAuth and userinfo endpoints", async ({
+  request,
+}) => {
+  const response = await request.get("/.well-known/openid-configuration");
+
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    authorization_endpoint?: string;
+    token_endpoint?: string;
+    registration_endpoint?: string;
+    userinfo_endpoint?: string;
+    grant_types_supported?: string[];
+  };
+  expect(body.authorization_endpoint).toContain("/oauth/authorize");
+  expect(body.token_endpoint).toContain("/api/oauth/token");
+  expect(body.registration_endpoint).toContain("/api/oauth/register");
+  expect(body.userinfo_endpoint).toContain("/api/oauth/userinfo");
+  expect(body.grant_types_supported).toEqual([
+    "authorization_code",
+    "refresh_token",
+  ]);
+});
+
 test("/api/oauth/register 可注册公共客户端并完成 PKCE 换取 token", async ({
   page,
   request,
@@ -103,6 +126,28 @@ test("/api/oauth/register 可注册公共客户端并完成 PKCE 换取 token", 
   } finally {
     deleteOAuthClientsByName(clientName);
   }
+});
+
+test("/api/oauth/register 拒绝为公共客户端注册 refresh_token", async ({
+  request,
+}) => {
+  const response = await request.post("/api/oauth/register", {
+    data: {
+      client_name: `public-refresh-${Date.now()}`,
+      redirect_uris: [`${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+      scope: "openid profile mcp:tools",
+    },
+  });
+
+  expect(response.status()).toBe(400);
+  await expect(response.json()).resolves.toEqual({
+    error: "invalid_client_metadata",
+    error_description:
+      'Public dynamic clients may only register "authorization_code" grant_types',
+  });
 });
 
 test("/api/oauth/register 可注册 confidential client 并使用 client_secret 换取 token", async ({

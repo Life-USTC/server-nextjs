@@ -34,12 +34,24 @@ test("/admin 管理员访问成功", async ({ page }, testInfo) => {
 test("/admin 卡片入口可点击跳转", async ({ page }, testInfo) => {
   await signInAsDevAdmin(page, "/admin");
 
-  await page.locator('a[href="/admin/users"]').first().click();
-  await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
+  const usersCardLink = page.getByRole("link", {
+    name: /用户管理|User Management/i,
+  });
+  await expect(usersCardLink).toBeVisible();
+  await Promise.all([
+    page.waitForURL(/\/admin\/users(?:\?.*)?$/),
+    usersCardLink.click(),
+  ]);
   await captureStepScreenshot(page, testInfo, "admin-navigate-users");
 
   await gotoAndWaitForReady(page, "/admin");
-  await page.locator('a[href="/admin/moderation"]').first().click();
-  await expect(page).toHaveURL(/\/admin\/moderation(?:\?.*)?$/);
+  const moderationCardLink = page.getByRole("link", {
+    name: /内容审核|Moderation/i,
+  });
+  await expect(moderationCardLink).toBeVisible();
+  await Promise.all([
+    page.waitForURL(/\/admin\/moderation(?:\?.*)?$/),
+    moderationCardLink.click(),
+  ]);
   await captureStepScreenshot(page, testInfo, "admin-navigate-moderation");
 });

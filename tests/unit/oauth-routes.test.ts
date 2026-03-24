@@ -307,6 +307,32 @@ describe("oauth routes", () => {
     });
   });
 
+  it("rejects refresh_token grant registration for public dynamic clients", async () => {
+    const request = new Request("http://localhost/api/oauth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        client_name: "Public Refresh Client",
+        redirect_uris: ["http://127.0.0.1:9876/callback"],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+        scope: "openid profile mcp:tools",
+      }),
+    });
+
+    const response = await register(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toEqual({
+      error: "invalid_client_metadata",
+      error_description:
+        'Public dynamic clients may only register "authorization_code" grant_types',
+    });
+    expect(prismaMock.oAuthClient.create).not.toHaveBeenCalled();
+  });
+
   it("registers dynamic confidential OAuth clients and hashes the secret", async () => {
     prismaMock.oAuthClient.create.mockResolvedValue({});
 
@@ -373,7 +399,7 @@ describe("oauth routes", () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
-      tokenEndpointAuthMethod: "client_secret_basic",
+      tokenEndpointAuthMethod: "client_secret_post",
       grantTypes: ["authorization_code", "refresh_token"],
     });
 
@@ -415,7 +441,7 @@ describe("oauth routes", () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
-      tokenEndpointAuthMethod: "client_secret_basic",
+      tokenEndpointAuthMethod: "client_secret_post",
       grantTypes: ["authorization_code", "refresh_token"],
     });
     prismaMock.oAuthCode.findUnique.mockResolvedValue({
@@ -457,6 +483,35 @@ describe("oauth routes", () => {
 
     expect(response.status).toBe(400);
     expect(body).toEqual({ error: "invalid_grant" });
+  });
+
+  it("rejects HTTP Basic for client_secret_post clients", async () => {
+    prismaMock.oAuthClient.findUnique.mockResolvedValue({
+      id: "client-db-id",
+      clientSecret: await hashOAuthClientSecret("top-secret"),
+      tokenEndpointAuthMethod: "client_secret_post",
+      grantTypes: ["authorization_code", "refresh_token"],
+    });
+
+    const request = new Request("http://localhost/api/oauth/token", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Basic ${Buffer.from("client-id:top-secret").toString("base64")}`,
+      },
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        code: "auth-code",
+        redirect_uri: "https://client.example/callback",
+      }),
+    });
+
+    const response = await token(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body).toEqual({ error: "invalid_client" });
+    expect(prismaMock.oAuthCode.findUnique).not.toHaveBeenCalled();
   });
 
   it("supports public clients using PKCE", async () => {
@@ -519,7 +574,7 @@ describe("oauth routes", () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
-      tokenEndpointAuthMethod: "client_secret_basic",
+      tokenEndpointAuthMethod: "client_secret_post",
       grantTypes: ["authorization_code", "refresh_token"],
     });
     prismaMock.oAuthCode.findUnique.mockResolvedValue({
@@ -577,7 +632,7 @@ describe("oauth routes", () => {
     prismaMock.oAuthClient.findUnique.mockResolvedValue({
       id: "client-db-id",
       clientSecret: await hashOAuthClientSecret("top-secret"),
-      tokenEndpointAuthMethod: "client_secret_basic",
+      tokenEndpointAuthMethod: "client_secret_post",
       grantTypes: ["authorization_code", "refresh_token"],
     });
     prismaMock.oAuthRefreshToken.findUnique.mockResolvedValue({

@@ -255,7 +255,7 @@ export async function assertApiContract(
     const response = await request.post("/api/oauth/authorize", {
       data: {
         client_id: "invalid-e2e-client",
-        redirect_uri: "http://127.0.0.1:3000/oauth-e2e/callback",
+        redirect_uri: "http://localhost:3000/oauth-e2e/callback",
       },
     });
     expect(response.status()).toBe(401);
@@ -267,7 +267,7 @@ export async function assertApiContract(
       data: {
         grant_type: "authorization_code",
         code: "invalid-e2e-code",
-        redirect_uri: "http://127.0.0.1:3000/oauth-e2e/callback",
+        redirect_uri: "http://localhost:3000/oauth-e2e/callback",
         client_id: "invalid-e2e-client",
         client_secret: "invalid-e2e-secret",
       },

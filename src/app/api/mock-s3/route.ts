@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   deleteMockS3Object,
   getMockS3Object,
+  isMockS3Enabled,
   putMockS3Object,
 } from "@/lib/storage/mock-s3";
 
@@ -18,7 +19,7 @@ function parseKey(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  if (process.env.NODE_ENV === "production") {
+  if (!isMockS3Enabled()) {
     return notFound();
   }
 
@@ -37,7 +38,7 @@ export async function PUT(request: Request) {
 }
 
 export async function GET(request: Request) {
-  if (process.env.NODE_ENV === "production") {
+  if (!isMockS3Enabled()) {
     return notFound();
   }
 
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
 }
 
 export async function HEAD(request: Request) {
-  if (process.env.NODE_ENV === "production") {
+  if (!isMockS3Enabled()) {
     return notFound();
   }
 
@@ -91,7 +92,7 @@ export async function HEAD(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  if (process.env.NODE_ENV === "production") {
+  if (!isMockS3Enabled()) {
     return notFound();
   }
 
