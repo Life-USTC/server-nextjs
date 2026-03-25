@@ -80,12 +80,17 @@ export function updateUserProfileById(
     image?: string | null;
   },
 ) {
+  const normalizedData = {
+    ...data,
+    ...(data.name === null ? { name: "" } : {}),
+  };
+
   runDbScript<{ ok: true }>(`
     import { prisma } from "./src/lib/db/prisma";
 
     await prisma.user.update({
       where: { id: ${JSON.stringify(userId)} },
-      data: ${JSON.stringify(data)},
+      data: ${JSON.stringify(normalizedData)},
     });
 
     console.log(JSON.stringify({ ok: true }));
@@ -114,6 +119,7 @@ export async function createOAuthClientFixture(
     tokenEndpointAuthMethod === "none"
       ? null
       : (options.clientSecret ?? generateToken(24));
+  const publicClientStoredSecret = generateToken(24);
   const redirectUris = options.redirectUris ?? [
     `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`,
   ];
@@ -134,34 +140,52 @@ export async function createOAuthClientFixture(
     scopes: string[];
   }>(`
     import { prisma } from "./src/lib/db/prisma";
-    import { hashOAuthClientSecret } from "./src/lib/oauth/utils";
 
-    const client = await prisma.oAuthClient.create({
+    const client = await prisma.oidcApplication.create({
       data: {
-        clientId: ${JSON.stringify(clientId)},
-        clientSecret: ${
-          clientSecret
-            ? `await hashOAuthClientSecret(${JSON.stringify(clientSecret)})`
-            : "null"
-        },
-        tokenEndpointAuthMethod: ${JSON.stringify(tokenEndpointAuthMethod)},
         name: ${JSON.stringify(name)},
-        redirectUris: ${JSON.stringify(redirectUris)},
-        grantTypes: ${JSON.stringify(grantTypes)},
-        scopes: ${JSON.stringify(scopes)},
+        clientId: ${JSON.stringify(clientId)},
+        clientSecret: ${JSON.stringify(
+          tokenEndpointAuthMethod === "none"
+            ? publicClientStoredSecret
+            : clientSecret,
+        )},
+        redirectUrls: ${JSON.stringify(redirectUris.join(","))},
+        type: ${JSON.stringify(
+          tokenEndpointAuthMethod === "none" ? "public" : "web",
+        )},
+        authenticationScheme: ${JSON.stringify(tokenEndpointAuthMethod)},
+        disabled: false,
+        metadata: ${JSON.stringify(
+          JSON.stringify({
+            scopes,
+            grantTypes,
+            tokenEndpointAuthMethod,
+            source: "e2e_fixture",
+          }),
+        )},
       },
       select: {
         id: true,
         clientId: true,
         name: true,
-        tokenEndpointAuthMethod: true,
-        redirectUris: true,
-        grantTypes: true,
-        scopes: true,
+        authenticationScheme: true,
+        redirectUrls: true,
+        metadata: true,
       },
     });
 
-    console.log(JSON.stringify(client));
+    const parsedMetadata = client.metadata ? JSON.parse(client.metadata) : {};
+    const normalized = {
+      id: client.id,
+      clientId: client.clientId,
+      name: client.name,
+      tokenEndpointAuthMethod: client.authenticationScheme,
+      redirectUris: client.redirectUrls.split(",").filter(Boolean),
+      scopes: Array.isArray(parsedMetadata.scopes) ? parsedMetadata.scopes : [],
+    };
+
+    console.log(JSON.stringify(normalized));
     await prisma.$disconnect();
   `);
 
@@ -175,7 +199,7 @@ export function deleteOAuthClientFixture(clientDbId: string) {
   runDbScript<{ ok: true }>(`
     import { prisma } from "./src/lib/db/prisma";
 
-    await prisma.oAuthClient.deleteMany({
+    await prisma.oidcApplication.deleteMany({
       where: { id: ${JSON.stringify(clientDbId)} },
     });
 
@@ -188,7 +212,7 @@ export function deleteOAuthClientsByName(name: string) {
   runDbScript<{ ok: true }>(`
     import { prisma } from "./src/lib/db/prisma";
 
-    await prisma.oAuthClient.deleteMany({
+    await prisma.oidcApplication.deleteMany({
       where: { name: ${JSON.stringify(name)} },
     });
 
@@ -203,10 +227,34 @@ export function findOAuthCodeByCode(code: string) {
   } | null>(`
     import { prisma } from "./src/lib/db/prisma";
 
-    const oauthCode = await prisma.oAuthCode.findUnique({
-      where: { code: ${JSON.stringify(code)} },
-      select: { clientId: true },
+    const verification = await prisma.verificationToken.findFirst({
+      where: { identifier: ${JSON.stringify(code)} },
+      select: { token: true, expires: true },
     });
+    if (!verification) {
+      console.log(JSON.stringify(null));
+      await prisma.$disconnect();
+      process.exit(0);
+    }
+
+    let payload = null;
+    try {
+      payload = JSON.parse(verification.token);
+    } catch {
+      payload = null;
+    }
+
+    let oauthCode = null;
+    if (payload && typeof payload === "object" && "clientId" in payload) {
+      const rawClientId = String(payload.clientId);
+      const client = await prisma.oidcApplication.findUnique({
+        where: { clientId: rawClientId },
+        select: { id: true },
+      });
+      oauthCode = {
+        clientId: client?.id ?? rawClientId,
+      };
+    }
 
     console.log(JSON.stringify(oauthCode));
     await prisma.$disconnect();
@@ -304,6 +352,8 @@ export function createTempUsersFixture(options: {
       const user = await prisma.user.create({
         data: {
           username,
+          email: \`\${username}@users.local\`,
+          emailVerified: true,
           name: \`E2E \${username}\`,
         },
       });

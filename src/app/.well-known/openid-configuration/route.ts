@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       "client_secret_post",
       "none",
     ],
-    client_id_metadata_document_supported: true,
+    client_id_metadata_document_supported: false,
     scopes_supported: ["openid", "profile", MCP_TOOLS_SCOPE],
     subject_types_supported: ["public"],
     claims_supported: ["sub", "name", "preferred_username", "picture"],

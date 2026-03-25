@@ -1,9 +1,9 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { unlinkAccount } from "@/app/actions/user";
+import { signIn } from "@/lib/auth/client";
 import { Button } from "./ui/button";
 import {
   Card,

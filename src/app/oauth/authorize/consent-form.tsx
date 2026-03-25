@@ -11,45 +11,57 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
-import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 
 interface OAuthConsentFormProps {
   clientName: string;
-  clientId: string;
-  redirectUri: string;
+  consentCode: string;
+  state?: string | null;
   scopes: string[];
-  state?: string;
-  codeChallenge?: string;
-  codeChallengeMethod?: string;
-  resource?: string;
 }
 
 export function OAuthConsentForm({
   clientName,
-  clientId,
-  redirectUri,
-  scopes,
+  consentCode,
   state,
-  codeChallenge,
-  codeChallengeMethod,
-  resource,
+  scopes,
 }: OAuthConsentFormProps) {
   const t = useTranslations("oauth");
   const [loading, setLoading] = useState(false);
 
-  const redirectWithError = ({
-    error,
-    errorDescription,
-  }: {
-    error: string;
-    errorDescription?: string;
-  }) => {
-    window.location.href = buildOAuthErrorRedirectUri({
-      redirectUri,
-      error,
-      state,
-      errorDescription,
-    });
+  const submitConsent = async (accept: boolean) => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/auth/oauth2/consent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accept,
+          consent_code: consentCode,
+        }),
+      });
+      const payload = (await response.json().catch(() => null)) as {
+        redirectURI?: string;
+      } | null;
+
+      const redirectURI = payload?.redirectURI;
+      if (!response.ok || !redirectURI) {
+        window.location.href = "/error?error=consent_failed";
+        return;
+      }
+
+      if (!accept && state) {
+        const redirectUrl = new URL(redirectURI);
+        if (!redirectUrl.searchParams.has("state")) {
+          redirectUrl.searchParams.set("state", state);
+        }
+        window.location.href = redirectUrl.toString();
+        return;
+      }
+
+      window.location.href = redirectURI;
+    } catch {
+      window.location.href = "/error?error=consent_failed";
+    }
   };
 
   return (
@@ -73,43 +85,7 @@ export function OAuthConsentForm({
 
           <Form
             action={async () => {
-              setLoading(true);
-
-              try {
-                const res = await fetch("/api/oauth/authorize", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    client_id: clientId,
-                    redirect_uri: redirectUri,
-                    scope: scopes.join(" "),
-                    state,
-                    code_challenge: codeChallenge,
-                    code_challenge_method: codeChallengeMethod,
-                    resource,
-                  }),
-                });
-
-                const data = (await res.json().catch(() => null)) as {
-                  redirect?: string;
-                  error?: string;
-                  error_description?: string;
-                } | null;
-
-                if (!res.ok || !data?.redirect) {
-                  redirectWithError({
-                    error: data?.error ?? "server_error",
-                    errorDescription: data?.error_description,
-                  });
-                  return;
-                }
-
-                window.location.href = data.redirect;
-              } catch {
-                setLoading(false);
-                redirectWithError({ error: "server_error" });
-                return;
-              }
+              await submitConsent(true);
             }}
           >
             <div className="flex gap-3">
@@ -117,8 +93,9 @@ export function OAuthConsentForm({
                 type="button"
                 variant="outline"
                 className="flex-1"
-                onClick={() => {
-                  redirectWithError({ error: "access_denied" });
+                disabled={loading}
+                onClick={async () => {
+                  await submitConsent(false);
                 }}
               >
                 {t("deny")}

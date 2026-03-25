@@ -45,6 +45,12 @@ export function validateOAuthRedirectUris(
   }
 
   for (const uri of redirectUris) {
+    if (uri.includes(",")) {
+      return {
+        error: "Redirect URIs must not contain commas",
+      };
+    }
+
     let parsedUri: URL;
     try {
       parsedUri = new URL(uri);

@@ -1,5 +1,9 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { prisma } from "@/lib/db/prisma";
+import {
+  getAccessTokenResourceBindingIdentifier,
+  getResourceBinding,
+} from "@/lib/oauth/resource-binding";
 import { MCP_TOOLS_SCOPE, resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import { getMcpServerUrl, getOAuthProtectedResourceMetadataUrl } from "./urls";
 
@@ -70,8 +74,8 @@ function parseBearerToken(request: Request): string | null {
 export async function verifyAccessToken(
   token: string,
 ): Promise<AuthInfo | AuthFailure> {
-  const accessToken = await prisma.oAuthAccessToken.findUnique({
-    where: { token },
+  const accessToken = await prisma.oidcAccessToken.findUnique({
+    where: { accessToken: token },
     include: {
       client: {
         select: {
@@ -96,8 +100,8 @@ export async function verifyAccessToken(
     };
   }
 
-  if (accessToken.expiresAt < new Date()) {
-    await prisma.oAuthAccessToken.deleteMany({
+  if (accessToken.accessTokenExpiresAt < new Date()) {
+    await prisma.oidcAccessToken.deleteMany({
       where: { id: accessToken.id },
     });
 
@@ -108,12 +112,23 @@ export async function verifyAccessToken(
     };
   }
 
+  const resourceBinding = await getResourceBinding(
+    getAccessTokenResourceBindingIdentifier(token),
+  );
+  if (!accessToken.user) {
+    return {
+      error: INVALID_TOKEN_ERROR,
+      status: 401,
+      description: "Access token is missing user context",
+    };
+  }
+
   return {
     token,
     clientId: accessToken.client.clientId,
-    scopes: accessToken.scopes,
-    expiresAt: Math.floor(accessToken.expiresAt.getTime() / 1000),
-    resource: accessToken.resource ? new URL(accessToken.resource) : undefined,
+    scopes: accessToken.scopes.split(" ").filter(Boolean),
+    expiresAt: Math.floor(accessToken.accessTokenExpiresAt.getTime() / 1000),
+    resource: resourceBinding ? new URL(resourceBinding.resource) : undefined,
     extra: {
       userId: accessToken.user.id,
       username: accessToken.user.username,

@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db/prisma";
 function normalizeName(value: unknown) {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();
-  return trimmed ? trimmed : null;
+  return trimmed || "";
 }
 
 function normalizeUsername(value: unknown) {
@@ -68,7 +68,7 @@ export async function PATCH(
 
   try {
     const data: {
-      name?: string | null;
+      name?: string;
       username?: string | null;
       isAdmin?: boolean;
     } = {};

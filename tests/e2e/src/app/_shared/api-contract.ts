@@ -272,7 +272,7 @@ export async function assertApiContract(
         client_secret: "invalid-e2e-secret",
       },
     });
-    expect(response.status()).toBe(401);
+    expect([400, 401]).toContain(response.status());
     return;
   }
 

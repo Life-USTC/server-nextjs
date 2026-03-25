@@ -11,7 +11,6 @@ import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   generateToken,
-  hashOAuthClientSecret,
   MCP_TOOLS_SCOPE,
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
   OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
@@ -92,24 +91,32 @@ export async function createOAuthClient(
     tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
       ? null
       : generateToken(32);
-  const hashedClientSecret = clientSecret
-    ? await hashOAuthClientSecret(clientSecret)
-    : null;
+  const clientType =
+    tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+      ? "public"
+      : "web";
   const grantTypes =
     tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
       ? ["authorization_code"]
       : ["authorization_code", "refresh_token"];
 
   try {
-    await prisma.oAuthClient.create({
+    await prisma.oidcApplication.create({
       data: {
-        clientId,
-        clientSecret: hashedClientSecret,
-        tokenEndpointAuthMethod,
         name,
-        redirectUris: [...redirectUrisResult.redirectUris],
-        grantTypes,
-        scopes: [...scopes],
+        clientId,
+        clientSecret:
+          clientType === "public" ? generateToken(24) : (clientSecret ?? null),
+        redirectUrls: redirectUrisResult.redirectUris.join(","),
+        type: clientType,
+        authenticationScheme: tokenEndpointAuthMethod,
+        disabled: false,
+        metadata: JSON.stringify({
+          source: "admin_panel",
+          scopes,
+          grantTypes,
+          tokenEndpointAuthMethod,
+        }),
       },
     });
   } catch (error) {
@@ -152,7 +159,7 @@ export async function deleteOAuthClient(clientDbId: string) {
   }
 
   try {
-    await prisma.oAuthClient.delete({ where: { id: clientDbId } });
+    await prisma.oidcApplication.delete({ where: { id: clientDbId } });
   } catch (error) {
     logOAuthEvent(
       "error",

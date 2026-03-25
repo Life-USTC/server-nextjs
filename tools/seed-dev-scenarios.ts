@@ -199,12 +199,16 @@ async function main() {
     prisma.user.upsert({
       where: { username: debugUsername },
       update: {
+        email: `${debugUsername}@users.local`,
+        emailVerified: true,
         name: debugName,
         image:
           "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user",
       },
       create: {
         username: debugUsername,
+        email: `${debugUsername}@users.local`,
+        emailVerified: true,
         name: debugName,
         image:
           "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user",
@@ -214,6 +218,8 @@ async function main() {
     prisma.user.upsert({
       where: { username: adminUsername },
       update: {
+        email: `${adminUsername}@users.local`,
+        emailVerified: true,
         name: "Dev Moderator",
         isAdmin: true,
         image:
@@ -221,6 +227,8 @@ async function main() {
       },
       create: {
         username: adminUsername,
+        email: `${adminUsername}@users.local`,
+        emailVerified: true,
         name: "Dev Moderator",
         isAdmin: true,
         image:

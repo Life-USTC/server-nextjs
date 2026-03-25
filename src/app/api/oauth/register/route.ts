@@ -5,7 +5,6 @@ import { validateDynamicClientRegistration } from "@/lib/oauth/client-registrati
 import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
   generateToken,
-  hashOAuthClientSecret,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
 } from "@/lib/oauth/utils";
 
@@ -82,20 +81,28 @@ export async function POST(request: Request) {
     validated.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
       ? null
       : generateToken(32);
-  const hashedClientSecret = clientSecret
-    ? await hashOAuthClientSecret(clientSecret)
-    : null;
+  const clientType =
+    validated.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+      ? "public"
+      : "web";
 
   try {
-    await prisma.oAuthClient.create({
+    await prisma.oidcApplication.create({
       data: {
-        clientId,
-        clientSecret: hashedClientSecret,
-        tokenEndpointAuthMethod: validated.tokenEndpointAuthMethod,
         name: validated.clientName,
-        redirectUris: [...validated.redirectUris],
-        grantTypes: [...validated.grantTypes],
-        scopes: [...validated.scopes],
+        clientId,
+        clientSecret:
+          clientType === "public" ? generateToken(24) : (clientSecret ?? null),
+        redirectUrls: validated.redirectUris.join(","),
+        type: clientType,
+        authenticationScheme: validated.tokenEndpointAuthMethod,
+        disabled: false,
+        metadata: JSON.stringify({
+          source: "dynamic_registration",
+          scopes: validated.scopes,
+          grantTypes: validated.grantTypes,
+          tokenEndpointAuthMethod: validated.tokenEndpointAuthMethod,
+        }),
       },
     });
   } catch (error) {

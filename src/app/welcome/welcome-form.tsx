@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { updateProfile } from "@/app/actions/user";
@@ -19,6 +18,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useSession } from "@/lib/auth/client";
 
 interface WelcomeFormProps {
   user: {
@@ -62,7 +62,7 @@ export function WelcomeForm({ user }: WelcomeFormProps) {
         description: t("successDescription"),
         variant: "success",
       });
-      // Refresh the JWT so the middleware sees the updated name/username
+      // Refresh auth cache so proxy checks use latest profile fields.
       await update();
       router.push("/");
       router.refresh();

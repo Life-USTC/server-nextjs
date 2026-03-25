@@ -45,16 +45,15 @@ function getLocale(request: NextRequest): string {
   return defaultLocale;
 }
 
-export default auth((request) => {
+export default async function proxy(request: NextRequest) {
+  const session = await auth(request.headers);
   if (!request.nextUrl) {
-    // This handles requests that are not NextRequest (e.g., in some edge cases or tests)
-    // But typically with auth wrapper, request is NextAuthRequest which extends NextRequest
     return NextResponse.next();
   }
 
   // Redirect signed-in users with incomplete profiles to /welcome
   const pathname = request.nextUrl.pathname;
-  const user = request.auth?.user;
+  const user = session?.user;
   if (
     user &&
     (!user.name || !user.username) &&
@@ -88,7 +87,7 @@ export default auth((request) => {
   }
 
   return response;
-});
+}
 
 export const config = {
   // Match all pathnames except for

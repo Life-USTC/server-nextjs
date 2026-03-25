@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db/prisma";
 import { resolveOAuthClient } from "@/lib/oauth/client-resolver";
-import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
-import {
-  OAUTH_CODE_CHALLENGE_METHOD_S256,
-  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-} from "@/lib/oauth/utils";
 import { OAuthConsentForm } from "./consent-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,10 +13,39 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
+async function resolveConsentState(
+  consentCode: string,
+): Promise<string | null> {
+  const verification = await prisma.verificationToken.findFirst({
+    where: { identifier: consentCode },
+    select: { token: true },
+  });
+  if (!verification?.token) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(verification.token) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "state" in parsed &&
+      typeof parsed.state === "string"
+    ) {
+      return parsed.state;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export default async function OAuthAuthorizePage({
   searchParams,
 }: {
   searchParams: Promise<{
+    consent_code?: string;
     client_id?: string;
     redirect_uri?: string;
     response_type?: string;
@@ -32,19 +57,53 @@ export default async function OAuthAuthorizePage({
   }>;
 }) {
   const [session, params] = await Promise.all([auth(), searchParams]);
+  const entries = Object.entries(params).filter(
+    (entry): entry is [string, string] => typeof entry[1] === "string",
+  );
+  const queryString = new URLSearchParams(entries);
 
   if (!session?.user?.id) {
-    const qs = new URLSearchParams(
-      Object.entries(await searchParams).filter(
-        (e): e is [string, string] => e[1] !== undefined,
-      ),
-    );
     redirect(
-      `/signin?callbackUrl=${encodeURIComponent(`/oauth/authorize?${qs.toString()}`)}`,
+      `/signin?callbackUrl=${encodeURIComponent(`/oauth/authorize?${queryString.toString()}`)}`,
     );
   }
 
   const t = await getTranslations("oauth");
+
+  if (!params.consent_code) {
+    if (!params.client_id) {
+      return (
+        <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
+          <p className="text-destructive">{t("errorMissingClientId")}</p>
+        </main>
+      );
+    }
+
+    const resolvedClient = await resolveOAuthClient(params.client_id);
+    if ("error" in resolvedClient) {
+      return (
+        <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
+          <p className="text-destructive">{t("errorInvalidClient")}</p>
+        </main>
+      );
+    }
+    if (
+      params.redirect_uri &&
+      !resolvedClient.client.redirectUris.includes(params.redirect_uri)
+    ) {
+      return (
+        <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
+          <p className="text-destructive">{t("errorInvalidRedirectUri")}</p>
+        </main>
+      );
+    }
+
+    if (!params.response_type) {
+      queryString.set("response_type", "code");
+    }
+    queryString.set("prompt", "consent");
+    redirect(`/api/oauth/authorize?${queryString.toString()}`);
+  }
 
   if (!params.client_id) {
     return (
@@ -64,75 +123,17 @@ export default async function OAuthAuthorizePage({
     );
   }
   const client = resolvedClient.client;
-
-  if (
-    params.redirect_uri &&
-    !client.redirectUris.includes(params.redirect_uri)
-  ) {
-    return (
-      <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
-        <p className="text-destructive">{t("errorInvalidRedirectUri")}</p>
-      </main>
-    );
-  }
-
-  const requestedScopes = params.scope?.split(" ").filter(Boolean) ?? [
-    "openid",
-    "profile",
-  ];
-
-  // Per OAuth 2.0 spec, if multiple redirect URIs are registered the client
-  // must explicitly specify which one to use.
-  const redirectUri =
-    params.redirect_uri ??
-    (client.redirectUris.length === 1 ? client.redirectUris[0] : null);
-
-  if (params.response_type !== "code" && redirectUri) {
-    redirect(
-      buildOAuthErrorRedirectUri({
-        redirectUri,
-        error: "unsupported_response_type",
-        state: params.state,
-      }),
-    );
-  }
-
-  if (!redirectUri) {
-    return (
-      <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">
-        <p className="text-destructive">{t("errorMissingRedirectUri")}</p>
-      </main>
-    );
-  }
-
-  const requiresPkce =
-    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
-  if (
-    requiresPkce &&
-    (!params.code_challenge ||
-      params.code_challenge_method !== OAUTH_CODE_CHALLENGE_METHOD_S256)
-  ) {
-    redirect(
-      buildOAuthErrorRedirectUri({
-        redirectUri,
-        error: "invalid_request",
-        state: params.state,
-        errorDescription:
-          "Public clients must use PKCE with code_challenge_method=S256",
-      }),
-    );
-  }
+  const requestedScopes = params.scope?.split(" ").filter(Boolean) ?? [];
+  const consentState = params.consent_code
+    ? await resolveConsentState(params.consent_code)
+    : null;
 
   return (
     <OAuthConsentForm
       clientName={client.name}
-      clientId={client.clientId}
-      redirectUri={redirectUri}
+      consentCode={params.consent_code}
+      state={consentState}
       scopes={requestedScopes}
-      state={params.state}
-      codeChallenge={params.code_challenge}
-      codeChallengeMethod={params.code_challenge_method}
-      resource={params.resource}
     />
   );
 }

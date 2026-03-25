@@ -56,11 +56,11 @@ export async function updateProfile(formData: FormData) {
 
   try {
     const data: {
-      name?: string | null;
+      name?: string;
       username?: string | null;
       image?: string | null;
     } = {};
-    if (name !== undefined) data.name = name || null;
+    if (name !== undefined) data.name = name || "";
     if (username !== undefined) data.username = username;
     if (image !== undefined) data.image = image || null;
 

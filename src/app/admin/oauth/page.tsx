@@ -20,6 +20,29 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
+type OAuthClientMetadata = {
+  scopes?: unknown;
+};
+
+function parseScopes(rawMetadata: string | null) {
+  if (!rawMetadata) {
+    return ["openid", "profile"];
+  }
+
+  try {
+    const parsed = JSON.parse(rawMetadata) as OAuthClientMetadata;
+    if (!Array.isArray(parsed.scopes)) {
+      return ["openid", "profile"];
+    }
+    const scopes = parsed.scopes.filter(
+      (value): value is string => typeof value === "string",
+    );
+    return scopes.length > 0 ? scopes : ["openid", "profile"];
+  } catch {
+    return ["openid", "profile"];
+  }
+}
+
 export default async function AdminOAuthPage() {
   const userId = await requireSignedInUserId();
 
@@ -33,14 +56,15 @@ export default async function AdminOAuthPage() {
   }
 
   const [clients, t, tCommon, tAdmin] = await Promise.all([
-    prisma.oAuthClient.findMany({
+    prisma.oidcApplication.findMany({
       select: {
         id: true,
         clientId: true,
         name: true,
-        tokenEndpointAuthMethod: true,
-        redirectUris: true,
-        scopes: true,
+        type: true,
+        authenticationScheme: true,
+        redirectUrls: true,
+        metadata: true,
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
@@ -77,7 +101,16 @@ export default async function AdminOAuthPage() {
 
       <OAuthClientManager
         clients={clients.map((c) => ({
-          ...c,
+          id: c.id,
+          clientId: c.clientId,
+          name: c.name,
+          tokenEndpointAuthMethod:
+            c.type === "public" ? "none" : c.authenticationScheme,
+          redirectUris: c.redirectUrls
+            .split(",")
+            .map((uri) => uri.trim())
+            .filter(Boolean),
+          scopes: parseScopes(c.metadata),
           createdAt: c.createdAt.toISOString(),
         }))}
       />

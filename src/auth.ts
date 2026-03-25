@@ -1,23 +1,23 @@
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import NextAuth from "next-auth";
-import type { Adapter, AdapterUser } from "next-auth/adapters";
-import type { JWT } from "next-auth/jwt";
-import Credentials from "next-auth/providers/credentials";
-import GitHub from "next-auth/providers/github";
-import Google from "next-auth/providers/google";
-import type { Prisma } from "@/generated/prisma/client";
+import { betterAuth } from "better-auth";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { hashPassword } from "better-auth/crypto";
+import { nextCookies, toNextJsHandler } from "better-auth/next-js";
+import { genericOAuth, oidcProvider } from "better-auth/plugins";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
-
-type OAuthProfile = {
-  email?: string | null;
-  image?: string | null;
-  picture?: string | null;
-  avatar_url?: string | null;
-  name?: string | null;
-};
+import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
 
 const isDev = process.env.NODE_ENV === "development";
-const allowDebugAuth = isDev || process.env.E2E_DEBUG_AUTH === "1";
+const e2eDebugAuth = process.env.E2E_DEBUG_AUTH === "1";
+const allowDebugAuth = isDev || e2eDebugAuth;
+
+if (e2eDebugAuth && process.env.VERCEL === "1") {
+  throw new Error(
+    "E2E_DEBUG_AUTH must not be set on Vercel/production hosting",
+  );
+}
+
 const DEV_DEBUG_PROVIDER_ID = "dev-debug";
 const DEV_ADMIN_PROVIDER_ID = "dev-admin";
 const DEV_DEBUG_USERNAME =
@@ -27,368 +27,482 @@ const DEV_DEBUG_NAME = process.env.DEV_DEBUG_NAME?.trim() || "Dev Debug User";
 const DEV_ADMIN_USERNAME =
   process.env.DEV_ADMIN_USERNAME?.trim().toLowerCase() || "dev-admin";
 const DEV_ADMIN_NAME = process.env.DEV_ADMIN_NAME?.trim() || "Dev Admin User";
+const DEV_DEBUG_EMAIL =
+  process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() ||
+  `${DEV_DEBUG_USERNAME}@debug.local`;
+const DEV_ADMIN_EMAIL =
+  process.env.DEV_ADMIN_EMAIL?.trim().toLowerCase() ||
+  `${DEV_ADMIN_USERNAME}@debug.local`;
 
-const prismaAdapter = PrismaAdapter(
-  prisma as unknown as Parameters<typeof PrismaAdapter>[0],
-);
+const DEV_DEBUG_PASSWORD = (() => {
+  const v = process.env.DEV_DEBUG_PASSWORD?.trim();
+  if (allowDebugAuth && !isDev) {
+    if (!v) {
+      throw new Error(
+        "DEV_DEBUG_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
+      );
+    }
+    return v;
+  }
+  return v || "dev-debug-password";
+})();
 
-const adapter: Adapter = {
-  ...prismaAdapter,
-  createUser: async (adapterUser: AdapterUser) => {
-    const { email, emailVerified, ...userData } = adapterUser;
-    const user = await prisma.user.create({ data: userData });
-    return {
-      ...user,
-      email: email ?? "",
-      emailVerified: emailVerified ?? null,
-    } as AdapterUser;
+const DEV_ADMIN_PASSWORD = (() => {
+  const v = process.env.DEV_ADMIN_PASSWORD?.trim();
+  if (allowDebugAuth && !isDev) {
+    if (!v) {
+      throw new Error(
+        "DEV_ADMIN_PASSWORD is required when E2E_DEBUG_AUTH=1 (non-development NODE_ENV)",
+      );
+    }
+    return v;
+  }
+  return v || "dev-admin-password";
+})();
+
+const OIDC_ISSUER =
+  process.env.AUTH_OIDC_ISSUER ||
+  "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2";
+const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid-configuration`;
+const AUTH_BASE_URL =
+  process.env.BETTER_AUTH_URL ||
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
+
+const profileImage = (value: unknown): string | undefined =>
+  typeof value === "string" && value.length > 0 ? value : undefined;
+
+const profileName = (value: unknown): string =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : "";
+
+const fallbackEmail = (provider: string, accountId: unknown): string =>
+  `${provider}-${String(accountId)}@users.local`;
+
+const authInstance = betterAuth({
+  baseURL: AUTH_BASE_URL,
+  database: prismaAdapter(
+    prisma as unknown as Parameters<typeof prismaAdapter>[0],
+    {
+      provider: "postgresql",
+    },
+  ),
+  socialProviders: {
+    ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
+      ? {
+          github: {
+            clientId: process.env.AUTH_GITHUB_ID,
+            clientSecret: process.env.AUTH_GITHUB_SECRET,
+            mapProfileToUser: (profile) => {
+              const hasEmail =
+                typeof profile.email === "string" && profile.email.length > 0;
+              return {
+                email: hasEmail
+                  ? profile.email
+                  : fallbackEmail("github", profile.id),
+                name: profileName(profile.name ?? profile.login),
+                image: profileImage(profile.avatar_url),
+                // GitHub may return unverified or hidden emails; do not mark
+                // fallback/local emails as verified.
+                emailVerified: false,
+              };
+            },
+          },
+        }
+      : {}),
+    ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+      ? {
+          google: {
+            clientId: process.env.AUTH_GOOGLE_ID,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+            mapProfileToUser: (profile) => {
+              const hasEmail =
+                typeof profile.email === "string" && profile.email.length > 0;
+              return {
+                email: hasEmail
+                  ? profile.email
+                  : fallbackEmail("google", profile.sub),
+                name: profileName(profile.name),
+                image: profileImage(profile.picture),
+                emailVerified:
+                  hasEmail && typeof profile.email_verified === "boolean"
+                    ? profile.email_verified
+                    : false,
+              };
+            },
+          },
+        }
+      : {}),
   },
-  getUser: async (id: string) => {
-    const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) return null;
-    return { ...user, email: "", emailVerified: null } as AdapterUser;
+  emailAndPassword: {
+    enabled: true,
+    disableSignUp: true,
+    autoSignIn: false,
   },
-  getUserByEmail: async (_: string) => null,
-  getUserByAccount: async (account) => {
-    const user = await prisma.user.findFirst({
-      where: {
-        accounts: {
-          some: {
-            provider: account.provider,
-            providerAccountId: account.providerAccountId,
+  user: {
+    additionalFields: {
+      username: {
+        type: "string",
+        required: false,
+      },
+      isAdmin: {
+        type: "boolean",
+        defaultValue: false,
+      },
+      profilePictures: {
+        type: "string[]",
+        required: false,
+        defaultValue: [],
+      },
+    },
+  },
+  account: {
+    fields: {
+      providerId: "provider",
+      accountId: "providerAccountId",
+      accessToken: "access_token",
+      refreshToken: "refresh_token",
+      idToken: "id_token",
+      scope: "scope",
+      accessTokenExpiresAt: "accessTokenExpiresAt",
+      refreshTokenExpiresAt: "refreshTokenExpiresAt",
+      password: "password",
+    },
+  },
+  session: {
+    fields: {
+      token: "sessionToken",
+      expiresAt: "expires",
+      ipAddress: "ipAddress",
+      userAgent: "userAgent",
+    },
+  },
+  verification: {
+    modelName: "verificationToken",
+    fields: {
+      value: "token",
+      expiresAt: "expires",
+    },
+  },
+  plugins: [
+    oidcProvider({
+      loginPage: "/signin",
+      consentPage: "/oauth/authorize",
+      allowDynamicClientRegistration: true,
+      requirePKCE: true,
+      allowPlainCodeChallengeMethod: false,
+      defaultScope: "openid profile",
+      scopes: [MCP_TOOLS_SCOPE],
+      metadata: {
+        scopes_supported: [
+          "openid",
+          "profile",
+          "email",
+          "offline_access",
+          MCP_TOOLS_SCOPE,
+        ],
+        claims_supported: [
+          "sub",
+          "name",
+          "preferred_username",
+          "picture",
+          "email",
+          "email_verified",
+        ],
+      },
+      getAdditionalUserInfoClaim(user, scopes) {
+        const claims: Record<string, unknown> = {};
+        if (scopes.includes("profile")) {
+          const username = (user as { username?: unknown }).username;
+          if (typeof username === "string" && username.length > 0) {
+            claims.preferred_username = username;
+          }
+        }
+        return claims;
+      },
+      schema: {
+        oauthApplication: {
+          modelName: "oidcApplication",
+        },
+        oauthAccessToken: {
+          modelName: "oidcAccessToken",
+        },
+        oauthConsent: {
+          modelName: "oidcConsent",
+        },
+      },
+    }),
+    genericOAuth({
+      config: [
+        {
+          providerId: "oidc",
+          discoveryUrl: OIDC_DISCOVERY_URL,
+          issuer: OIDC_ISSUER,
+          clientId: process.env.AUTH_OIDC_CLIENT_ID || "",
+          clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET || "",
+          scopes: ["openid", "profile", "email"],
+          pkce: true,
+          mapProfileToUser: async (profile) => {
+            const hasEmail =
+              typeof profile.email === "string" && profile.email.length > 0;
+            return {
+              email: hasEmail
+                ? profile.email
+                : fallbackEmail("oidc", profile.sub ?? profile.id ?? "unknown"),
+              name: profileName(profile.name),
+              image: profileImage(profile.picture),
+              emailVerified:
+                hasEmail && typeof profile.email_verified === "boolean"
+                  ? profile.email_verified
+                  : false,
+            };
           },
         },
-      },
-    });
-    if (!user) return null;
-    return { ...user, email: "", emailVerified: null } as AdapterUser;
-  },
-};
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter,
-  session: {
-    strategy: allowDebugAuth ? "jwt" : "database",
-  },
-  pages: {
-    signIn: "/signin",
-  },
-  providers: [
-    GitHub({
-      allowDangerousEmailAccountLinking: false,
+      ],
     }),
-    Google({
-      allowDangerousEmailAccountLinking: false,
-    }),
-    ...(allowDebugAuth
-      ? [
-          Credentials({
-            id: DEV_DEBUG_PROVIDER_ID,
-            name: "Dev Debug",
-            credentials: {},
-            authorize: async () => {
-              const user = await prisma.user.upsert({
-                where: { username: DEV_DEBUG_USERNAME },
-                update: {
-                  name: DEV_DEBUG_NAME,
-                },
-                create: {
-                  username: DEV_DEBUG_USERNAME,
-                  name: DEV_DEBUG_NAME,
-                  image:
-                    "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev",
-                },
-              });
-
-              return {
-                id: user.id,
-                name: user.name,
-                image: user.image,
-                isAdmin: user.isAdmin,
-                username: user.username,
-              };
-            },
-          }),
-          Credentials({
-            id: DEV_ADMIN_PROVIDER_ID,
-            name: "Dev Admin",
-            credentials: {},
-            authorize: async () => {
-              const user = await prisma.user.upsert({
-                where: { username: DEV_ADMIN_USERNAME },
-                update: {
-                  name: DEV_ADMIN_NAME,
-                  isAdmin: true,
-                },
-                create: {
-                  username: DEV_ADMIN_USERNAME,
-                  name: DEV_ADMIN_NAME,
-                  isAdmin: true,
-                  image:
-                    "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
-                },
-              });
-
-              return {
-                id: user.id,
-                name: user.name,
-                image: user.image,
-                isAdmin: true,
-                username: user.username,
-              };
-            },
-          }),
-        ]
-      : []),
-    {
-      id: "oidc",
-      name: "USTC",
-      type: "oidc",
-      issuer: "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2",
-      clientId: process.env.AUTH_OIDC_CLIENT_ID,
-      clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET,
-      authorization: { params: { scope: "openid" } },
-      checks: ["pkce", "state"],
-      style: {
-        logo: "/images/ustc_favicon.png",
-        bg: "#fff",
-        text: "#000",
-      },
-      profile(profile) {
-        if (isDev) {
-          console.log(
-            "OIDC Profile Fetched:",
-            JSON.stringify(profile, null, 2),
-          );
-        }
-
-        return {
-          id: profile.sub,
-          name: profile.name ?? null,
-          image: profile.picture ?? null,
-        };
-      },
-    },
+    nextCookies(),
   ],
-  callbacks: {
-    async signIn({ user, account, profile }) {
-      if (!account || !user.id) return true;
-      if (
-        account.provider === DEV_DEBUG_PROVIDER_ID ||
-        account.provider === DEV_ADMIN_PROVIDER_ID
-      ) {
-        return allowDebugAuth;
-      }
-
+  onAPIError: {
+    onError(error) {
       if (isDev) {
-        console.log(
-          `Profile fetched for ${account.provider}:`,
-          JSON.stringify(profile, null, 2),
-        );
-      }
-
-      // Check if user already exists in database
-      const existingUser = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-
-      // For new users, skip - linkAccount event will handle it
-      if (!existingUser) {
-        return true;
-      }
-
-      // Extract email from profile
-      const email = profile?.email;
-
-      if (email) {
-        try {
-          await prisma.verifiedEmail.upsert({
-            where: {
-              provider_email: {
-                provider: account.provider,
-                email: email,
-              },
-            },
-            update: {
-              userId: user.id,
-            },
-            create: {
-              email: email,
-              provider: account.provider,
-              userId: user.id,
-            },
-          });
-        } catch (error) {
-          console.error("Failed to upsert VerifiedEmail:", error);
-        }
-      }
-
-      // Handle profile picture and name update for existing users
-      await updateUserProfileFromProvider(existingUser, profile);
-
-      return true;
-    },
-    async jwt({ token, user, trigger }) {
-      const nextToken = token as JWT & {
-        isAdmin?: boolean;
-        username?: string | null;
-      };
-
-      if (user) {
-        const typedUser = user as AdapterUser & {
-          isAdmin?: boolean;
-          username?: string | null;
-        };
-        nextToken.sub = user.id;
-        nextToken.isAdmin = typedUser.isAdmin ?? false;
-        nextToken.username = typedUser.username ?? null;
-        return nextToken;
-      }
-
-      // Refresh token from DB when session is explicitly updated (e.g. after
-      // profile completion) or when fields are missing in dev mode.
-      const shouldRefresh =
-        trigger === "update" ||
-        (isDev &&
-          typeof nextToken.sub === "string" &&
-          (nextToken.isAdmin === undefined ||
-            nextToken.username === undefined));
-
-      if (shouldRefresh && typeof nextToken.sub === "string") {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: nextToken.sub },
-          select: { name: true, username: true, isAdmin: true },
-        });
-        if (dbUser) {
-          nextToken.name = dbUser.name;
-          nextToken.username = dbUser.username;
-          nextToken.isAdmin = dbUser.isAdmin;
-        }
-      }
-
-      return nextToken;
-    },
-    session: ({ session, user, token }) => {
-      const typedToken = token as
-        | (JWT & { isAdmin?: boolean; username?: string | null })
-        | undefined;
-      const typedUser = user as
-        | (AdapterUser & { isAdmin?: boolean; username?: string | null })
-        | undefined;
-      const resolvedId =
-        typedUser?.id ??
-        (typeof typedToken?.sub === "string" ? typedToken.sub : "");
-
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: resolvedId,
-          isAdmin: typedUser?.isAdmin ?? typedToken?.isAdmin ?? false,
-          username: typedUser?.username ?? typedToken?.username ?? null,
-        },
-      };
-    },
-  },
-  events: {
-    async linkAccount({ user, account, profile }) {
-      // This event fires after the account is linked and user exists in DB
-      const email = profile?.email;
-
-      if (email && user.id) {
-        try {
-          await prisma.verifiedEmail.upsert({
-            where: {
-              provider_email: {
-                provider: account.provider,
-                email: email,
-              },
-            },
-            update: {
-              userId: user.id,
-            },
-            create: {
-              email: email,
-              provider: account.provider,
-              userId: user.id,
-            },
-          });
-        } catch (error) {
-          console.error(
-            "Failed to upsert VerifiedEmail in linkAccount:",
-            error,
-          );
-        }
-      }
-
-      // Update profile picture and name
-      const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-
-      if (dbUser) {
-        await updateUserProfileFromProvider(dbUser, profile);
-      }
-    },
-  },
-  debug: isDev,
-  logger: {
-    error(code, ...message) {
-      console.error(code, message);
-    },
-    warn(code, ...message) {
-      console.warn(code, message);
-    },
-    debug(code, ...message) {
-      if (isDev) {
-        console.debug(code, message);
+        console.error("Better Auth API error:", error);
       }
     },
   },
 });
 
-/**
- * Helper function to update user profile from OAuth provider data
- */
-async function updateUserProfileFromProvider(
-  dbUser: {
-    id: string;
-    name: string | null;
-    image: string | null;
-    profilePictures: string[];
-  },
-  profile: OAuthProfile | null | undefined,
-) {
-  try {
-    const image = profile?.image || profile?.picture || profile?.avatar_url;
-    const name = profile?.name;
+type RawSession = Awaited<ReturnType<typeof authInstance.api.getSession>>;
 
-    const updates: Prisma.UserUpdateInput = {};
-    let shouldUpdate = false;
+export type AppSession = RawSession extends null
+  ? never
+  : {
+      session: NonNullable<RawSession>["session"];
+      user: {
+        id: string;
+        email: string;
+        name: string | null;
+        image: string | null;
+        username: string | null;
+        isAdmin: boolean;
+        profilePictures: string[];
+      };
+    };
 
-    if (image) {
-      const currentPics = dbUser.profilePictures || [];
-      if (!currentPics.includes(image)) {
-        updates.profilePictures = { push: image };
-        shouldUpdate = true;
-        if (!dbUser.image) {
-          updates.image = image;
-        }
-      }
-    }
+export const handlers = toNextJsHandler(authInstance);
+export const authApi = authInstance.api;
 
-    if (!dbUser.name && name) {
-      updates.name = name;
-      shouldUpdate = true;
-    }
+const mapSession = (session: NonNullable<RawSession>): AppSession => {
+  const user = session.user as Record<string, unknown>;
+  const profilePictures = Array.isArray(user.profilePictures)
+    ? user.profilePictures.filter(
+        (value): value is string => typeof value === "string",
+      )
+    : [];
 
-    if (shouldUpdate) {
-      await prisma.user.update({
-        where: { id: dbUser.id },
-        data: updates,
-      });
-    }
-  } catch (error) {
-    console.error("Failed to update user profile info:", error);
+  return {
+    session: session.session,
+    user: {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name || null,
+      image: session.user.image ?? null,
+      username:
+        typeof user.username === "string" && user.username.length > 0
+          ? user.username
+          : null,
+      isAdmin: Boolean(user.isAdmin),
+      profilePictures,
+    },
+  };
+};
+
+export async function auth(
+  source?: Request | Headers,
+): Promise<AppSession | null> {
+  const requestHeaders =
+    source instanceof Headers
+      ? source
+      : source
+        ? new Headers(source.headers)
+        : await headers();
+
+  const session = await authInstance.api.getSession({
+    headers: requestHeaders,
+  });
+  if (!session) {
+    return null;
   }
+  return mapSession(session);
+}
+
+type SignInOptions = {
+  redirectTo?: string;
+  callbackUrl?: string;
+  redirect?: boolean;
+};
+
+type SignOutOptions = {
+  redirectTo?: string;
+  callbackUrl?: string;
+  redirect?: boolean;
+};
+
+type DebugProviderConfig = {
+  username: string;
+  name: string;
+  email: string;
+  password: string;
+  isAdmin: boolean;
+  image: string;
+};
+
+const getDebugProviderConfig = (
+  providerId: string,
+): DebugProviderConfig | null => {
+  if (providerId === DEV_DEBUG_PROVIDER_ID) {
+    return {
+      username: DEV_DEBUG_USERNAME,
+      name: DEV_DEBUG_NAME,
+      email: DEV_DEBUG_EMAIL,
+      password: DEV_DEBUG_PASSWORD,
+      isAdmin: false,
+      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev",
+    };
+  }
+  if (providerId === DEV_ADMIN_PROVIDER_ID) {
+    return {
+      username: DEV_ADMIN_USERNAME,
+      name: DEV_ADMIN_NAME,
+      email: DEV_ADMIN_EMAIL,
+      password: DEV_ADMIN_PASSWORD,
+      isAdmin: true,
+      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
+    };
+  }
+  return null;
+};
+
+const ensureDebugCredentialUser = async (providerId: string) => {
+  const config = getDebugProviderConfig(providerId);
+  if (!config) {
+    throw new Error(`Unknown debug provider: ${providerId}`);
+  }
+
+  const hashedPassword = await hashPassword(config.password);
+  const user = await prisma.user.upsert({
+    where: { username: config.username },
+    update: {
+      email: config.email,
+      emailVerified: true,
+      name: config.name,
+      image: config.image,
+      isAdmin: config.isAdmin,
+      profilePictures: { set: [config.image] },
+    },
+    create: {
+      username: config.username,
+      email: config.email,
+      emailVerified: true,
+      name: config.name,
+      image: config.image,
+      isAdmin: config.isAdmin,
+      profilePictures: [config.image],
+    },
+    select: { id: true },
+  });
+
+  await prisma.account.upsert({
+    where: {
+      provider_providerAccountId: {
+        provider: "credential",
+        providerAccountId: user.id,
+      },
+    },
+    update: {
+      userId: user.id,
+      type: "credential",
+      provider: "credential",
+      password: hashedPassword,
+    },
+    create: {
+      userId: user.id,
+      type: "credential",
+      provider: "credential",
+      providerAccountId: user.id,
+      password: hashedPassword,
+    },
+  });
+};
+
+const extractResultUrl = (result: unknown): string | null => {
+  if (!result || typeof result !== "object") {
+    return null;
+  }
+  const value = (result as { url?: unknown }).url;
+  return typeof value === "string" && value.length > 0 ? value : null;
+};
+
+export async function signIn(providerId?: string, options: SignInOptions = {}) {
+  const redirectTo = options.redirectTo ?? options.callbackUrl ?? "/";
+
+  if (!providerId) {
+    const signInUrl = `/signin?callbackUrl=${encodeURIComponent(redirectTo)}`;
+    if (options.redirect === false) {
+      return { redirect: false, url: signInUrl };
+    }
+    redirect(signInUrl);
+  }
+
+  let result: unknown;
+
+  if (
+    providerId === DEV_DEBUG_PROVIDER_ID ||
+    providerId === DEV_ADMIN_PROVIDER_ID
+  ) {
+    if (!allowDebugAuth) {
+      throw new Error("Debug auth is disabled");
+    }
+    await ensureDebugCredentialUser(providerId);
+    const debugConfig = getDebugProviderConfig(providerId);
+    result = await authInstance.api.signInEmail({
+      body: {
+        email: debugConfig?.email ?? "",
+        password: debugConfig?.password ?? "",
+        callbackURL: redirectTo,
+      },
+    });
+  } else if (providerId === "oidc") {
+    result = await authInstance.api.signInWithOAuth2({
+      body: {
+        providerId,
+        callbackURL: redirectTo,
+      },
+    });
+  } else {
+    result = await authInstance.api.signInSocial({
+      body: {
+        provider: providerId,
+        callbackURL: redirectTo,
+      },
+    });
+  }
+
+  if (options.redirect === false) {
+    return result;
+  }
+
+  redirect(extractResultUrl(result) ?? redirectTo);
+}
+
+export async function signOut(options: SignOutOptions = {}) {
+  await authInstance.api.signOut({
+    headers: await headers(),
+  });
+
+  const redirectTo = options.redirectTo ?? options.callbackUrl ?? "/";
+  if (options.redirect === false) {
+    return { success: true };
+  }
+  redirect(redirectTo);
 }

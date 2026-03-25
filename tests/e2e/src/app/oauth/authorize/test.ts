@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { generateCodeChallenge } from "@/lib/oauth/utils";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import {
   createOAuthClientFixture,
@@ -8,6 +9,13 @@ import {
 } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+
+const OAUTH_E2E_CODE_VERIFIER =
+  "oauth-e2e-browser-verifier-0123456789012345678901234567890123456789";
+const OAUTH_E2E_PKCE = {
+  code_challenge: generateCodeChallenge(OAUTH_E2E_CODE_VERIFIER),
+  code_challenge_method: "S256",
+} as const;
 
 function buildAuthorizeUrl(params: Record<string, string>) {
   return `/oauth/authorize?${new URLSearchParams(params).toString()}`;
@@ -29,6 +37,7 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, test
     await gotoAndWaitForReady(
       page,
       buildAuthorizeUrl({
+        ...OAUTH_E2E_PKCE,
         client_id: client.clientId,
         redirect_uri: redirectUri,
         response_type: "code",
@@ -51,6 +60,7 @@ test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) 
   await gotoAndWaitForReady(
     page,
     buildAuthorizeUrl({
+      ...OAUTH_E2E_PKCE,
       client_id: "missing-client",
       redirect_uri: `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`,
       response_type: "code",
@@ -73,6 +83,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
     await gotoAndWaitForReady(
       page,
       buildAuthorizeUrl({
+        ...OAUTH_E2E_PKCE,
         client_id: client.clientId,
         redirect_uri: redirectUri,
         response_type: "code",
@@ -102,6 +113,7 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
     await gotoAndWaitForReady(
       page,
       buildAuthorizeUrl({
+        ...OAUTH_E2E_PKCE,
         client_id: client.clientId,
         redirect_uri: redirectUri,
         response_type: "code",
