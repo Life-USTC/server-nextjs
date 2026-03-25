@@ -1,10 +1,14 @@
 import { expect, type Page, test } from "@playwright/test";
+import { generateCodeChallenge } from "@/lib/oauth/utils";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import {
   createOAuthClientFixture,
   deleteOAuthClientFixture,
 } from "../../../../../utils/e2e-db";
 import { assertApiContract } from "../../../_shared/api-contract";
+
+const E2E_CODE_VERIFIER =
+  "e2e-token-test-verifier-0123456789012345678901234567890123456789";
 
 async function issueCode(
   page: Page,
@@ -16,6 +20,8 @@ async function issueCode(
       client_id: client.clientId,
       redirect_uri: client.redirectUris[0],
       scope,
+      code_challenge: generateCodeChallenge(E2E_CODE_VERIFIER),
+      code_challenge_method: "S256",
     },
   });
   expect(authorizeResponse.status()).toBe(200);
@@ -45,6 +51,7 @@ test("/api/oauth/token 可用授权码换取 access token", async ({ page }) => 
       data: {
         grant_type: "authorization_code",
         code,
+        code_verifier: E2E_CODE_VERIFIER,
         redirect_uri: client.redirectUris[0],
       },
     });
@@ -83,6 +90,7 @@ test("/api/oauth/token client_secret_post 客户端必须使用请求体密钥",
       data: {
         grant_type: "authorization_code",
         code,
+        code_verifier: E2E_CODE_VERIFIER,
         redirect_uri: client.redirectUris[0],
       },
     });
@@ -96,6 +104,7 @@ test("/api/oauth/token client_secret_post 客户端必须使用请求体密钥",
         client_id: client.clientId,
         client_secret: client.clientSecret,
         code: freshCode,
+        code_verifier: E2E_CODE_VERIFIER,
         redirect_uri: client.redirectUris[0],
       },
     });

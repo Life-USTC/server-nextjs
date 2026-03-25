@@ -24,8 +24,8 @@ export async function GET(request: Request) {
   }
 
   const token = authHeader.slice(7);
-  const accessToken = await prisma.oAuthAccessToken.findUnique({
-    where: { token },
+  const accessToken = await prisma.oidcAccessToken.findUnique({
+    where: { accessToken: token },
     include: {
       user: {
         select: {
@@ -33,15 +33,17 @@ export async function GET(request: Request) {
           name: true,
           username: true,
           image: true,
+          email: true,
+          emailVerified: true,
         },
       },
     },
   });
 
-  if (!accessToken || accessToken.expiresAt < new Date()) {
+  if (!accessToken || accessToken.accessTokenExpiresAt < new Date()) {
     if (accessToken) {
       // Clean up expired token
-      await prisma.oAuthAccessToken.deleteMany({
+      await prisma.oidcAccessToken.deleteMany({
         where: { id: accessToken.id },
       });
       logOAuthEvent("warn", {
@@ -65,7 +67,19 @@ export async function GET(request: Request) {
   }
 
   const { user } = accessToken;
-  const scopes = accessToken.scopes;
+  if (!user) {
+    logOAuthEvent("warn", {
+      route: "/api/oauth/userinfo",
+      event: "invalid_token",
+      status: 401,
+      reason: "access token missing user relation",
+    });
+    return NextResponse.json(
+      { error: "invalid_token" },
+      { status: 401, headers: { "WWW-Authenticate": "Bearer" } },
+    );
+  }
+  const scopes = accessToken.scopes.split(" ").filter(Boolean);
 
   // OIDC requires the "openid" scope for userinfo access
   if (!scopes.includes("openid")) {
@@ -95,6 +109,10 @@ export async function GET(request: Request) {
     response.name = user.name;
     response.preferred_username = user.username;
     response.picture = user.image;
+  }
+  if (scopes.includes("email")) {
+    response.email = user.email;
+    response.email_verified = user.emailVerified;
   }
 
   return NextResponse.json(response);

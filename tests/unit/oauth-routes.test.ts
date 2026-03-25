@@ -12,6 +12,10 @@ const { authMock, prismaMock, revalidatePathMock } = vi.hoisted(() => ({
       findUnique: vi.fn(),
       create: vi.fn(),
     },
+    oidcApplication: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
     oAuthCode: {
       create: vi.fn(),
       findUnique: vi.fn(),
@@ -65,6 +69,8 @@ describe("oauth routes", () => {
     prismaMock.user.findUnique.mockReset();
     prismaMock.oAuthClient.findUnique.mockReset();
     prismaMock.oAuthClient.create.mockReset();
+    prismaMock.oidcApplication.findUnique.mockReset();
+    prismaMock.oidcApplication.create.mockReset();
     prismaMock.oAuthCode.create.mockReset();
     prismaMock.oAuthCode.findUnique.mockReset();
     prismaMock.oAuthCode.deleteMany.mockReset();
@@ -378,47 +384,21 @@ describe("oauth routes", () => {
     ).resolves.toBe(true);
   });
 
-  it("advertises client_id metadata document support", async () => {
+  it("does not advertise client_id metadata document support", async () => {
     const response = await oauthAuthorizationServerMetadata(
       new Request("http://localhost/.well-known/oauth-authorization-server"),
     );
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.client_id_metadata_document_supported).toBe(true);
+    expect(body.client_id_metadata_document_supported).toBe(false);
   });
 
-  it("accepts URL client_ids backed by metadata documents", async () => {
+  it("rejects URL-shaped client_id when metadata document support is disabled", async () => {
     authMock.mockResolvedValue({
       user: { id: "user-1" },
     });
-    prismaMock.oAuthClient.findUnique.mockResolvedValueOnce(null);
-    prismaMock.oAuthClient.create.mockResolvedValue({
-      id: "client-db-id",
-      clientId: "https://client.example.com/.well-known/oauth-client.json",
-      clientSecret: null,
-      tokenEndpointAuthMethod: "none",
-      name: "Metadata Client",
-      redirectUris: ["http://127.0.0.1:8787/callback"],
-      grantTypes: ["authorization_code"],
-      scopes: ["openid", "profile", "mcp:tools"],
-    });
-    prismaMock.oAuthCode.create.mockResolvedValue({});
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          client_id: "https://client.example.com/.well-known/oauth-client.json",
-          client_name: "Metadata Client",
-          redirect_uris: ["http://127.0.0.1:8787/callback"],
-          grant_types: ["authorization_code"],
-          response_types: ["code"],
-          token_endpoint_auth_method: "none",
-          scope: "openid profile mcp:tools",
-        }),
-      }),
-    );
+    prismaMock.oidcApplication.findUnique.mockResolvedValueOnce(null);
 
     const request = new Request("http://localhost/api/oauth/authorize", {
       method: "POST",
@@ -438,20 +418,9 @@ describe("oauth routes", () => {
     const response = await authorize(request);
     const body = await response.json();
 
-    expect(response.status).toBe(200);
-    expect(body.redirect).toContain("code=");
-    expect(prismaMock.oAuthClient.create).toHaveBeenCalledWith({
-      data: {
-        clientId: "https://client.example.com/.well-known/oauth-client.json",
-        clientSecret: null,
-        tokenEndpointAuthMethod: "none",
-        name: "Metadata Client",
-        redirectUris: ["http://127.0.0.1:8787/callback"],
-        grantTypes: ["authorization_code"],
-        scopes: ["openid", "profile", "mcp:tools"],
-      },
-      select: expect.any(Object),
-    });
+    expect(response.status).toBe(400);
+    expect(body).toEqual({ error: "invalid_client" });
+    expect(prismaMock.oidcApplication.create).not.toHaveBeenCalled();
   });
 
   it("rejects invalid redirect URIs during dynamic registration", async () => {

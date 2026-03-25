@@ -22,7 +22,7 @@ test("OAuth authorization-server metadata advertises dynamic registration and re
     registration_endpoint?: string;
     grant_types_supported?: string[];
   };
-  expect(body.client_id_metadata_document_supported).toBe(true);
+  expect(body.client_id_metadata_document_supported).toBe(false);
   expect(body.registration_endpoint).toContain("/api/oauth/register");
   expect(body.grant_types_supported).toEqual([
     "authorization_code",
@@ -45,7 +45,7 @@ test("OpenID discovery metadata advertises OAuth and userinfo endpoints", async 
     grant_types_supported?: string[];
   };
   expect(body.authorization_endpoint).toContain("/oauth/authorize");
-  expect(body.client_id_metadata_document_supported).toBe(true);
+  expect(body.client_id_metadata_document_supported).toBe(false);
   expect(body.token_endpoint).toContain("/api/oauth/token");
   expect(body.registration_endpoint).toContain("/api/oauth/register");
   expect(body.userinfo_endpoint).toContain("/api/oauth/userinfo");
@@ -196,12 +196,16 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
     expect(registrationBody.scope).toBe("openid profile mcp:tools");
 
     await signInAsDebugUser(page, "/");
+    const codeVerifier =
+      "connector-dcr-verifier-0123456789012345678901234567890123456789";
 
     const authorizeResponse = await page.request.post("/api/oauth/authorize", {
       data: {
         client_id: registrationBody.client_id,
         redirect_uri: redirectUri,
         scope: "openid profile mcp:tools",
+        code_challenge: generateCodeChallenge(codeVerifier),
+        code_challenge_method: "S256",
         resource,
       },
     });
@@ -222,6 +226,7 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
       data: {
         grant_type: "authorization_code",
         code,
+        code_verifier: codeVerifier,
         redirect_uri: redirectUri,
         resource,
       },
@@ -263,4 +268,26 @@ test("/api/oauth/register 可注册 confidential client 并使用 client_secret 
   } finally {
     deleteOAuthClientsByName(clientName);
   }
+});
+
+test("/api/oauth/register 拒绝包含逗号的 redirect_uri", async ({ request }) => {
+  const clientName = `redirect-comma-${Date.now()}`;
+  const primaryRedirectUri = `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback,${PLAYWRIGHT_BASE_URL}/oauth-e2e/embedded`;
+
+  const registrationResponse = await request.post("/api/oauth/register", {
+    data: {
+      client_name: clientName,
+      redirect_uris: [primaryRedirectUri],
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+      scope: "openid profile",
+    },
+  });
+
+  expect(registrationResponse.status()).toBe(400);
+  await expect(registrationResponse.json()).resolves.toEqual({
+    error: "invalid_client_metadata",
+    error_description: "Redirect URIs must not contain commas",
+  });
 });

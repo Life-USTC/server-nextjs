@@ -1,7 +1,6 @@
 "use client";
 
 import { User as UserIcon } from "lucide-react";
-import { signIn, signOut, useSession } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import {
   MenuTrigger,
 } from "@/components/ui/menu";
 import { Link } from "@/i18n/routing";
+import { signIn, signOut, useSession } from "@/lib/auth/client";
 import { cn } from "@/shared/lib/utils";
 
 type UserMenuProps = {

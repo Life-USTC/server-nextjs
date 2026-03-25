@@ -1,61 +1,40 @@
 import { NextResponse } from "next/server";
+import {
+  buildTrustedAuthUrl,
+  getTrustedAuthOrigin,
+} from "@/lib/auth/trusted-origin";
 import { prisma } from "@/lib/db/prisma";
-import { getMcpServerUrl } from "@/lib/mcp/urls";
 import { resolveOAuthClient } from "@/lib/oauth/client-resolver";
 import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
-  ACCESS_TOKEN_LIFETIME_MS,
-  generateToken,
-  hashOAuthRefreshToken,
-  MCP_TOOLS_SCOPE,
-  normalizeResourceIndicator,
-  OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
+  deleteResourceBinding,
+  getAccessTokenResourceBindingIdentifier,
+  getCodeResourceBindingIdentifier,
+  getRefreshTokenResourceBindingIdentifier,
+  getResourceBinding,
+  parseAndNormalizeResource,
+  resourcesEqual,
+  setResourceBinding,
+} from "@/lib/oauth/resource-binding";
+import {
   OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  REFRESH_TOKEN_LIFETIME_MS,
-  resourceIndicatorsMatch,
-  type SupportedOAuthClientAuthMethod,
-  verifyOAuthClientSecret,
-  verifyPkceCodeVerifier,
 } from "@/lib/oauth/utils";
 
 type TokenParams = Record<string, string>;
-type OAuthClientRecord = {
-  id: string;
-  clientId: string;
-  clientSecret: string | null;
-  tokenEndpointAuthMethod: SupportedOAuthClientAuthMethod;
-  grantTypes: string[];
-};
-type RequestClientAuthMethod = SupportedOAuthClientAuthMethod;
-type StoredResourceValidationResult =
-  | { resource: string | undefined }
-  | {
-      error: "invalid_target";
-      status: number;
-      reason: string;
-    };
-type McpAudienceResourceValidationResult =
-  | { resource: string | undefined }
-  | {
-      error: "invalid_request" | "invalid_target";
-      status: number;
-      reason: string;
-    };
+type RefreshTokenContext = { scopes: string[] } | null;
 
 /**
  * POST /api/oauth/token
  *
- * OAuth 2.0 token endpoint.
- * Supports grant_type=authorization_code and grant_type=refresh_token.
- *
- * Accepts either JSON or application/x-www-form-urlencoded bodies,
- * and also supports HTTP Basic auth for client credentials.
+ * Compatibility token endpoint.
+ * Delegates token exchange to Better Auth OIDC provider, while preserving
+ * legacy resource-bound token behavior required by MCP clients.
  */
 export async function POST(request: Request) {
   try {
-    const parsedParams = await parseTokenParams(request);
-    if ("error" in parsedParams) {
+    const params = await parseTokenParams(request);
+    if (!params) {
       logOAuthEvent("warn", {
         route: "/api/oauth/token",
         event: "invalid_request_body",
@@ -65,38 +44,60 @@ export async function POST(request: Request) {
       return errorResponse("invalid_request", 400);
     }
 
-    const authenticatedClient = await authenticateClient(request, parsedParams);
-    if ("error" in authenticatedClient) {
-      return authenticatedClient.response;
+    const clientAuthError = await validateTokenClientAuthentication(
+      request,
+      params,
+    );
+    if (clientAuthError) {
+      return clientAuthError;
     }
 
-    const grantType = parsedParams.grant_type;
+    const refreshTokenContext = await loadRefreshTokenContext(params);
 
-    if (grantType === "authorization_code") {
-      return exchangeAuthorizationCode({
-        request,
-        client: authenticatedClient.client,
-        params: parsedParams,
+    const validatedResource = await validateAndResolveResourceBinding(params);
+    if ("error" in validatedResource) {
+      return errorResponse(validatedResource.error, validatedResource.status);
+    }
+
+    const upstreamResponse = await exchangeWithBetterAuth(request, params);
+    const upstreamPayload = (await upstreamResponse
+      .json()
+      .catch(() => null)) as Record<string, unknown> | null;
+    if (!upstreamResponse.ok || !upstreamPayload) {
+      return NextResponse.json(upstreamPayload ?? { error: "server_error" }, {
+        status: upstreamResponse.status || 500,
       });
     }
 
-    if (grantType === "refresh_token") {
-      return exchangeRefreshToken({
-        request,
-        client: authenticatedClient.client,
-        params: parsedParams,
-      });
-    }
-
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "unsupported_grant_type",
-      status: 400,
-      reason: "unsupported grant_type requested",
-      grantType: grantType ?? null,
-      clientId: parsedParams.client_id ?? null,
+    const payloadWithLegacyFields = await addLegacyTokenResponseFields(
+      params,
+      upstreamPayload,
+    );
+    const scopedPayloadResult = await applyLegacyRefreshScopeBehavior({
+      params,
+      payload: payloadWithLegacyFields,
+      refreshTokenContext,
     });
-    return errorResponse("unsupported_grant_type", 400);
+    if ("error" in scopedPayloadResult) {
+      return errorResponse(
+        scopedPayloadResult.error,
+        scopedPayloadResult.status,
+      );
+    }
+
+    await persistResourceBindingsAfterExchange({
+      params,
+      payload: scopedPayloadResult.payload,
+      resource: validatedResource.resource ?? undefined,
+    });
+
+    return NextResponse.json(scopedPayloadResult.payload, {
+      status: upstreamResponse.status,
+      headers: {
+        "Cache-Control": "no-store",
+        Pragma: "no-cache",
+      },
+    });
   } catch (error) {
     logOAuthEvent(
       "error",
@@ -112,16 +113,14 @@ export async function POST(request: Request) {
   }
 }
 
-async function parseTokenParams(
-  request: Request,
-): Promise<TokenParams | { error: true }> {
+async function parseTokenParams(request: Request): Promise<TokenParams | null> {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (contentType.includes("application/json")) {
     try {
       return await request.json();
     } catch {
-      return { error: true };
+      return null;
     }
   }
 
@@ -131,705 +130,338 @@ async function parseTokenParams(
       [...formData.entries()].map(([key, value]) => [key, String(value)]),
     );
   } catch {
-    return { error: true };
+    return null;
   }
 }
 
-async function authenticateClient(
+async function exchangeWithBetterAuth(
   request: Request,
   params: TokenParams,
-): Promise<
-  | {
-      client: OAuthClientRecord;
-      clientId: string;
-      clientSecret: string | undefined;
-      usedBasicAuth: boolean;
-      requestAuthMethod: RequestClientAuthMethod;
-    }
-  | { error: true; response: NextResponse }
-> {
-  let clientId = params.client_id;
-  let clientSecret = params.client_secret;
-  let usedBasicAuth = false;
-
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Basic ")) {
-    try {
-      const decoded = Buffer.from(authHeader.slice(6), "base64").toString();
-      const colonIndex = decoded.indexOf(":");
-      if (colonIndex !== -1) {
-        clientId = decodeURIComponent(decoded.slice(0, colonIndex));
-        clientSecret = decodeURIComponent(decoded.slice(colonIndex + 1));
-        usedBasicAuth = true;
-      }
-    } catch {
-      logOAuthEvent("warn", {
-        route: "/api/oauth/token",
-        event: "invalid_client_auth",
-        status: 401,
-        reason: "malformed basic authorization header",
-        requestAuthMethod: OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
-      });
-      return { error: true, response: errorResponse("invalid_client", 401) };
-    }
+): Promise<Response> {
+  const trustedOrigin = getTrustedAuthOrigin(request);
+  const body = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    body.set(key, value);
   }
 
-  const requestAuthMethod: RequestClientAuthMethod = usedBasicAuth
-    ? OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD
-    : clientSecret
-      ? OAUTH_CLIENT_SECRET_POST_AUTH_METHOD
-      : OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
+  const headers = new Headers({
+    "content-type": "application/x-www-form-urlencoded",
+  });
+  const authorization = request.headers.get("authorization");
+  if (authorization) {
+    headers.set("authorization", authorization);
+  }
+  const cookie = request.headers.get("cookie");
+  if (cookie) {
+    headers.set("cookie", cookie);
+  }
+  headers.set("origin", trustedOrigin);
+  headers.set("referer", `${trustedOrigin}/`);
 
+  return fetch(buildTrustedAuthUrl("/api/auth/oauth2/token", request), {
+    method: "POST",
+    headers,
+    body,
+    redirect: "manual",
+    cache: "no-store",
+  });
+}
+
+function parseBasicAuthorizationHeader(
+  value: string | null,
+): { clientId: string; clientSecret: string } | null {
+  if (!value?.startsWith("Basic ")) {
+    return null;
+  }
+
+  const encoded = value.slice("Basic ".length).trim();
+  if (!encoded) {
+    return null;
+  }
+
+  try {
+    const decoded = Buffer.from(encoded, "base64").toString("utf8");
+    const separatorIndex = decoded.indexOf(":");
+    if (separatorIndex <= 0) {
+      return null;
+    }
+    const clientId = decoded.slice(0, separatorIndex);
+    const clientSecret = decoded.slice(separatorIndex + 1);
+    if (!clientId || !clientSecret) {
+      return null;
+    }
+    return { clientId, clientSecret };
+  } catch {
+    return null;
+  }
+}
+
+async function validateTokenClientAuthentication(
+  request: Request,
+  params: TokenParams,
+): Promise<NextResponse | null> {
+  const authorizationHeader = request.headers.get("authorization");
+  const basicAuth = parseBasicAuthorizationHeader(authorizationHeader);
+  const clientId = params.client_id ?? basicAuth?.clientId;
   if (!clientId) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_client_auth",
-      status: 401,
-      reason: "missing client_id",
-      requestAuthMethod,
-    });
-    return { error: true, response: errorResponse("invalid_client", 401) };
+    return null;
   }
 
   const resolvedClient = await resolveOAuthClient(clientId);
   if ("error" in resolvedClient) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_client_auth",
-      status: 401,
-      reason: resolvedClient.errorDescription,
-      clientId,
-      requestAuthMethod,
-    });
-    return { error: true, response: errorResponse("invalid_client", 401) };
+    return null;
   }
-  const client = resolvedClient.client;
+
+  const hasBasicAuth = Boolean(basicAuth);
+  const hasClientSecretInBody = Boolean(params.client_secret);
 
   if (
-    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
-    requestAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD
+    resolvedClient.client.tokenEndpointAuthMethod ===
+      OAUTH_CLIENT_SECRET_POST_AUTH_METHOD &&
+    (hasBasicAuth || !hasClientSecretInBody)
   ) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_client_auth",
-      status: 401,
-      reason: "public client sent client authentication",
-      clientId,
-      registeredAuthMethod: client.tokenEndpointAuthMethod,
-      requestAuthMethod,
-    });
-    return { error: true, response: errorResponse("invalid_client", 401) };
+    return errorResponse("invalid_client", 401);
   }
 
   if (
-    client.tokenEndpointAuthMethod === OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
-    (!usedBasicAuth || params.client_secret)
+    resolvedClient.client.tokenEndpointAuthMethod ===
+      OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
+    (hasBasicAuth || hasClientSecretInBody)
   ) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_client_auth",
-      status: 401,
-      reason:
-        "client_secret_basic client must authenticate with HTTP Basic only",
-      clientId,
-      registeredAuthMethod: client.tokenEndpointAuthMethod,
-      requestAuthMethod,
-    });
-    return { error: true, response: errorResponse("invalid_client", 401) };
+    return errorResponse("invalid_client", 401);
   }
 
-  if (
-    client.tokenEndpointAuthMethod === OAUTH_CLIENT_SECRET_POST_AUTH_METHOD &&
-    (usedBasicAuth || !params.client_secret)
-  ) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_client_auth",
-      status: 401,
-      reason:
-        "client_secret_post client must authenticate with request body secret only",
-      clientId,
-      registeredAuthMethod: client.tokenEndpointAuthMethod,
-      requestAuthMethod,
-    });
-    return { error: true, response: errorResponse("invalid_client", 401) };
+  return null;
+}
+
+async function loadRefreshTokenContext(
+  params: TokenParams,
+): Promise<RefreshTokenContext> {
+  if (params.grant_type !== "refresh_token" || !params.refresh_token) {
+    return null;
   }
 
-  if (
-    client.tokenEndpointAuthMethod !== OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
-    (!clientSecret || !client.clientSecret)
-  ) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_client_auth",
-      status: 401,
-      reason: "missing client_secret",
-      clientId,
-      registeredAuthMethod: client.tokenEndpointAuthMethod,
-      requestAuthMethod,
-    });
-    return { error: true, response: errorResponse("invalid_client", 401) };
+  const tokenRecord = await prisma.oidcAccessToken.findUnique({
+    where: { refreshToken: params.refresh_token },
+    select: { scopes: true },
+  });
+  if (!tokenRecord) {
+    return null;
   }
-
-  if (clientSecret && client.clientSecret) {
-    const verifiedSecret = await verifyOAuthClientSecret(
-      clientSecret,
-      client.clientSecret,
-    );
-    if (!verifiedSecret) {
-      logOAuthEvent("warn", {
-        route: "/api/oauth/token",
-        event: "invalid_client_auth",
-        status: 401,
-        reason: "client_secret verification failed",
-        clientId,
-        registeredAuthMethod: client.tokenEndpointAuthMethod,
-        requestAuthMethod,
-      });
-      return { error: true, response: errorResponse("invalid_client", 401) };
-    }
-  }
-
   return {
-    client,
-    clientId,
-    clientSecret,
-    usedBasicAuth,
-    requestAuthMethod,
+    scopes: tokenRecord.scopes.split(" ").filter(Boolean),
   };
 }
 
-function validateStoredResourceBinding({
-  actualResource,
-  requestedResource,
-}: {
-  actualResource: string | null;
-  requestedResource?: string;
-}): StoredResourceValidationResult {
-  if (!actualResource && !requestedResource) {
-    return { resource: undefined } as const;
-  }
-
-  if (!actualResource || !requestedResource) {
-    return {
-      error: "invalid_target",
-      status: 400,
-      reason: "resource must match the original authorization request exactly",
-    } as const;
-  }
-
-  try {
-    if (!resourceIndicatorsMatch(actualResource, requestedResource)) {
-      return {
-        error: "invalid_target",
-        status: 400,
-        reason:
-          "resource must match the original authorization request exactly",
-      } as const;
-    }
-  } catch {
-    return {
-      error: "invalid_target",
-      status: 400,
-      reason: "resource must be a valid absolute URI without fragment",
-    } as const;
-  }
-
-  return { resource: normalizeResourceIndicator(actualResource) } as const;
-}
-
-function validateMcpAudienceResource({
-  request,
-  resource,
-  scopes,
-}: {
-  request: Request;
-  resource?: string;
-  scopes: string[];
-}): McpAudienceResourceValidationResult {
-  if (!scopes.includes(MCP_TOOLS_SCOPE)) {
-    return { resource } as const;
-  }
-
-  if (!resource) {
-    return {
-      error: "invalid_request",
-      status: 400,
-      reason: 'resource is required when requesting the "mcp:tools" scope',
-    } as const;
-  }
-
-  try {
-    if (!resourceIndicatorsMatch(resource, getMcpServerUrl(request))) {
-      return {
-        error: "invalid_target",
-        status: 400,
-        reason:
-          "This authorization server only issues resource-bound tokens for its MCP endpoint",
-      } as const;
-    }
-  } catch {
-    return {
-      error: "invalid_target",
-      status: 400,
-      reason: "resource must be a valid absolute URI without fragment",
-    } as const;
-  }
-
-  return { resource: normalizeResourceIndicator(resource) } as const;
-}
-
-async function exchangeAuthorizationCode({
-  request,
-  client,
-  params,
-}: {
-  request: Request;
-  client: OAuthClientRecord;
-  params: TokenParams;
-}) {
-  if (!client.grantTypes.includes("authorization_code")) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "unauthorized_grant_type",
-      status: 400,
-      reason: "client is not registered for authorization_code",
-      grantType: "authorization_code",
-    });
-    return errorResponse("unauthorized_client", 400);
-  }
-
-  const code = params.code;
-  const redirectUri = params.redirect_uri;
-  const codeVerifier = params.code_verifier;
-  const resource = params.resource;
-
-  if (!code || !redirectUri) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant_request",
-      status: 400,
-      reason: "missing code or redirect_uri",
-      grantType: "authorization_code",
-      clientId: params.client_id,
-      redirectUri,
-      resource,
-    });
-    return errorResponse("invalid_request", 400);
-  }
-
-  const oauthCode = await prisma.oAuthCode.findUnique({
-    where: { code },
-  });
-
-  if (!oauthCode || oauthCode.clientId !== client.id) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "authorization code not found for client",
-      grantType: "authorization_code",
-      clientId: params.client_id,
-      redirectUri,
-      resource,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  const now = new Date();
-
-  if (oauthCode.expiresAt < now) {
-    await prisma.oAuthCode.deleteMany({ where: { id: oauthCode.id } });
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "authorization code expired",
-      grantType: "authorization_code",
-      clientId: params.client_id,
-      redirectUri,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  if (oauthCode.redirectUri !== redirectUri) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "redirect_uri mismatch",
-      grantType: "authorization_code",
-      clientId: params.client_id,
-      redirectUri,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  const resourceBindingResult = validateStoredResourceBinding({
-    actualResource: oauthCode.resource,
-    requestedResource: resource,
-  });
-  if ("error" in resourceBindingResult) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: resourceBindingResult.error,
-      status: resourceBindingResult.status,
-      reason: resourceBindingResult.reason,
-      grantType: "authorization_code",
-      clientId: params.client_id,
-      redirectUri,
-      resource,
-    });
-    return errorResponse(
-      resourceBindingResult.error,
-      resourceBindingResult.status,
-    );
-  }
-
-  const mcpAudienceResult = validateMcpAudienceResource({
-    request,
-    resource: resourceBindingResult.resource,
-    scopes: oauthCode.scopes,
-  });
-  if ("error" in mcpAudienceResult) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: mcpAudienceResult.error,
-      status: mcpAudienceResult.status,
-      reason: mcpAudienceResult.reason,
-      grantType: "authorization_code",
-      clientId: params.client_id,
-      redirectUri,
-      resource,
-    });
-    return errorResponse(mcpAudienceResult.error, mcpAudienceResult.status);
-  }
-
-  const isPublicClient =
-    client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD;
-
-  if (oauthCode.codeChallenge) {
-    if (!codeVerifier) {
-      logOAuthEvent("warn", {
-        route: "/api/oauth/token",
-        event: "invalid_grant_request",
-        status: 400,
-        reason: "missing code_verifier for PKCE code",
-        grantType: "authorization_code",
-        clientId: params.client_id,
-      });
-      return errorResponse("invalid_request", 400);
-    }
-
-    const isValidVerifier = verifyPkceCodeVerifier({
-      codeChallenge: oauthCode.codeChallenge,
-      codeChallengeMethod: oauthCode.codeChallengeMethod ?? "",
-      codeVerifier,
-    });
-
-    if (!isValidVerifier) {
-      logOAuthEvent("warn", {
-        route: "/api/oauth/token",
-        event: "invalid_grant",
-        status: 400,
-        reason: "PKCE verification failed",
-        grantType: "authorization_code",
-        clientId: params.client_id,
-      });
-      return errorResponse("invalid_grant", 400);
-    }
-  } else if (isPublicClient) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "public client attempted non-PKCE code exchange",
-      grantType: "authorization_code",
-      clientId: params.client_id,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  const accessToken = generateToken();
-  const refreshToken = client.grantTypes.includes("refresh_token")
-    ? generateToken()
-    : null;
-  const expiresIn = Math.floor(ACCESS_TOKEN_LIFETIME_MS / 1000);
-  const consumed = await prisma.$transaction(async (tx) => {
-    const deleted = await tx.oAuthCode.deleteMany({
-      where: {
-        id: oauthCode.id,
-        clientId: client.id,
-        redirectUri,
-        expiresAt: { gte: now },
-      },
-    });
-
-    if (deleted.count !== 1) {
-      return false;
-    }
-
-    await tx.oAuthAccessToken.create({
-      data: {
-        token: accessToken,
-        scopes: oauthCode.scopes,
-        resource: mcpAudienceResult.resource ?? null,
-        expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
-        clientId: client.id,
-        userId: oauthCode.userId,
-      },
-    });
-
-    if (refreshToken) {
-      await tx.oAuthRefreshToken.create({
-        data: {
-          tokenHash: hashOAuthRefreshToken(refreshToken),
-          scopes: oauthCode.scopes,
-          resource: mcpAudienceResult.resource ?? null,
-          expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
-          clientId: client.id,
-          userId: oauthCode.userId,
-        },
-      });
-    }
-
-    return true;
-  });
-
-  if (!consumed) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "authorization code was already consumed",
-      grantType: "authorization_code",
-      clientId: params.client_id,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  return buildTokenSuccessResponse({
-    accessToken,
-    refreshToken,
-    expiresIn,
-    scopes: oauthCode.scopes,
-  });
-}
-
-async function exchangeRefreshToken({
-  request,
-  client,
-  params,
-}: {
-  request: Request;
-  client: OAuthClientRecord;
-  params: TokenParams;
-}) {
-  if (!client.grantTypes.includes("refresh_token")) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "unauthorized_grant_type",
-      status: 400,
-      reason: "client is not registered for refresh_token",
-      grantType: "refresh_token",
-      clientId: params.client_id,
-    });
-    return errorResponse("unauthorized_client", 400);
-  }
-
-  const refreshToken = params.refresh_token;
-  if (!refreshToken) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant_request",
-      status: 400,
-      reason: "missing refresh_token",
-      grantType: "refresh_token",
-      clientId: params.client_id,
-    });
-    return errorResponse("invalid_request", 400);
-  }
-
-  const refreshTokenRecord = await prisma.oAuthRefreshToken.findUnique({
-    where: {
-      tokenHash: hashOAuthRefreshToken(refreshToken),
-    },
-  });
-
-  if (!refreshTokenRecord || refreshTokenRecord.clientId !== client.id) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "refresh token not found for client",
-      grantType: "refresh_token",
-      clientId: params.client_id,
-      resource: params.resource,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  const now = new Date();
-
-  if (refreshTokenRecord.expiresAt < now) {
-    await prisma.oAuthRefreshToken.deleteMany({
-      where: { id: refreshTokenRecord.id },
-    });
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "refresh token expired",
-      grantType: "refresh_token",
-      clientId: params.client_id,
-    });
-    return errorResponse("invalid_grant", 400);
-  }
-
-  const requestedScopes = params.scope?.split(" ").filter(Boolean) ?? [];
+async function addLegacyTokenResponseFields(
+  params: TokenParams,
+  payload: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
   if (
-    requestedScopes.length > 0 &&
-    requestedScopes.some((scope) => !refreshTokenRecord.scopes.includes(scope))
+    params.grant_type !== "authorization_code" ||
+    typeof payload.refresh_token === "string"
   ) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_scope",
-      status: 400,
-      reason: "requested scopes exceed refresh token scopes",
-      grantType: "refresh_token",
-      clientId: params.client_id,
-      scope: requestedScopes,
-    });
-    return errorResponse("invalid_scope", 400);
+    return payload;
   }
 
-  const resourceBindingResult = validateStoredResourceBinding({
-    actualResource: refreshTokenRecord.resource,
-    requestedResource: params.resource,
-  });
-  if ("error" in resourceBindingResult) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: resourceBindingResult.error,
-      status: resourceBindingResult.status,
-      reason: resourceBindingResult.reason,
-      grantType: "refresh_token",
-      clientId: params.client_id,
-      resource: params.resource,
-    });
-    return errorResponse(
-      resourceBindingResult.error,
-      resourceBindingResult.status,
-    );
+  const accessToken =
+    typeof payload.access_token === "string" ? payload.access_token : null;
+  if (!accessToken) {
+    return payload;
   }
 
-  const grantedScopes =
-    requestedScopes.length > 0 ? requestedScopes : refreshTokenRecord.scopes;
-  const mcpAudienceResult = validateMcpAudienceResource({
-    request,
-    resource: resourceBindingResult.resource,
-    scopes: grantedScopes,
-  });
-  if ("error" in mcpAudienceResult) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: mcpAudienceResult.error,
-      status: mcpAudienceResult.status,
-      reason: mcpAudienceResult.reason,
-      grantType: "refresh_token",
-      clientId: params.client_id,
-      resource: params.resource,
-    });
-    return errorResponse(mcpAudienceResult.error, mcpAudienceResult.status);
-  }
-  const nextAccessToken = generateToken();
-  const nextRefreshToken = generateToken();
-  const expiresIn = Math.floor(ACCESS_TOKEN_LIFETIME_MS / 1000);
-  const rotated = await prisma.$transaction(async (tx) => {
-    const deleted = await tx.oAuthRefreshToken.deleteMany({
-      where: {
-        id: refreshTokenRecord.id,
-        clientId: client.id,
-        tokenHash: refreshTokenRecord.tokenHash,
-        expiresAt: { gte: now },
+  const tokenRecord = await prisma.oidcAccessToken.findUnique({
+    where: { accessToken },
+    select: {
+      refreshToken: true,
+      client: {
+        select: {
+          type: true,
+        },
       },
-    });
-
-    if (deleted.count !== 1) {
-      return false;
-    }
-
-    await tx.oAuthAccessToken.create({
-      data: {
-        token: nextAccessToken,
-        scopes: grantedScopes,
-        resource: mcpAudienceResult.resource ?? null,
-        expiresAt: new Date(Date.now() + ACCESS_TOKEN_LIFETIME_MS),
-        clientId: client.id,
-        userId: refreshTokenRecord.userId,
-      },
-    });
-
-    await tx.oAuthRefreshToken.create({
-      data: {
-        tokenHash: hashOAuthRefreshToken(nextRefreshToken),
-        scopes: grantedScopes,
-        resource: mcpAudienceResult.resource ?? null,
-        expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
-        clientId: client.id,
-        userId: refreshTokenRecord.userId,
-      },
-    });
-
-    return true;
+    },
   });
-
-  if (!rotated) {
-    logOAuthEvent("warn", {
-      route: "/api/oauth/token",
-      event: "invalid_grant",
-      status: 400,
-      reason: "refresh token was already consumed",
-      grantType: "refresh_token",
-      clientId: params.client_id,
-    });
-    return errorResponse("invalid_grant", 400);
+  if (!tokenRecord || tokenRecord.client.type === "public") {
+    return payload;
   }
 
-  return buildTokenSuccessResponse({
-    accessToken: nextAccessToken,
-    refreshToken: nextRefreshToken,
-    expiresIn,
-    scopes: grantedScopes,
-  });
+  return {
+    ...payload,
+    refresh_token: tokenRecord.refreshToken,
+  };
 }
 
-function buildTokenSuccessResponse({
-  accessToken,
-  refreshToken,
-  expiresIn,
-  scopes,
+async function applyLegacyRefreshScopeBehavior({
+  params,
+  payload,
+  refreshTokenContext,
 }: {
-  accessToken: string;
-  refreshToken: string | null;
-  expiresIn: number;
-  scopes: string[];
-}) {
-  return NextResponse.json(
-    {
-      access_token: accessToken,
-      token_type: "Bearer",
-      expires_in: expiresIn,
-      scope: scopes.join(" "),
-      ...(refreshToken ? { refresh_token: refreshToken } : {}),
-    },
-    {
-      headers: {
-        "Cache-Control": "no-store",
-        Pragma: "no-cache",
-      },
-    },
+  params: TokenParams;
+  payload: Record<string, unknown>;
+  refreshTokenContext: RefreshTokenContext;
+}): Promise<
+  | { payload: Record<string, unknown> }
+  | { error: "invalid_scope"; status: number }
+> {
+  if (params.grant_type !== "refresh_token" || !params.scope) {
+    return { payload };
+  }
+
+  const requestedScopes = [...new Set(params.scope.split(" ").filter(Boolean))];
+  if (requestedScopes.length === 0) {
+    return { payload };
+  }
+
+  const currentScopes =
+    refreshTokenContext?.scopes ??
+    (typeof payload.scope === "string"
+      ? payload.scope.split(" ").filter(Boolean)
+      : []);
+
+  const hasOutOfScopeRequest = requestedScopes.some(
+    (scope) => !currentScopes.includes(scope),
   );
+  if (hasOutOfScopeRequest) {
+    return { error: "invalid_scope", status: 400 };
+  }
+
+  const accessToken =
+    typeof payload.access_token === "string" ? payload.access_token : null;
+  if (accessToken) {
+    await prisma.oidcAccessToken.updateMany({
+      where: { accessToken },
+      data: { scopes: requestedScopes.join(" ") },
+    });
+  }
+
+  return {
+    payload: {
+      ...payload,
+      scope: requestedScopes.join(" "),
+    },
+  };
+}
+
+async function validateAndResolveResourceBinding(
+  params: TokenParams,
+): Promise<
+  | { resource: string | null }
+  | { error: "invalid_target" | "invalid_request"; status: number }
+> {
+  const grantType = params.grant_type;
+  const requestedResourceRaw = params.resource;
+  let requestedResource: string | null;
+  try {
+    requestedResource = requestedResourceRaw
+      ? parseAndNormalizeResource(requestedResourceRaw)
+      : null;
+  } catch {
+    return { error: "invalid_target", status: 400 };
+  }
+
+  if (grantType === "authorization_code") {
+    const code = params.code;
+    if (!code) {
+      return { resource: null };
+    }
+    const binding = await getResourceBinding(
+      getCodeResourceBindingIdentifier(code),
+    );
+    if (!binding && requestedResource) {
+      return { error: "invalid_target", status: 400 };
+    }
+    if (binding && !requestedResource) {
+      return { error: "invalid_target", status: 400 };
+    }
+    if (
+      binding &&
+      requestedResource &&
+      !resourcesEqual(binding.resource, requestedResource)
+    ) {
+      return { error: "invalid_target", status: 400 };
+    }
+    return { resource: binding?.resource ?? null };
+  }
+
+  if (grantType === "refresh_token") {
+    const refreshToken = params.refresh_token;
+    if (!refreshToken) {
+      return { error: "invalid_request", status: 400 };
+    }
+    const binding = await getResourceBinding(
+      getRefreshTokenResourceBindingIdentifier(refreshToken),
+    );
+    if (!binding && requestedResource) {
+      return { error: "invalid_target", status: 400 };
+    }
+    if (binding && !requestedResource) {
+      return { error: "invalid_target", status: 400 };
+    }
+    if (
+      binding &&
+      requestedResource &&
+      !resourcesEqual(binding.resource, requestedResource)
+    ) {
+      return { error: "invalid_target", status: 400 };
+    }
+    return { resource: binding?.resource ?? null };
+  }
+
+  return { resource: requestedResource };
+}
+
+async function persistResourceBindingsAfterExchange({
+  params,
+  payload,
+  resource,
+}: {
+  params: TokenParams;
+  payload: Record<string, unknown>;
+  resource?: string;
+}) {
+  const accessToken =
+    typeof payload.access_token === "string" ? payload.access_token : null;
+  const refreshToken =
+    typeof payload.refresh_token === "string" ? payload.refresh_token : null;
+  const expiresIn =
+    typeof payload.expires_in === "number" &&
+    Number.isFinite(payload.expires_in)
+      ? payload.expires_in
+      : 3600;
+
+  if (!resource || !accessToken) {
+    return;
+  }
+
+  await setResourceBinding({
+    identifier: getAccessTokenResourceBindingIdentifier(accessToken),
+    resource,
+    expiresAt: new Date(Date.now() + expiresIn * 1000),
+  });
+
+  if (params.grant_type === "authorization_code") {
+    const code = params.code;
+    if (code) {
+      await deleteResourceBinding(getCodeResourceBindingIdentifier(code));
+    }
+  }
+
+  if (params.grant_type === "refresh_token") {
+    const prevRefreshToken = params.refresh_token;
+    if (prevRefreshToken) {
+      await deleteResourceBinding(
+        getRefreshTokenResourceBindingIdentifier(prevRefreshToken),
+      );
+    }
+  }
+
+  if (refreshToken) {
+    await setResourceBinding({
+      identifier: getRefreshTokenResourceBindingIdentifier(refreshToken),
+      resource,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+  }
 }
 
 function errorResponse(error: string, status: number) {

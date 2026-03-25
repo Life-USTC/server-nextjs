@@ -1,7 +1,7 @@
 import { handlers } from "@/auth";
 
 /**
- * NextAuth handlers managed by next-auth.
+ * Better Auth handlers mounted on /api/auth/*.
  * @ignore
  */
 export const { GET, POST } = handlers;

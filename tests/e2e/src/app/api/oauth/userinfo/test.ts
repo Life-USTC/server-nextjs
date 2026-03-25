@@ -1,4 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
+import { generateCodeChallenge } from "@/lib/oauth/utils";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import {
@@ -6,6 +7,9 @@ import {
   deleteOAuthClientFixture,
 } from "../../../../../utils/e2e-db";
 import { assertApiContract } from "../../../_shared/api-contract";
+
+const E2E_CODE_VERIFIER =
+  "e2e-userinfo-test-verifier-0123456789012345678901234567890123456789";
 
 async function issueAccessToken(
   page: Page,
@@ -17,6 +21,8 @@ async function issueAccessToken(
       client_id: client.clientId,
       redirect_uri: client.redirectUris[0],
       scope,
+      code_challenge: generateCodeChallenge(E2E_CODE_VERIFIER),
+      code_challenge_method: "S256",
     },
   });
   expect(authorizeResponse.status()).toBe(200);
@@ -38,6 +44,7 @@ async function issueAccessToken(
     data: {
       grant_type: "authorization_code",
       code,
+      code_verifier: E2E_CODE_VERIFIER,
       redirect_uri: client.redirectUris[0],
       ...(headers
         ? {}

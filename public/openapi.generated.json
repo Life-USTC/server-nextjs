@@ -332,6 +332,27 @@
         }
       }
     },
+    "/api/auth/session": {
+      "get": {
+        "operationId": "get-api-auth-session",
+        "summary": "Compatibility endpoint for existing tests/tools that still call",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/calendar-subscriptions": {
       "post": {
         "operationId": "post-api-calendar-subscriptions",
@@ -1210,6 +1231,25 @@
       }
     },
     "/api/oauth/authorize": {
+      "get": {
+        "operationId": "get-api-oauth-authorize",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
       "post": {
         "operationId": "post-api-oauth-authorize",
         "summary": "POST /api/oauth/authorize",

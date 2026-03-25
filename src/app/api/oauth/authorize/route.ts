@@ -1,17 +1,22 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db/prisma";
+import {
+  buildTrustedAuthUrl,
+  getTrustedAuthOrigin,
+} from "@/lib/auth/trusted-origin";
 import { getMcpServerUrl } from "@/lib/mcp/urls";
 import { resolveOAuthClient } from "@/lib/oauth/client-resolver";
 import { logOAuthEvent } from "@/lib/oauth/logging";
 import {
+  getCodeResourceBindingIdentifier,
+  parseAndNormalizeResource,
+  resourcesEqual,
+  setResourceBinding,
+} from "@/lib/oauth/resource-binding";
+import {
   CODE_LIFETIME_MS,
-  generateToken,
   MCP_TOOLS_SCOPE,
-  normalizeResourceIndicator,
   OAUTH_CODE_CHALLENGE_METHOD_S256,
-  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
-  resourceIndicatorsMatch,
 } from "@/lib/oauth/utils";
 
 type AuthorizeRequestBody = {
@@ -19,6 +24,7 @@ type AuthorizeRequestBody = {
   redirect_uri?: string;
   scope?: string;
   state?: string;
+  prompt?: string;
   code_challenge?: string;
   code_challenge_method?: string;
   resource?: string;
@@ -55,6 +61,7 @@ async function parseAuthorizeBody(
       redirect_uri: getOptionalString(formData.get("redirect_uri")),
       scope: getOptionalString(formData.get("scope")),
       state: getOptionalString(formData.get("state")),
+      prompt: getOptionalString(formData.get("prompt")),
       code_challenge: getOptionalString(formData.get("code_challenge")),
       code_challenge_method: getOptionalString(
         formData.get("code_challenge_method"),
@@ -75,6 +82,7 @@ async function parseAuthorizeBody(
       redirect_uri: getOptionalString(params.get("redirect_uri")),
       scope: getOptionalString(params.get("scope")),
       state: getOptionalString(params.get("state")),
+      prompt: getOptionalString(params.get("prompt")),
       code_challenge: getOptionalString(params.get("code_challenge")),
       code_challenge_method: getOptionalString(
         params.get("code_challenge_method"),
@@ -82,6 +90,22 @@ async function parseAuthorizeBody(
       resource: getOptionalString(params.get("resource")),
     };
   }
+}
+
+function parseAuthorizeQuery(request: Request): AuthorizeRequestBody {
+  const params = new URL(request.url).searchParams;
+  return {
+    client_id: getOptionalString(params.get("client_id")),
+    redirect_uri: getOptionalString(params.get("redirect_uri")),
+    scope: getOptionalString(params.get("scope")),
+    state: getOptionalString(params.get("state")),
+    prompt: getOptionalString(params.get("prompt")),
+    code_challenge: getOptionalString(params.get("code_challenge")),
+    code_challenge_method: getOptionalString(
+      params.get("code_challenge_method"),
+    ),
+    resource: getOptionalString(params.get("resource")),
+  };
 }
 
 function validateRequestedResource({
@@ -107,9 +131,25 @@ function validateRequestedResource({
     return { resource: undefined } as const;
   }
 
-  let normalizedResource: string;
   try {
-    normalizedResource = normalizeResourceIndicator(resource);
+    const normalizedResource = parseAndNormalizeResource(resource);
+    if (!normalizedResource) {
+      return {
+        error: "invalid_target",
+        errorDescription:
+          "resource must be a valid absolute URI without fragment",
+      } as const;
+    }
+
+    if (!resourcesEqual(normalizedResource, mcpServerResource.toString())) {
+      return {
+        error: "invalid_target",
+        errorDescription:
+          "This authorization server only issues resource-bound tokens for its MCP endpoint",
+      } as const;
+    }
+
+    return { resource: normalizedResource } as const;
   } catch {
     return {
       error: "invalid_target",
@@ -117,16 +157,113 @@ function validateRequestedResource({
         "resource must be a valid absolute URI without fragment",
     } as const;
   }
+}
 
-  if (!resourceIndicatorsMatch(normalizedResource, mcpServerResource)) {
-    return {
-      error: "invalid_target",
-      errorDescription:
-        "This authorization server only issues resource-bound tokens for its MCP endpoint",
-    } as const;
+function buildForwardHeaders(request: Request, trustedOrigin: string) {
+  const headers = new Headers();
+  const cookie = request.headers.get("cookie");
+  if (cookie) {
+    headers.set("cookie", cookie);
+  }
+  const userAgent = request.headers.get("user-agent");
+  if (userAgent) {
+    headers.set("user-agent", userAgent);
+  }
+  headers.set("origin", trustedOrigin);
+  headers.set("referer", `${trustedOrigin}/`);
+  return headers;
+}
+
+async function resolveAuthorizeRedirect(
+  response: Response,
+): Promise<{ redirect: string | null; debugReason?: string }> {
+  const location = response.headers.get("location");
+  if (location) {
+    return { redirect: location };
   }
 
-  return { resource: normalizedResource } as const;
+  // In some runtimes, same-origin internal fetch may follow redirects even when
+  // redirect mode is "manual". Preserve the final URL when it carries OAuth
+  // redirect parameters.
+  const responseUrl = response.url;
+  if (responseUrl) {
+    try {
+      const parsed = new URL(responseUrl);
+      if (
+        parsed.searchParams.has("consent_code") ||
+        parsed.searchParams.has("code") ||
+        parsed.searchParams.has("error")
+      ) {
+        return { redirect: parsed.toString() };
+      }
+    } catch {
+      // Ignore invalid response URL and continue parsing response body.
+    }
+  }
+
+  const contentType = response.headers.get("content-type") ?? "(none)";
+  const rawBody = await response.text().catch(() => "");
+  const trimmedBody = rawBody.trim();
+
+  if (trimmedBody) {
+    try {
+      const payload = JSON.parse(trimmedBody) as {
+        url?: unknown;
+        redirectURI?: unknown;
+      };
+      const jsonUrl =
+        typeof payload.url === "string"
+          ? payload.url
+          : typeof payload.redirectURI === "string"
+            ? payload.redirectURI
+            : null;
+      if (jsonUrl) {
+        return { redirect: jsonUrl };
+      }
+    } catch {
+      // Non-JSON response body.
+    }
+
+    if (/^https?:\/\//i.test(trimmedBody)) {
+      return { redirect: trimmedBody };
+    }
+  }
+
+  return {
+    redirect: null,
+    debugReason: [
+      `upstream status=${response.status}`,
+      `content-type=${contentType}`,
+      `response-url=${response.url || "(none)"}`,
+      `body-preview=${trimmedBody.slice(0, 240) || "(empty)"}`,
+    ].join("; "),
+  };
+}
+
+function parseRedirectError(redirectURL: string) {
+  try {
+    const parsed = new URL(redirectURL);
+    const error = parsed.searchParams.get("error");
+    if (!error) {
+      return null;
+    }
+    return {
+      error,
+      error_description:
+        parsed.searchParams.get("error_description") ?? undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function parseRedirectCode(redirectURL: string) {
+  try {
+    const parsed = new URL(redirectURL);
+    return parsed.searchParams.get("code");
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -168,10 +305,12 @@ export async function POST(request: Request) {
       redirect_uri,
       scope,
       state,
+      prompt,
       code_challenge,
       code_challenge_method,
       resource,
     } = body;
+    const normalizedChallengeMethod = code_challenge_method?.toUpperCase();
 
     if (!client_id || !redirect_uri) {
       logOAuthEvent("warn", {
@@ -268,15 +407,14 @@ export async function POST(request: Request) {
     }
 
     if (
-      client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
-      (!code_challenge ||
-        code_challenge_method !== OAUTH_CODE_CHALLENGE_METHOD_S256)
+      !code_challenge ||
+      normalizedChallengeMethod !== OAUTH_CODE_CHALLENGE_METHOD_S256
     ) {
       logOAuthEvent("warn", {
         route: "/api/oauth/authorize",
         event: "invalid_request",
         status: 400,
-        reason: "public client did not provide valid PKCE challenge",
+        reason: "client did not provide valid PKCE challenge",
         clientId: client_id,
         redirectUri: redirect_uri,
         userId: session.user.id,
@@ -285,7 +423,7 @@ export async function POST(request: Request) {
         {
           error: "invalid_request",
           error_description:
-            "Public clients must provide code_challenge with code_challenge_method=S256",
+            "Clients must provide code_challenge with code_challenge_method=S256",
         },
         { status: 400 },
       );
@@ -293,7 +431,7 @@ export async function POST(request: Request) {
 
     if (
       code_challenge_method &&
-      code_challenge_method !== OAUTH_CODE_CHALLENGE_METHOD_S256
+      normalizedChallengeMethod !== OAUTH_CODE_CHALLENGE_METHOD_S256
     ) {
       logOAuthEvent("warn", {
         route: "/api/oauth/authorize",
@@ -312,27 +450,159 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const code = generateToken();
 
-    await prisma.oAuthCode.create({
-      data: {
-        code,
-        redirectUri: redirect_uri,
-        scopes,
-        codeChallenge: code_challenge ?? null,
-        codeChallengeMethod: code_challenge_method ?? null,
-        resource: resourceResult.resource ?? null,
-        expiresAt: new Date(Date.now() + CODE_LIFETIME_MS),
-        clientId: client.id,
-        userId: session.user.id,
-      },
+    const trustedOrigin = getTrustedAuthOrigin(request);
+    const authorizeUrl = buildTrustedAuthUrl(
+      "/api/auth/oauth2/authorize",
+      request,
+    );
+    authorizeUrl.searchParams.set("response_type", "code");
+    authorizeUrl.searchParams.set("client_id", client_id);
+    authorizeUrl.searchParams.set("redirect_uri", redirect_uri);
+    authorizeUrl.searchParams.set("scope", scopes.join(" "));
+    if (state) {
+      authorizeUrl.searchParams.set("state", state);
+    }
+    authorizeUrl.searchParams.set("prompt", prompt ?? "consent");
+    if (code_challenge) {
+      authorizeUrl.searchParams.set("code_challenge", code_challenge);
+    }
+    if (code_challenge_method) {
+      authorizeUrl.searchParams.set(
+        "code_challenge_method",
+        code_challenge_method.toLowerCase(),
+      );
+    }
+    const authorizeResponse = await fetch(authorizeUrl, {
+      method: "GET",
+      headers: buildForwardHeaders(request, trustedOrigin),
+      redirect: "manual",
+      cache: "no-store",
     });
+    const authorizeRedirectResult =
+      await resolveAuthorizeRedirect(authorizeResponse);
+    if (!authorizeRedirectResult.redirect) {
+      logOAuthEvent("error", {
+        route: "/api/oauth/authorize",
+        event: "authorize_upstream_invalid_response",
+        status: 500,
+        reason: `${authorizeRedirectResult.debugReason ?? "authorize endpoint did not return redirect location"}; registered-redirect-uris=${client.redirectUris.join("|")}`,
+        clientId: client_id,
+        redirectUri: redirect_uri,
+        scope: scopes,
+        resource: resourceResult.resource ?? null,
+        userId: session.user.id,
+      });
+      return NextResponse.json({ error: "server_error" }, { status: 500 });
+    }
+    const authorizeRedirect = authorizeRedirectResult.redirect;
 
-    const url = new URL(redirect_uri);
-    url.searchParams.set("code", code);
-    if (state) url.searchParams.set("state", state);
+    let finalRedirect = authorizeRedirect;
+    const consentURL = new URL(authorizeRedirect, request.url);
+    if (consentURL.pathname === "/oauth/authorize") {
+      if (request.headers.get("x-oauth-interactive") === "1") {
+        return NextResponse.json({ redirect: authorizeRedirect });
+      }
 
-    return NextResponse.json({ redirect: url.toString() });
+      const consentCode = consentURL.searchParams.get("consent_code");
+      if (!consentCode) {
+        logOAuthEvent("error", {
+          route: "/api/oauth/authorize",
+          event: "missing_consent_code",
+          status: 500,
+          reason: "consent redirect missing consent_code",
+          clientId: client_id,
+          redirectUri: redirect_uri,
+          scope: scopes,
+          resource: resourceResult.resource ?? null,
+          userId: session.user.id,
+        });
+        return NextResponse.json({ error: "server_error" }, { status: 500 });
+      }
+
+      const consentResponse = await fetch(
+        buildTrustedAuthUrl("/api/auth/oauth2/consent", request),
+        {
+          method: "POST",
+          headers: {
+            ...Object.fromEntries(
+              buildForwardHeaders(request, trustedOrigin).entries(),
+            ),
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            accept: true,
+            consent_code: consentCode,
+          }),
+          cache: "no-store",
+        },
+      );
+      const consentBody = (await consentResponse.json().catch(() => null)) as {
+        error?: string;
+        error_description?: string;
+        redirectURI?: string;
+      } | null;
+      if (!consentResponse.ok || !consentBody?.redirectURI) {
+        logOAuthEvent("error", {
+          route: "/api/oauth/authorize",
+          event: "consent_upstream_invalid_response",
+          status: 500,
+          reason: consentResponse.ok
+            ? "consent endpoint did not return redirectURI"
+            : `consent endpoint rejected request (${consentResponse.status}): ${consentBody?.error_description ?? consentBody?.error ?? "unknown"}`,
+          clientId: client_id,
+          redirectUri: redirect_uri,
+          scope: scopes,
+          resource: resourceResult.resource ?? null,
+          userId: session.user.id,
+        });
+        return NextResponse.json({ error: "server_error" }, { status: 500 });
+      }
+      finalRedirect = consentBody.redirectURI;
+    }
+
+    const redirectError = parseRedirectError(finalRedirect);
+    if (redirectError) {
+      logOAuthEvent("warn", {
+        route: "/api/oauth/authorize",
+        event: String(redirectError.error),
+        status: 400,
+        reason:
+          redirectError.error_description ?? "upstream authorization error",
+        clientId: client_id,
+        redirectUri: redirect_uri,
+        scope: scopes,
+        resource: resourceResult.resource ?? null,
+        userId: session.user.id,
+      });
+      return NextResponse.json(redirectError, { status: 400 });
+    }
+
+    const issuedCode = parseRedirectCode(finalRedirect);
+    if (!issuedCode) {
+      logOAuthEvent("error", {
+        route: "/api/oauth/authorize",
+        event: "authorization_code_missing",
+        status: 500,
+        reason: "final redirect did not contain authorization code",
+        clientId: client_id,
+        redirectUri: redirect_uri,
+        scope: scopes,
+        resource: resourceResult.resource ?? null,
+        userId: session.user.id,
+      });
+      return NextResponse.json({ error: "server_error" }, { status: 500 });
+    }
+
+    if (resourceResult.resource) {
+      await setResourceBinding({
+        identifier: getCodeResourceBindingIdentifier(issuedCode),
+        resource: resourceResult.resource,
+        expiresAt: new Date(Date.now() + CODE_LIFETIME_MS),
+      });
+    }
+
+    return NextResponse.json({ redirect: finalRedirect });
   } catch (error) {
     logOAuthEvent(
       "error",
@@ -346,4 +616,33 @@ export async function POST(request: Request) {
     );
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  const body = parseAuthorizeQuery(request);
+  const forwardedHeaders = new Headers(request.headers);
+  forwardedHeaders.set("content-type", "application/json");
+  forwardedHeaders.set("x-oauth-interactive", "1");
+
+  const postRequest = new Request(request.url, {
+    method: "POST",
+    headers: forwardedHeaders,
+    body: JSON.stringify(body),
+  });
+
+  const postResponse = await POST(postRequest);
+  if (!postResponse.ok) {
+    return postResponse;
+  }
+
+  const payload = (await postResponse.json().catch(() => null)) as {
+    redirect?: string;
+  } | null;
+  if (!payload?.redirect) {
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+
+  return NextResponse.redirect(new URL(payload.redirect, request.url), {
+    status: 302,
+  });
 }
