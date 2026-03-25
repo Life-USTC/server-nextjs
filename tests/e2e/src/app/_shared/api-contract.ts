@@ -251,37 +251,6 @@ export async function assertApiContract(
     return;
   }
 
-  if (routePath === "/api/oauth/authorize") {
-    const response = await request.post("/api/oauth/authorize", {
-      data: {
-        client_id: "invalid-e2e-client",
-        redirect_uri: "http://localhost:3000/oauth-e2e/callback",
-      },
-    });
-    expect(response.status()).toBe(401);
-    return;
-  }
-
-  if (routePath === "/api/oauth/token") {
-    const response = await request.post("/api/oauth/token", {
-      data: {
-        grant_type: "authorization_code",
-        code: "invalid-e2e-code",
-        redirect_uri: "http://localhost:3000/oauth-e2e/callback",
-        client_id: "invalid-e2e-client",
-        client_secret: "invalid-e2e-secret",
-      },
-    });
-    expect([400, 401]).toContain(response.status());
-    return;
-  }
-
-  if (routePath === "/api/oauth/userinfo") {
-    const response = await request.get("/api/oauth/userinfo");
-    expect(response.status()).toBe(401);
-    return;
-  }
-
   if (routePath === "/api/openapi") {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);

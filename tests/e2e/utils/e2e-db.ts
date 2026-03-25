@@ -141,7 +141,7 @@ export async function createOAuthClientFixture(
   }>(`
     import { prisma } from "./src/lib/db/prisma";
 
-    const client = await prisma.oidcApplication.create({
+    const client = await prisma.oAuthClient.create({
       data: {
         name: ${JSON.stringify(name)},
         clientId: ${JSON.stringify(clientId)},
@@ -150,39 +150,35 @@ export async function createOAuthClientFixture(
             ? publicClientStoredSecret
             : clientSecret,
         )},
-        redirectUrls: ${JSON.stringify(redirectUris.join(","))},
+        redirectUris: ${JSON.stringify(redirectUris)},
         type: ${JSON.stringify(
           tokenEndpointAuthMethod === "none" ? "public" : "web",
         )},
-        authenticationScheme: ${JSON.stringify(tokenEndpointAuthMethod)},
+        tokenEndpointAuthMethod: ${JSON.stringify(tokenEndpointAuthMethod)},
         disabled: false,
-        metadata: ${JSON.stringify(
-          JSON.stringify({
-            scopes,
-            grantTypes,
-            tokenEndpointAuthMethod,
-            source: "e2e_fixture",
-          }),
-        )},
+        scopes: ${JSON.stringify(scopes)},
+        grantTypes: ${JSON.stringify(grantTypes)},
+        responseTypes: ["code"],
+        requirePKCE: true,
+        metadata: ${JSON.stringify({ source: "e2e_fixture" })},
       },
       select: {
         id: true,
         clientId: true,
         name: true,
-        authenticationScheme: true,
-        redirectUrls: true,
-        metadata: true,
+        tokenEndpointAuthMethod: true,
+        redirectUris: true,
+        scopes: true,
       },
     });
 
-    const parsedMetadata = client.metadata ? JSON.parse(client.metadata) : {};
     const normalized = {
       id: client.id,
       clientId: client.clientId,
       name: client.name,
-      tokenEndpointAuthMethod: client.authenticationScheme,
-      redirectUris: client.redirectUrls.split(",").filter(Boolean),
-      scopes: Array.isArray(parsedMetadata.scopes) ? parsedMetadata.scopes : [],
+      tokenEndpointAuthMethod: client.tokenEndpointAuthMethod ?? "client_secret_basic",
+      redirectUris: client.redirectUris,
+      scopes: client.scopes,
     };
 
     console.log(JSON.stringify(normalized));
@@ -195,68 +191,15 @@ export async function createOAuthClientFixture(
   };
 }
 
-export function deleteOAuthClientFixture(clientDbId: string) {
-  runDbScript<{ ok: true }>(`
-    import { prisma } from "./src/lib/db/prisma";
-
-    await prisma.oidcApplication.deleteMany({
-      where: { id: ${JSON.stringify(clientDbId)} },
-    });
-
-    console.log(JSON.stringify({ ok: true }));
-    await prisma.$disconnect();
-  `);
-}
-
 export function deleteOAuthClientsByName(name: string) {
   runDbScript<{ ok: true }>(`
     import { prisma } from "./src/lib/db/prisma";
 
-    await prisma.oidcApplication.deleteMany({
+    await prisma.oAuthClient.deleteMany({
       where: { name: ${JSON.stringify(name)} },
     });
 
     console.log(JSON.stringify({ ok: true }));
-    await prisma.$disconnect();
-  `);
-}
-
-export function findOAuthCodeByCode(code: string) {
-  return runDbScript<{
-    clientId: string;
-  } | null>(`
-    import { prisma } from "./src/lib/db/prisma";
-
-    const verification = await prisma.verificationToken.findFirst({
-      where: { identifier: ${JSON.stringify(code)} },
-      select: { token: true, expires: true },
-    });
-    if (!verification) {
-      console.log(JSON.stringify(null));
-      await prisma.$disconnect();
-      process.exit(0);
-    }
-
-    let payload = null;
-    try {
-      payload = JSON.parse(verification.token);
-    } catch {
-      payload = null;
-    }
-
-    let oauthCode = null;
-    if (payload && typeof payload === "object" && "clientId" in payload) {
-      const rawClientId = String(payload.clientId);
-      const client = await prisma.oidcApplication.findUnique({
-        where: { clientId: rawClientId },
-        select: { id: true },
-      });
-      oauthCode = {
-        clientId: client?.id ?? rawClientId,
-      };
-    }
-
-    console.log(JSON.stringify(oauthCode));
     await prisma.$disconnect();
   `);
 }

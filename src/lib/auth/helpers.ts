@@ -1,6 +1,6 @@
+import { verifyAccessToken } from "better-auth/oauth2";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db/prisma";
 
 export async function requireSignedInUserId() {
   const session = await auth();
@@ -30,12 +30,22 @@ export async function resolveApiUserId(
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     if (token) {
-      const accessToken = await prisma.oidcAccessToken.findUnique({
-        where: { accessToken: token },
-        select: { userId: true, accessTokenExpiresAt: true },
-      });
-      if (accessToken && accessToken.accessTokenExpiresAt > new Date()) {
-        return accessToken.userId;
+      const issuer = (
+        process.env.BETTER_AUTH_URL || "http://localhost:3000"
+      ).replace(/\/$/, "");
+
+      try {
+        const jwt = await verifyAccessToken(token, {
+          jwksUrl: `${issuer}/api/auth/jwks`,
+          verifyOptions: { issuer, audience: [issuer, `${issuer}/api/mcp`] },
+        });
+
+        const sub = (jwt as { sub?: unknown }).sub;
+        if (typeof sub === "string" && sub.length > 0) {
+          return sub;
+        }
+      } catch {
+        // Ignore invalid bearer tokens; fall back to session cookie.
       }
     }
   }

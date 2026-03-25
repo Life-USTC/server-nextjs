@@ -1,8 +1,9 @@
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { hashPassword } from "better-auth/crypto";
 import { nextCookies, toNextJsHandler } from "better-auth/next-js";
-import { genericOAuth, oidcProvider } from "better-auth/plugins";
+import { genericOAuth, jwt } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
@@ -64,12 +65,7 @@ const OIDC_ISSUER =
   process.env.AUTH_OIDC_ISSUER ||
   "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2";
 const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid-configuration`;
-const AUTH_BASE_URL =
-  process.env.BETTER_AUTH_URL ||
-  process.env.NEXTAUTH_URL ||
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000");
+const AUTH_BASE_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 
 const profileImage = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
@@ -88,6 +84,7 @@ const authInstance = betterAuth({
       provider: "postgresql",
     },
   ),
+  disabledPaths: ["/token"],
   socialProviders: {
     ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
       ? {
@@ -171,6 +168,7 @@ const authInstance = betterAuth({
     },
   },
   session: {
+    storeSessionInDatabase: true,
     fields: {
       token: "sessionToken",
       expiresAt: "expires",
@@ -186,15 +184,42 @@ const authInstance = betterAuth({
     },
   },
   plugins: [
-    oidcProvider({
+    jwt({
+      jwt: {
+        issuer: AUTH_BASE_URL.replace(/\/$/, ""),
+      },
+      schema: {
+        jwks: {
+          modelName: "Jwks",
+        },
+      },
+    }),
+    oauthProvider({
       loginPage: "/signin",
       consentPage: "/oauth/authorize",
       allowDynamicClientRegistration: true,
-      requirePKCE: true,
-      allowPlainCodeChallengeMethod: false,
-      defaultScope: "openid profile",
-      scopes: [MCP_TOOLS_SCOPE],
-      metadata: {
+      allowUnauthenticatedClientRegistration: true,
+      scopes: ["openid", "profile", "email", "offline_access", MCP_TOOLS_SCOPE],
+      validAudiences: [`${AUTH_BASE_URL.replace(/\/$/, "")}/api/mcp`],
+      silenceWarnings: {
+        oauthAuthServerConfig: true,
+        openidConfig: true,
+      },
+      schema: {
+        oauthClient: {
+          modelName: "OAuthClient",
+        },
+        oauthAccessToken: {
+          modelName: "OAuthAccessToken",
+        },
+        oauthRefreshToken: {
+          modelName: "OAuthRefreshToken",
+        },
+        oauthConsent: {
+          modelName: "OAuthConsent",
+        },
+      },
+      advertisedMetadata: {
         scopes_supported: [
           "openid",
           "profile",
@@ -211,7 +236,7 @@ const authInstance = betterAuth({
           "email_verified",
         ],
       },
-      getAdditionalUserInfoClaim(user, scopes) {
+      customUserInfoClaims({ user, scopes }) {
         const claims: Record<string, unknown> = {};
         if (scopes.includes("profile")) {
           const username = (user as { username?: unknown }).username;
@@ -220,17 +245,6 @@ const authInstance = betterAuth({
           }
         }
         return claims;
-      },
-      schema: {
-        oauthApplication: {
-          modelName: "oidcApplication",
-        },
-        oauthAccessToken: {
-          modelName: "oidcAccessToken",
-        },
-        oauthConsent: {
-          modelName: "oidcConsent",
-        },
       },
     }),
     genericOAuth({
@@ -291,6 +305,7 @@ export type AppSession = RawSession extends null
 
 export const handlers = toNextJsHandler(authInstance);
 export const authApi = authInstance.api;
+export const betterAuthInstance = authInstance;
 
 const mapSession = (session: NonNullable<RawSession>): AppSession => {
   const user = session.user as Record<string, unknown>;

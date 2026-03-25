@@ -1,11 +1,11 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { prisma } from "@/lib/db/prisma";
-import {
-  getAccessTokenResourceBindingIdentifier,
-  getResourceBinding,
-} from "@/lib/oauth/resource-binding";
+import { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
 import { MCP_TOOLS_SCOPE, resourceIndicatorsMatch } from "@/lib/oauth/utils";
-import { getMcpServerUrl, getOAuthProtectedResourceMetadataUrl } from "./urls";
+import {
+  getMcpServerUrl,
+  getOAuthProtectedResourceMetadataUrl,
+  getRequestOrigin,
+} from "./urls";
 
 const INVALID_TOKEN_ERROR = "invalid_token";
 const INSUFFICIENT_SCOPE_ERROR = "insufficient_scope";
@@ -72,69 +72,59 @@ function parseBearerToken(request: Request): string | null {
 }
 
 export async function verifyAccessToken(
+  request: Request,
   token: string,
 ): Promise<AuthInfo | AuthFailure> {
-  const accessToken = await prisma.oidcAccessToken.findUnique({
-    where: { accessToken: token },
-    include: {
-      client: {
-        select: {
-          clientId: true,
-        },
-      },
-      user: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
-        },
-      },
-    },
-  });
+  const issuer = getRequestOrigin(request).toString().replace(/\/$/, "");
 
-  if (!accessToken) {
-    return {
-      error: INVALID_TOKEN_ERROR,
-      status: 401,
-      description: "Access token not found",
-    };
-  }
-
-  if (accessToken.accessTokenExpiresAt < new Date()) {
-    await prisma.oidcAccessToken.deleteMany({
-      where: { id: accessToken.id },
+  try {
+    const jwt = await verifyOAuthAccessToken(token, {
+      jwksUrl: new URL("/api/auth/jwks", getRequestOrigin(request)).toString(),
+      verifyOptions: {
+        issuer,
+        audience: [getMcpServerUrl(request).toString(), issuer],
+      },
     });
 
+    const scopeValue =
+      typeof (jwt as { scope?: unknown }).scope === "string"
+        ? (jwt as { scope: string }).scope
+        : "";
+    const scopes = scopeValue.split(" ").filter(Boolean);
+    const aud = (jwt as { aud?: unknown }).aud;
+    const audValue =
+      typeof aud === "string"
+        ? aud
+        : Array.isArray(aud)
+          ? String(aud[0] ?? "")
+          : "";
+
+    return {
+      token,
+      clientId:
+        typeof (jwt as { azp?: unknown }).azp === "string"
+          ? (jwt as { azp: string }).azp
+          : "unknown",
+      scopes,
+      expiresAt:
+        typeof (jwt as { exp?: unknown }).exp === "number"
+          ? (jwt as { exp: number }).exp
+          : Math.floor(Date.now() / 1000) + 60,
+      resource: audValue ? new URL(audValue) : undefined,
+      extra: {
+        userId:
+          typeof (jwt as { sub?: unknown }).sub === "string"
+            ? (jwt as { sub: string }).sub
+            : undefined,
+      },
+    };
+  } catch {
     return {
       error: INVALID_TOKEN_ERROR,
       status: 401,
-      description: "Access token has expired",
+      description: "Access token is invalid",
     };
   }
-
-  const resourceBinding = await getResourceBinding(
-    getAccessTokenResourceBindingIdentifier(token),
-  );
-  if (!accessToken.user) {
-    return {
-      error: INVALID_TOKEN_ERROR,
-      status: 401,
-      description: "Access token is missing user context",
-    };
-  }
-
-  return {
-    token,
-    clientId: accessToken.client.clientId,
-    scopes: accessToken.scopes.split(" ").filter(Boolean),
-    expiresAt: Math.floor(accessToken.accessTokenExpiresAt.getTime() / 1000),
-    resource: resourceBinding ? new URL(resourceBinding.resource) : undefined,
-    extra: {
-      userId: accessToken.user.id,
-      username: accessToken.user.username,
-      name: accessToken.user.name,
-    },
-  };
 }
 
 export async function authenticateMcpRequest(
@@ -151,7 +141,7 @@ export async function authenticateMcpRequest(
     };
   }
 
-  const authInfo = await verifyAccessToken(token);
+  const authInfo = await verifyAccessToken(request, token);
   if ("error" in authInfo) {
     return { response: buildAuthErrorResponse(request, authInfo) };
   }

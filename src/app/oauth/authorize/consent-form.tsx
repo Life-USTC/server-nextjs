@@ -14,15 +14,13 @@ import { Form } from "@/components/ui/form";
 
 interface OAuthConsentFormProps {
   clientName: string;
-  consentCode: string;
-  state?: string | null;
+  oauthQuery: string;
   scopes: string[];
 }
 
 export function OAuthConsentForm({
   clientName,
-  consentCode,
-  state,
+  oauthQuery,
   scopes,
 }: OAuthConsentFormProps) {
   const t = useTranslations("oauth");
@@ -36,29 +34,21 @@ export function OAuthConsentForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           accept,
-          consent_code: consentCode,
+          oauth_query: oauthQuery,
+          scope: scopes.join(" "),
         }),
       });
       const payload = (await response.json().catch(() => null)) as {
-        redirectURI?: string;
+        url?: string;
       } | null;
 
-      const redirectURI = payload?.redirectURI;
-      if (!response.ok || !redirectURI) {
+      const redirectUrl = payload?.url;
+      if (!response.ok || !redirectUrl) {
         window.location.href = "/error?error=consent_failed";
         return;
       }
 
-      if (!accept && state) {
-        const redirectUrl = new URL(redirectURI);
-        if (!redirectUrl.searchParams.has("state")) {
-          redirectUrl.searchParams.set("state", state);
-        }
-        window.location.href = redirectUrl.toString();
-        return;
-      }
-
-      window.location.href = redirectURI;
+      window.location.href = redirectUrl;
     } catch {
       window.location.href = "/error?error=consent_failed";
     }
