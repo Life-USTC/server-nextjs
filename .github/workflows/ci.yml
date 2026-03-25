@@ -52,6 +52,8 @@ jobs:
 
       - name: Generate types (Prisma & OpenAPI)
         run: bun run prebuild
+        env:
+          DATABASE_URL: postgresql://user:password@localhost:5432/dummy
 
       - name: Typecheck
         run: bun run typecheck

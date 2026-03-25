@@ -94,12 +94,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Generate types (Prisma & OpenAPI)
-        run: bun run prebuild
-
-      - name: Typecheck
-        run: bun run typecheck
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -148,12 +142,6 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      - name: Generate types (Prisma & OpenAPI)
-        run: bun run prebuild
-
-      - name: Typecheck
-        run: bun run typecheck
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
