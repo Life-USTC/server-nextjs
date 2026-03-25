@@ -8,41 +8,53 @@ export const OAUTH_PROTECTED_RESOURCE_METADATA_PATH =
   "/.well-known/oauth-protected-resource";
 export const OAUTH_ISSUER_PATH = "/api/auth";
 
-function normalizePublicOrigin(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return "";
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-}
-
-function getConfiguredPublicOrigin(): string | null {
-  const publicOrigin = normalizePublicOrigin(
-    process.env.NEXT_PUBLIC_VERCEL_URL ?? "",
+/**
+ * Canonical Better Auth public base (no trailing slash). Must match `AUTH_BASE_URL` in `auth.ts`
+ * so JWT `iss` / `aud` line up with MCP verification and metadata.
+ */
+export function getBetterAuthBaseUrl(): string {
+  return (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").replace(
+    /\/$/,
+    "",
   );
-  return publicOrigin ? new URL(publicOrigin).origin : null;
 }
 
-export function getRequestOrigin(request: Request): string {
-  return getConfiguredPublicOrigin() ?? new URL(request.url).origin;
+/** Site origin for root-level `.well-known` URLs (scheme + host + optional port). */
+function getWellKnownSiteOrigin(): string {
+  return new URL(`${getBetterAuthBaseUrl()}/`).origin;
 }
 
-export function getMcpServerUrl(request: Request): URL {
-  return new URL(MCP_ROUTE_PATH, getRequestOrigin(request));
+/**
+ * OAuth resource indicator / access-token audience for MCP. Matches `validAudiences` in `oauthProvider`.
+ */
+export function getOAuthMcpResourceUrl(): string {
+  return `${getBetterAuthBaseUrl()}${MCP_ROUTE_PATH}`;
 }
 
-export function getOAuthIssuerUrl(request: Request): URL {
-  return new URL(OAUTH_ISSUER_PATH, getRequestOrigin(request));
+export function getJwksUrlForOAuthVerification(): string {
+  return new URL("/api/auth/jwks", `${getBetterAuthBaseUrl()}/`).toString();
 }
 
-export function getOAuthAuthorizationServerMetadataUrl(request: Request): URL {
+export function getMcpServerUrl(_request?: Request): URL {
+  return new URL(getOAuthMcpResourceUrl());
+}
+
+export function getOAuthIssuerUrl(_request?: Request): URL {
+  return new URL(OAUTH_ISSUER_PATH, `${getWellKnownSiteOrigin()}/`);
+}
+
+export function getOAuthAuthorizationServerMetadataUrl(
+  _request?: Request,
+): URL {
   return new URL(
     OAUTH_AUTHORIZATION_SERVER_METADATA_PATH,
-    getRequestOrigin(request),
+    `${getWellKnownSiteOrigin()}/`,
   );
 }
 
-export function getOAuthProtectedResourceMetadataUrl(request: Request): URL {
+export function getOAuthProtectedResourceMetadataUrl(_request?: Request): URL {
   return new URL(
     OAUTH_PROTECTED_RESOURCE_METADATA_PATH,
-    getRequestOrigin(request),
+    `${getWellKnownSiteOrigin()}/`,
   );
 }
