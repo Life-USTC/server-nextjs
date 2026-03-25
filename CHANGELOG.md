@@ -1,3 +1,10 @@
+# [0.55.0](https://github.com/Life-USTC/server-nextjs/compare/v0.54.0...v0.55.0) (2026-03-25)
+
+
+### Features
+
+* **oauth:** enrich production debug logs for OAuth and MCP ([7fe7770](https://github.com/Life-USTC/server-nextjs/commit/7fe7770ab17135e8450a7f6dec0388d6cc78b93b))
+
 # [0.54.0](https://github.com/Life-USTC/server-nextjs/compare/v0.53.2...v0.54.0) (2026-03-25)
 
 
