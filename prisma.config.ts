@@ -8,8 +8,5 @@ export default defineConfig({
   },
   datasource: {
     url: env("DATABASE_URL"),
-    shadowDatabaseUrl:
-      process.env.SHADOW_DATABASE_URL ??
-      env("DATABASE_URL").replace(/\/life-ustc(\?|$)/, "/life-ustc-shadow$1"),
   },
 });
