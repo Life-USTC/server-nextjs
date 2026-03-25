@@ -1,3 +1,10 @@
+## [0.55.1](https://github.com/Life-USTC/server-nextjs/compare/v0.55.0...v0.55.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* **auth:** hash DCR client secrets and restore public PKCE clients ([949c69d](https://github.com/Life-USTC/server-nextjs/commit/949c69dc197d1bb21ed1a70091ac0378110b1324))
+
 # [0.55.0](https://github.com/Life-USTC/server-nextjs/compare/v0.54.0...v0.55.0) (2026-03-25)
 
 
