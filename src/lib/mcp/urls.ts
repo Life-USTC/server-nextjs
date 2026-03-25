@@ -6,6 +6,7 @@ export const OAUTH_AUTHORIZATION_SERVER_METADATA_PATH =
   "/.well-known/oauth-authorization-server";
 export const OAUTH_PROTECTED_RESOURCE_METADATA_PATH =
   "/.well-known/oauth-protected-resource";
+export const OAUTH_ISSUER_PATH = "/api/auth";
 
 function normalizePublicOrigin(value: string): string {
   const trimmed = value.trim();
@@ -29,7 +30,7 @@ export function getMcpServerUrl(request: Request): URL {
 }
 
 export function getOAuthIssuerUrl(request: Request): URL {
-  return new URL(getRequestOrigin(request));
+  return new URL(OAUTH_ISSUER_PATH, getRequestOrigin(request));
 }
 
 export function getOAuthAuthorizationServerMetadataUrl(request: Request): URL {
