@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -61,16 +62,35 @@ export async function POST(request: Request) {
       ? record.token_endpoint_auth_method
       : "none";
 
-  // Workaround: some ChatGPT clients appear to expect `client_secret` to be present.
-  // Register a confidential client by default, so a secret is always returned.
-  const tokenEndpointAuthMethod =
+  let tokenEndpointAuthMethod: string;
+  let publicClient: boolean;
+  let clientSecretPlain: string | null = null;
+  let storedClientSecret: string | null = null;
+
+  if (requestedAuthMethod === "none") {
+    tokenEndpointAuthMethod = "none";
+    publicClient = true;
+  } else if (
     requestedAuthMethod === "client_secret_post" ||
     requestedAuthMethod === "client_secret_basic"
-      ? requestedAuthMethod
-      : "client_secret_post";
+  ) {
+    tokenEndpointAuthMethod = requestedAuthMethod;
+    publicClient = false;
+    clientSecretPlain = generateClientSecret();
+    storedClientSecret = hashOAuthClientSecretForDbStorage(clientSecretPlain);
+  } else {
+    logOAuthDebug("dcr.register.reject", request, {
+      reason: "unsupported_token_endpoint_auth_method",
+      token_endpoint_auth_method: requestedAuthMethod,
+    });
+    return jsonError(
+      400,
+      "invalid_client_metadata",
+      "token_endpoint_auth_method must be none, client_secret_post, or client_secret_basic",
+    );
+  }
 
   const clientId = generateClientId();
-  const clientSecret = generateClientSecret();
 
   const scope =
     typeof record.scope === "string" && record.scope.trim().length > 0
@@ -83,14 +103,14 @@ export async function POST(request: Request) {
     await prisma.oAuthClient.create({
       data: {
         clientId,
-        clientSecret,
+        clientSecret: storedClientSecret,
         redirectUris: redirectUris as string[],
         tokenEndpointAuthMethod,
         grantTypes: ["authorization_code", "refresh_token"],
         responseTypes: ["code"],
         requirePKCE: true,
         scopes: scope.split(" ").filter(Boolean),
-        public: false,
+        public: publicClient,
         disabled: false,
         metadata: {
           source: "dcr",
@@ -111,17 +131,22 @@ export async function POST(request: Request) {
     clientIdPrefix: clientId.slice(0, 8),
     redirectUriCount: redirectUris.length,
     tokenEndpointAuthMethod,
+    publicClient,
     scopeTokenCount: scope.split(" ").filter(Boolean).length,
   });
 
-  return NextResponse.json({
+  const registrationBody: Record<string, unknown> = {
     client_id: clientId,
-    client_secret: clientSecret,
     client_id_issued_at: now,
     token_endpoint_auth_method: tokenEndpointAuthMethod,
     redirect_uris: redirectUris,
     grant_types: ["authorization_code", "refresh_token"],
     response_types: ["code"],
     scope,
-  });
+  };
+  if (clientSecretPlain) {
+    registrationBody.client_secret = clientSecretPlain;
+  }
+
+  return NextResponse.json(registrationBody);
 }

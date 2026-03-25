@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 export const OAUTH_PUBLIC_CLIENT_AUTH_METHOD = "none";
 export const OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD = "client_secret_basic";
 export const OAUTH_CLIENT_SECRET_POST_AUTH_METHOD = "client_secret_post";
@@ -7,6 +9,14 @@ export type SupportedOAuthClientAuthMethod =
   | typeof OAUTH_PUBLIC_CLIENT_AUTH_METHOD
   | typeof OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD
   | typeof OAUTH_CLIENT_SECRET_POST_AUTH_METHOD;
+
+/**
+ * Matches `@better-auth/oauth-provider` default client secret storage when the JWT
+ * plugin is enabled: SHA-256 over UTF-8, base64url without padding (`storeClientSecret: "hashed"`).
+ */
+export function hashOAuthClientSecretForDbStorage(plainSecret: string): string {
+  return createHash("sha256").update(plainSecret, "utf8").digest("base64url");
+}
 
 export function normalizeResourceIndicator(value: string | URL): string {
   const parsed = new URL(value);
