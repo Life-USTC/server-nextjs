@@ -1,3 +1,10 @@
+## [0.55.4](https://github.com/Life-USTC/server-nextjs/compare/v0.55.3...v0.55.4) (2026-03-25)
+
+
+### Bug Fixes
+
+* **mcp:** validate opaque OAuth access tokens for ChatGPT-style token exchange ([1badd7d](https://github.com/Life-USTC/server-nextjs/commit/1badd7d99614ae6f8437275ee0afdacdbc141991))
+
 ## [0.55.3](https://github.com/Life-USTC/server-nextjs/compare/v0.55.2...v0.55.3) (2026-03-25)
 
 
