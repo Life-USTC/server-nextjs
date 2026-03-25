@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
 export const dynamic = "force-dynamic";
 
@@ -17,14 +18,24 @@ function jsonError(status: number, error: string, error_description: string) {
 }
 
 export async function POST(request: Request) {
+  logOAuthDebug("dcr.register.request", request, {
+    path: new URL(request.url).pathname,
+  });
+
   let body: unknown;
   try {
     body = await request.json();
   } catch {
+    logOAuthDebug("dcr.register.reject", request, {
+      reason: "invalid_json",
+    });
     return jsonError(400, "invalid_request", "Request body must be JSON");
   }
 
   if (!body || typeof body !== "object") {
+    logOAuthDebug("dcr.register.reject", request, {
+      reason: "invalid_body_shape",
+    });
     return jsonError(400, "invalid_request", "Invalid JSON body");
   }
 
@@ -35,6 +46,9 @@ export async function POST(request: Request) {
     redirectUris.length === 0 ||
     !redirectUris.every((v) => typeof v === "string" && v.length > 0)
   ) {
+    logOAuthDebug("dcr.register.reject", request, {
+      reason: "invalid_redirect_uris",
+    });
     return jsonError(
       400,
       "invalid_client_metadata",
@@ -65,24 +79,39 @@ export async function POST(request: Request) {
 
   const now = Math.floor(Date.now() / 1000);
 
-  await prisma.oAuthClient.create({
-    data: {
-      clientId,
-      clientSecret,
-      redirectUris: redirectUris as string[],
-      tokenEndpointAuthMethod,
-      grantTypes: ["authorization_code", "refresh_token"],
-      responseTypes: ["code"],
-      requirePKCE: true,
-      scopes: scope.split(" ").filter(Boolean),
-      public: false,
-      disabled: false,
-      metadata: {
-        source: "dcr",
-        requested_token_endpoint_auth_method: requestedAuthMethod,
+  try {
+    await prisma.oAuthClient.create({
+      data: {
+        clientId,
+        clientSecret,
+        redirectUris: redirectUris as string[],
+        tokenEndpointAuthMethod,
+        grantTypes: ["authorization_code", "refresh_token"],
+        responseTypes: ["code"],
+        requirePKCE: true,
+        scopes: scope.split(" ").filter(Boolean),
+        public: false,
+        disabled: false,
+        metadata: {
+          source: "dcr",
+          requested_token_endpoint_auth_method: requestedAuthMethod,
+        },
       },
-    },
-    select: { id: true },
+      select: { id: true },
+    });
+  } catch (err) {
+    logOAuthDebug("dcr.register.error", request, {
+      reason: "prisma_create_failed",
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return jsonError(500, "server_error", "Failed to persist OAuth client");
+  }
+
+  logOAuthDebug("dcr.register.success", request, {
+    clientIdPrefix: clientId.slice(0, 8),
+    redirectUriCount: redirectUris.length,
+    tokenEndpointAuthMethod,
+    scopeTokenCount: scope.split(" ").filter(Boolean).length,
   });
 
   return NextResponse.json({

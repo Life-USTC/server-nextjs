@@ -353,6 +353,79 @@
         }
       }
     },
+    "/api/auth/{nextauth}": {
+      "post": {
+        "operationId": "post-api-auth-{nextauth}",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "put-api-auth-{nextauth}",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "patch-api-auth-{nextauth}",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete-api-auth-{nextauth}",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/auth/oauth2/register": {
       "post": {
         "operationId": "post-api-auth-oauth2-register",
