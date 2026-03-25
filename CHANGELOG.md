@@ -1,3 +1,10 @@
+## [0.53.1](https://github.com/Life-USTC/server-nextjs/compare/v0.53.0...v0.53.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* **mcp:** point protected-resource metadata at oauth issuer ([8a0d290](https://github.com/Life-USTC/server-nextjs/commit/8a0d2909277093ee353ac0946c94ce513a0e7fb4))
+
 # [0.53.0](https://github.com/Life-USTC/server-nextjs/compare/v0.52.0...v0.53.0) (2026-03-25)
 
 
