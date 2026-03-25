@@ -16,20 +16,20 @@ RUN cd /temp/prod && bun install --frozen-lockfile --production
 
 # Pre-release: bring dev node_modules and project files
 FROM base AS prerelease
+
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# Ensure Prisma Client is generated during build
+# Build-time placeholders for prebuild/next build only.
 ENV DATABASE_URL="postgresql://user:password@localhost:5432/dummy"
+ENV AUTH_SECRET="docker-build-placeholder-not-for-production"
 ENV S3_ENDPOINT="http://localhost:9000"
 ENV S3_BUCKET="dummy-bucket"
 ENV S3_ACCESS_KEY_ID="dummy-access-key"
 ENV S3_SECRET_ACCESS_KEY="dummy-secret-key"
 ENV NODE_ENV=production
-ENV TSC_COMPILE_ON_ERROR=true
-RUN bun run prebuild
 
-# Build Next.js app
+RUN bun run prebuild
 RUN bun run build
 
 # Final runtime image with only production deps and build output
