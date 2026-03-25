@@ -85,6 +85,8 @@ async function issueAccessToken(
     scope: string;
     clientScopes: string[];
     resource?: string;
+    /** Omit `resource` on token exchange → opaque access token (ChatGPT-style). */
+    includeResourceInTokenExchange?: boolean;
   },
 ) {
   const clientId = await registerPublicClient(
@@ -102,6 +104,9 @@ async function issueAccessToken(
     resource: options.resource,
   });
 
+  const includeResourceInToken =
+    options.includeResourceInTokenExchange !== false && options.resource;
+
   const tokenResponse = await request.post("/api/auth/oauth2/token", {
     form: {
       grant_type: "authorization_code",
@@ -109,7 +114,7 @@ async function issueAccessToken(
       code,
       code_verifier: codeVerifier,
       redirect_uri: REDIRECT_URI,
-      ...(options.resource ? { resource: options.resource } : {}),
+      ...(includeResourceInToken ? { resource: options.resource } : {}),
     },
   });
 
@@ -203,6 +208,43 @@ test("/api/mcp 缺少 mcp:tools scope 时返回 insufficient_scope", async ({
   await expect(response.json()).resolves.toEqual({
     error: "insufficient_scope",
   });
+});
+
+test("opaque access token (no resource on token exchange) can connect to /api/mcp", async ({
+  page,
+  request,
+}) => {
+  const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+  await signInAsDebugUser(page, "/");
+
+  const { accessToken } = await issueAccessToken(page, request, {
+    scope: "openid profile mcp:tools",
+    clientScopes: ["openid", "profile", "mcp:tools"],
+    resource,
+    includeResourceInTokenExchange: false,
+  });
+
+  expect(accessToken.split(".").length).toBeLessThan(3);
+
+  const transport = new StreamableHTTPClientTransport(new URL(resource), {
+    requestInit: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+  const mcpClient = new Client({
+    name: "opaque-token-e2e-client",
+    version: "1.0.0",
+  });
+
+  try {
+    await mcpClient.connect(transport);
+    const tools = await mcpClient.listTools();
+    expect(tools.tools.some((t) => t.name === "get_my_profile")).toBe(true);
+  } finally {
+    await transport.close();
+  }
 });
 
 test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async ({
