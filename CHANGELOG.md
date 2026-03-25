@@ -1,3 +1,10 @@
+# [0.51.0](https://github.com/Life-USTC/server-nextjs/compare/v0.50.0...v0.51.0) (2026-03-25)
+
+
+### Features
+
+* **auth:** migrate to Better Auth OIDC and harden OAuth ([334d7e5](https://github.com/Life-USTC/server-nextjs/commit/334d7e5b653f4c2c669eeda6af185cdf20cfc348))
+
 # [0.50.0](https://github.com/Life-USTC/server-nextjs/compare/v0.49.0...v0.50.0) (2026-03-24)
 
 
