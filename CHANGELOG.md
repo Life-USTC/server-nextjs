@@ -1,3 +1,10 @@
+## [0.53.2](https://github.com/Life-USTC/server-nextjs/compare/v0.53.1...v0.53.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* **oauth:** return client_secret for dynamic registration ([8295e91](https://github.com/Life-USTC/server-nextjs/commit/8295e91f42621cfe1c4d2f452d587c369fcc24ea))
+
 ## [0.53.1](https://github.com/Life-USTC/server-nextjs/compare/v0.53.0...v0.53.1) (2026-03-25)
 
 
