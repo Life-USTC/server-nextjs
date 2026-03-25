@@ -132,26 +132,45 @@ test("/api/oauth/register 可注册公共客户端并完成 PKCE 换取 token", 
   }
 });
 
-test("/api/oauth/register 拒绝为公共客户端注册 refresh_token", async ({
+test("/api/oauth/register 允许为公共客户端注册 refresh_token", async ({
   request,
 }) => {
-  const response = await request.post("/api/oauth/register", {
-    data: {
-      client_name: `public-refresh-${Date.now()}`,
-      redirect_uris: [`${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`],
-      grant_types: ["authorization_code", "refresh_token"],
-      response_types: ["code"],
-      token_endpoint_auth_method: "none",
-      scope: "openid profile mcp:tools",
-    },
-  });
+  const clientName = `public-refresh-${Date.now()}`;
+  const redirectUri = `${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`;
 
-  expect(response.status()).toBe(400);
-  await expect(response.json()).resolves.toEqual({
-    error: "invalid_client_metadata",
-    error_description:
-      'Public dynamic clients may only register "authorization_code" grant_types',
-  });
+  try {
+    const response = await request.post("/api/oauth/register", {
+      data: {
+        client_name: clientName,
+        redirect_uris: [redirectUri],
+        grant_types: ["authorization_code", "refresh_token"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+        scope: "openid profile mcp:tools",
+      },
+    });
+
+    expect(response.status()).toBe(201);
+
+    const body = (await response.json()) as {
+      client_id?: string;
+      grant_types?: string[];
+      token_endpoint_auth_method?: string;
+      redirect_uris?: string[];
+      scope?: string;
+      client_secret?: unknown;
+    };
+
+    expect(typeof body.client_id).toBe("string");
+    expect(body.redirect_uris).toEqual([redirectUri]);
+    expect(body.grant_types).toEqual(["authorization_code", "refresh_token"]);
+    expect(body.token_endpoint_auth_method).toBe("none");
+    expect(body.scope).toBe("openid profile mcp:tools");
+    // 公共客户端不会返回 client_secret
+    expect(body.client_secret).toBeUndefined();
+  } finally {
+    deleteOAuthClientsByName(clientName);
+  }
 });
 
 test("/api/oauth/register 可注册 confidential client 并使用 client_secret 换取 token", async ({

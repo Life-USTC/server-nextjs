@@ -29,9 +29,10 @@ type DynamicClientRegistrationResult =
     };
 
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set(
-  DEFAULT_DYNAMIC_OAUTH_CLIENT_SCOPES,
-);
+const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set([
+  ...DEFAULT_DYNAMIC_OAUTH_CLIENT_SCOPES,
+  "offline_access",
+]);
 const SUPPORTED_DYNAMIC_GRANT_TYPES = new Set([
   "authorization_code",
   "refresh_token",
@@ -143,15 +144,6 @@ export function validateDynamicClientRegistration(options: {
   if (invalidGrantTypes.length > 0) {
     return {
       error: `Unsupported grant_types requested: ${invalidGrantTypes.join(", ")}`,
-    };
-  }
-  if (
-    tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD &&
-    requestedGrantTypes.includes("refresh_token")
-  ) {
-    return {
-      error:
-        'Public dynamic clients may only register "authorization_code" grant_types',
     };
   }
   const grantTypes = [...new Set(requestedGrantTypes)];
