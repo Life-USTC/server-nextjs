@@ -1,3 +1,10 @@
+# [0.54.0](https://github.com/Life-USTC/server-nextjs/compare/v0.53.2...v0.54.0) (2026-03-25)
+
+
+### Features
+
+* **oauth:** add opt-in structured OAuth debug logging ([55af12d](https://github.com/Life-USTC/server-nextjs/commit/55af12de94f5e660490473eff6e7cb84686d1ad1))
+
 ## [0.53.2](https://github.com/Life-USTC/server-nextjs/compare/v0.53.1...v0.53.2) (2026-03-25)
 
 
