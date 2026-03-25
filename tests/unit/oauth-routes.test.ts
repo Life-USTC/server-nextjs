@@ -319,7 +319,7 @@ describe("oauth routes", () => {
     });
   });
 
-  it("rejects refresh_token grant registration for public dynamic clients", async () => {
+  it("registers refresh_token grant for public dynamic clients (strict scope)", async () => {
     const request = new Request("http://localhost/api/oauth/register", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -336,13 +336,27 @@ describe("oauth routes", () => {
     const response = await register(request);
     const body = await response.json();
 
-    expect(response.status).toBe(400);
-    expect(body).toEqual({
-      error: "invalid_client_metadata",
-      error_description:
-        'Public dynamic clients may only register "authorization_code" grant_types',
+    expect(response.status).toBe(201);
+    expect(body).toMatchObject({
+      client_id: expect.any(String),
+      client_name: "Public Refresh Client",
+      redirect_uris: ["http://127.0.0.1:9876/callback"],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+      scope: "openid profile mcp:tools",
     });
-    expect(prismaMock.oAuthClient.create).not.toHaveBeenCalled();
+
+    expect(prismaMock.oAuthClient.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        clientSecret: null,
+        tokenEndpointAuthMethod: "none",
+        name: "Public Refresh Client",
+        redirectUris: ["http://127.0.0.1:9876/callback"],
+        grantTypes: ["authorization_code", "refresh_token"],
+        scopes: ["openid", "profile", "mcp:tools"],
+      }),
+    });
   });
 
   it("registers dynamic confidential OAuth clients and hashes the secret", async () => {

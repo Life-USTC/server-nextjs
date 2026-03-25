@@ -20,7 +20,7 @@ FROM base AS prerelease
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# Build-time placeholders for prebuild/next build only.
+# Build-time placeholders for build only.
 ENV DATABASE_URL="postgresql://user:password@localhost:5432/dummy"
 ENV AUTH_SECRET="docker-build-placeholder-not-for-production"
 ENV S3_ENDPOINT="http://localhost:9000"
@@ -29,7 +29,6 @@ ENV S3_ACCESS_KEY_ID="dummy-access-key"
 ENV S3_SECRET_ACCESS_KEY="dummy-secret-key"
 ENV NODE_ENV=production
 
-RUN bun run prebuild
 RUN bun run build
 
 # Final runtime image with only production deps and build output

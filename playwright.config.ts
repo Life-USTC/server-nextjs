@@ -20,7 +20,7 @@ export default defineConfig({
     screenshot: "on",
   },
   webServer: {
-    command: `node -e "require('fs').writeFileSync('.e2e-mock-s3','1')" && bun run build && AUTH_TRUST_HOST=true AUTH_URL="${playwrightBaseUrl}" NEXTAUTH_URL="${playwrightBaseUrl}" E2E_DEBUG_AUTH=1 DEV_DEBUG_PASSWORD=e2e-debug-local-only DEV_ADMIN_PASSWORD=e2e-admin-local-only bunx next start --hostname localhost --port ${playwrightPort}`,
+    command: `node -e "require('fs').writeFileSync('.e2e-mock-s3','1')" && bun run build && AUTH_TRUST_HOST=true AUTH_URL="${playwrightBaseUrl}" NEXTAUTH_URL="${playwrightBaseUrl}" E2E_DEBUG_AUTH=1 E2E_MOCK_S3=1 DEV_DEBUG_PASSWORD=e2e-debug-local-only DEV_ADMIN_PASSWORD=e2e-admin-local-only bunx next start --hostname localhost --port ${playwrightPort}`,
     url: playwrightBaseUrl,
     reuseExistingServer,
     stdout: "ignore",

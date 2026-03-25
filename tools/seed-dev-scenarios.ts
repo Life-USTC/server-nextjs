@@ -82,7 +82,8 @@ async function cleanupScenarioData(userIds: string[]) {
     where: { key: { startsWith: DEV_KEY_PREFIX } },
   });
   await prisma.userSuspension.deleteMany({
-    where: { reason: { contains: LEGACY_SCENARIO_MARKER } },
+    // 清理调试/管理用户的所有封禁记录，避免上一次 e2e/管理测试残留导致后续用例出现 403。
+    where: { userId: { in: userIds } },
   });
 
   await Promise.all(
