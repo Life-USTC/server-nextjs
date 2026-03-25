@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
     serverSourceMaps: false,
   },
+  async rewrites() {
+    // Avoid 308 /api/mcp/ → /api/mcp (clients often drop Authorization on redirect).
+    return [{ source: "/api/mcp/", destination: "/api/mcp" }];
+  },
 };
 
 export default withNextIntl(nextConfig);

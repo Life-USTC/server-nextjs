@@ -2,9 +2,10 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
 import { MCP_TOOLS_SCOPE, resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {
-  getMcpServerUrl,
+  getBetterAuthBaseUrl,
+  getJwksUrlForOAuthVerification,
+  getOAuthMcpResourceUrl,
   getOAuthProtectedResourceMetadataUrl,
-  getRequestOrigin,
 } from "./urls";
 
 const INVALID_TOKEN_ERROR = "invalid_token";
@@ -72,17 +73,18 @@ function parseBearerToken(request: Request): string | null {
 }
 
 export async function verifyAccessToken(
-  request: Request,
+  _request: Request,
   token: string,
 ): Promise<AuthInfo | AuthFailure> {
-  const issuer = getRequestOrigin(request).toString().replace(/\/$/, "");
+  const issuer = getBetterAuthBaseUrl();
+  const mcpAudience = getOAuthMcpResourceUrl();
 
   try {
     const jwt = await verifyOAuthAccessToken(token, {
-      jwksUrl: new URL("/api/auth/jwks", getRequestOrigin(request)).toString(),
+      jwksUrl: getJwksUrlForOAuthVerification(),
       verifyOptions: {
         issuer,
-        audience: [getMcpServerUrl(request).toString(), issuer],
+        audience: [mcpAudience, issuer],
       },
     });
 
@@ -148,7 +150,7 @@ export async function authenticateMcpRequest(
 
   if (
     !authInfo.resource ||
-    !resourceIndicatorsMatch(authInfo.resource, getMcpServerUrl(request))
+    !resourceIndicatorsMatch(authInfo.resource, getOAuthMcpResourceUrl())
   ) {
     return {
       response: buildAuthErrorResponse(request, {
