@@ -1,3 +1,10 @@
+## [0.55.2](https://github.com/Life-USTC/server-nextjs/compare/v0.55.1...v0.55.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* **mcp:** verify JWTs with BETTER_AUTH_URL and rewrite /api/mcp/ ([80d15a1](https://github.com/Life-USTC/server-nextjs/commit/80d15a1f2cd225d0a105a5537da0b89dd392898c))
+
 ## [0.55.1](https://github.com/Life-USTC/server-nextjs/compare/v0.55.0...v0.55.1) (2026-03-25)
 
 
