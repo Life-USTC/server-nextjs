@@ -1,3 +1,10 @@
+# [0.52.0](https://github.com/Life-USTC/server-nextjs/compare/v0.51.2...v0.52.0) (2026-03-25)
+
+
+### Features
+
+* **oauth:** allow public dynamic clients refresh_token ([50aba67](https://github.com/Life-USTC/server-nextjs/commit/50aba67fe27a93c3afe2f22a9d6f89263e7c7f37))
+
 ## [0.51.2](https://github.com/Life-USTC/server-nextjs/compare/v0.51.1...v0.51.2) (2026-03-25)
 
 
