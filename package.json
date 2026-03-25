@@ -13,6 +13,7 @@
     "prebuild": "bun run prisma:generate && bun run openapi:generate && bun run openapi:types",
     "start": "next start",
     "check": "biome check",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "format": "biome format",
     "test": "vitest run",
     "test:watch": "vitest",
