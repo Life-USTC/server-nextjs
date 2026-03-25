@@ -353,6 +353,27 @@
         }
       }
     },
+    "/api/auth/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-api-auth-.well-known-openid-configuration",
+        "summary": "Some clients resolve OpenID discovery as `{issuer}/.well-known/openid-configuration`.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/{nextauth}": {
       "post": {
         "operationId": "post-api-auth-{nextauth}",

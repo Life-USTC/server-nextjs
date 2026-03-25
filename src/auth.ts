@@ -67,6 +67,9 @@ const OIDC_ISSUER =
   "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2";
 const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid-configuration`;
 const AUTH_BASE_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+/** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
+const AUTH_PUBLIC_ORIGIN = new URL(`${AUTH_BASE_URL.replace(/\/$/, "")}/`)
+  .origin;
 
 const profileImage = (value: unknown): string | undefined =>
   typeof value === "string" && value.length > 0 ? value : undefined;
@@ -86,6 +89,11 @@ const authInstance = betterAuth({
     },
   ),
   disabledPaths: ["/token"],
+  advanced: {
+    // Caddy → Docker: trust X-Forwarded-* so OAuth redirects use the public origin,
+    // not http(s)://localhost:3000 inside the container.
+    trustedProxyHeaders: true,
+  },
   socialProviders: {
     ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
       ? {
@@ -196,8 +204,9 @@ const authInstance = betterAuth({
       },
     }),
     oauthProvider({
-      loginPage: "/signin",
-      consentPage: "/oauth/authorize",
+      // Absolute URLs so redirects stay correct behind Docker/Caddy (avoid https://localhost:3000/...).
+      loginPage: `${AUTH_PUBLIC_ORIGIN}/signin`,
+      consentPage: `${AUTH_PUBLIC_ORIGIN}/oauth/authorize`,
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
       scopes: ["openid", "profile", "email", "offline_access", MCP_TOOLS_SCOPE],

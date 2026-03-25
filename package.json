@@ -12,6 +12,7 @@
     "build": "next build",
     "prebuild": "bun run prisma:generate && bun run openapi:generate && bun run openapi:types",
     "start": "next start",
+    "health": "bun -e \"fetch(process.env.HEALTHCHECK_URL ?? 'http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
     "check": "biome check",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "format": "biome format",
