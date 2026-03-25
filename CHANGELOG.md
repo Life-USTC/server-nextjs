@@ -1,3 +1,10 @@
+## [0.55.3](https://github.com/Life-USTC/server-nextjs/compare/v0.55.2...v0.55.3) (2026-03-25)
+
+
+### Bug Fixes
+
+* **auth:** absolute OAuth UI URLs and proxy-safe MCP JWT ([f65266b](https://github.com/Life-USTC/server-nextjs/commit/f65266b52a9f8bddb07cfafd93a9dd85bfb92b1d))
+
 ## [0.55.2](https://github.com/Life-USTC/server-nextjs/compare/v0.55.1...v0.55.2) (2026-03-25)
 
 
