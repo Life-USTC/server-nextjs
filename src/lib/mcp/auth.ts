@@ -1,5 +1,6 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
+import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
 import { MCP_TOOLS_SCOPE, resourceIndicatorsMatch } from "@/lib/oauth/utils";
 import {
   getBetterAuthBaseUrl,
@@ -73,18 +74,19 @@ function parseBearerToken(request: Request): string | null {
 }
 
 export async function verifyAccessToken(
-  _request: Request,
+  request: Request,
   token: string,
 ): Promise<AuthInfo | AuthFailure> {
   const issuer = getBetterAuthBaseUrl();
   const mcpAudience = getOAuthMcpResourceUrl();
+  const userinfoAudience = `${issuer}/oauth2/userinfo`;
 
   try {
     const jwt = await verifyOAuthAccessToken(token, {
       jwksUrl: getJwksUrlForOAuthVerification(),
       verifyOptions: {
         issuer,
-        audience: [mcpAudience, issuer],
+        audience: [mcpAudience, userinfoAudience, issuer],
       },
     });
 
@@ -94,12 +96,15 @@ export async function verifyAccessToken(
         : "";
     const scopes = scopeValue.split(" ").filter(Boolean);
     const aud = (jwt as { aud?: unknown }).aud;
-    const audValue =
-      typeof aud === "string"
-        ? aud
-        : Array.isArray(aud)
-          ? String(aud[0] ?? "")
-          : "";
+    let audValue = "";
+    if (typeof aud === "string") {
+      audValue = aud;
+    } else if (Array.isArray(aud)) {
+      const mcpMatch = aud.find(
+        (a) => typeof a === "string" && resourceIndicatorsMatch(a, mcpAudience),
+      );
+      audValue = mcpMatch ?? String(aud[0] ?? "");
+    }
 
     return {
       token,
@@ -120,7 +125,13 @@ export async function verifyAccessToken(
             : undefined,
       },
     };
-  } catch {
+  } catch (err) {
+    if (isOAuthDebugLogging()) {
+      logOAuthDebug("mcp.jwt-verify-failed", request, {
+        name: err instanceof Error ? err.name : "unknown",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
     return {
       error: INVALID_TOKEN_ERROR,
       status: 401,
