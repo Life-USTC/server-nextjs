@@ -29,7 +29,6 @@ const DEFAULT_SCOPE_VALUES = ["openid", "profile", MCP_TOOLS_SCOPE];
 const DEFAULT_AUTH_METHOD = OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
 
 interface OAuthClientInfo {
-  id: string;
   clientId: string;
   name: string;
   tokenEndpointAuthMethod: string;
@@ -244,8 +243,8 @@ export function OAuthClientManager({
     });
   }
 
-  async function onDeleteClient(clientDbId: string) {
-    const result = await deleteOAuthClient(clientDbId);
+  async function onDeleteClient(clientId: string) {
+    const result = await deleteOAuthClient(clientId);
     if (result.error) {
       toast({
         title: t("deleteError"),
@@ -600,7 +599,7 @@ export function OAuthClientManager({
           ) : (
             <div className="grid gap-4">
               {clients.map((client) => (
-                <div key={client.id} className="rounded-xl border p-4">
+                <div key={client.clientId} className="rounded-xl border p-4">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
@@ -634,7 +633,7 @@ export function OAuthClientManager({
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => onDeleteClient(client.id)}
+                      onClick={() => onDeleteClient(client.clientId)}
                     >
                       {t("deleteClient")}
                     </Button>

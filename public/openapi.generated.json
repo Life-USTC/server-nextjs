@@ -33,9 +33,30 @@
         }
       }
     },
-    "/.well-known/oauth-protected-resource/api/mcp": {
+    "/.well-known/oauth-authorization-server/api/auth": {
       "get": {
-        "operationId": "get-.well-known-oauth-protected-resource-api-mcp",
+        "operationId": "get-.well-known-oauth-authorization-server-api-auth",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource": {
+      "get": {
+        "operationId": "get-.well-known-oauth-protected-resource",
         "summary": "",
         "description": "",
         "tags": [
@@ -1226,109 +1247,6 @@
         "responses": {
           "204": {
             "description": "No Content"
-          }
-        }
-      }
-    },
-    "/api/oauth/authorize": {
-      "get": {
-        "operationId": "get-api-oauth-authorize",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "operationId": "post-api-oauth-authorize",
-        "summary": "POST /api/oauth/authorize",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/oauth/register": {
-      "post": {
-        "operationId": "post-api-oauth-register",
-        "summary": "POST /api/oauth/register",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/oauth/token": {
-      "post": {
-        "operationId": "post-api-oauth-token",
-        "summary": "POST /api/oauth/token",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/oauth/userinfo": {
-      "get": {
-        "operationId": "get-api-oauth-userinfo",
-        "summary": "GET /api/oauth/userinfo",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
           }
         }
       }

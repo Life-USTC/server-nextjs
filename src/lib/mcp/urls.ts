@@ -1,11 +1,11 @@
 export const MCP_ROUTE_PATH = "/api/mcp";
-export const OAUTH_AUTHORIZATION_PATH = "/oauth/authorize";
-export const OAUTH_REGISTRATION_PATH = "/api/oauth/register";
-export const OAUTH_TOKEN_PATH = "/api/oauth/token";
+export const OAUTH_AUTHORIZATION_PATH = "/api/auth/oauth2/authorize";
+export const OAUTH_REGISTRATION_PATH = "/api/auth/oauth2/register";
+export const OAUTH_TOKEN_PATH = "/api/auth/oauth2/token";
 export const OAUTH_AUTHORIZATION_SERVER_METADATA_PATH =
   "/.well-known/oauth-authorization-server";
 export const OAUTH_PROTECTED_RESOURCE_METADATA_PATH =
-  "/.well-known/oauth-protected-resource/api/mcp";
+  "/.well-known/oauth-protected-resource";
 
 function normalizePublicOrigin(value: string): string {
   const trimmed = value.trim();
