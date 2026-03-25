@@ -7,6 +7,7 @@ import { genericOAuth, jwt } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db/prisma";
+import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
 import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -281,6 +282,12 @@ const authInstance = betterAuth({
     onError(error) {
       if (isDev) {
         console.error("Better Auth API error:", error);
+      }
+      if (isOAuthDebugLogging()) {
+        logOAuthDebug("better-auth.api-error", undefined, {
+          message: error instanceof Error ? error.message : String(error),
+          name: error instanceof Error ? error.name : "unknown",
+        });
       }
     },
   },
