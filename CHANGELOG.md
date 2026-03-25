@@ -1,3 +1,10 @@
+# [0.53.0](https://github.com/Life-USTC/server-nextjs/compare/v0.52.0...v0.53.0) (2026-03-25)
+
+
+### Features
+
+* **oauth:** migrate to better-auth oauth-provider ([eb115dd](https://github.com/Life-USTC/server-nextjs/commit/eb115dd596f9f5533472cefb3bcf05bca433faf4))
+
 # [0.52.0](https://github.com/Life-USTC/server-nextjs/compare/v0.51.2...v0.52.0) (2026-03-25)
 
 
