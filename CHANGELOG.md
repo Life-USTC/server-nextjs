@@ -1,3 +1,10 @@
+## [0.51.1](https://github.com/Life-USTC/server-nextjs/compare/v0.51.0...v0.51.1) (2026-03-25)
+
+
+### Bug Fixes
+
+* **ci:** align docker build env and workflow checks ([5d30af7](https://github.com/Life-USTC/server-nextjs/commit/5d30af79df970b86828b6c9129ae058d875aadb1))
+
 # [0.51.0](https://github.com/Life-USTC/server-nextjs/compare/v0.50.0...v0.51.0) (2026-03-25)
 
 
