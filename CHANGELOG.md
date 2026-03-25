@@ -1,3 +1,10 @@
+## [0.51.2](https://github.com/Life-USTC/server-nextjs/compare/v0.51.1...v0.51.2) (2026-03-25)
+
+
+### Bug Fixes
+
+* **ci/cd:** add DATABASE_URL for prebuild in check ([71943ce](https://github.com/Life-USTC/server-nextjs/commit/71943ced3847155322858c253e42d60a4237b06e))
+
 ## [0.51.1](https://github.com/Life-USTC/server-nextjs/compare/v0.51.0...v0.51.1) (2026-03-25)
 
 
