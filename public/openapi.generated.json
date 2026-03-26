@@ -3101,11 +3101,7 @@
         "type": "object",
         "properties": {
           "locale": {
-            "type": "string",
-            "enum": [
-              "en-us",
-              "zh-cn"
-            ]
+            "type": "string"
           }
         },
         "required": [

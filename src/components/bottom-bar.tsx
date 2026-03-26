@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { isAppLocale } from "@/i18n/config";
 import { Link } from "@/i18n/routing";
 import { apiClient } from "@/lib/api/client";
 import {
@@ -27,11 +28,6 @@ export default function BottomBar() {
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  type AppLocale = "en-us" | "zh-cn";
-
-  const isAppLocale = (value: string): value is AppLocale =>
-    value === "en-us" || value === "zh-cn";
 
   const handleLanguageChange = async (newLocale: string) => {
     if (!isAppLocale(newLocale)) {

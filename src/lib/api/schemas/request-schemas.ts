@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { APP_LOCALES } from "@/i18n/config";
 import { parseOptionalInt } from "../helpers";
 
 const parseOptionalIntLike = (value: unknown) => {
@@ -178,7 +179,8 @@ export const adminUpdateUserRequestSchema = z.object({
 });
 
 export const localeUpdateRequestSchema = z.object({
-  locale: z.enum(["en-us", "zh-cn"]),
+  // Inline enum so OpenAPI generation embeds values (must match APP_LOCALES)
+  locale: z.enum(APP_LOCALES),
 });
 
 const integerStringSchema = z

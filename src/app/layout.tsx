@@ -24,7 +24,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Get messages for the current locale (determined by middleware)
+  // Get messages for the current locale (cookie / Accept-Language via src/proxy.ts)
   const [messages, a11yT, locale] = await Promise.all([
     getMessages(),
     getTranslations("accessibility"),
