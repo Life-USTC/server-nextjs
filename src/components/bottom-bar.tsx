@@ -66,12 +66,28 @@ export default function BottomBar() {
     <nav className="border-border border-t bg-background">
       <div className="mx-auto flex h-14 max-w-(--layout-content-width) items-center justify-between gap-3 px-4">
         {/* Left: Life@USTC Branding */}
-        <Link
-          href="/"
-          className="font-medium text-body text-foreground no-underline transition-colors hover:text-primary"
-        >
-          Life@USTC
-        </Link>
+        <div className="flex min-w-0 items-center gap-3">
+          <Link
+            href="/"
+            className="font-medium text-body text-foreground no-underline transition-colors hover:text-primary"
+          >
+            Life@USTC
+          </Link>
+          <div className="hidden items-center gap-3 sm:flex">
+            <Link
+              href="/terms"
+              className="text-muted-foreground text-sm no-underline transition-colors hover:text-foreground"
+            >
+              {_commonT("terms")}
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-muted-foreground text-sm no-underline transition-colors hover:text-foreground"
+            >
+              {_commonT("privacy")}
+            </Link>
+          </div>
+        </div>
 
         {/* Right: Actions */}
         <div className="flex items-center gap-3">
