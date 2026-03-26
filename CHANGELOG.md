@@ -1,3 +1,10 @@
+# [0.57.0](https://github.com/Life-USTC/server-nextjs/compare/v0.56.0...v0.57.0) (2026-03-26)
+
+
+### Features
+
+* **i18n:** centralize locale config and add legal pages ([1eddc87](https://github.com/Life-USTC/server-nextjs/commit/1eddc87be278ab2aef4e8b52a19e7b063f98ba8d))
+
 # [0.56.0](https://github.com/Life-USTC/server-nextjs/compare/v0.55.4...v0.56.0) (2026-03-26)
 
 
