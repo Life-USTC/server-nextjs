@@ -2,6 +2,7 @@ import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
+import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
   buildUserCalendarFeedPath,
   ensureUserCalendarFeedToken,
@@ -14,7 +15,6 @@ import {
   sectionInclude,
 } from "@/lib/query-helpers";
 
-const localeSchema = z.enum(["zh-cn", "en-us"]);
 type Locale = z.infer<typeof localeSchema>;
 const dateTimeSchema = z.string().datetime();
 const sectionCodeSchema = z
@@ -702,7 +702,7 @@ export function createMcpServer() {
       inputSchema: {
         search: z.string().trim().min(1),
         limit: z.number().int().min(1).max(25).default(10),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -746,7 +746,7 @@ export function createMcpServer() {
       description: "Fetch a detailed section record by its USTC JW section ID.",
       inputSchema: {
         jwId: z.number().int().positive(),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -793,7 +793,7 @@ export function createMcpServer() {
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -861,7 +861,7 @@ export function createMcpServer() {
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         includeDeleted: z.boolean().default(false),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -935,7 +935,7 @@ export function createMcpServer() {
         publishedAt: z.union([z.string(), z.null()]).optional(),
         submissionStartAt: z.union([z.string(), z.null()]).optional(),
         submissionDueAt: z.union([z.string(), z.null()]).optional(),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1267,7 +1267,7 @@ export function createMcpServer() {
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         limit: z.number().int().min(1).max(200).default(100),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1343,7 +1343,7 @@ export function createMcpServer() {
         "List exams for a section by JW ID, including exam batch and exam rooms.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1404,7 +1404,7 @@ export function createMcpServer() {
       inputSchema: {
         completed: z.boolean().optional(),
         limit: z.number().int().min(1).max(200).default(100),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1557,7 +1557,7 @@ export function createMcpServer() {
         dateTo: dateTimeSchema.optional(),
         weekday: z.number().int().min(1).max(7).optional(),
         limit: z.number().int().min(1).max(300).default(150),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1647,7 +1647,7 @@ export function createMcpServer() {
         dateTo: dateTimeSchema.optional(),
         includeDateUnknown: z.boolean().default(true),
         limit: z.number().int().min(1).max(300).default(150),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1725,7 +1725,7 @@ export function createMcpServer() {
       description:
         "Get an overview of todos, homeworks, schedules and exams for the authenticated user.",
       inputSchema: {
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -1868,7 +1868,7 @@ export function createMcpServer() {
       description:
         "Get next-7-day timeline events from schedules, homework deadlines, exams and todos.",
       inputSchema: {
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -2018,7 +2018,7 @@ export function createMcpServer() {
       description:
         "Get subscribed sections and personal calendar feed path for the authenticated user.",
       inputSchema: {
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
@@ -2075,7 +2075,7 @@ export function createMcpServer() {
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
-        locale: localeSchema.default("zh-cn"),
+        locale: localeSchema.default(DEFAULT_LOCALE),
         showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
         showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },

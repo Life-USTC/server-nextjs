@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { LOCALE_COOKIE } from "@/i18n/config";
 import { handleRouteError } from "@/lib/api/helpers";
 import { localeUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     const locale = parsedBody.data.locale;
 
     const response = NextResponse.json({ success: true });
-    response.cookies.set("NEXT_LOCALE", locale, {
+    response.cookies.set(LOCALE_COOKIE, locale, {
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: "/",
       sameSite: "lax",

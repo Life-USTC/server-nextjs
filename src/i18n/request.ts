@@ -1,21 +1,15 @@
 import { headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
+import { DEFAULT_LOCALE, isAppLocale } from "./config";
 import { routing } from "./routing";
 
-function isSupportedLocale(
-  locale: string,
-): locale is (typeof routing.locales)[number] {
-  return routing.locales.some((supportedLocale) => supportedLocale === locale);
-}
-
 export default getRequestConfig(async () => {
-  // Read locale from the header set by middleware
+  // Read locale from the header set by src/proxy.ts (edge)
   const headersList = await headers();
   let locale = headersList.get("x-locale") || routing.defaultLocale;
 
-  // Ensure that a valid locale is used
-  if (!isSupportedLocale(locale)) {
-    locale = routing.defaultLocale;
+  if (!isAppLocale(locale)) {
+    locale = DEFAULT_LOCALE;
   }
 
   return {

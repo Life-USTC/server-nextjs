@@ -20,7 +20,9 @@
       "uploads": "My Uploads",
       "homeworks": "My Homework",
       "apiDocs": "API Docs",
-      "welcome": "Complete Your Profile"
+      "welcome": "Complete Your Profile",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
     }
   },
   "common": {
@@ -1354,5 +1356,115 @@
     "guideSecretTitle": "Choose the right auth method",
     "guideSecretDescription": "Server integrations usually use client_secret_basic. Public apps and CLIs should use PKCE instead.",
     "errorMissingRedirectUri": "redirect_uri is required when multiple redirect URIs are registered."
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "intro": "We value your privacy. This page explains how Life@USTC collects, uses, and protects your information.",
+      "sections": [
+        {
+          "title": "1. Information We Collect",
+          "items": [
+            "Account information, such as name, username, avatar, and linked sign-in providers.",
+            "Usage data, such as page visits, feature interactions, and error logs to improve service quality.",
+            "Content you submit, such as comments, homework records, and uploaded files."
+          ]
+        },
+        {
+          "title": "2. How We Use Information",
+          "items": [
+            "To provide core features, including sign-in, course browsing, comments, and uploads.",
+            "To maintain security and prevent abuse, such as detecting suspicious activity.",
+            "To improve the product, including analyzing common issues and optimizing experience."
+          ]
+        },
+        {
+          "title": "3. Sharing and Disclosure",
+          "items": [
+            "We do not sell your personal information.",
+            "Data is shared only when necessary to provide the service or required by law.",
+            "If third-party services are used (for example, identity providers), required data is processed under their terms."
+          ]
+        },
+        {
+          "title": "4. Data Retention and Security",
+          "items": [
+            "We apply reasonable technical and organizational safeguards to protect data.",
+            "Data is retained only as long as needed for service purposes or legal obligations.",
+            "You can update or remove parts of your profile through account settings."
+          ]
+        },
+        {
+          "title": "5. Your Rights",
+          "items": [
+            "You may access, update, or delete your profile information.",
+            "You may request account deletion and related data removal where legally permitted.",
+            "You may stop using the service at any time; some historical public content may remain visible under platform rules."
+          ]
+        },
+        {
+          "title": "6. Policy Updates",
+          "items": [
+            "We may update this Privacy Policy from time to time.",
+            "Material changes will be announced through in-app notice or other reasonable channels.",
+            "This version was last updated on 2026-03-26."
+          ]
+        }
+      ]
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "intro": "By using Life@USTC, you agree to the following terms. Please read them carefully before using the service.",
+      "sections": [
+        {
+          "title": "1. Service Description",
+          "items": [
+            "Life@USTC provides course, section, comments, and related learning information services.",
+            "We may improve, change, suspend, or discontinue parts of the service over time.",
+            "Some features may require sign-in."
+          ]
+        },
+        {
+          "title": "2. Account and Security",
+          "items": [
+            "You are responsible for safeguarding your account and activities under it.",
+            "You must not attempt unauthorized access to systems or other users' data.",
+            "If you notice suspicious account activity, contact maintainers promptly."
+          ]
+        },
+        {
+          "title": "3. User Content and Conduct",
+          "items": [
+            "Content you post must comply with applicable laws and community standards.",
+            "Do not post illegal, harmful, harassing, infringing, or clearly false content.",
+            "We may remove content or restrict accounts that violate these rules."
+          ]
+        },
+        {
+          "title": "4. Intellectual Property",
+          "items": [
+            "Platform code, design, and branding are protected by applicable laws.",
+            "Rights to user-submitted content follow applicable law and platform policy.",
+            "No unauthorized copying, redistribution, or commercial use is permitted."
+          ]
+        },
+        {
+          "title": "5. Disclaimer",
+          "items": [
+            "The service is provided on an \"as is\" basis without guaranteed uptime or absolute accuracy.",
+            "Course and section information may lag or contain discrepancies; official sources prevail.",
+            "To the extent permitted by law, we are not liable for indirect damages."
+          ]
+        },
+        {
+          "title": "6. Terms Updates",
+          "items": [
+            "We may revise these Terms from time to time.",
+            "Continued use of the service means you accept the updated Terms.",
+            "This version was last updated on 2026-03-26."
+          ]
+        }
+      ]
+    }
   }
 }
