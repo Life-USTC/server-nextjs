@@ -1,3 +1,21 @@
+# [1.0.0](https://github.com/Life-USTC/server-nextjs/compare/v0.57.0...v1.0.0) (2026-03-26)
+
+
+* feat(mcp)!: replace showAllDetailedProperties with mode ([b342339](https://github.com/Life-USTC/server-nextjs/commit/b342339a4c621b28250df6a71868f3556edd6123))
+
+
+### Features
+
+* **legal:** link terms and privacy ([4c379d6](https://github.com/Life-USTC/server-nextjs/commit/4c379d6694e5c34eb3d682d1a63af0ff1b393fe7))
+
+
+### BREAKING CHANGES
+
+* MCP tools no longer accept showAllDetailedProperties/
+showAllDetailedProrties. Use mode="summary"|"default"|"full".
+
+Made-with: Cursor
+
 # [0.57.0](https://github.com/Life-USTC/server-nextjs/compare/v0.56.0...v0.57.0) (2026-03-26)
 
 
