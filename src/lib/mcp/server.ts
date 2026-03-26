@@ -25,16 +25,11 @@ const sectionCodeSchema = z
   .regex(/^[A-Za-z0-9_.-]+$/);
 const todoPrioritySchema = z.enum(["low", "medium", "high"]);
 
-const showAllDetailedPropertiesSchema = z.boolean().default(false);
+const mcpModeSchema = z.enum(["summary", "default", "full"]);
+const mcpModeInputSchema = mcpModeSchema.default("default");
 
-function resolveShowAllDetailedProperties(input: {
-  showAllDetailedProperties?: boolean;
-  showAllDetailedProrties?: boolean;
-}) {
-  if (typeof input.showAllDetailedProperties === "boolean") {
-    return input.showAllDetailedProperties;
-  }
-  return input.showAllDetailedProrties === true;
+function resolveMcpMode(mode: z.infer<typeof mcpModeSchema> | undefined) {
+  return mode ?? "default";
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -297,13 +292,57 @@ function compactMcpPayload(value: unknown): unknown {
   return out;
 }
 
+function summarizeArray(items: unknown[], limit: number) {
+  return {
+    total: items.length,
+    items: items.slice(0, limit).map(compactMcpPayload),
+  };
+}
+
+function summarizeMcpPayload(value: unknown): unknown {
+  if (Array.isArray(value)) return summarizeArray(value, 10);
+  if (!isRecord(value)) return value;
+
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value)) {
+    if (key === "events" && Array.isArray(v)) {
+      out.events = summarizeArray(v, 25);
+      continue;
+    }
+    if (
+      (key === "todos" ||
+        key === "homeworks" ||
+        key === "schedules" ||
+        key === "exams" ||
+        key === "courses" ||
+        key === "sections") &&
+      Array.isArray(v)
+    ) {
+      out[key] = summarizeArray(v, 10);
+      continue;
+    }
+
+    if (Array.isArray(v)) {
+      out[key] = summarizeArray(v, 10);
+      continue;
+    }
+    out[key] = compactMcpPayload(v);
+  }
+
+  return out;
+}
+
 function jsonToolResult(
   value: unknown,
-  options?: { showAllDetailedProperties?: boolean },
+  options?: { mode?: "summary" | "default" | "full" },
 ) {
-  const payload = options?.showAllDetailedProperties
-    ? value
-    : compactMcpPayload(value);
+  const mode = resolveMcpMode(options?.mode);
+  const payload =
+    mode === "full"
+      ? value
+      : mode === "summary"
+        ? summarizeMcpPayload(value)
+        : compactMcpPayload(value);
   return {
     content: [
       {
@@ -436,11 +475,10 @@ export function createMcpServer() {
       description:
         "Return the authenticated Life@USTC user profile associated with the OAuth access token.",
       inputSchema: {
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({ showAllDetailedProperties, showAllDetailedProrties }, extra) => {
+    async ({ mode }, extra) => {
       const userId = getUserId(extra.authInfo);
       const user = await prisma.user.findUniqueOrThrow({
         where: { id: userId },
@@ -456,10 +494,7 @@ export function createMcpServer() {
       });
 
       return jsonToolResult(user, {
-        showAllDetailedProperties: resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        }),
+        mode: resolveMcpMode(mode),
       });
     },
   );
@@ -470,11 +505,10 @@ export function createMcpServer() {
       description:
         "List todos for the authenticated Life@USTC user in due-date order.",
       inputSchema: {
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({ showAllDetailedProperties, showAllDetailedProrties }, extra) => {
+    async ({ mode }, extra) => {
       const userId = getUserId(extra.authInfo);
       const todos = await prisma.todo.findMany({
         where: { userId },
@@ -488,10 +522,7 @@ export function createMcpServer() {
       return jsonToolResult(
         { todos },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -506,21 +537,10 @@ export function createMcpServer() {
         content: z.string().max(4000).optional().nullable(),
         priority: todoPrioritySchema.default("medium"),
         dueAt: z.union([z.string(), z.null()]).optional(),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        title,
-        content,
-        priority,
-        dueAt,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
-      extra,
-    ) => {
+    async ({ title, content, priority, dueAt, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
       const parsedDueAt = parseDateValue(dueAt);
       if (parsedDueAt === undefined) {
@@ -546,10 +566,7 @@ export function createMcpServer() {
           id: todo.id,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -566,23 +583,10 @@ export function createMcpServer() {
         priority: todoPrioritySchema.optional(),
         dueAt: z.union([z.string(), z.null()]).optional(),
         completed: z.boolean().optional(),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        id,
-        title,
-        content,
-        priority,
-        dueAt,
-        completed,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
-      extra,
-    ) => {
+    async ({ id, title, content, priority, dueAt, completed, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
       const todo = await prisma.todo.findUnique({
         where: { id },
@@ -636,10 +640,7 @@ export function createMcpServer() {
           success: true,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -651,14 +652,10 @@ export function createMcpServer() {
       description: "Delete one todo for the authenticated user by todo ID.",
       inputSchema: {
         id: z.string().trim().min(1),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      { id, showAllDetailedProperties, showAllDetailedProrties },
-      extra,
-    ) => {
+    async ({ id, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
       const todo = await prisma.todo.findUnique({
         where: { id },
@@ -685,10 +682,7 @@ export function createMcpServer() {
           success: true,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -703,17 +697,10 @@ export function createMcpServer() {
         search: z.string().trim().min(1),
         limit: z.number().int().min(1).max(25).default(10),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({
-      search,
-      limit,
-      locale,
-      showAllDetailedProperties,
-      showAllDetailedProrties,
-    }) => {
+    async ({ search, limit, locale, mode }) => {
       const localizedPrisma = getPrisma(locale);
       const courses = await localizedPrisma.course.findMany({
         where: {
@@ -731,10 +718,7 @@ export function createMcpServer() {
       return jsonToolResult(
         { courses },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -747,16 +731,10 @@ export function createMcpServer() {
       inputSchema: {
         jwId: z.number().int().positive(),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({
-      jwId,
-      locale,
-      showAllDetailedProperties,
-      showAllDetailedProrties,
-    }) => {
+    async ({ jwId, locale, mode }) => {
       const localizedPrisma = getPrisma(locale);
       const section = await localizedPrisma.section.findUnique({
         where: { jwId },
@@ -776,10 +754,7 @@ export function createMcpServer() {
           section,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -794,17 +769,10 @@ export function createMcpServer() {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({
-      codes,
-      semesterId,
-      locale,
-      showAllDetailedProperties,
-      showAllDetailedProrties,
-    }) => {
+    async ({ codes, semesterId, locale, mode }) => {
       const localizedPrisma = getPrisma(locale);
       const semester = semesterId
         ? await prisma.semester.findUnique({
@@ -844,10 +812,7 @@ export function createMcpServer() {
           total: sections.length,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -862,17 +827,10 @@ export function createMcpServer() {
         sectionJwId: z.number().int().positive(),
         includeDeleted: z.boolean().default(false),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({
-      sectionJwId,
-      includeDeleted,
-      locale,
-      showAllDetailedProperties,
-      showAllDetailedProrties,
-    }) => {
+    async ({ sectionJwId, includeDeleted, locale, mode }) => {
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -912,10 +870,7 @@ export function createMcpServer() {
           homeworks,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -936,8 +891,7 @@ export function createMcpServer() {
         submissionStartAt: z.union([z.string(), z.null()]).optional(),
         submissionDueAt: z.union([z.string(), z.null()]).optional(),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
     async (
@@ -951,16 +905,11 @@ export function createMcpServer() {
         submissionStartAt,
         submissionDueAt,
         locale,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
+        mode,
       },
       extra,
     ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const suspension = await findActiveSuspension(userId);
       if (suspension) {
@@ -970,7 +919,7 @@ export function createMcpServer() {
             message: "Suspended",
             reason: suspension.reason ?? null,
           },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -978,7 +927,7 @@ export function createMcpServer() {
       if (!section) {
         return jsonToolResult(
           { success: false, message: `Section ${sectionJwId} was not found` },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -988,19 +937,19 @@ export function createMcpServer() {
       if (parsedPublishedAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid publish date" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (parsedSubmissionStartAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid submission start" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (parsedSubmissionDueAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid submission due" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (
@@ -1010,7 +959,7 @@ export function createMcpServer() {
       ) {
         return jsonToolResult(
           { success: false, message: "Submission start must be before due" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -1064,7 +1013,7 @@ export function createMcpServer() {
 
       return jsonToolResult(
         { success: true, id: homework.id },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        { mode: resolvedMode },
       );
     },
   );
@@ -1083,8 +1032,7 @@ export function createMcpServer() {
         publishedAt: z.union([z.string(), z.null()]).optional(),
         submissionStartAt: z.union([z.string(), z.null()]).optional(),
         submissionDueAt: z.union([z.string(), z.null()]).optional(),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
     async (
@@ -1097,16 +1045,11 @@ export function createMcpServer() {
         publishedAt,
         submissionStartAt,
         submissionDueAt,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
+        mode,
       },
       extra,
     ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const suspension = await findActiveSuspension(userId);
       if (suspension) {
@@ -1116,7 +1059,7 @@ export function createMcpServer() {
             message: "Suspended",
             reason: suspension.reason ?? null,
           },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -1137,19 +1080,19 @@ export function createMcpServer() {
       if (hasPublishedAt && parsedPublishedAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid publish date" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (hasSubmissionStartAt && parsedSubmissionStartAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid submission start" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (hasSubmissionDueAt && parsedSubmissionDueAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid submission due" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (
@@ -1159,7 +1102,7 @@ export function createMcpServer() {
       ) {
         return jsonToolResult(
           { success: false, message: "Submission start must be before due" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -1170,13 +1113,13 @@ export function createMcpServer() {
       if (!existing) {
         return jsonToolResult(
           { success: false, message: "Homework not found" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
       if (existing.deletedAt) {
         return jsonToolResult(
           { success: false, message: "Homework deleted" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -1198,7 +1141,7 @@ export function createMcpServer() {
       if (Object.keys(updates).length === 1 && !wantsDescription) {
         return jsonToolResult(
           { success: false, message: "No changes" },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -1252,10 +1195,7 @@ export function createMcpServer() {
         }
       });
 
-      return jsonToolResult(
-        { success: true },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-      );
+      return jsonToolResult({ success: true }, { mode: resolvedMode });
     },
   );
 
@@ -1268,17 +1208,10 @@ export function createMcpServer() {
         sectionJwId: z.number().int().positive(),
         limit: z.number().int().min(1).max(200).default(100),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({
-      sectionJwId,
-      limit,
-      locale,
-      showAllDetailedProperties,
-      showAllDetailedProrties,
-    }) => {
+    async ({ sectionJwId, limit, locale, mode }) => {
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -1327,10 +1260,7 @@ export function createMcpServer() {
           schedules,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -1344,16 +1274,10 @@ export function createMcpServer() {
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async ({
-      sectionJwId,
-      locale,
-      showAllDetailedProperties,
-      showAllDetailedProrties,
-    }) => {
+    async ({ sectionJwId, locale, mode }) => {
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -1387,10 +1311,7 @@ export function createMcpServer() {
           exams,
         },
         {
-          showAllDetailedProperties: resolveShowAllDetailedProperties({
-            showAllDetailedProperties,
-            showAllDetailedProrties,
-          }),
+          mode: resolveMcpMode(mode),
         },
       );
     },
@@ -1405,32 +1326,15 @@ export function createMcpServer() {
         completed: z.boolean().optional(),
         limit: z.number().int().min(1).max(200).default(100),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        completed,
-        limit,
-        locale,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ completed, limit, locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       if (sectionIds.length === 0) {
-        return jsonToolResult(
-          { homeworks: [] },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-        );
+        return jsonToolResult({ homeworks: [] }, { mode: resolvedMode });
       }
 
       const localizedPrisma = getPrisma(locale);
@@ -1463,10 +1367,7 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult(
-        { homeworks },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-      );
+      return jsonToolResult({ homeworks }, { mode: resolvedMode });
     },
   );
 
@@ -1478,24 +1379,11 @@ export function createMcpServer() {
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         completed: z.boolean(),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        homeworkId,
-        completed,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ homeworkId, completed, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const homework = await prisma.homework.findUnique({
         where: { id: homeworkId },
@@ -1525,7 +1413,7 @@ export function createMcpServer() {
               completedAt: record.completedAt,
             },
           },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+          { mode: resolvedMode },
         );
       }
 
@@ -1542,7 +1430,7 @@ export function createMcpServer() {
             completedAt: null,
           },
         },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        { mode: resolvedMode },
       );
     },
   );
@@ -1558,34 +1446,15 @@ export function createMcpServer() {
         weekday: z.number().int().min(1).max(7).optional(),
         limit: z.number().int().min(1).max(300).default(150),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        dateFrom,
-        dateTo,
-        weekday,
-        limit,
-        locale,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ dateFrom, dateTo, weekday, limit, locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       if (sectionIds.length === 0) {
-        return jsonToolResult(
-          { schedules: [] },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-        );
+        return jsonToolResult({ schedules: [] }, { mode: resolvedMode });
       }
 
       const localizedPrisma = getPrisma(locale);
@@ -1630,10 +1499,7 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult(
-        { schedules },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-      );
+      return jsonToolResult({ schedules }, { mode: resolvedMode });
     },
   );
 
@@ -1648,34 +1514,18 @@ export function createMcpServer() {
         includeDateUnknown: z.boolean().default(true),
         limit: z.number().int().min(1).max(300).default(150),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
     async (
-      {
-        dateFrom,
-        dateTo,
-        includeDateUnknown,
-        limit,
-        locale,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
+      { dateFrom, dateTo, includeDateUnknown, limit, locale, mode },
       extra,
     ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       if (sectionIds.length === 0) {
-        return jsonToolResult(
-          { exams: [] },
-          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-        );
+        return jsonToolResult({ exams: [] }, { mode: resolvedMode });
       }
 
       const localizedPrisma = getPrisma(locale);
@@ -1712,10 +1562,7 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult(
-        { exams },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
-      );
+      return jsonToolResult({ exams }, { mode: resolvedMode });
     },
   );
 
@@ -1726,19 +1573,11 @@ export function createMcpServer() {
         "Get an overview of todos, homeworks, schedules and exams for the authenticated user.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      { locale, showAllDetailedProperties, showAllDetailedProrties },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const user = await getViewerInfo(userId);
       const sectionIds = await getSubscribedSectionIds(userId);
@@ -1857,7 +1696,7 @@ export function createMcpServer() {
             upcomingExams,
           },
         },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        { mode: resolvedMode },
       );
     },
   );
@@ -1869,19 +1708,11 @@ export function createMcpServer() {
         "Get next-7-day timeline events from schedules, homework deadlines, exams and todos.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      { locale, showAllDetailedProperties, showAllDetailedProrties },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       const { todayStart } = getTodayBounds();
@@ -2007,7 +1838,7 @@ export function createMcpServer() {
           total: events.length,
           events,
         },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        { mode: resolvedMode },
       );
     },
   );
@@ -2019,19 +1850,11 @@ export function createMcpServer() {
         "Get subscribed sections and personal calendar feed path for the authenticated user.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      { locale, showAllDetailedProperties, showAllDetailedProrties },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const localizedPrisma = getPrisma(locale);
       const token = await ensureUserCalendarFeedToken(userId);
@@ -2062,7 +1885,7 @@ export function createMcpServer() {
             calendarPath: buildUserCalendarFeedPath(user.id, token),
           },
         },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        { mode: resolvedMode },
       );
     },
   );
@@ -2076,25 +1899,11 @@ export function createMcpServer() {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
         locale: localeSchema.default(DEFAULT_LOCALE),
-        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
-        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+        mode: mcpModeInputSchema,
       },
     },
-    async (
-      {
-        codes,
-        semesterId,
-        locale,
-        showAllDetailedProperties,
-        showAllDetailedProrties,
-      },
-      extra,
-    ) => {
-      const resolvedShowAllDetailedProperties =
-        resolveShowAllDetailedProperties({
-          showAllDetailedProperties,
-          showAllDetailedProrties,
-        });
+    async ({ codes, semesterId, locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const localizedPrisma = getPrisma(locale);
 
@@ -2165,7 +1974,7 @@ export function createMcpServer() {
             sections: updatedUser.subscribedSections,
           },
         },
-        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        { mode: resolvedMode },
       );
     },
   );
