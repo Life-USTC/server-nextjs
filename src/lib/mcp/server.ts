@@ -1,6 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import {
   buildUserCalendarFeedPath,
   ensureUserCalendarFeedToken,
@@ -24,12 +25,290 @@ const sectionCodeSchema = z
   .regex(/^[A-Za-z0-9_.-]+$/);
 const todoPrioritySchema = z.enum(["low", "medium", "high"]);
 
-function jsonToolResult(value: unknown) {
+const showAllDetailedPropertiesSchema = z.boolean().default(false);
+
+function resolveShowAllDetailedProperties(input: {
+  showAllDetailedProperties?: boolean;
+  showAllDetailedProrties?: boolean;
+}) {
+  if (typeof input.showAllDetailedProperties === "boolean") {
+    return input.showAllDetailedProperties;
+  }
+  return input.showAllDetailedProrties === true;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function pick<T extends Record<string, unknown>, K extends keyof T>(
+  value: T,
+  keys: K[],
+): Pick<T, K> {
+  const out = {} as Pick<T, K>;
+  for (const key of keys) {
+    if (Object.hasOwn(value, key)) out[key] = value[key];
+  }
+  return out;
+}
+
+function compactCourse(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, [
+    "id",
+    "jwId",
+    "code",
+    "namePrimary",
+    "nameSecondary",
+    "credit",
+    "hours",
+  ]);
+}
+
+function compactSemester(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, ["id", "jwId", "code", "nameCn", "namePrimary"]);
+}
+
+function compactSection(value: unknown) {
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = pick(value, [
+    "id",
+    "jwId",
+    "code",
+    "namePrimary",
+    "nameSecondary",
+    "campusId",
+    "openDepartmentId",
+  ]);
+  if (Object.hasOwn(value, "course")) out.course = compactCourse(value.course);
+  if (Object.hasOwn(value, "semester"))
+    out.semester = compactSemester(value.semester);
+  return out;
+}
+
+function compactTodo(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, [
+    "id",
+    "title",
+    "content",
+    "priority",
+    "dueAt",
+    "completed",
+    "createdAt",
+    "updatedAt",
+  ]);
+}
+
+function compactHomework(value: unknown) {
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = pick(value, [
+    "id",
+    "sectionId",
+    "title",
+    "isMajor",
+    "requiresTeam",
+    "publishedAt",
+    "submissionStartAt",
+    "submissionDueAt",
+    "deletedAt",
+    "createdAt",
+    "updatedAt",
+  ]);
+
+  if (Object.hasOwn(value, "description")) {
+    if (isRecord(value.description)) {
+      out.description = pick(value.description, [
+        "id",
+        "content",
+        "lastEditedAt",
+        "lastEditedById",
+      ]);
+    } else {
+      out.description = value.description;
+    }
+  }
+  if (Object.hasOwn(value, "completion")) out.completion = value.completion;
+  if (Object.hasOwn(value, "homeworkCompletions"))
+    out.homeworkCompletions = value.homeworkCompletions;
+  if (Object.hasOwn(value, "section"))
+    out.section = compactSection(value.section);
+  if (Object.hasOwn(value, "createdBy"))
+    out.createdBy = pick(value.createdBy as Record<string, unknown>, [
+      "id",
+      "name",
+      "username",
+      "image",
+    ]);
+  if (Object.hasOwn(value, "updatedBy"))
+    out.updatedBy = pick(value.updatedBy as Record<string, unknown>, [
+      "id",
+      "name",
+      "username",
+      "image",
+    ]);
+  if (Object.hasOwn(value, "deletedBy"))
+    out.deletedBy = pick(value.deletedBy as Record<string, unknown>, [
+      "id",
+      "name",
+      "username",
+      "image",
+    ]);
+
+  return out;
+}
+
+function compactSchedule(value: unknown) {
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = pick(value, [
+    "id",
+    "jwId",
+    "date",
+    "weekday",
+    "startTime",
+    "endTime",
+    "weekIndex",
+    "createdAt",
+    "updatedAt",
+  ]);
+  if (Object.hasOwn(value, "section"))
+    out.section = compactSection(value.section);
+  if (Object.hasOwn(value, "room") && isRecord(value.room)) {
+    const room = value.room;
+    out.room = {
+      ...pick(room, ["id", "jwId", "namePrimary", "nameSecondary"]),
+      ...(Object.hasOwn(room, "building") && isRecord(room.building)
+        ? {
+            building: pick(room.building, [
+              "id",
+              "jwId",
+              "namePrimary",
+              "nameSecondary",
+            ]),
+          }
+        : {}),
+    };
+  }
+  if (Object.hasOwn(value, "teachers") && Array.isArray(value.teachers)) {
+    out.teachers = (value.teachers as unknown[]).map((teacher) => {
+      if (!isRecord(teacher)) return teacher;
+      return pick(teacher, ["id", "jwId", "namePrimary", "nameSecondary"]);
+    });
+  }
+  return out;
+}
+
+function compactExam(value: unknown) {
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = pick(value, [
+    "id",
+    "jwId",
+    "examDate",
+    "startTime",
+    "endTime",
+    "createdAt",
+    "updatedAt",
+  ]);
+  if (Object.hasOwn(value, "section"))
+    out.section = compactSection(value.section);
+  if (Object.hasOwn(value, "examBatch") && isRecord(value.examBatch)) {
+    out.examBatch = pick(value.examBatch, [
+      "id",
+      "jwId",
+      "namePrimary",
+      "nameSecondary",
+    ]);
+  }
+  if (Object.hasOwn(value, "examRooms") && Array.isArray(value.examRooms)) {
+    out.examRooms = (value.examRooms as unknown[]).map((room) => {
+      if (!isRecord(room)) return room;
+      return pick(room, ["id", "jwId", "roomName", "buildingName"]);
+    });
+  }
+  return out;
+}
+
+function compactMcpPayload(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(compactMcpPayload);
+  if (!isRecord(value)) return value;
+
+  if (Object.hasOwn(value, "todos") && Array.isArray(value.todos)) {
+    return { ...value, todos: (value.todos as unknown[]).map(compactTodo) };
+  }
+  if (Object.hasOwn(value, "courses") && Array.isArray(value.courses)) {
+    return {
+      ...value,
+      courses: (value.courses as unknown[]).map(compactCourse),
+    };
+  }
+  if (Object.hasOwn(value, "sections") && Array.isArray(value.sections)) {
+    return {
+      ...value,
+      sections: (value.sections as unknown[]).map(compactSection),
+    };
+  }
+  if (Object.hasOwn(value, "section")) {
+    return { ...value, section: compactSection(value.section) };
+  }
+  if (Object.hasOwn(value, "homeworks") && Array.isArray(value.homeworks)) {
+    return {
+      ...value,
+      homeworks: (value.homeworks as unknown[]).map(compactHomework),
+    };
+  }
+  if (Object.hasOwn(value, "schedules") && Array.isArray(value.schedules)) {
+    return {
+      ...value,
+      schedules: (value.schedules as unknown[]).map(compactSchedule),
+    };
+  }
+  if (Object.hasOwn(value, "exams") && Array.isArray(value.exams)) {
+    return { ...value, exams: (value.exams as unknown[]).map(compactExam) };
+  }
+  if (Object.hasOwn(value, "events") && Array.isArray(value.events)) {
+    const events = (value.events as unknown[]).map((event) => {
+      if (!isRecord(event)) return event;
+      const base = pick(event, ["type", "at"]);
+      if (!Object.hasOwn(event, "payload")) return base;
+      const type = event.type;
+      if (type === "schedule")
+        return { ...base, payload: compactSchedule(event.payload) };
+      if (type === "homework_due")
+        return { ...base, payload: compactHomework(event.payload) };
+      if (type === "exam")
+        return { ...base, payload: compactExam(event.payload) };
+      if (type === "todo_due")
+        return { ...base, payload: compactTodo(event.payload) };
+      return { ...base, payload: compactMcpPayload(event.payload) };
+    });
+    return { ...value, events };
+  }
+
+  // Default: keep shape, but compact obvious nested entities if present.
+  const out: Record<string, unknown> = { ...value };
+  if (Object.hasOwn(out, "course")) out.course = compactCourse(out.course);
+  if (Object.hasOwn(out, "todo")) out.todo = compactTodo(out.todo);
+  if (Object.hasOwn(out, "homework"))
+    out.homework = compactHomework(out.homework);
+  if (Object.hasOwn(out, "schedule"))
+    out.schedule = compactSchedule(out.schedule);
+  if (Object.hasOwn(out, "exam")) out.exam = compactExam(out.exam);
+  return out;
+}
+
+function jsonToolResult(
+  value: unknown,
+  options?: { showAllDetailedProperties?: boolean },
+) {
+  const payload = options?.showAllDetailedProperties
+    ? value
+    : compactMcpPayload(value);
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(value, null, 2),
+        text: JSON.stringify(payload, null, 2),
       },
     ],
   };
@@ -156,8 +435,12 @@ export function createMcpServer() {
     {
       description:
         "Return the authenticated Life@USTC user profile associated with the OAuth access token.",
+      inputSchema: {
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+      },
     },
-    async (extra) => {
+    async ({ showAllDetailedProperties, showAllDetailedProrties }, extra) => {
       const userId = getUserId(extra.authInfo);
       const user = await prisma.user.findUniqueOrThrow({
         where: { id: userId },
@@ -172,7 +455,12 @@ export function createMcpServer() {
         },
       });
 
-      return jsonToolResult(user);
+      return jsonToolResult(user, {
+        showAllDetailedProperties: resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        }),
+      });
     },
   );
 
@@ -181,8 +469,12 @@ export function createMcpServer() {
     {
       description:
         "List todos for the authenticated Life@USTC user in due-date order.",
+      inputSchema: {
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+      },
     },
-    async (extra) => {
+    async ({ showAllDetailedProperties, showAllDetailedProrties }, extra) => {
       const userId = getUserId(extra.authInfo);
       const todos = await prisma.todo.findMany({
         where: { userId },
@@ -193,7 +485,15 @@ export function createMcpServer() {
         ],
       });
 
-      return jsonToolResult({ todos });
+      return jsonToolResult(
+        { todos },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -206,9 +506,21 @@ export function createMcpServer() {
         content: z.string().max(4000).optional().nullable(),
         priority: todoPrioritySchema.default("medium"),
         dueAt: z.union([z.string(), z.null()]).optional(),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ title, content, priority, dueAt }, extra) => {
+    async (
+      {
+        title,
+        content,
+        priority,
+        dueAt,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
       const userId = getUserId(extra.authInfo);
       const parsedDueAt = parseDateValue(dueAt);
       if (parsedDueAt === undefined) {
@@ -228,10 +540,18 @@ export function createMcpServer() {
         },
       });
 
-      return jsonToolResult({
-        success: true,
-        id: todo.id,
-      });
+      return jsonToolResult(
+        {
+          success: true,
+          id: todo.id,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -246,9 +566,23 @@ export function createMcpServer() {
         priority: todoPrioritySchema.optional(),
         dueAt: z.union([z.string(), z.null()]).optional(),
         completed: z.boolean().optional(),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ id, title, content, priority, dueAt, completed }, extra) => {
+    async (
+      {
+        id,
+        title,
+        content,
+        priority,
+        dueAt,
+        completed,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
       const userId = getUserId(extra.authInfo);
       const todo = await prisma.todo.findUnique({
         where: { id },
@@ -297,9 +631,17 @@ export function createMcpServer() {
         data: updates,
       });
 
-      return jsonToolResult({
-        success: true,
-      });
+      return jsonToolResult(
+        {
+          success: true,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -309,9 +651,14 @@ export function createMcpServer() {
       description: "Delete one todo for the authenticated user by todo ID.",
       inputSchema: {
         id: z.string().trim().min(1),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ id }, extra) => {
+    async (
+      { id, showAllDetailedProperties, showAllDetailedProrties },
+      extra,
+    ) => {
       const userId = getUserId(extra.authInfo);
       const todo = await prisma.todo.findUnique({
         where: { id },
@@ -333,9 +680,17 @@ export function createMcpServer() {
       }
 
       await prisma.todo.delete({ where: { id } });
-      return jsonToolResult({
-        success: true,
-      });
+      return jsonToolResult(
+        {
+          success: true,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -348,9 +703,17 @@ export function createMcpServer() {
         search: z.string().trim().min(1),
         limit: z.number().int().min(1).max(25).default(10),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ search, limit, locale }) => {
+    async ({
+      search,
+      limit,
+      locale,
+      showAllDetailedProperties,
+      showAllDetailedProrties,
+    }) => {
       const localizedPrisma = getPrisma(locale);
       const courses = await localizedPrisma.course.findMany({
         where: {
@@ -365,7 +728,15 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult({ courses });
+      return jsonToolResult(
+        { courses },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -376,9 +747,16 @@ export function createMcpServer() {
       inputSchema: {
         jwId: z.number().int().positive(),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ jwId, locale }) => {
+    async ({
+      jwId,
+      locale,
+      showAllDetailedProperties,
+      showAllDetailedProrties,
+    }) => {
       const localizedPrisma = getPrisma(locale);
       const section = await localizedPrisma.section.findUnique({
         where: { jwId },
@@ -392,10 +770,18 @@ export function createMcpServer() {
         });
       }
 
-      return jsonToolResult({
-        found: true,
-        section,
-      });
+      return jsonToolResult(
+        {
+          found: true,
+          section,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -408,9 +794,17 @@ export function createMcpServer() {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ codes, semesterId, locale }) => {
+    async ({
+      codes,
+      semesterId,
+      locale,
+      showAllDetailedProperties,
+      showAllDetailedProrties,
+    }) => {
       const localizedPrisma = getPrisma(locale);
       const semester = semesterId
         ? await prisma.semester.findUnique({
@@ -434,20 +828,28 @@ export function createMcpServer() {
         orderBy: [{ code: "asc" }, { jwId: "asc" }],
       });
 
-      return jsonToolResult({
-        success: true,
-        semester: {
-          id: semester.id,
-          nameCn: semester.nameCn,
-          code: semester.code,
+      return jsonToolResult(
+        {
+          success: true,
+          semester: {
+            id: semester.id,
+            nameCn: semester.nameCn,
+            code: semester.code,
+          },
+          matchedCodes: sections.map((section) => section.code),
+          unmatchedCodes: codes.filter(
+            (code) => !sections.some((section) => section.code === code),
+          ),
+          sections,
+          total: sections.length,
         },
-        matchedCodes: sections.map((section) => section.code),
-        unmatchedCodes: codes.filter(
-          (code) => !sections.some((section) => section.code === code),
-        ),
-        sections,
-        total: sections.length,
-      });
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -460,9 +862,17 @@ export function createMcpServer() {
         sectionJwId: z.number().int().positive(),
         includeDeleted: z.boolean().default(false),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ sectionJwId, includeDeleted, locale }) => {
+    async ({
+      sectionJwId,
+      includeDeleted,
+      locale,
+      showAllDetailedProperties,
+      showAllDetailedProrties,
+    }) => {
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -495,11 +905,357 @@ export function createMcpServer() {
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       });
 
-      return jsonToolResult({
-        found: true,
-        section,
-        homeworks,
+      return jsonToolResult(
+        {
+          found: true,
+          section,
+          homeworks,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
+    },
+  );
+
+  server.registerTool(
+    "create_homework_on_section",
+    {
+      description:
+        "Create one homework under a section (by section JW ID) for the authenticated user.",
+      inputSchema: {
+        sectionJwId: z.number().int().positive(),
+        title: z.string().trim().min(1).max(200),
+        description: z.string().max(20000).optional().nullable(),
+        isMajor: z.boolean().optional(),
+        requiresTeam: z.boolean().optional(),
+        publishedAt: z.union([z.string(), z.null()]).optional(),
+        submissionStartAt: z.union([z.string(), z.null()]).optional(),
+        submissionDueAt: z.union([z.string(), z.null()]).optional(),
+        locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+      },
+    },
+    async (
+      {
+        sectionJwId,
+        title,
+        description,
+        isMajor,
+        requiresTeam,
+        publishedAt,
+        submissionStartAt,
+        submissionDueAt,
+        locale,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
+      const userId = getUserId(extra.authInfo);
+      const suspension = await findActiveSuspension(userId);
+      if (suspension) {
+        return jsonToolResult(
+          {
+            success: false,
+            message: "Suspended",
+            reason: suspension.reason ?? null,
+          },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      const { section } = await resolveSectionByJwId(sectionJwId, locale);
+      if (!section) {
+        return jsonToolResult(
+          { success: false, message: `Section ${sectionJwId} was not found` },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      const parsedPublishedAt = parseDateValue(publishedAt);
+      const parsedSubmissionStartAt = parseDateValue(submissionStartAt);
+      const parsedSubmissionDueAt = parseDateValue(submissionDueAt);
+      if (parsedPublishedAt === undefined) {
+        return jsonToolResult(
+          { success: false, message: "Invalid publish date" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (parsedSubmissionStartAt === undefined) {
+        return jsonToolResult(
+          { success: false, message: "Invalid submission start" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (parsedSubmissionDueAt === undefined) {
+        return jsonToolResult(
+          { success: false, message: "Invalid submission due" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (
+        parsedSubmissionStartAt &&
+        parsedSubmissionDueAt &&
+        parsedSubmissionStartAt.getTime() > parsedSubmissionDueAt.getTime()
+      ) {
+        return jsonToolResult(
+          { success: false, message: "Submission start must be before due" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      const trimmedDescription = (description ?? "").trim();
+      const homework = await prisma.$transaction(async (tx) => {
+        const created = await tx.homework.create({
+          data: {
+            sectionId: section.id,
+            title,
+            isMajor: isMajor === true,
+            requiresTeam: requiresTeam === true,
+            publishedAt: parsedPublishedAt,
+            submissionStartAt: parsedSubmissionStartAt,
+            submissionDueAt: parsedSubmissionDueAt,
+            createdById: userId,
+            updatedById: userId,
+          },
+        });
+
+        if (trimmedDescription) {
+          const descriptionRecord = await tx.description.create({
+            data: {
+              content: trimmedDescription,
+              lastEditedAt: new Date(),
+              lastEditedById: userId,
+              homeworkId: created.id,
+            },
+          });
+          await tx.descriptionEdit.create({
+            data: {
+              descriptionId: descriptionRecord.id,
+              editorId: userId,
+              previousContent: null,
+              nextContent: trimmedDescription,
+            },
+          });
+        }
+
+        await tx.homeworkAuditLog.create({
+          data: {
+            action: "created",
+            sectionId: section.id,
+            homeworkId: created.id,
+            actorId: userId,
+            titleSnapshot: title,
+          },
+        });
+
+        return created;
       });
+
+      return jsonToolResult(
+        { success: true, id: homework.id },
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
+    },
+  );
+
+  server.registerTool(
+    "update_homework_on_section",
+    {
+      description:
+        "Update one homework (by homework ID). Optionally upsert its description.",
+      inputSchema: {
+        homeworkId: z.string().trim().min(1),
+        title: z.string().trim().min(1).max(200).optional(),
+        description: z.string().max(20000).optional().nullable(),
+        isMajor: z.boolean().optional(),
+        requiresTeam: z.boolean().optional(),
+        publishedAt: z.union([z.string(), z.null()]).optional(),
+        submissionStartAt: z.union([z.string(), z.null()]).optional(),
+        submissionDueAt: z.union([z.string(), z.null()]).optional(),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
+      },
+    },
+    async (
+      {
+        homeworkId,
+        title,
+        description,
+        isMajor,
+        requiresTeam,
+        publishedAt,
+        submissionStartAt,
+        submissionDueAt,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
+      const userId = getUserId(extra.authInfo);
+      const suspension = await findActiveSuspension(userId);
+      if (suspension) {
+        return jsonToolResult(
+          {
+            success: false,
+            message: "Suspended",
+            reason: suspension.reason ?? null,
+          },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      const hasPublishedAt = publishedAt !== undefined;
+      const hasSubmissionStartAt = submissionStartAt !== undefined;
+      const hasSubmissionDueAt = submissionDueAt !== undefined;
+
+      const parsedPublishedAt = hasPublishedAt
+        ? parseDateValue(publishedAt)
+        : undefined;
+      const parsedSubmissionStartAt = hasSubmissionStartAt
+        ? parseDateValue(submissionStartAt)
+        : undefined;
+      const parsedSubmissionDueAt = hasSubmissionDueAt
+        ? parseDateValue(submissionDueAt)
+        : undefined;
+
+      if (hasPublishedAt && parsedPublishedAt === undefined) {
+        return jsonToolResult(
+          { success: false, message: "Invalid publish date" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (hasSubmissionStartAt && parsedSubmissionStartAt === undefined) {
+        return jsonToolResult(
+          { success: false, message: "Invalid submission start" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (hasSubmissionDueAt && parsedSubmissionDueAt === undefined) {
+        return jsonToolResult(
+          { success: false, message: "Invalid submission due" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (
+        parsedSubmissionStartAt &&
+        parsedSubmissionDueAt &&
+        parsedSubmissionStartAt.getTime() > parsedSubmissionDueAt.getTime()
+      ) {
+        return jsonToolResult(
+          { success: false, message: "Submission start must be before due" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      const existing = await prisma.homework.findUnique({
+        where: { id: homeworkId },
+        select: { id: true, deletedAt: true },
+      });
+      if (!existing) {
+        return jsonToolResult(
+          { success: false, message: "Homework not found" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+      if (existing.deletedAt) {
+        return jsonToolResult(
+          { success: false, message: "Homework deleted" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      const updates: Record<string, unknown> = { updatedById: userId };
+      if (title !== undefined) updates.title = title;
+      if (isMajor !== undefined) updates.isMajor = isMajor === true;
+      if (requiresTeam !== undefined)
+        updates.requiresTeam = requiresTeam === true;
+      if (parsedPublishedAt !== undefined)
+        updates.publishedAt = parsedPublishedAt;
+      if (parsedSubmissionStartAt !== undefined)
+        updates.submissionStartAt = parsedSubmissionStartAt;
+      if (parsedSubmissionDueAt !== undefined)
+        updates.submissionDueAt = parsedSubmissionDueAt;
+
+      const wantsDescription = description !== undefined;
+      const trimmedDescription = (description ?? "").trim();
+
+      if (Object.keys(updates).length === 1 && !wantsDescription) {
+        return jsonToolResult(
+          { success: false, message: "No changes" },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
+      }
+
+      await prisma.$transaction(async (tx) => {
+        if (Object.keys(updates).length > 1) {
+          await tx.homework.update({
+            where: { id: homeworkId },
+            data: updates,
+          });
+        }
+
+        if (wantsDescription) {
+          const existingDescription = await tx.description.findFirst({
+            where: { homeworkId },
+          });
+          const previousContent = existingDescription?.content ?? null;
+          if (!existingDescription && !trimmedDescription) {
+            return;
+          }
+          if (
+            existingDescription &&
+            existingDescription.content === trimmedDescription
+          ) {
+            return;
+          }
+          const next = existingDescription
+            ? await tx.description.update({
+                where: { id: existingDescription.id },
+                data: {
+                  content: trimmedDescription,
+                  lastEditedAt: new Date(),
+                  lastEditedById: userId,
+                },
+              })
+            : await tx.description.create({
+                data: {
+                  content: trimmedDescription,
+                  lastEditedAt: new Date(),
+                  lastEditedById: userId,
+                  homeworkId,
+                },
+              });
+          await tx.descriptionEdit.create({
+            data: {
+              descriptionId: next.id,
+              editorId: userId,
+              previousContent,
+              nextContent: trimmedDescription,
+            },
+          });
+        }
+      });
+
+      return jsonToolResult(
+        { success: true },
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -512,9 +1268,17 @@ export function createMcpServer() {
         sectionJwId: z.number().int().positive(),
         limit: z.number().int().min(1).max(200).default(100),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ sectionJwId, limit, locale }) => {
+    async ({
+      sectionJwId,
+      limit,
+      locale,
+      showAllDetailedProperties,
+      showAllDetailedProrties,
+    }) => {
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -556,11 +1320,19 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult({
-        found: true,
-        section,
-        schedules,
-      });
+      return jsonToolResult(
+        {
+          found: true,
+          section,
+          schedules,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -572,9 +1344,16 @@ export function createMcpServer() {
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ sectionJwId, locale }) => {
+    async ({
+      sectionJwId,
+      locale,
+      showAllDetailedProperties,
+      showAllDetailedProrties,
+    }) => {
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -601,11 +1380,19 @@ export function createMcpServer() {
         orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
       });
 
-      return jsonToolResult({
-        found: true,
-        section,
-        exams,
-      });
+      return jsonToolResult(
+        {
+          found: true,
+          section,
+          exams,
+        },
+        {
+          showAllDetailedProperties: resolveShowAllDetailedProperties({
+            showAllDetailedProperties,
+            showAllDetailedProrties,
+          }),
+        },
+      );
     },
   );
 
@@ -618,13 +1405,32 @@ export function createMcpServer() {
         completed: z.boolean().optional(),
         limit: z.number().int().min(1).max(200).default(100),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ completed, limit, locale }, extra) => {
+    async (
+      {
+        completed,
+        limit,
+        locale,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       if (sectionIds.length === 0) {
-        return jsonToolResult({ homeworks: [] });
+        return jsonToolResult(
+          { homeworks: [] },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
       }
 
       const localizedPrisma = getPrisma(locale);
@@ -657,7 +1463,10 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult({ homeworks });
+      return jsonToolResult(
+        { homeworks },
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -669,9 +1478,24 @@ export function createMcpServer() {
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         completed: z.boolean(),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ homeworkId, completed }, extra) => {
+    async (
+      {
+        homeworkId,
+        completed,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const homework = await prisma.homework.findUnique({
         where: { id: homeworkId },
@@ -692,28 +1516,34 @@ export function createMcpServer() {
           create: { userId, homeworkId },
         });
 
-        return jsonToolResult({
-          success: true,
-          completion: {
-            homeworkId,
-            completed: true,
-            completedAt: record.completedAt,
+        return jsonToolResult(
+          {
+            success: true,
+            completion: {
+              homeworkId,
+              completed: true,
+              completedAt: record.completedAt,
+            },
           },
-        });
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
       }
 
       await prisma.homeworkCompletion.deleteMany({
         where: { userId, homeworkId },
       });
 
-      return jsonToolResult({
-        success: true,
-        completion: {
-          homeworkId,
-          completed: false,
-          completedAt: null,
+      return jsonToolResult(
+        {
+          success: true,
+          completion: {
+            homeworkId,
+            completed: false,
+            completedAt: null,
+          },
         },
-      });
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -728,13 +1558,34 @@ export function createMcpServer() {
         weekday: z.number().int().min(1).max(7).optional(),
         limit: z.number().int().min(1).max(300).default(150),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ dateFrom, dateTo, weekday, limit, locale }, extra) => {
+    async (
+      {
+        dateFrom,
+        dateTo,
+        weekday,
+        limit,
+        locale,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       if (sectionIds.length === 0) {
-        return jsonToolResult({ schedules: [] });
+        return jsonToolResult(
+          { schedules: [] },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
       }
 
       const localizedPrisma = getPrisma(locale);
@@ -779,7 +1630,10 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult({ schedules });
+      return jsonToolResult(
+        { schedules },
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -794,13 +1648,34 @@ export function createMcpServer() {
         includeDateUnknown: z.boolean().default(true),
         limit: z.number().int().min(1).max(300).default(150),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ dateFrom, dateTo, includeDateUnknown, limit, locale }, extra) => {
+    async (
+      {
+        dateFrom,
+        dateTo,
+        includeDateUnknown,
+        limit,
+        locale,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       if (sectionIds.length === 0) {
-        return jsonToolResult({ exams: [] });
+        return jsonToolResult(
+          { exams: [] },
+          { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+        );
       }
 
       const localizedPrisma = getPrisma(locale);
@@ -837,7 +1712,10 @@ export function createMcpServer() {
         take: limit,
       });
 
-      return jsonToolResult({ exams });
+      return jsonToolResult(
+        { exams },
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -848,9 +1726,19 @@ export function createMcpServer() {
         "Get an overview of todos, homeworks, schedules and exams for the authenticated user.",
       inputSchema: {
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ locale }, extra) => {
+    async (
+      { locale, showAllDetailedProperties, showAllDetailedProrties },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const user = await getViewerInfo(userId);
       const sectionIds = await getSubscribedSectionIds(userId);
@@ -949,25 +1837,28 @@ export function createMcpServer() {
           : Promise.resolve([]),
       ]);
 
-      return jsonToolResult({
-        user: {
-          id: user.id,
-          name: user.name,
-          image: user.image,
-          isAdmin: user.isAdmin,
+      return jsonToolResult(
+        {
+          user: {
+            id: user.id,
+            name: user.name,
+            image: user.image,
+            isAdmin: user.isAdmin,
+          },
+          overview: {
+            pendingTodosCount,
+            pendingHomeworksCount,
+            todaySchedulesCount,
+            upcomingExamsCount,
+          },
+          samples: {
+            dueTodos,
+            dueHomeworks,
+            upcomingExams,
+          },
         },
-        overview: {
-          pendingTodosCount,
-          pendingHomeworksCount,
-          todaySchedulesCount,
-          upcomingExamsCount,
-        },
-        samples: {
-          dueTodos,
-          dueHomeworks,
-          upcomingExams,
-        },
-      });
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -978,9 +1869,19 @@ export function createMcpServer() {
         "Get next-7-day timeline events from schedules, homework deadlines, exams and todos.",
       inputSchema: {
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ locale }, extra) => {
+    async (
+      { locale, showAllDetailedProperties, showAllDetailedProrties },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const sectionIds = await getSubscribedSectionIds(userId);
       const { todayStart } = getTodayBounds();
@@ -1097,14 +1998,17 @@ export function createMcpServer() {
         .sort((left, right) => left.sortKey - right.sortKey)
         .map(({ sortKey: _sortKey, ...event }) => event);
 
-      return jsonToolResult({
-        range: {
-          from: todayStart.toISOString(),
-          to: windowEnd.toISOString(),
+      return jsonToolResult(
+        {
+          range: {
+            from: todayStart.toISOString(),
+            to: windowEnd.toISOString(),
+          },
+          total: events.length,
+          events,
         },
-        total: events.length,
-        events,
-      });
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -1115,9 +2019,19 @@ export function createMcpServer() {
         "Get subscribed sections and personal calendar feed path for the authenticated user.",
       inputSchema: {
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ locale }, extra) => {
+    async (
+      { locale, showAllDetailedProperties, showAllDetailedProrties },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const localizedPrisma = getPrisma(locale);
       const token = await ensureUserCalendarFeedToken(userId);
@@ -1139,14 +2053,17 @@ export function createMcpServer() {
         });
       }
 
-      return jsonToolResult({
-        success: true,
-        subscription: {
-          userId: user.id,
-          sections: user.subscribedSections,
-          calendarPath: buildUserCalendarFeedPath(user.id, token),
+      return jsonToolResult(
+        {
+          success: true,
+          subscription: {
+            userId: user.id,
+            sections: user.subscribedSections,
+            calendarPath: buildUserCalendarFeedPath(user.id, token),
+          },
         },
-      });
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
@@ -1159,9 +2076,25 @@ export function createMcpServer() {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
         locale: localeSchema.default("zh-cn"),
+        showAllDetailedProperties: showAllDetailedPropertiesSchema.optional(),
+        showAllDetailedProrties: showAllDetailedPropertiesSchema.optional(),
       },
     },
-    async ({ codes, semesterId, locale }, extra) => {
+    async (
+      {
+        codes,
+        semesterId,
+        locale,
+        showAllDetailedProperties,
+        showAllDetailedProrties,
+      },
+      extra,
+    ) => {
+      const resolvedShowAllDetailedProperties =
+        resolveShowAllDetailedProperties({
+          showAllDetailedProperties,
+          showAllDetailedProrties,
+        });
       const userId = getUserId(extra.authInfo);
       const localizedPrisma = getPrisma(locale);
 
@@ -1214,23 +2147,26 @@ export function createMcpServer() {
         },
       });
 
-      return jsonToolResult({
-        success: true,
-        semester: {
-          id: semester.id,
-          nameCn: semester.nameCn,
-          code: semester.code,
+      return jsonToolResult(
+        {
+          success: true,
+          semester: {
+            id: semester.id,
+            nameCn: semester.nameCn,
+            code: semester.code,
+          },
+          matchedCodes: matchedSections.map((section) => section.code),
+          unmatchedCodes: codes.filter(
+            (code) => !matchedSections.some((section) => section.code === code),
+          ),
+          addedCount,
+          subscription: {
+            userId: updatedUser.id,
+            sections: updatedUser.subscribedSections,
+          },
         },
-        matchedCodes: matchedSections.map((section) => section.code),
-        unmatchedCodes: codes.filter(
-          (code) => !matchedSections.some((section) => section.code === code),
-        ),
-        addedCount,
-        subscription: {
-          userId: updatedUser.id,
-          sections: updatedUser.subscribedSections,
-        },
-      });
+        { showAllDetailedProperties: resolvedShowAllDetailedProperties },
+      );
     },
   );
 
