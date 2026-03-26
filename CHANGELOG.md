@@ -1,3 +1,10 @@
+# [0.56.0](https://github.com/Life-USTC/server-nextjs/compare/v0.55.4...v0.56.0) (2026-03-26)
+
+
+### Features
+
+* **mcp:** compact tool payloads and add homework write tools ([e1af9f6](https://github.com/Life-USTC/server-nextjs/commit/e1af9f66729c50afcd17b30924de44ba51d7a1f6))
+
 ## [0.55.4](https://github.com/Life-USTC/server-nextjs/compare/v0.55.3...v0.55.4) (2026-03-25)
 
 
