@@ -32,6 +32,8 @@
     "teachers": "教师",
     "subscriptions": "已选课班级",
     "me": "我的",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
     "browseCourses": "浏览课程",
     "sectionSubscriptions": "已选课班级",
     "viewAll": "查看全部",
@@ -860,7 +862,7 @@
     "devDebugHint": "开发模式下可一键进入调试用户，用于验证登录后功能。",
     "errorAccountNotLinked": "此账户已关联到其他用户。请使用其他账户登录。",
     "errorGeneric": "登录过程中发生错误。请重试。",
-    "termsNotice": "登录即表示您同意我们的服务条款和隐私政策。"
+    "termsNotice": "登录即表示您同意我们的<terms>服务条款</terms>和<privacy>隐私政策</privacy>。"
   },
   "teachers": {
     "title": "所有教师",

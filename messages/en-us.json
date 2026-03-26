@@ -32,6 +32,8 @@
     "teachers": "Teachers",
     "subscriptions": "Selected Sections",
     "me": "Me",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
     "browseCourses": "Browse Courses",
     "sectionSubscriptions": "Selected Sections",
     "viewAll": "View All",
@@ -860,7 +862,7 @@
     "devDebugHint": "In development mode, use one click to sign in as a debug user for authenticated feature testing.",
     "errorAccountNotLinked": "This account is already linked to another user. Please sign in with a different account.",
     "errorGeneric": "An error occurred during sign in. Please try again.",
-    "termsNotice": "By signing in, you agree to our Terms of Service and Privacy Policy."
+    "termsNotice": "By signing in, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "teachers": {
     "title": "All Teachers",

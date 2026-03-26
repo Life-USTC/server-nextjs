@@ -10,6 +10,7 @@ import {
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import { Link } from "@/i18n/routing";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -100,7 +101,18 @@ export default async function SignInPage({
           ) : null}
 
           <p className="pt-2 text-center text-muted-foreground text-xs">
-            {t("termsNotice")}
+            {t.rich("termsNotice", {
+              terms: (chunks) => (
+                <Link href="/terms" className="underline underline-offset-2">
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks) => (
+                <Link href="/privacy" className="underline underline-offset-2">
+                  {chunks}
+                </Link>
+              ),
+            })}
           </p>
         </CardPanel>
       </Card>
