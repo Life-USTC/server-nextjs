@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   notFound,
   parseOptionalInt,
   unauthorized,
@@ -98,7 +98,7 @@ export async function GET(request: Request) {
 
   try {
     const payload = await getDescriptionPayload(targetType, targetId);
-    return NextResponse.json(payload);
+    return jsonResponse(payload);
   } catch (error) {
     return handleRouteError("Failed to fetch description", error);
   }
@@ -152,7 +152,7 @@ export async function POST(request: Request) {
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Suspended", reason: suspension.reason ?? null },
       { status: 403 },
     );
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
       return { id: description.id, updated: true };
     });
 
-    return NextResponse.json({ id: result.id, updated: result.updated });
+    return jsonResponse({ id: result.id, updated: result.updated });
   } catch (error) {
     return handleRouteError("Failed to update description", error);
   }

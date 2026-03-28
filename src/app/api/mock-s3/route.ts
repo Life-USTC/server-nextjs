@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { jsonResponse } from "@/lib/api/helpers";
 import {
   deleteMockS3Object,
   getMockS3Object,
@@ -9,7 +10,7 @@ import {
 export const dynamic = "force-dynamic";
 
 function notFound() {
-  return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return jsonResponse({ error: "Not found" }, { status: 404 });
 }
 
 function parseKey(request: Request) {
@@ -25,7 +26,7 @@ export async function PUT(request: Request) {
 
   const key = parseKey(request);
   if (!key) {
-    return NextResponse.json({ error: "Missing key" }, { status: 400 });
+    return jsonResponse({ error: "Missing key" }, { status: 400 });
   }
 
   const url = new URL(request.url);
@@ -34,7 +35,7 @@ export async function PUT(request: Request) {
   const body = new Uint8Array(await request.arrayBuffer());
   putMockS3Object(key, { body, contentType });
 
-  return NextResponse.json({ ok: true, size: body.byteLength });
+  return jsonResponse({ ok: true, size: body.byteLength });
 }
 
 export async function GET(request: Request) {
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
 
   const key = parseKey(request);
   if (!key) {
-    return NextResponse.json({ error: "Missing key" }, { status: 400 });
+    return jsonResponse({ error: "Missing key" }, { status: 400 });
   }
 
   const object = getMockS3Object(key);
@@ -74,7 +75,7 @@ export async function HEAD(request: Request) {
 
   const key = parseKey(request);
   if (!key) {
-    return NextResponse.json({ error: "Missing key" }, { status: 400 });
+    return jsonResponse({ error: "Missing key" }, { status: 400 });
   }
 
   const object = getMockS3Object(key);
@@ -98,9 +99,9 @@ export async function DELETE(request: Request) {
 
   const key = parseKey(request);
   if (!key) {
-    return NextResponse.json({ error: "Missing key" }, { status: 400 });
+    return jsonResponse({ error: "Missing key" }, { status: 400 });
   }
 
   deleteMockS3Object(key);
-  return NextResponse.json({ ok: true });
+  return jsonResponse({ ok: true });
 }

@@ -1,4 +1,5 @@
-import dayjs from "dayjs";
+import type dayjs from "dayjs";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { getWeekStartSunday } from "@/shared/lib/date-utils";
 import { toMinutes } from "@/shared/lib/time-utils";
 import type {
@@ -97,7 +98,7 @@ export const buildSessions = (
 
 export const sortSessionsByStart = (sessions: SessionItem[]) =>
   [...sessions].sort((a, b) => {
-    const d = dayjs(a.date).valueOf() - dayjs(b.date).valueOf();
+    const d = shanghaiDayjs(a.date).valueOf() - shanghaiDayjs(b.date).valueOf();
     if (d !== 0) return d;
     return toMinutes(a.startTime) - toMinutes(b.startTime);
   });
@@ -121,11 +122,12 @@ export const buildExams = (sections: SectionWithRelations[]): ExamItem[] =>
 export const filterSessionsByDay = (
   sessions: SessionItem[],
   targetDay: dayjs.Dayjs,
-) => sessions.filter((item) => dayjs(item.date).isSame(targetDay, "day"));
+) =>
+  sessions.filter((item) => shanghaiDayjs(item.date).isSame(targetDay, "day"));
 
 export const filterExamsByDay = (exams: ExamItem[], targetDay: dayjs.Dayjs) =>
   exams.filter(
-    (item) => item.date && dayjs(item.date).isSame(targetDay, "day"),
+    (item) => item.date && shanghaiDayjs(item.date).isSame(targetDay, "day"),
   );
 
 /** Returns weeks (Mon–Sun) from semester start to end, inclusive. */
@@ -154,10 +156,10 @@ export const getSemesterWeeks = (
 
 export const findCurrentSession = (sessions: SessionItem[], now: dayjs.Dayjs) =>
   sessions.find((item) => {
-    const start = dayjs(item.date)
+    const start = shanghaiDayjs(item.date)
       .hour(Math.floor(item.startTime / 100))
       .minute(item.startTime % 100);
-    const end = dayjs(item.date)
+    const end = shanghaiDayjs(item.date)
       .hour(Math.floor(item.endTime / 100))
       .minute(item.endTime % 100);
     return now.isAfter(start) && now.isBefore(end);
@@ -165,7 +167,7 @@ export const findCurrentSession = (sessions: SessionItem[], now: dayjs.Dayjs) =>
 
 export const findNextSession = (sessions: SessionItem[], now: dayjs.Dayjs) =>
   sessions.find((item) => {
-    const start = dayjs(item.date)
+    const start = shanghaiDayjs(item.date)
       .hour(Math.floor(item.startTime / 100))
       .minute(item.startTime % 100);
     return start.isAfter(now);
@@ -176,7 +178,7 @@ export const filterRemainingSessions = (
   now: dayjs.Dayjs,
 ) =>
   todaySessions.filter((item) => {
-    const start = dayjs(item.date)
+    const start = shanghaiDayjs(item.date)
       .hour(Math.floor(item.startTime / 100))
       .minute(item.startTime % 100);
     return start.isAfter(now);
@@ -188,7 +190,7 @@ export const selectWeeklySessions = (
   weekEnd: dayjs.Dayjs,
 ) =>
   sessions.filter((item) => {
-    const date = dayjs(item.date);
+    const date = shanghaiDayjs(item.date);
     return !date.isBefore(weekStart) && date.isBefore(weekEnd);
   });
 
@@ -216,11 +218,11 @@ export const computeHomeworkBuckets = (
   );
   const dueToday = incompleteHomeworks.filter((homework) => {
     if (!homework.submissionDueAt) return false;
-    return dayjs(homework.submissionDueAt).isSame(todayStart, "day");
+    return shanghaiDayjs(homework.submissionDueAt).isSame(todayStart, "day");
   });
   const dueWithin3Days = incompleteHomeworks.filter((homework) => {
     if (!homework.submissionDueAt) return false;
-    const due = dayjs(homework.submissionDueAt);
+    const due = shanghaiDayjs(homework.submissionDueAt);
     return due.isAfter(todayStart) && due.isBefore(todayStart.add(4, "day"));
   });
 
@@ -235,11 +237,12 @@ export const computeUpcomingExams = (
   exams
     .filter((exam) => exam.date)
     .filter((exam) => {
-      const date = dayjs(exam.date);
+      const date = shanghaiDayjs(exam.date);
       return !date.isBefore(todayStart) && date.isBefore(next7DaysEnd);
     })
     .sort((a, b) => {
-      const d = dayjs(a.date).valueOf() - dayjs(b.date).valueOf();
+      const d =
+        shanghaiDayjs(a.date).valueOf() - shanghaiDayjs(b.date).valueOf();
       if (d !== 0) return d;
       return toMinutes(a.startTime) - toMinutes(b.startTime);
     })
@@ -249,7 +252,7 @@ export const findBusiestDate = (allScheduleTimes: ScheduleTimeItem[]) => {
   if (allScheduleTimes.length === 0) return null;
   const dayStats = new Map<string, { totalMinutes: number; count: number }>();
   for (const item of allScheduleTimes) {
-    const key = dayjs(item.date).format("YYYY-MM-DD");
+    const key = shanghaiDayjs(item.date).format("YYYY-MM-DD");
     const current = dayStats.get(key) ?? { totalMinutes: 0, count: 0 };
     current.totalMinutes += Math.max(
       toMinutes(item.endTime) - toMinutes(item.startTime),
@@ -269,7 +272,7 @@ export const findBusiestDate = (allScheduleTimes: ScheduleTimeItem[]) => {
       (stats.totalMinutes === bestTotalMinutes &&
         stats.count === bestCount &&
         bestKey &&
-        dayjs(key).isBefore(dayjs(bestKey)))
+        shanghaiDayjs(key).isBefore(shanghaiDayjs(bestKey)))
     ) {
       bestKey = key;
       bestTotalMinutes = stats.totalMinutes;
@@ -277,5 +280,5 @@ export const findBusiestDate = (allScheduleTimes: ScheduleTimeItem[]) => {
     }
   }
 
-  return bestKey ? dayjs(bestKey) : null;
+  return bestKey ? shanghaiDayjs(bestKey) : null;
 };

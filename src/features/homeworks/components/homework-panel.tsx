@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -177,6 +178,13 @@ function toLocalInputValue(value: string | null | undefined) {
   return local.toISOString().slice(0, 16);
 }
 
+function toIsoFromLocalInput(value: string): string | null | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const date = new Date(trimmed);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+}
+
 function endOfDay(date: Date) {
   const copy = new Date(date);
   copy.setHours(23, 59, 0, 0);
@@ -193,6 +201,7 @@ export function HomeworkPanel({
   const tComments = useTranslations("comments");
   const tDescriptions = useTranslations("descriptions");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [homeworks, setHomeworks] = useState<HomeworkEntry[]>(
     initialData?.homeworks ?? [],
@@ -219,8 +228,9 @@ export function HomeworkPanel({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const semesterEndDate = useMemo(
@@ -345,6 +355,23 @@ export function HomeworkPanel({
 
       const parsed = homeworksListResponseSchema.safeParse(result.data);
       if (!parsed.success) {
+        const maybe = result.data as unknown as {
+          viewer?: unknown;
+          homeworks?: unknown;
+          auditLogs?: unknown;
+        };
+        if (
+          maybe &&
+          Array.isArray(maybe.homeworks) &&
+          Array.isArray(maybe.auditLogs)
+        ) {
+          setHomeworks(maybe.homeworks as HomeworkEntry[]);
+          setAuditLogs(maybe.auditLogs as AuditLogEntry[]);
+          setViewer((maybe.viewer as ViewerSummary) ?? EMPTY_VIEWER);
+          void loadCommentCounts(maybe.homeworks as HomeworkEntry[]);
+          return;
+        }
+
         throw new Error("Failed to load homeworks");
       }
 
@@ -646,6 +673,28 @@ export function HomeworkPanel({
                       }
 
                       try {
+                        const publishedAtIso = toIsoFromLocalInput(
+                          data.publishedAt,
+                        );
+                        const submissionStartAtIso = toIsoFromLocalInput(
+                          data.submissionStartAt,
+                        );
+                        const submissionDueAtIso = toIsoFromLocalInput(
+                          data.submissionDueAt,
+                        );
+                        if (
+                          publishedAtIso === undefined ||
+                          submissionStartAtIso === undefined ||
+                          submissionDueAtIso === undefined
+                        ) {
+                          toast({
+                            title: t("updateFailed"),
+                            description: t("errorInvalidSubmissionDue"),
+                            variant: "destructive",
+                          });
+                          return false;
+                        }
+
                         const updateResult = await apiClient.PATCH(
                           "/api/homeworks/{id}",
                           {
@@ -654,9 +703,9 @@ export function HomeworkPanel({
                             },
                             body: {
                               title: data.title.trim(),
-                              publishedAt: data.publishedAt || null,
-                              submissionStartAt: data.submissionStartAt || null,
-                              submissionDueAt: data.submissionDueAt || null,
+                              publishedAt: publishedAtIso,
+                              submissionStartAt: submissionStartAtIso,
+                              submissionDueAt: submissionDueAtIso,
                               isMajor: data.isMajor,
                               requiresTeam: data.requiresTeam,
                             },

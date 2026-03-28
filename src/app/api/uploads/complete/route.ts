@@ -1,5 +1,4 @@
 import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import type { Prisma } from "@/generated/prisma/client";
@@ -7,6 +6,7 @@ import {
   badRequest,
   forbidden,
   handleRouteError,
+  jsonResponse,
   payloadTooLarge,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       const usedBytes =
         (usage._sum.size ?? existing.size) + (pendingUsage._sum.size ?? 0);
 
-      return NextResponse.json({
+      return jsonResponse({
         upload: {
           id: existing.id,
           key: existing.key,
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
       return { upload, usedBytes: usedBytes + size };
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       upload: {
         id: reservation.upload.id,
         key: reservation.upload.key,

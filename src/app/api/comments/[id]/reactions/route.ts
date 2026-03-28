@@ -5,6 +5,7 @@ import type { CommentReactionType } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   notFound,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -64,7 +65,7 @@ export async function POST(
 
   const suspension = await findActiveSuspension(session.user.id);
   if (suspension) {
-    return NextResponse.json(
+    return jsonResponse(
       {
         error: "Suspended",
         reason: suspension.reason ?? null,
@@ -99,7 +100,7 @@ export async function POST(
       },
     });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to add reaction", error);
   }
@@ -143,7 +144,7 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to remove reaction", error);
   }

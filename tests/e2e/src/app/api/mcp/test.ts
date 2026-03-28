@@ -319,9 +319,12 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
     const profile = parseTextContent(profileResult) as {
       id?: string;
       username?: string | null;
+      createdAt?: string;
     };
     expect(profile.id).toBe(currentUser.id);
     expect(profile.username).toBe(currentUser.username ?? null);
+    expect(typeof profile.createdAt).toBe("string");
+    expect(profile.createdAt).toMatch(/\+08:00$/);
 
     const todosResult = await mcpClient.callTool({
       name: "list_my_todos",
@@ -545,10 +548,18 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
     });
     const timelinePayload = parseTextContent(timelineResult) as {
       total?: number;
+      range?: { from?: string; to?: string };
       events?: Array<{ type?: string; at?: string | null }>;
     };
     expect(typeof timelinePayload.total).toBe("number");
+    expect(timelinePayload.range?.from).toMatch(/\+08:00$/);
+    expect(timelinePayload.range?.to).toMatch(/\+08:00$/);
     expect((timelinePayload.events?.length ?? 0) > 0).toBe(true);
+    expect(
+      timelinePayload.events?.some(
+        (event) => typeof event.at === "string" && /\+08:00$/.test(event.at),
+      ),
+    ).toBe(true);
     expect(
       timelinePayload.events?.some((event) =>
         ["schedule", "homework_due", "exam", "todo_due"].includes(

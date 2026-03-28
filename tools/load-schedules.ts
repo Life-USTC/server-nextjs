@@ -11,6 +11,7 @@ import type {
   TeacherLessonType,
   TeacherTitle,
 } from "../src/generated/prisma/client";
+import { parseDateInput } from "../src/lib/time/parse-date-input";
 
 interface ContactInfoInterface {
   email: string | null;
@@ -586,7 +587,13 @@ async function loadSchedule(
     return;
   }
 
-  const scheduleDate = new Date(data.date);
+  const scheduleDate = parseDateInput(data.date);
+  if (!(scheduleDate instanceof Date)) {
+    console.warn(
+      `[load-schedules] Invalid schedule date for scheduleGroupId=${data.scheduleGroupId}, date=${data.date}`,
+    );
+    return;
+  }
   const startUnit = findNearestTimeSlot(data.startTime, startTimeSlots);
   const endUnit = findNearestTimeSlot(data.endTime, endTimeSlots);
 

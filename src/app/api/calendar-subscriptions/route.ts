@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError, unauthorized } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  unauthorized,
+} from "@/lib/api/helpers";
 import { calendarSubscriptionCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       subscription: {
         userId: updatedUser.id,
         sections: updatedUser.subscribedSections,

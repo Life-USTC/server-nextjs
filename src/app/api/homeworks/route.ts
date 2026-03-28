@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import {
   findActiveSuspension,
@@ -8,6 +7,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   notFound,
   parseOptionalInt,
   unauthorized,
@@ -17,17 +17,8 @@ import {
   homeworksQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
-
+import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
-
-function parseDateValue(value: unknown) {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 /**
  * List homeworks by section.
@@ -104,7 +95,7 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       viewer,
       homeworks: responseHomeworks,
       auditLogs,
@@ -143,9 +134,9 @@ export async function POST(request: Request) {
   const title = parsedBody.data.title;
   const description = (parsedBody.data.description ?? "").trim();
 
-  const publishedAt = parseDateValue(parsedBody.data.publishedAt);
-  const submissionStartAt = parseDateValue(parsedBody.data.submissionStartAt);
-  const submissionDueAt = parseDateValue(parsedBody.data.submissionDueAt);
+  const publishedAt = parseDateInput(parsedBody.data.publishedAt);
+  const submissionStartAt = parseDateInput(parsedBody.data.submissionStartAt);
+  const submissionDueAt = parseDateInput(parsedBody.data.submissionDueAt);
 
   if (publishedAt === undefined) {
     return badRequest("Invalid publish date");
@@ -173,7 +164,7 @@ export async function POST(request: Request) {
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Suspended", reason: suspension.reason ?? null },
       { status: 403 },
     );
@@ -237,7 +228,7 @@ export async function POST(request: Request) {
       return homework;
     });
 
-    return NextResponse.json({ id: result.id });
+    return jsonResponse({ id: result.id });
   } catch (error) {
     return handleRouteError("Failed to create homework", error);
   }

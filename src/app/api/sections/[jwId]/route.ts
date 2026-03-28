@@ -1,7 +1,8 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   handleRouteError,
   invalidParamResponse,
+  jsonResponse,
   notFound,
   parseInteger,
 } from "@/lib/api/helpers";
@@ -67,7 +68,7 @@ export async function GET(
       return notFound("Section not found");
     }
 
-    return NextResponse.json(section);
+    return jsonResponse(section);
   } catch (error) {
     return handleRouteError("Failed to fetch section", error);
   }

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { badRequest, handleRouteError, unauthorized } from "@/lib/api/helpers";
+import {
+  badRequest,
+  handleRouteError,
+  jsonResponse,
+  unauthorized,
+} from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 
@@ -48,7 +53,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ suspension });
+    return jsonResponse({ suspension });
   } catch (error) {
     return handleRouteError("Failed to lift suspension", error);
   }

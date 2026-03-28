@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import type dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
 import type {
   CalendarTodoItem,
@@ -8,6 +8,7 @@ import type { ExamItem, SessionItem } from "@/app/dashboard/types";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
 import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
 import { Link } from "@/i18n/routing";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { formatExamTypeLabel } from "@/shared/lib/exam-utils";
 import { formatTime } from "@/shared/lib/time-utils";
 import { cn } from "@/shared/lib/utils";
@@ -31,7 +32,7 @@ function compactLocation(raw: string | null | undefined): string | undefined {
 
 function parseWeekParam(raw: string | undefined): dayjs.Dayjs | null {
   if (!raw) return null;
-  const d = dayjs(raw);
+  const d = shanghaiDayjs(raw);
   if (!d.isValid()) return null;
   return d.startOf("day");
 }
@@ -92,7 +93,7 @@ export async function DashboardWeekCalendar({
 
   const sessionsByDay = new Map<string, SessionItem[]>();
   for (const item of allSessions) {
-    const key = dayjs(item.date).format("YYYY-MM-DD");
+    const key = shanghaiDayjs(item.date).format("YYYY-MM-DD");
     const list = sessionsByDay.get(key) ?? [];
     list.push(item);
     sessionsByDay.set(key, list);
@@ -100,7 +101,7 @@ export async function DashboardWeekCalendar({
   const examsByDay = new Map<string, ExamItem[]>();
   for (const exam of allExams) {
     if (!exam.date) continue;
-    const key = dayjs(exam.date).format("YYYY-MM-DD");
+    const key = shanghaiDayjs(exam.date).format("YYYY-MM-DD");
     const list = examsByDay.get(key) ?? [];
     list.push(exam);
     examsByDay.set(key, list);
@@ -108,14 +109,14 @@ export async function DashboardWeekCalendar({
   const homeworksByDay = new Map<string, typeof semesterHomeworks>();
   for (const hw of semesterHomeworks) {
     if (!hw.submissionDueAt) continue;
-    const key = dayjs(hw.submissionDueAt).format("YYYY-MM-DD");
+    const key = shanghaiDayjs(hw.submissionDueAt).format("YYYY-MM-DD");
     const list = homeworksByDay.get(key) ?? [];
     list.push(hw);
     homeworksByDay.set(key, list);
   }
   const todosByDay = new Map<string, CalendarTodoItem[]>();
   for (const todo of semesterTodos) {
-    const key = dayjs(todo.dueAt).format("YYYY-MM-DD");
+    const key = shanghaiDayjs(todo.dueAt).format("YYYY-MM-DD");
     const list = todosByDay.get(key) ?? [];
     list.push(todo);
     todosByDay.set(key, list);
@@ -123,8 +124,8 @@ export async function DashboardWeekCalendar({
 
   const resolveWeekNumber = (weekStart: dayjs.Dayjs) => {
     if (!semesterStart || !semesterEnd) return null;
-    const start = dayjs(semesterStart);
-    const end = dayjs(semesterEnd);
+    const start = shanghaiDayjs(semesterStart);
+    const end = shanghaiDayjs(semesterEnd);
     const weekEnd = weekStart.add(6, "day");
     if (weekEnd.isBefore(start, "day") || weekStart.isAfter(end, "day"))
       return null;
@@ -325,7 +326,7 @@ export async function DashboardWeekCalendar({
                       })}
                       {dayHomeworks.map((hw) => {
                         const timeMeta = hw.submissionDueAt
-                          ? dayjs(hw.submissionDueAt).format("HH:mm")
+                          ? shanghaiDayjs(hw.submissionDueAt).format("HH:mm")
                           : "";
                         const descRaw = hw.description?.content?.trim() ?? "";
                         const desc = descRaw

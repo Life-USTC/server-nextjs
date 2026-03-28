@@ -14,6 +14,11 @@ import {
   sectionCompactInclude,
   sectionInclude,
 } from "@/lib/query-helpers";
+import { APP_TIME_ZONE, parseDateInput } from "@/lib/time/parse-date-input";
+import {
+  serializeDatesDeep,
+  toShanghaiIsoString,
+} from "@/lib/time/serialize-date-output";
 
 type Locale = z.infer<typeof localeSchema>;
 const dateTimeSchema = z.string().datetime();
@@ -347,7 +352,7 @@ function jsonToolResult(
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(payload, null, 2),
+        text: JSON.stringify(serializeDatesDeep(payload), null, 2),
       },
     ],
   };
@@ -393,28 +398,19 @@ async function getSubscribedSectionIds(userId: string): Promise<number[]> {
   return user.subscribedSections.map((section) => section.id);
 }
 
-function parseDateValue(value: unknown) {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date;
-}
-
 function getTodayBounds() {
   const now = new Date();
-  const todayStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    0,
-    0,
-    0,
-    0,
-  );
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+  const dateParts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const year = dateParts.find((part) => part.type === "year")?.value;
+  const month = dateParts.find((part) => part.type === "month")?.value;
+  const day = dateParts.find((part) => part.type === "day")?.value;
+  const todayStart = parseRequiredDateInput(`${year}-${month}-${day}`);
+  const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
   return { now, todayStart, tomorrowStart };
 }
 
@@ -423,15 +419,17 @@ function toDateTimeFromHHmm(baseDate: Date | null, hhmm: number | null) {
 
   const hours = hhmm ? Math.trunc(hhmm / 100) : 0;
   const minutes = hhmm ? hhmm % 100 : 0;
-  return new Date(
-    baseDate.getFullYear(),
-    baseDate.getMonth(),
-    baseDate.getDate(),
-    hours,
-    minutes,
-    0,
-    0,
+  return parseRequiredDateInput(
+    `${baseDate.toISOString().slice(0, 10)}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`,
   );
+}
+
+function parseRequiredDateInput(value: string): Date {
+  const parsed = parseDateInput(value);
+  if (!(parsed instanceof Date)) {
+    throw new Error("Invalid date filter");
+  }
+  return parsed;
 }
 
 async function resolveSectionByJwId(jwId: number, locale: Locale) {
@@ -542,7 +540,7 @@ export function createMcpServer() {
     },
     async ({ title, content, priority, dueAt, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
-      const parsedDueAt = parseDateValue(dueAt);
+      const parsedDueAt = parseDateInput(dueAt);
       if (parsedDueAt === undefined) {
         return jsonToolResult({
           success: false,
@@ -608,7 +606,7 @@ export function createMcpServer() {
       }
 
       const hasDueAt = dueAt !== undefined;
-      const parsedDueAt = hasDueAt ? parseDateValue(dueAt) : undefined;
+      const parsedDueAt = hasDueAt ? parseDateInput(dueAt) : undefined;
       if (hasDueAt && parsedDueAt === undefined) {
         return jsonToolResult({
           success: false,
@@ -931,9 +929,9 @@ export function createMcpServer() {
         );
       }
 
-      const parsedPublishedAt = parseDateValue(publishedAt);
-      const parsedSubmissionStartAt = parseDateValue(submissionStartAt);
-      const parsedSubmissionDueAt = parseDateValue(submissionDueAt);
+      const parsedPublishedAt = parseDateInput(publishedAt);
+      const parsedSubmissionStartAt = parseDateInput(submissionStartAt);
+      const parsedSubmissionDueAt = parseDateInput(submissionDueAt);
       if (parsedPublishedAt === undefined) {
         return jsonToolResult(
           { success: false, message: "Invalid publish date" },
@@ -1068,13 +1066,13 @@ export function createMcpServer() {
       const hasSubmissionDueAt = submissionDueAt !== undefined;
 
       const parsedPublishedAt = hasPublishedAt
-        ? parseDateValue(publishedAt)
+        ? parseDateInput(publishedAt)
         : undefined;
       const parsedSubmissionStartAt = hasSubmissionStartAt
-        ? parseDateValue(submissionStartAt)
+        ? parseDateInput(submissionStartAt)
         : undefined;
       const parsedSubmissionDueAt = hasSubmissionDueAt
-        ? parseDateValue(submissionDueAt)
+        ? parseDateInput(submissionDueAt)
         : undefined;
 
       if (hasPublishedAt && parsedPublishedAt === undefined) {
@@ -1464,8 +1462,10 @@ export function createMcpServer() {
           ...(dateFrom || dateTo
             ? {
                 date: {
-                  ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-                  ...(dateTo ? { lte: new Date(dateTo) } : {}),
+                  ...(dateFrom
+                    ? { gte: parseRequiredDateInput(dateFrom) }
+                    : {}),
+                  ...(dateTo ? { lte: parseRequiredDateInput(dateTo) } : {}),
                 },
               }
             : {}),
@@ -1537,8 +1537,12 @@ export function createMcpServer() {
                 OR: [
                   {
                     examDate: {
-                      ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
-                      ...(dateTo ? { lte: new Date(dateTo) } : {}),
+                      ...(dateFrom
+                        ? { gte: parseRequiredDateInput(dateFrom) }
+                        : {}),
+                      ...(dateTo
+                        ? { lte: parseRequiredDateInput(dateTo) }
+                        : {}),
                     },
                   },
                   ...(includeDateUnknown ? [{ examDate: null }] : []),
@@ -1798,14 +1802,16 @@ export function createMcpServer() {
           const at = toDateTimeFromHHmm(schedule.date, schedule.startTime);
           return {
             type: "schedule" as const,
-            at: at?.toISOString() ?? null,
+            at: at ? toShanghaiIsoString(at) : null,
             sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
             payload: schedule,
           };
         }),
         ...homeworks.map((homework) => ({
           type: "homework_due" as const,
-          at: homework.submissionDueAt?.toISOString() ?? null,
+          at: homework.submissionDueAt
+            ? toShanghaiIsoString(homework.submissionDueAt)
+            : null,
           sortKey:
             homework.submissionDueAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
           payload: homework,
@@ -1814,14 +1820,14 @@ export function createMcpServer() {
           const at = toDateTimeFromHHmm(exam.examDate, exam.startTime);
           return {
             type: "exam" as const,
-            at: at?.toISOString() ?? null,
+            at: at ? toShanghaiIsoString(at) : null,
             sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
             payload: exam,
           };
         }),
         ...todos.map((todo) => ({
           type: "todo_due" as const,
-          at: todo.dueAt?.toISOString() ?? null,
+          at: todo.dueAt ? toShanghaiIsoString(todo.dueAt) : null,
           sortKey: todo.dueAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
           payload: todo,
         })),
@@ -1832,8 +1838,8 @@ export function createMcpServer() {
       return jsonToolResult(
         {
           range: {
-            from: todayStart.toISOString(),
-            to: windowEnd.toISOString(),
+            from: toShanghaiIsoString(todayStart),
+            to: toShanghaiIsoString(windowEnd),
           },
           total: events.length,
           events,

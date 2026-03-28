@@ -1,9 +1,9 @@
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   getPagination,
   handleRouteError,
+  jsonResponse,
   parseIntegerList,
   parseOptionalInt,
 } from "@/lib/api/helpers";
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await paginatedSectionQuery(pagination.page, where);
-    return NextResponse.json(result);
+    return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);
   }

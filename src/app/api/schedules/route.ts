@@ -1,14 +1,15 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   buildPaginatedResponse,
   getPagination,
   handleRouteError,
+  jsonResponse,
   parseOptionalInt,
 } from "@/lib/api/helpers";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
-
+import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
 
 /**
@@ -54,8 +55,28 @@ export async function GET(request: NextRequest) {
     const parsedRoomId = parseOptionalInt(roomId);
     if (parsedRoomId !== null) whereClause.roomId = parsedRoomId;
     const dateFilter: Prisma.DateTimeFilter = {};
-    if (dateFrom) dateFilter.gte = new Date(dateFrom);
-    if (dateTo) dateFilter.lte = new Date(dateTo);
+    if (dateFrom) {
+      const parsedDateFrom = parseDateInput(dateFrom);
+      if (!(parsedDateFrom instanceof Date)) {
+        return handleRouteError(
+          "Invalid schedule query",
+          "Invalid dateFrom",
+          400,
+        );
+      }
+      dateFilter.gte = parsedDateFrom;
+    }
+    if (dateTo) {
+      const parsedDateTo = parseDateInput(dateTo);
+      if (!(parsedDateTo instanceof Date)) {
+        return handleRouteError(
+          "Invalid schedule query",
+          "Invalid dateTo",
+          400,
+        );
+      }
+      dateFilter.lte = parsedDateTo;
+    }
     if (dateFrom || dateTo) whereClause.date = dateFilter;
     if (weekday !== null && weekday !== undefined) {
       const parsedWeekday = parseOptionalInt(weekday);
@@ -97,7 +118,7 @@ export async function GET(request: NextRequest) {
       prisma.schedule.count({ where: whereClause }),
     ]);
 
-    return NextResponse.json(
+    return jsonResponse(
       buildPaginatedResponse(
         schedules,
         pagination.page,

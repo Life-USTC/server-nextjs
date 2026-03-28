@@ -1,6 +1,5 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError } from "@/lib/api/helpers";
+import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -31,10 +30,10 @@ export async function GET() {
     });
 
     if (!user) {
-      return NextResponse.json({ subscription: null });
+      return jsonResponse({ subscription: null });
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       subscription: {
         userId: user.id,
         sections: user.subscribedSections,

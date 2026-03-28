@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
+import { ClientTimezoneProvider } from "@/components/client-timezone-provider";
 
 type ProvidersProps = {
   children: React.ReactNode;
@@ -14,7 +15,7 @@ export function Providers({ children }: ProvidersProps) {
       enableSystem
       storageKey="life-ustc-theme"
     >
-      {children}
+      <ClientTimezoneProvider>{children}</ClientTimezoneProvider>
     </ThemeProvider>
   );
 }

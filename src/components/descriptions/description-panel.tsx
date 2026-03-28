@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -141,6 +142,7 @@ export function DescriptionPanel({
 }: DescriptionPanelProps) {
   const t = useTranslations("descriptions");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [description, setDescription] = useState<DescriptionData>(
     initialData?.description ?? EMPTY_DESCRIPTION,
@@ -162,8 +164,9 @@ export function DescriptionPanel({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const loadDescription = useCallback(async () => {

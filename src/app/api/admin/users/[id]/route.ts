@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { badRequest, handleRouteError, unauthorized } from "@/lib/api/helpers";
+import {
+  badRequest,
+  handleRouteError,
+  jsonResponse,
+  unauthorized,
+} from "@/lib/api/helpers";
 import {
   adminUpdateUserRequestSchema,
   resourceIdPathParamsSchema,
@@ -119,7 +124,7 @@ export async function PATCH(
       select: { email: true },
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       user: {
         id: updated.id,
         name: updated.name,

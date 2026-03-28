@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { buildCommentNodes } from "@/features/comments/server/comment-serialization";
 import {
@@ -9,6 +8,7 @@ import {
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   notFound,
   parseOptionalInt,
   unauthorized,
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
 
     const { roots, hiddenCount } = buildCommentNodes(comments, viewer);
 
-    return NextResponse.json({
+    return jsonResponse({
       comments: roots,
       hiddenCount,
       viewer,
@@ -184,7 +184,7 @@ export async function POST(request: Request) {
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return NextResponse.json(
+    return jsonResponse(
       {
         error: "Suspended",
         reason: suspension.reason ?? null,
@@ -296,7 +296,7 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ id: comment.id });
+    return jsonResponse({ id: comment.id });
   } catch (error) {
     return handleRouteError("Failed to create comment", error);
   }

@@ -1,6 +1,10 @@
-import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-utils";
-import { handleRouteError, notFound, unauthorized } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  notFound,
+  unauthorized,
+} from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 
@@ -32,7 +36,7 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ suspensions });
+    return jsonResponse({ suspensions });
   } catch (error) {
     return handleRouteError("Failed to fetch suspensions", error);
   }
@@ -88,7 +92,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ suspension });
+    return jsonResponse({ suspension });
   } catch (error) {
     return handleRouteError("Failed to suspend user", error);
   }

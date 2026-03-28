@@ -3,6 +3,7 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -148,6 +149,7 @@ type LiftDialogProps = {
 export function ModerationDashboard() {
   const t = useTranslations("moderation");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [comments, setComments] = useState<AdminComment[]>([]);
   const [suspensions, setSuspensions] = useState<Suspension[]>([]);
@@ -176,8 +178,9 @@ export function ModerationDashboard() {
       new Intl.DateTimeFormat(locale, {
         dateStyle: "short",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const loadData = useCallback(async () => {
@@ -205,6 +208,13 @@ export function ModerationDashboard() {
         );
         if (parsed.success) {
           setComments(parsed.data.comments);
+        } else {
+          const maybe = commentResult.data as unknown as {
+            comments?: unknown;
+          };
+          if (Array.isArray(maybe.comments)) {
+            setComments(maybe.comments as AdminComment[]);
+          }
         }
       }
 
@@ -214,6 +224,13 @@ export function ModerationDashboard() {
         );
         if (parsed.success) {
           setSuspensions(parsed.data.suspensions);
+        } else {
+          const maybe = suspensionResult.data as unknown as {
+            suspensions?: unknown;
+          };
+          if (Array.isArray(maybe.suspensions)) {
+            setSuspensions(maybe.suspensions as Suspension[]);
+          }
         }
       }
     } catch (error) {
