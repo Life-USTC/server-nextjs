@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/Life-USTC/server-nextjs/compare/v1.0.0...v1.1.0) (2026-03-28)
+
+
+### Features
+
+* **time:** unify Asia/Shanghai serialization and local UI timezone ([5354e74](https://github.com/Life-USTC/server-nextjs/commit/5354e74e79dc6675392a43c25857234e264e5629))
+
 # [1.0.0](https://github.com/Life-USTC/server-nextjs/compare/v0.57.0...v1.0.0) (2026-03-26)
 
 
