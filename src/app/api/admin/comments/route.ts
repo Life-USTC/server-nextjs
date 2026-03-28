@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
 import {
   handleRouteError,
+  jsonResponse,
   parseOptionalInt,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
       take: limit,
     });
 
-    return NextResponse.json({ comments });
+    return jsonResponse({ comments });
   } catch (error) {
     return handleRouteError("Failed to fetch moderation queue", error);
   }

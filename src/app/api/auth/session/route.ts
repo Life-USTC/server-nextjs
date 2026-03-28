@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { jsonResponse } from "@/lib/api/helpers";
 
 /**
  * Compatibility endpoint for existing tests/tools that still call
@@ -8,10 +8,10 @@ import { auth } from "@/auth";
 export async function GET() {
   const session = await auth();
   if (!session) {
-    return NextResponse.json({ user: null });
+    return jsonResponse({ user: null });
   }
 
-  return NextResponse.json({
+  return jsonResponse({
     user: session.user,
     expires: session.session.expiresAt.toISOString(),
   });

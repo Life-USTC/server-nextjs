@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api/helpers";
+import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +34,7 @@ export async function GET() {
       }),
     ]);
 
-    return NextResponse.json({
+    return jsonResponse({
       educationLevels,
       courseCategories,
       courseClassifies,

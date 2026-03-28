@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError, notFound, unauthorized } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  notFound,
+  unauthorized,
+} from "@/lib/api/helpers";
 import {
   resourceIdPathParamsSchema,
   todoUpdateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +21,9 @@ async function parseTodoId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid todo ID" }, { status: 400 });
+    return jsonResponse({ error: "Invalid todo ID" }, { status: 400 });
   }
   return parsed.data.id;
-}
-
-function parseDateValue(value: unknown) {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 /**
@@ -65,9 +62,9 @@ export async function PATCH(
   }
 
   const hasDueAt = Object.hasOwn(parsedBody.data, "dueAt");
-  const dueAt = hasDueAt ? parseDateValue(parsedBody.data.dueAt) : undefined;
+  const dueAt = hasDueAt ? parseDateInput(parsedBody.data.dueAt) : undefined;
   if (hasDueAt && dueAt === undefined) {
-    return NextResponse.json({ error: "Invalid due date" }, { status: 400 });
+    return jsonResponse({ error: "Invalid due date" }, { status: 400 });
   }
 
   try {
@@ -81,7 +78,7 @@ export async function PATCH(
     }
 
     if (todo.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return jsonResponse({ error: "Forbidden" }, { status: 403 });
     }
 
     const updates: Record<string, unknown> = {};
@@ -97,12 +94,12 @@ export async function PATCH(
       updates.completed = parsedBody.data.completed;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: "No changes" }, { status: 400 });
+      return jsonResponse({ error: "No changes" }, { status: 400 });
     }
 
     await prisma.todo.update({ where: { id }, data: updates });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to update todo", error);
   }
@@ -141,12 +138,12 @@ export async function DELETE(
     }
 
     if (todo.userId !== userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return jsonResponse({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.todo.delete({ where: { id } });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to delete todo", error);
   }

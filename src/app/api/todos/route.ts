@@ -1,19 +1,13 @@
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { handleRouteError, unauthorized } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  unauthorized,
+} from "@/lib/api/helpers";
 import { todoCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
-
+import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
-
-function parseDateValue(value: unknown) {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 /**
  * List todos for the current user.
@@ -32,7 +26,7 @@ export async function GET() {
       orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
     });
 
-    return NextResponse.json({ todos });
+    return jsonResponse({ todos });
   } catch (error) {
     return handleRouteError("Failed to fetch todos", error);
   }
@@ -63,9 +57,9 @@ export async function POST(request: Request) {
     return handleRouteError("Invalid todo request", parsedBody.error, 400);
   }
 
-  const dueAt = parseDateValue(parsedBody.data.dueAt);
+  const dueAt = parseDateInput(parsedBody.data.dueAt);
   if (dueAt === undefined) {
-    return NextResponse.json({ error: "Invalid due date" }, { status: 400 });
+    return jsonResponse({ error: "Invalid due date" }, { status: 400 });
   }
 
   try {
@@ -79,7 +73,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ id: todo.id });
+    return jsonResponse({ id: todo.id });
   } catch (error) {
     return handleRouteError("Failed to create todo", error);
   }

@@ -10,6 +10,7 @@ import {
   badRequest,
   forbidden,
   handleRouteError,
+  jsonResponse,
   notFound,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -158,7 +159,7 @@ export async function GET(
       return forbidden();
     }
 
-    return NextResponse.json({
+    return jsonResponse({
       thread: roots,
       focusId: id,
       hiddenCount,
@@ -357,7 +358,7 @@ export async function PATCH(
 
     const { roots } = buildCommentNodes([updatedComment], viewer);
 
-    return NextResponse.json({ success: true, comment: roots[0] });
+    return jsonResponse({ success: true, comment: roots[0] });
   } catch (error) {
     return handleRouteError("Failed to update comment", error);
   }
@@ -406,7 +407,7 @@ export async function DELETE(
       },
     });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to delete comment", error);
   }

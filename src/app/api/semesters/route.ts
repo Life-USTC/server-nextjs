@@ -1,8 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import {
   buildPaginatedResponse,
   getPagination,
   handleRouteError,
+  jsonResponse,
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
       prisma.semester.count(),
     ]);
 
-    return NextResponse.json(
+    return jsonResponse(
       buildPaginatedResponse(semesters, page, pageSize, total),
     );
   } catch (error) {

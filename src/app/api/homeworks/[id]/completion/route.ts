@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   notFound,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -82,7 +83,7 @@ export async function PUT(
         create: { userId, homeworkId: id },
       });
 
-      return NextResponse.json({
+      return jsonResponse({
         completed: true,
         completedAt: completion.completedAt,
       });
@@ -92,7 +93,7 @@ export async function PUT(
       where: { userId, homeworkId: id },
     });
 
-    return NextResponse.json({ completed: false, completedAt: null });
+    return jsonResponse({ completed: false, completedAt: null });
   } catch (error) {
     return handleRouteError("Failed to update completion", error);
   }

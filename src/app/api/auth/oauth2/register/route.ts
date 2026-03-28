@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { NextResponse } from "next/server";
+import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
@@ -15,7 +15,7 @@ function generateClientSecret(bytes = 32) {
 }
 
 function jsonError(status: number, error: string, error_description: string) {
-  return NextResponse.json({ error, error_description }, { status });
+  return jsonResponse({ error, error_description }, { status });
 }
 
 export async function POST(request: Request) {
@@ -148,5 +148,5 @@ export async function POST(request: Request) {
     registrationBody.client_secret = clientSecretPlain;
   }
 
-  return NextResponse.json(registrationBody);
+  return jsonResponse(registrationBody);
 }

@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -83,6 +84,7 @@ export function AdminUsersTable({
   const t = useTranslations("adminUsers");
   const tModeration = useTranslations("moderation");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -101,8 +103,9 @@ export function AdminUsersTable({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const buildUrl = (nextPage: number) => {

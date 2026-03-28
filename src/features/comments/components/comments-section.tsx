@@ -2,6 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
@@ -60,6 +61,7 @@ export function CommentsSection({
 }: CommentsSectionProps) {
   const t = useTranslations("comments");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const [activeKey] = useState(targets[0]?.key ?? "");
   const [postTargetKey, setPostTargetKey] = useState(targets[0]?.key ?? "");
   const [commentMap, setCommentMap] = useState<Record<string, CommentNode[]>>(
@@ -97,8 +99,9 @@ export function CommentsSection({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const activeTarget = useMemo(

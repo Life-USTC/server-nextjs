@@ -1,7 +1,10 @@
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
-import { getPagination, handleRouteError } from "@/lib/api/helpers";
+import {
+  getPagination,
+  handleRouteError,
+  jsonResponse,
+} from "@/lib/api/helpers";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 
@@ -49,7 +52,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const result = await paginatedCourseQuery(pagination.page, where);
-    return NextResponse.json(result);
+    return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch courses", error);
   }

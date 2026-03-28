@@ -3,6 +3,7 @@
 import { ArrowUpRight, Pencil, UploadCloud } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useRef, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -374,6 +375,7 @@ export function UploadsManager({
 }: UploadsManagerProps) {
   const t = useTranslations("uploads");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [uploads, setUploads] = useState<UploadItem[]>(initialUploads);
   const [usedBytes, setUsedBytes] = useState(initialUsedBytes);
@@ -392,8 +394,9 @@ export function UploadsManager({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const usagePercent = quotaBytes

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
 import { requireAdmin } from "@/lib/admin-utils";
-import { badRequest, handleRouteError, unauthorized } from "@/lib/api/helpers";
+import {
+  badRequest,
+  handleRouteError,
+  jsonResponse,
+  unauthorized,
+} from "@/lib/api/helpers";
 import {
   adminModerateCommentRequestSchema,
   resourceIdPathParamsSchema,
@@ -74,7 +79,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({ comment: updated });
+    return jsonResponse({ comment: updated });
   } catch (error) {
     return handleRouteError("Failed to update comment", error);
   }

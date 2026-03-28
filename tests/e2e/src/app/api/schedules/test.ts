@@ -22,9 +22,15 @@ test("/api/schedules section 过滤返回 seed 班级排课", async ({ request }
   );
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
-    data?: Array<{ section?: { jwId?: number } }>;
+    data?: Array<{ section?: { jwId?: number }; date?: string | null }>;
   };
   expect(
     body.data?.some((item) => item.section?.jwId === DEV_SEED.section.jwId),
+  ).toBe(true);
+  expect(
+    body.data?.some(
+      (item) =>
+        typeof item.date === "string" && /\+08:00$/.test(item.date.trim()),
+    ),
   ).toBe(true);
 });

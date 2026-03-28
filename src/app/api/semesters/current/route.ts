@@ -1,5 +1,4 @@
-import { NextResponse } from "next/server";
-import { handleRouteError } from "@/lib/api/helpers";
+import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/db/prisma";
 
@@ -17,13 +16,13 @@ export async function GET() {
     const currentSemester = await findCurrentSemester(prisma.semester, now);
 
     if (!currentSemester) {
-      return NextResponse.json(
+      return jsonResponse(
         { error: "No current semester found" },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(currentSemester);
+    return jsonResponse(currentSemester);
   } catch (error) {
     return handleRouteError("Failed to fetch current semester", error);
   }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
 export type PaginatedResponse<T> = {
   data: T[];
@@ -73,7 +74,11 @@ export function handleRouteError(
 }
 
 export function errorResponse(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status });
+  return jsonResponse({ error: message }, { status });
+}
+
+export function jsonResponse(body: unknown, init?: ResponseInit) {
+  return NextResponse.json(serializeDatesDeep(body), init);
 }
 
 export function badRequest(message: string) {

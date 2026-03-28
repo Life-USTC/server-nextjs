@@ -2,8 +2,9 @@
 
 import { Copy, Link2, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { createOAuthClient, deleteOAuthClient } from "@/app/actions/oauth";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,7 @@ export function OAuthClientManager({
   clients: OAuthClientInfo[];
 }) {
   const t = useTranslations("oauth");
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -178,6 +180,16 @@ export function OAuthClientManager({
     (client) =>
       client.tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
   ).length;
+
+  const formatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
+      }),
+    [clientTimeZone],
+  );
   const confidentialClientCount = clients.length - publicClientCount;
 
   async function copyValue(value: string, description: string) {
@@ -616,7 +628,7 @@ export function OAuthClientManager({
                         </Badge>
                         <span className="text-muted-foreground text-xs">
                           {t("createdAtLabel")}:{" "}
-                          {new Date(client.createdAt).toLocaleString()}
+                          {formatter.format(new Date(client.createdAt))}
                         </span>
                       </div>
 

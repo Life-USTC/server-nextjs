@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import type dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
 import { pinyin } from "pinyin-pro";
 import type {
@@ -16,6 +16,7 @@ import {
 } from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   createWeekDayFormatter,
   getWeekStartSunday,
@@ -61,9 +62,9 @@ export async function getDashboardNavStats(
   const debugDateRaw = options.debugDate?.trim();
   const debugDate =
     showDebugTools && debugDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(debugDateRaw)
-      ? dayjs(debugDateRaw)
+      ? shanghaiDayjs(debugDateRaw)
       : null;
-  const baseNow = dayjs();
+  const baseNow = shanghaiDayjs();
   const referenceNow = debugDate?.isValid()
     ? debugDate
         .hour(baseNow.hour())
@@ -269,9 +270,9 @@ export async function getDashboardOverviewData(
   const debugDateRaw = options.debugDate?.trim();
   const debugDate =
     showDebugTools && debugDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(debugDateRaw)
-      ? dayjs(debugDateRaw)
+      ? shanghaiDayjs(debugDateRaw)
       : null;
-  const baseNow = dayjs();
+  const baseNow = shanghaiDayjs();
   const referenceNow = debugDate?.isValid()
     ? debugDate
         .hour(baseNow.hour())
@@ -346,7 +347,11 @@ export async function getDashboardOverviewData(
   );
   const calendarSemesterPicker = semesters
     .filter((sem) => subscribedSemesterIds.has(sem.id))
-    .sort((a, b) => dayjs(a.startDate).valueOf() - dayjs(b.startDate).valueOf())
+    .sort(
+      (a, b) =>
+        shanghaiDayjs(a.startDate).valueOf() -
+        shanghaiDayjs(b.startDate).valueOf(),
+    )
     .map((s) => ({ id: s.id, nameCn: s.nameCn ?? "—" }));
 
   const calendarSemesterNavList = semesters.map((s) => ({
@@ -419,17 +424,17 @@ export async function getDashboardOverviewData(
   );
   const calendarHomeworks = incompleteHomeworks.filter((hw) => {
     if (!hw.submissionDueAt) return false;
-    const due = dayjs(hw.submissionDueAt);
+    const due = shanghaiDayjs(hw.submissionDueAt);
     return !due.isBefore(calendarStart) && due.isBefore(calendarEnd);
   });
 
   const semesterStart =
     gridSemesterRow?.startDate != null
-      ? dayjs(gridSemesterRow.startDate).startOf("day")
+      ? shanghaiDayjs(gridSemesterRow.startDate).startOf("day")
       : null;
   const semesterEnd =
     gridSemesterRow?.endDate != null
-      ? dayjs(gridSemesterRow.endDate).endOf("day")
+      ? shanghaiDayjs(gridSemesterRow.endDate).endOf("day")
       : null;
   const semesterWeeks =
     semesterStart && semesterEnd && !semesterStart.isAfter(semesterEnd)
@@ -443,7 +448,7 @@ export async function getDashboardOverviewData(
     semesterStart && semesterEnd
       ? incompleteHomeworks.filter((hw) => {
           if (!hw.submissionDueAt) return false;
-          const due = dayjs(hw.submissionDueAt);
+          const due = shanghaiDayjs(hw.submissionDueAt);
           return (
             !due.isBefore(semesterStart, "day") &&
             !due.isAfter(semesterEnd, "day")

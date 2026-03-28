@@ -1,10 +1,10 @@
 import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
 import { ADMIN_USERS_PAGE_SIZE } from "@/app/admin/users/constants";
 import { requireAdmin } from "@/lib/admin-utils";
 import {
   buildPaginatedResponse,
   handleRouteError,
+  jsonResponse,
   normalizePagination,
   parseOptionalInt,
   unauthorized,
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       prisma.user.count({ where }),
     ]);
 
-    return NextResponse.json(
+    return jsonResponse(
       buildPaginatedResponse(
         users.map((u) => ({
           id: u.id,

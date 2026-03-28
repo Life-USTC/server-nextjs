@@ -4,6 +4,7 @@ import { AlertCircle, Circle, Clock, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,7 @@ async function deleteTodoApi(id: string) {
 export function TodoList({ todos }: TodoListProps) {
   const t = useTranslations("todos");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const router = useRouter();
   const [filter, setFilter] = useState<TodoFilter>("incomplete");
   const [, startTransition] = useTransition();
@@ -81,8 +83,12 @@ export function TodoList({ todos }: TodoListProps) {
   );
 
   const formatter = useMemo(
-    () => new Intl.DateTimeFormat(locale, { dateStyle: "medium" }),
-    [locale],
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
+      }),
+    [clientTimeZone, locale],
   );
 
   const filteredTodos = useMemo(() => {

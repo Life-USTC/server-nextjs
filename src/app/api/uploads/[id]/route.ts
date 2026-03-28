@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   notFound,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -96,7 +97,7 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       upload: {
         id: updated.id,
         key: updated.key,
@@ -148,7 +149,7 @@ export async function DELETE(
 
     await prisma.upload.delete({ where: { id: upload.id } });
 
-    return NextResponse.json({
+    return jsonResponse({
       deletedId: upload.id,
       deletedSize: upload.size,
     });

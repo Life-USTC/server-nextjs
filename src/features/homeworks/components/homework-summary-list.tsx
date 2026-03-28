@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -65,6 +66,7 @@ export function HomeworkSummaryList({
   const t = useTranslations("homeworks");
   const tComments = useTranslations("comments");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const router = useRouter();
   const [items, setItems] = useState(homeworks);
@@ -77,8 +79,9 @@ export function HomeworkSummaryList({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   useEffect(() => {

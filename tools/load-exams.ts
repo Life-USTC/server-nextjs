@@ -4,6 +4,7 @@ import type {
   PrismaClient,
   Section,
 } from "../src/generated/prisma/client";
+import { parseDateInput } from "../src/lib/time/parse-date-input";
 
 interface ExamBatchInterface {
   id: number;
@@ -67,6 +68,14 @@ export async function loadExams(
   const exams = [];
 
   for (const examJson of data) {
+    const examDate = parseDateInput(examJson.examDate);
+    if (examDate === undefined) {
+      console.warn(
+        `[load-exams] Invalid exam date for exam jwId=${examJson.id}, examDate=${examJson.examDate}`,
+      );
+      continue;
+    }
+
     const examBatch = await loadExamBatch(examJson.examBatch, prisma);
     const section = await loadSectionById(examJson.lesson.id, prisma);
 
@@ -84,7 +93,7 @@ export async function loadExams(
         examType: examJson.examType,
         startTime: examJson.startTime,
         endTime: examJson.endTime,
-        examDate: new Date(examJson.examDate),
+        examDate,
         examTakeCount: examJson.examTakeCount,
         examMode: examJson.examMode,
         examBatchId: examBatch.id,
@@ -95,7 +104,7 @@ export async function loadExams(
         examType: examJson.examType,
         startTime: examJson.startTime,
         endTime: examJson.endTime,
-        examDate: new Date(examJson.examDate),
+        examDate,
         examTakeCount: examJson.examTakeCount,
         examMode: examJson.examMode,
         examBatchId: examBatch.id,

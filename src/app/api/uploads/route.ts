@@ -1,11 +1,11 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
+  jsonResponse,
   parseOptionalInt,
   payloadTooLarge,
   unauthorized,
@@ -109,7 +109,7 @@ export async function GET() {
 
     const usedBytes = (usage._sum.size ?? 0) + (pendingUsage._sum.size ?? 0);
 
-    return NextResponse.json({
+    return jsonResponse({
       maxFileSizeBytes: uploadConfig.maxFileSizeBytes,
       quotaBytes: uploadConfig.totalQuotaBytes,
       uploads: uploads.map((upload) => ({
@@ -219,7 +219,7 @@ export async function POST(request: Request) {
       origin,
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       key,
       url,
       maxFileSizeBytes: uploadConfig.maxFileSizeBytes,

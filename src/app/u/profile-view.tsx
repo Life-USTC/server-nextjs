@@ -24,7 +24,9 @@ export function ProfileView({
   showUserId = false,
 }: ProfileViewProps) {
   const { user, sectionCount, weeks, totalContributions } = data;
-  const formatter = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
+  const formatter = new Intl.DateTimeFormat(locale, {
+    dateStyle: "medium",
+  });
 
   const colorForCount = (count: number) => {
     if (count <= 0) return "bg-muted/40";

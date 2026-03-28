@@ -4,6 +4,7 @@ import { DotsThree, Trash, Warning } from "@phosphor-icons/react";
 import { Link2, Pencil, Reply } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
+import { useClientTimezone } from "@/components/client-timezone-provider";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -173,6 +174,7 @@ function CommentItem({
 }: CommentItemProps) {
   const t = useTranslations("comments");
   const locale = useLocale();
+  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const { copyToClipboard } = useCopyToClipboard();
   const [isReplying, setIsReplying] = useState(false);
@@ -216,8 +218,9 @@ function CommentItem({
       new Intl.DateTimeFormat(locale, {
         dateStyle: "medium",
         timeStyle: "short",
+        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [locale],
+    [clientTimeZone, locale],
   );
 
   const isHighlighted = highlightId === comment.id;

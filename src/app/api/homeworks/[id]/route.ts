@@ -8,6 +8,7 @@ import {
   badRequest,
   forbidden,
   handleRouteError,
+  jsonResponse,
   notFound,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -16,6 +17,7 @@ import {
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
 
@@ -29,15 +31,6 @@ async function parseHomeworkId(
   }
 
   return parsed.data.id;
-}
-
-function parseDateValue(value: unknown) {
-  if (value === null || value === undefined) return null;
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 /**
@@ -79,13 +72,13 @@ export async function PATCH(
   const hasSubmissionDueAt = Object.hasOwn(parsedBody.data, "submissionDueAt");
 
   const publishedAt = hasPublishedAt
-    ? parseDateValue(parsedBody.data.publishedAt)
+    ? parseDateInput(parsedBody.data.publishedAt)
     : undefined;
   const submissionStartAt = hasSubmissionStartAt
-    ? parseDateValue(parsedBody.data.submissionStartAt)
+    ? parseDateInput(parsedBody.data.submissionStartAt)
     : undefined;
   const submissionDueAt = hasSubmissionDueAt
-    ? parseDateValue(parsedBody.data.submissionDueAt)
+    ? parseDateInput(parsedBody.data.submissionDueAt)
     : undefined;
 
   if (hasPublishedAt && publishedAt === undefined) {
@@ -114,7 +107,7 @@ export async function PATCH(
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Suspended", reason: suspension.reason ?? null },
       { status: 403 },
     );
@@ -161,7 +154,7 @@ export async function PATCH(
       data: updates,
     });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to update homework", error);
   }
@@ -191,7 +184,7 @@ export async function DELETE(
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return NextResponse.json(
+    return jsonResponse(
       { error: "Suspended", reason: suspension.reason ?? null },
       { status: 403 },
     );
@@ -233,7 +226,7 @@ export async function DELETE(
       });
     });
 
-    return NextResponse.json({ success: true });
+    return jsonResponse({ success: true });
   } catch (error) {
     return handleRouteError("Failed to delete homework", error);
   }

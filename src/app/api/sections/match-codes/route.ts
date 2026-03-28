@@ -1,5 +1,9 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseInteger } from "@/lib/api/helpers";
+import type { NextRequest } from "next/server";
+import {
+  handleRouteError,
+  jsonResponse,
+  parseInteger,
+} from "@/lib/api/helpers";
 import { matchSectionCodesRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/db/prisma";
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
+    return jsonResponse({
       semester: {
         id: currentSemester.id,
         nameCn: currentSemester.nameCn,
