@@ -1,4 +1,4 @@
-import { Calendar, User, Users } from "lucide-react";
+import { Bus, Calendar, User, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
@@ -200,6 +200,22 @@ export default async function HomePage({
               <CardPanel>
                 <p className="line-clamp-2 text-body text-muted-foreground">
                   {t("quickAccess.myProfile.description")}
+                </p>
+              </CardPanel>
+            </Card>
+          </Link>
+
+          <Link href="/bus-schedule" className="no-underline">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Bus className="h-5 w-5 text-primary" />
+                  <CardTitle>{t("quickAccess.busSchedule.title")}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardPanel>
+                <p className="line-clamp-2 text-body text-muted-foreground">
+                  {t("quickAccess.busSchedule.description")}
                 </p>
               </CardPanel>
             </Card>

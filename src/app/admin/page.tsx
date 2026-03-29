@@ -86,6 +86,14 @@ export default async function AdminHomePage() {
             </CardHeader>
           </Card>
         </Link>
+        <Link href="/admin/bus-schedule" className="no-underline">
+          <Card className="transition-colors hover:bg-accent/50">
+            <CardHeader>
+              <CardTitle>{t("busScheduleTitle")}</CardTitle>
+              <CardDescription>{t("busScheduleDescription")}</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
     </main>
   );

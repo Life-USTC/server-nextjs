@@ -193,6 +193,9 @@ async function cleanupScenarioData(userIds: string[]) {
   await prisma.dashboardLinkPin.deleteMany({
     where: { userId: { in: userIds } },
   });
+  await prisma.busScheduleConfig.deleteMany({
+    where: { name: { startsWith: LEGACY_SCENARIO_MARKER } },
+  });
 }
 
 async function main() {
@@ -1375,6 +1378,224 @@ async function main() {
     },
   });
 
+  // ── Bus Schedule Seed ──────────────────────────────────────────
+  const busConfig = await prisma.busScheduleConfig.create({
+    data: {
+      name: `${LEGACY_SCENARIO_MARKER} 2026 春季学期校车时刻表`,
+      effectiveFrom: new Date("2026-02-01T00:00:00+08:00"),
+      effectiveUntil: new Date("2026-07-31T23:59:59+08:00"),
+      sourceMessage: "本表为 2026 春季学期时间表，来源：蜗壳小道消息",
+      sourceUrl: "https://mp.weixin.qq.com/s/aWF0UA63pQmM5MWiAtTeKg",
+    },
+  });
+
+  const busStopSeeds = [
+    { externalId: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+    {
+      externalId: 2,
+      name: "西区",
+      latitude: 117.256645,
+      longitude: 31.839258,
+    },
+    {
+      externalId: 3,
+      name: "北区",
+      latitude: 117.268125,
+      longitude: 31.841933,
+    },
+    {
+      externalId: 4,
+      name: "南区",
+      latitude: 117.283853,
+      longitude: 31.822112,
+    },
+    {
+      externalId: 5,
+      name: "先研院",
+      latitude: 117.129257,
+      longitude: 31.826345,
+    },
+    {
+      externalId: 6,
+      name: "高新",
+      latitude: 117.129369,
+      longitude: 31.820447,
+    },
+  ];
+
+  const busStops = await Promise.all(
+    busStopSeeds.map((s) =>
+      prisma.busStop.create({
+        data: { ...s, configId: busConfig.id },
+      }),
+    ),
+  );
+
+  const stopByExtId = new Map(busStops.map((s) => [s.externalId, s]));
+
+  type RouteSpec = {
+    routeNumber: number;
+    stopExtIds: number[];
+  };
+
+  const routeSpecs: RouteSpec[] = [
+    { routeNumber: 1, stopExtIds: [1, 3, 2] },
+    { routeNumber: 2, stopExtIds: [2, 3, 1] },
+    { routeNumber: 3, stopExtIds: [1, 4] },
+    { routeNumber: 4, stopExtIds: [4, 1] },
+    { routeNumber: 5, stopExtIds: [2, 4] },
+    { routeNumber: 6, stopExtIds: [4, 2] },
+    { routeNumber: 7, stopExtIds: [6, 5, 2, 1] },
+    { routeNumber: 8, stopExtIds: [1, 2, 5, 6] },
+    { routeNumber: 11, stopExtIds: [6, 5] },
+    { routeNumber: 12, stopExtIds: [5, 6] },
+  ];
+
+  for (const spec of routeSpecs) {
+    const route = await prisma.busRoute.create({
+      data: { configId: busConfig.id, routeNumber: spec.routeNumber },
+    });
+
+    for (let i = 0; i < spec.stopExtIds.length; i++) {
+      const stop = stopByExtId.get(spec.stopExtIds[i]);
+      if (stop) {
+        await prisma.busRouteStop.create({
+          data: { routeId: route.id, stopId: stop.id, stopOrder: i },
+        });
+      }
+    }
+
+    type TripSpec = {
+      dayType: "weekday" | "weekend";
+      times: (string | null)[];
+    };
+    const trips: TripSpec[] = [];
+
+    // Weekday trips
+    if (spec.routeNumber === 1) {
+      for (const t of [
+        ["07:30", null, "07:40"],
+        ["09:20", null, "09:30"],
+        ["11:35", null, "11:45"],
+        ["13:30", null, "13:40"],
+        ["17:30", null, "17:40"],
+        ["20:10", null, "20:20"],
+        ["22:10", null, "22:20"],
+      ]) {
+        trips.push({ dayType: "weekday", times: t });
+      }
+      for (const t of [
+        ["07:30", null, "07:40"],
+        ["11:35", null, "11:45"],
+        ["13:30", null, "13:40"],
+        ["17:30", null, "17:40"],
+        ["21:15", null, "21:25"],
+      ]) {
+        trips.push({ dayType: "weekend", times: t });
+      }
+    } else if (spec.routeNumber === 2) {
+      for (const t of [
+        ["07:40", null, "07:50"],
+        ["09:30", null, "09:40"],
+        ["11:45", null, "11:55"],
+        ["13:40", null, "13:50"],
+        ["17:40", null, "17:50"],
+        ["20:20", null, "20:30"],
+        ["22:20", null, "22:30"],
+      ]) {
+        trips.push({ dayType: "weekday", times: t });
+      }
+      for (const t of [
+        ["07:40", null, "07:50"],
+        ["11:45", null, "11:55"],
+        ["13:40", null, "13:50"],
+        ["17:40", null, "17:50"],
+        ["21:25", null, "21:35"],
+      ]) {
+        trips.push({ dayType: "weekend", times: t });
+      }
+    } else if (spec.routeNumber === 3) {
+      for (const t of [
+        ["07:30", "07:45"],
+        ["11:35", "11:50"],
+        ["14:30", "14:45"],
+        ["17:25", "17:40"],
+        ["21:35", "21:50"],
+      ]) {
+        trips.push({ dayType: "weekday", times: t });
+      }
+      for (const t of [
+        ["07:30", "07:45"],
+        ["11:45", "12:00"],
+        ["17:45", "18:00"],
+        ["21:35", "21:50"],
+      ]) {
+        trips.push({ dayType: "weekend", times: t });
+      }
+    } else if (spec.routeNumber === 4) {
+      for (const t of [
+        ["07:10", "07:25"],
+        ["08:00", "08:15"],
+        ["12:05", "12:20"],
+        ["13:40", "13:55"],
+        ["18:20", "18:35"],
+        ["21:50", "22:05"],
+      ]) {
+        trips.push({ dayType: "weekday", times: t });
+      }
+      for (const t of [
+        ["07:30", "07:45"],
+        ["13:40", "13:55"],
+        ["19:15", "19:30"],
+        ["21:50", "22:05"],
+      ]) {
+        trips.push({ dayType: "weekend", times: t });
+      }
+    } else if (spec.routeNumber === 7) {
+      for (const t of [
+        ["06:40", "06:45", null, "07:25"],
+        ["08:00", "08:05", null, "08:50"],
+        ["12:50", "12:55", null, "13:35"],
+        ["18:30", "18:35", null, "19:25"],
+      ]) {
+        trips.push({ dayType: "weekday", times: t });
+      }
+      for (const t of [
+        ["08:00", "08:05", null, "08:50"],
+        ["13:40", "13:45", null, "14:30"],
+        ["21:50", "21:55", null, "22:40"],
+      ]) {
+        trips.push({ dayType: "weekend", times: t });
+      }
+    } else if (spec.routeNumber === 8) {
+      for (const t of [
+        ["06:50", "07:00", null, "07:40"],
+        ["08:00", "08:10", null, "09:00"],
+        ["12:50", "13:00", null, "13:40"],
+        ["18:30", "18:40", null, "19:30"],
+      ]) {
+        trips.push({ dayType: "weekday", times: t });
+      }
+      for (const t of [
+        ["07:00", "07:10", null, "07:50"],
+        ["12:50", "13:00", null, "13:40"],
+        ["18:30", "18:40", null, "19:30"],
+      ]) {
+        trips.push({ dayType: "weekend", times: t });
+      }
+    }
+
+    if (trips.length > 0) {
+      await prisma.busTrip.createMany({
+        data: trips.map((t) => ({
+          routeId: route.id,
+          dayType: t.dayType,
+          times: t.times,
+        })),
+      });
+    }
+  }
+
   console.log("开发调试数据初始化完成");
   console.log(`用户: ${debugUser.username}`);
   console.log(`管理员: ${adminUser.username}`);
@@ -1382,6 +1603,7 @@ async function main() {
   console.log(
     `作业数: ${homeworks.length}, 上传数: ${uploads.length}, 待办数: ${todoSeeds.length}`,
   );
+  console.log(`校车时刻表: ${busConfig.name}`);
 }
 
 main()

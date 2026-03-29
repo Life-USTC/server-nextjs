@@ -41,6 +41,11 @@ enum TodoPriority {
   high
 }
 
+enum BusDayType {
+  weekday
+  weekend
+}
+
 
 model AdminClass {
   id   Int  @id @default(autoincrement())
@@ -81,6 +86,81 @@ model Building {
   @@index([nameCn])
   @@index([nameEn])
   @@index([campusId])
+}
+
+model BusScheduleConfig {
+  id Int @id @default(autoincrement())
+
+  name           String
+  effectiveFrom  DateTime
+  effectiveUntil DateTime?
+  sourceMessage  String?
+  sourceUrl      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stops  BusStop[]
+  routes BusRoute[]
+
+  @@index([effectiveFrom])
+  @@index([effectiveUntil])
+}
+
+model BusStop {
+  id Int @id @default(autoincrement())
+
+  configId   Int
+  config     BusScheduleConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  externalId Int
+  name       String
+  latitude   Float
+  longitude  Float
+
+  routeStops BusRouteStop[]
+
+  @@unique([configId, externalId])
+  @@index([configId])
+}
+
+model BusRoute {
+  id Int @id @default(autoincrement())
+
+  configId    Int
+  config      BusScheduleConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  routeNumber Int
+
+  stops BusRouteStop[]
+  trips BusTrip[]
+
+  @@unique([configId, routeNumber])
+  @@index([configId])
+}
+
+model BusRouteStop {
+  id Int @id @default(autoincrement())
+
+  routeId   Int
+  route     BusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  stopId    Int
+  stop      BusStop  @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  stopOrder Int
+
+  @@unique([routeId, stopOrder])
+  @@index([routeId])
+  @@index([stopId])
+}
+
+model BusTrip {
+  id Int @id @default(autoincrement())
+
+  routeId Int
+  route   BusRoute   @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  dayType BusDayType
+  times   Json
+
+  @@index([routeId])
+  @@index([dayType])
 }
 
 model Campus {

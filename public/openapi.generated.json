@@ -489,6 +489,29 @@
         }
       }
     },
+    "/api/bus-schedules": {
+      "get": {
+        "operationId": "get-api-bus-schedules",
+        "summary": "Get bus schedule data.",
+        "description": "",
+        "tags": [
+          "Bus"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/busScheduleResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/calendar-subscriptions": {
       "post": {
         "operationId": "post-api-calendar-subscriptions",
@@ -2348,6 +2371,7 @@
           "pagination"
         ]
       },
+      "busScheduleResponseSchema": {},
       "currentCalendarSubscriptionResponseSchema": {
         "oneOf": [
           {
@@ -5223,6 +5247,10 @@
     {
       "name": "Schedules",
       "description": "Schedules search and filtering"
+    },
+    {
+      "name": "Bus",
+      "description": "Campus shuttle bus schedules"
     },
     {
       "name": "Semesters",

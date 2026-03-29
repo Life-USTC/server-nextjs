@@ -22,7 +22,8 @@
       "apiDocs": "API Docs",
       "welcome": "Complete Your Profile",
       "privacy": "Privacy Policy",
-      "terms": "Terms of Service"
+      "terms": "Terms of Service",
+      "busSchedule": "Campus Shuttle"
     }
   },
   "common": {
@@ -61,7 +62,8 @@
     "error": "An error occurred",
     "back": "Back",
     "userNotFound": "User not found",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "busSchedule": "Campus Shuttle"
   },
   "CalendarEventCard": {
     "session": "Class",
@@ -211,6 +213,10 @@
       "admin": {
         "title": "Admin",
         "description": "Access moderation and admin tools"
+      },
+      "busSchedule": {
+        "title": "Campus Shuttle",
+        "description": "View shuttle bus schedules between campuses."
       }
     },
     "features": {
@@ -240,7 +246,9 @@
     "usersTitle": "User Management",
     "usersDescription": "Search and browse all users.",
     "oauthTitle": "OAuth Clients",
-    "oauthDescription": "Manage OAuth client applications."
+    "oauthDescription": "Manage OAuth client applications.",
+    "busScheduleTitle": "Bus Schedule",
+    "busScheduleDescription": "Manage campus shuttle bus schedule configurations."
   },
   "adminUsers": {
     "title": "User Management",
@@ -1468,5 +1476,24 @@
         }
       ]
     }
+  },
+  "busSchedule": {
+    "title": "Campus Shuttle",
+    "subtitle": "View shuttle bus schedules between USTC campuses.",
+    "weekday": "Weekday",
+    "weekend": "Weekend",
+    "allStops": "All Stops",
+    "noRoutes": "No routes found for the current selection.",
+    "noSchedule": "No Schedule Available",
+    "noScheduleDescription": "There is no active bus schedule at this time.",
+    "routeNumber": "Route {number}",
+    "stops": "Stops",
+    "weekdayTrips": "Weekday Trips",
+    "weekendTrips": "Weekend Trips",
+    "active": "Active",
+    "upcoming": "Upcoming",
+    "expired": "Expired",
+    "effectiveRange": "{from} – {to}",
+    "indefinite": "Indefinite"
   }
 }

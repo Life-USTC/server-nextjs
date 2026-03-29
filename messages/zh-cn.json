@@ -22,7 +22,8 @@
       "apiDocs": "API 文档",
       "welcome": "完善个人信息",
       "privacy": "隐私政策",
-      "terms": "服务条款"
+      "terms": "服务条款",
+      "busSchedule": "校车时刻表"
     }
   },
   "common": {
@@ -61,7 +62,8 @@
     "error": "发生错误",
     "back": "返回",
     "userNotFound": "未找到用户",
-    "unknown": "未知"
+    "unknown": "未知",
+    "busSchedule": "校车时刻表"
   },
   "CalendarEventCard": {
     "session": "课程",
@@ -211,6 +213,10 @@
       "admin": {
         "title": "管理入口",
         "description": "访问后台管理与内容审核"
+      },
+      "busSchedule": {
+        "title": "校车时刻表",
+        "description": "查看各校区间校车时刻表。"
       }
     },
     "features": {
@@ -240,7 +246,9 @@
     "usersTitle": "用户管理",
     "usersDescription": "查询与浏览所有用户。",
     "oauthTitle": "OAuth 客户端",
-    "oauthDescription": "管理 OAuth 客户端应用。"
+    "oauthDescription": "管理 OAuth 客户端应用。",
+    "busScheduleTitle": "校车时刻表管理",
+    "busScheduleDescription": "管理各校区间校车时刻表配置。"
   },
   "adminUsers": {
     "title": "用户管理",
@@ -1468,5 +1476,24 @@
         }
       ]
     }
+  },
+  "busSchedule": {
+    "title": "校车时刻表",
+    "subtitle": "查看中国科学技术大学各校区间校车时刻表。",
+    "weekday": "工作日",
+    "weekend": "周末",
+    "allStops": "全部站点",
+    "noRoutes": "当前筛选条件下没有找到线路。",
+    "noSchedule": "暂无校车时刻表",
+    "noScheduleDescription": "当前没有生效的校车时刻表。",
+    "routeNumber": "线路 {number}",
+    "stops": "站点",
+    "weekdayTrips": "工作日班次",
+    "weekendTrips": "周末班次",
+    "active": "生效中",
+    "upcoming": "即将生效",
+    "expired": "已过期",
+    "effectiveRange": "{from} – {to}",
+    "indefinite": "无限期"
   }
 }

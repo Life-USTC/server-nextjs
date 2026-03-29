@@ -1985,5 +1985,102 @@ export function createMcpServer() {
     },
   );
 
+  // ── Bus Schedule ──────────────────────────────────────────────
+
+  server.registerTool(
+    "query_bus_schedule",
+    {
+      description:
+        "Get the campus shuttle bus schedule. " +
+        "Returns routes, stops, and trip times for the currently active schedule. " +
+        "Filter by day type (weekday/weekend) and optionally by stop name.",
+      inputSchema: {
+        dayType: z.enum(["weekday", "weekend"]).optional(),
+        stopName: z
+          .string()
+          .optional()
+          .describe(
+            "Filter routes passing through a specific stop (e.g. '东区', '西区', '南区', '北区', '先研院', '高新')",
+          ),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ dayType, stopName, mode }) => {
+      const resolvedMode = resolveMcpMode(mode);
+
+      const config = await prisma.busScheduleConfig.findFirst({
+        where: {
+          effectiveFrom: { lte: new Date() },
+          OR: [
+            { effectiveUntil: null },
+            { effectiveUntil: { gte: new Date() } },
+          ],
+        },
+        orderBy: { effectiveFrom: "desc" },
+        include: {
+          stops: { orderBy: { externalId: "asc" } },
+          routes: {
+            orderBy: { routeNumber: "asc" },
+            include: {
+              stops: {
+                orderBy: { stopOrder: "asc" },
+                include: { stop: true },
+              },
+              trips: {
+                orderBy: { id: "asc" },
+              },
+            },
+          },
+        },
+      });
+
+      if (!config) {
+        return jsonToolResult({
+          message: "No active bus schedule found",
+        });
+      }
+
+      let routes = config.routes;
+
+      if (dayType) {
+        routes = routes
+          .map((route) => ({
+            ...route,
+            trips: route.trips.filter((trip) => trip.dayType === dayType),
+          }))
+          .filter((route) => route.trips.length > 0);
+      }
+
+      if (stopName) {
+        routes = routes.filter((route) =>
+          route.stops.some((rs) => rs.stop.name.includes(stopName)),
+        );
+      }
+
+      const result = {
+        name: config.name,
+        effectiveFrom: config.effectiveFrom,
+        effectiveUntil: config.effectiveUntil,
+        sourceMessage: config.sourceMessage,
+        sourceUrl: config.sourceUrl,
+        stops: config.stops.map((s) => ({
+          name: s.name,
+          latitude: s.latitude,
+          longitude: s.longitude,
+        })),
+        routes: routes.map((route) => ({
+          routeNumber: route.routeNumber,
+          stops: route.stops.map((rs) => rs.stop.name),
+          trips: route.trips.map((trip) => ({
+            dayType: trip.dayType,
+            times: trip.times,
+          })),
+        })),
+      };
+
+      return jsonToolResult(result, { mode: resolvedMode });
+    },
+  );
+
   return server;
 }

@@ -63,6 +63,11 @@ function tagForPath(path: string): { name: string; description: string } {
       description: "Schedules search and filtering",
     },
     {
+      match: (p) => p.startsWith("/api/bus-schedules"),
+      name: "Bus",
+      description: "Campus shuttle bus schedules",
+    },
+    {
       match: (p) => p.startsWith("/api/semesters"),
       name: "Semesters",
       description: "Semester listing and current semester",
@@ -165,6 +170,7 @@ function buildTopLevelTags(paths: NonNullable<OpenApiDocument["paths"]>) {
     "Courses",
     "Teachers",
     "Schedules",
+    "Bus",
     "Semesters",
     "Calendar",
     "Locale",
