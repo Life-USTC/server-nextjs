@@ -4,13 +4,57 @@ import { expect, type Page } from "@playwright/test";
 
 export const PLAYWRIGHT_BASE_URL = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3000"}`;
 
+const BUN_DB_SCRIPT_MAX_ATTEMPTS = 3;
+
+function isTransientBunEvalCrash(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const candidate = error as {
+    signal?: string | null;
+    stderr?: string | Buffer;
+    message?: string;
+  };
+
+  if (candidate.signal === "SIGSEGV") return true;
+
+  const stderr =
+    typeof candidate.stderr === "string"
+      ? candidate.stderr
+      : candidate.stderr instanceof Buffer
+        ? candidate.stderr.toString("utf8")
+        : "";
+  const text = `${candidate.message ?? ""}\n${stderr}`;
+  return (
+    text.includes("Segmentation fault") ||
+    text.includes("panic(main thread)") ||
+    text.includes("Bun has crashed")
+  );
+}
+
 function runDbScript<T>(source: string): T {
-  const output = execFileSync("bun", ["--eval", source], {
-    cwd: process.cwd(),
-    env: process.env,
-    encoding: "utf8",
-  });
-  return JSON.parse(output) as T;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= BUN_DB_SCRIPT_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const output = execFileSync("bun", ["--eval", source], {
+        cwd: process.cwd(),
+        env: process.env,
+        encoding: "utf8",
+      });
+      return JSON.parse(output) as T;
+    } catch (error) {
+      if (
+        attempt < BUN_DB_SCRIPT_MAX_ATTEMPTS &&
+        isTransientBunEvalCrash(error)
+      ) {
+        lastError = error;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError;
 }
 
 function generateToken(bytes = 24) {

@@ -39,16 +39,25 @@ test("/settings/accounts 可点击连接按钮进入 OAuth 登录流程", async 
     return;
   }
 
+  const currentOrigin = new URL(page.url()).origin;
+  const localAuthStartRequestPromise = page.waitForRequest(
+    (request) => {
+      const url = new URL(request.url());
+      if (url.origin !== currentOrigin) {
+        return false;
+      }
+      if (!url.pathname.startsWith("/api/auth/")) {
+        return false;
+      }
+      return url.pathname !== "/api/auth/session";
+    },
+    { timeout: 5_000 },
+  );
+
   await connectButton.click();
-  // In local/dev E2E we may not have all providers configured (or external
-  // redirects blocked). The key assertion is that clicking "Connect" either
-  // triggers a navigation to auth endpoints or keeps the UI stable.
-  try {
-    await page.waitForURL(
-      /(\/api\/auth\/|\/api\/auth\/(signin|callback)\/(github|google|oidc)|github\.com\/login|accounts\.google\.com)/,
-      { timeout: 5_000 },
-    );
-  } catch {}
+  // Assert the OAuth flow starts with a local auth endpoint request, rather than
+  // relying on third-party pages.
+  await localAuthStartRequestPromise;
 
   try {
     await captureStepScreenshot(page, testInfo, "settings-accounts-oauth");
