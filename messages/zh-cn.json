@@ -462,10 +462,17 @@
   },
   "bus": {
     "title": "校车",
+    "description": "公开查询校车时刻，登录后可记住偏好并优先推荐最合适的路线。",
     "subtitle": "支持公开查询、偏好记忆与下一班推荐。",
     "dashboardTitle": "校车出行",
     "dashboardDescription": "根据当前时间和你常用的校区，优先展示最值得看的路线。",
     "publicEntry": "公开校车查询",
+    "summary": {
+      "title": "出行摘要",
+      "matchingRoutes": "匹配路线",
+      "nextDeparture": "最近发车",
+      "currentMode": "当前模式"
+    },
     "dayType": {
       "weekday": "工作日",
       "weekend": "周末",
@@ -509,6 +516,8 @@
     "preferences": {
       "title": "偏好设置",
       "description": "记住你常用的校区与线路，下次打开优先推荐。",
+      "advanced": "高级偏好",
+      "advancedDescription": "只有在你需要强制指定常用校区或线路 ID 时再展开。",
       "signInHint": "登录后即可保存出发地、目的地和常用线路偏好。",
       "origin": "默认出发校区",
       "destination": "默认到达校区",
@@ -527,7 +536,23 @@
       "title": "时刻表说明",
       "effective": "生效区间：{from} - {to}",
       "unknown": "长期有效"
-    }
+    },
+    "activeVersion": "当前版本",
+    "hidePreferences": "收起偏好",
+    "editPreferences": "编辑偏好",
+    "empty": "当前暂无可用的校车数据。",
+    "weekday": "工作日",
+    "weekend": "周末",
+    "bestMatch": "最佳匹配",
+    "nextDeparture": "下一班发车",
+    "arriveAt": "到达时间",
+    "upcomingTrips": "后续班次",
+    "passThrough": "经停",
+    "departed": "已发车",
+    "noTime": "时间待定",
+    "allRoutesLabel": "全部路线",
+    "noMoreBusToday": "这条线路今天没有后续班次了",
+    "switchVersionHint": "可以切换版本或打开“显示已发车班次”查看完整时刻表。"
   },
   "publicProfile": {
     "idLabel": "用户 ID",

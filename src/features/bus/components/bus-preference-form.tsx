@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,12 @@ export function BusPreferenceForm({
   );
   const [showDepartedTrips, setShowDepartedTrips] = useState(
     preference?.showDepartedTrips ?? false,
+  );
+  const [showAdvanced, setShowAdvanced] = useState(
+    Boolean(
+      preference?.favoriteCampusIds.length ||
+        preference?.favoriteRouteIds.length,
+    ),
   );
 
   if (!signedIn) {
@@ -173,32 +180,6 @@ export function BusPreferenceForm({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="bus-favorite-campus-ids">
-            {t("preferences.favoriteCampuses")}
-          </Label>
-          <Input
-            id="bus-favorite-campus-ids"
-            value={favoriteCampusIdsText}
-            onChange={(event) => setFavoriteCampusIdsText(event.target.value)}
-            placeholder={t("preferences.idsPlaceholder")}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="bus-favorite-route-ids">
-            {t("preferences.favoriteRoutes")}
-          </Label>
-          <Input
-            id="bus-favorite-route-ids"
-            value={favoriteRouteIdsText}
-            onChange={(event) => setFavoriteRouteIdsText(event.target.value)}
-            placeholder={t("preferences.idsPlaceholder")}
-          />
-        </div>
-      </div>
-
       <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
         <div className="space-y-1">
           <p className="font-medium text-sm">
@@ -213,6 +194,57 @@ export function BusPreferenceForm({
           onCheckedChange={(checked) => setShowDepartedTrips(Boolean(checked))}
           aria-label={t("preferences.showDepartedTrips")}
         />
+      </div>
+
+      <div className="rounded-xl border border-border/80 bg-muted/20">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((value) => !value)}
+          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+        >
+          <div className="space-y-1">
+            <p className="font-medium text-sm">
+              {t("preferences.favoriteRoutes")}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              {t("preferences.idsPlaceholder")}
+            </p>
+          </div>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+          />
+        </button>
+        {showAdvanced ? (
+          <div className="grid gap-4 border-border/80 border-t px-4 py-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="bus-favorite-campus-ids">
+                {t("preferences.favoriteCampuses")}
+              </Label>
+              <Input
+                id="bus-favorite-campus-ids"
+                value={favoriteCampusIdsText}
+                onChange={(event) =>
+                  setFavoriteCampusIdsText(event.target.value)
+                }
+                placeholder={t("preferences.idsPlaceholder")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bus-favorite-route-ids">
+                {t("preferences.favoriteRoutes")}
+              </Label>
+              <Input
+                id="bus-favorite-route-ids"
+                value={favoriteRouteIdsText}
+                onChange={(event) =>
+                  setFavoriteRouteIdsText(event.target.value)
+                }
+                placeholder={t("preferences.idsPlaceholder")}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {(error || success) && (

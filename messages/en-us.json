@@ -468,6 +468,11 @@
     "dashboardTitle": "Campus shuttle",
     "dashboardDescription": "Prioritize the most relevant routes based on the current time and your usual campuses.",
     "publicEntry": "Public shuttle query",
+    "stats": {
+      "matches": "{count} matching routes",
+      "upcomingTrips": "{count} upcoming trips",
+      "currentDayType": "{dayType} timetable"
+    },
     "dayType": {
       "weekday": "Weekday",
       "weekend": "Weekend",
@@ -516,6 +521,8 @@
       "destination": "Default destination campus",
       "favoriteCampuses": "Favorite campus IDs",
       "favoriteRoutes": "Favorite route IDs",
+      "advanced": "Advanced options",
+      "advancedHint": "Use these IDs only if you want to fine-tune recommendations beyond the default campuses.",
       "idsPlaceholder": "Use commas, for example: 1, 6",
       "showDepartedTrips": "Show departed trips by default",
       "showDepartedTripsHint": "Keep today’s departed trips in the list for full timetable review.",
@@ -546,7 +553,8 @@
     "upcomingCount": "{count} upcoming",
     "allRoutesLabel": "All routes",
     "noMoreBusToday": "No more buses on this route today",
-    "switchVersionHint": "Try another timetable version or show departed trips."
+    "switchVersionHint": "Try another timetable version or show departed trips.",
+    "moreTrips": "{count} more trips"
   },
   "publicProfile": {
     "idLabel": "User ID",
