@@ -44,3 +44,19 @@
       - Update worktree .env to point to it
       - Run prisma deploy, and bun run dev:seed-scenarios
 
+## Cursor Cloud-specific instructions
+
+_Only applies to Cursor Cloud/Web Agent environments._
+
+### Services
+
+| Service | Start command | Notes |
+|---|---|---|
+| PostgreSQL 16 | Start Docker daemon with `sudo dockerd &>/dev/null &`, then run `sudo docker compose -f docker-compose.dev.yml up -d postgres` | Must be running before the app starts |
+| Next.js dev server | `bun run dev` | Runs on port 3000 with Turbopack |
+
+### Non-obvious gotchas
+
+- Docker-in-Docker in Cursor Cloud requires the `fuse-overlayfs` storage driver and `iptables-legacy`. Docker daemon config is at `/etc/docker/daemon.json`.
+- Start `dockerd` manually with `sudo dockerd &>/dev/null &` before running any `docker compose` command.
+
