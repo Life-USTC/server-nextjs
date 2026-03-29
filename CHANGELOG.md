@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/Life-USTC/server-nextjs/compare/v1.1.0...v1.1.1) (2026-03-29)
+
+
+### Bug Fixes
+
+* **e2e:** harden oauth start assertions and bun eval stability ([843f45c](https://github.com/Life-USTC/server-nextjs/commit/843f45c4c5ad47dd5222aa9a3ff4a575b5847535))
+
 # [1.1.0](https://github.com/Life-USTC/server-nextjs/compare/v1.0.0...v1.1.0) (2026-03-28)
 
 
