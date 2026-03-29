@@ -15,7 +15,46 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { BusScheduleView } from "@/features/bus-schedule/components/bus-schedule-view";
+import type { BusScheduleData } from "@/features/bus-schedule/server/bus-schedule-server";
 import { getActiveScheduleConfig } from "@/features/bus-schedule/server/bus-schedule-server";
+
+function serializeConfig(config: NonNullable<BusScheduleData>) {
+  return {
+    id: config.id,
+    name: config.name,
+    effectiveFrom: config.effectiveFrom.toISOString(),
+    effectiveUntil: config.effectiveUntil?.toISOString() ?? null,
+    sourceMessage: config.sourceMessage,
+    sourceUrl: config.sourceUrl,
+    stops: config.stops.map((s) => ({
+      id: s.id,
+      externalId: s.externalId,
+      name: s.name,
+      latitude: s.latitude,
+      longitude: s.longitude,
+    })),
+    routes: config.routes.map((r) => ({
+      id: r.id,
+      routeNumber: r.routeNumber,
+      stops: r.stops.map((rs) => ({
+        id: rs.id,
+        stopOrder: rs.stopOrder,
+        stop: {
+          id: rs.stop.id,
+          externalId: rs.stop.externalId,
+          name: rs.stop.name,
+          latitude: rs.stop.latitude,
+          longitude: rs.stop.longitude,
+        },
+      })),
+      trips: r.trips.map((t) => ({
+        id: t.id,
+        dayType: t.dayType,
+        times: t.times as (string | null)[],
+      })),
+    })),
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -51,13 +90,7 @@ export default async function BusSchedulePage() {
       </div>
 
       {config ? (
-        <BusScheduleView
-          config={JSON.parse(
-            JSON.stringify(config, (_, value) =>
-              value instanceof Date ? value.toISOString() : value,
-            ),
-          )}
-        />
+        <BusScheduleView config={serializeConfig(config)} />
       ) : (
         <Empty>
           <EmptyHeader>

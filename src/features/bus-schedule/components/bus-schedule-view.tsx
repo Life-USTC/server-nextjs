@@ -159,7 +159,6 @@ export function BusScheduleView({ config }: { config: ScheduleConfigData }) {
 
 function RouteTable({ route }: { route: RouteData }) {
   const t = useTranslations("busSchedule");
-  const stopNames = route.stops.map((rs) => rs.stop.name);
 
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -167,13 +166,15 @@ function RouteTable({ route }: { route: RouteData }) {
         <Badge variant="outline" className="font-mono">
           {t("routeNumber", { number: route.routeNumber })}
         </Badge>
-        <span className="font-medium text-sm">{stopNames.join(" → ")}</span>
+        <span className="font-medium text-sm">
+          {route.stops.map((rs) => rs.stop.name).join(" → ")}
+        </span>
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            {stopNames.map((name, index) => (
-              <TableHead key={`${route.id}-stop-${index}`}>{name}</TableHead>
+            {route.stops.map((rs) => (
+              <TableHead key={rs.id}>{rs.stop.name}</TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -182,12 +183,12 @@ function RouteTable({ route }: { route: RouteData }) {
             const times = trip.times as (string | null)[];
             return (
               <TableRow key={trip.id}>
-                {times.map((time, index) => (
+                {route.stops.map((rs, index) => (
                   <TableCell
-                    key={`${trip.id}-time-${index}`}
+                    key={`${trip.id}-${rs.id}`}
                     className="font-mono tabular-nums"
                   >
-                    {time ?? "—"}
+                    {times[index] ?? "—"}
                   </TableCell>
                 ))}
               </TableRow>
