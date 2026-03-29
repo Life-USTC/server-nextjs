@@ -302,6 +302,7 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
         "list_homeworks_by_section",
         "list_schedules_by_section",
         "list_exams_by_section",
+        "query_bus_timetable",
       ]),
     );
     expect(tools.tools.map((tool) => tool.name)).not.toEqual(
@@ -587,6 +588,31 @@ test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async
       DEV_SEED.section.code,
     );
     expect(matchSectionCodesPayload.unmatchedCodes).toContain("NOT-EXIST-CODE");
+
+    const busResult = await mcpClient.callTool({
+      name: "query_bus_timetable",
+      arguments: {
+        locale: "zh-cn",
+        originCampusId: DEV_SEED.bus.originCampusId,
+        destinationCampusId: DEV_SEED.bus.destinationCampusId,
+      },
+    });
+    const busPayload = parseTextContent(busResult) as {
+      todayType?: string;
+      version?: { title?: string | null };
+      recommended?: { route?: { id?: number } | null } | null;
+      matches?: Array<{ route?: { id?: number } | null }>;
+    };
+    expect(
+      busPayload.todayType === "weekday" || busPayload.todayType === "weekend",
+    ).toBe(true);
+    expect(busPayload.version?.title).toContain(DEV_SEED.bus.versionTitle);
+    expect(busPayload.recommended?.route?.id).toBe(DEV_SEED.bus.routeId);
+    expect(
+      busPayload.matches?.some(
+        (match) => match.route?.id === DEV_SEED.bus.routeId,
+      ),
+    ).toBe(true);
 
     const todoTitle = `[MCP-E2E-TODO] ${Date.now()}`;
     const createTodoResult = await mcpClient.callTool({

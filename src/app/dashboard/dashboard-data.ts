@@ -1,6 +1,8 @@
 import type dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
 import { pinyin } from "pinyin-pro";
+import { getBusDashboardSnapshot } from "@/features/bus/lib/bus-service";
+import type { BusLocale } from "@/features/bus/lib/bus-types";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
@@ -256,6 +258,7 @@ export type OverviewData = {
   recommendedLinks: DashboardLinkSummary[];
   pinnedLinks: DashboardLinkSummary[];
   overviewLinks: DashboardLinkSummary[];
+  busSnapshot: Awaited<ReturnType<typeof getBusDashboardSnapshot>> | null;
 };
 
 export async function getDashboardOverviewData(
@@ -497,7 +500,8 @@ export async function getDashboardOverviewData(
   const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
   const activeCalendarSemesterName = gridSemesterRow?.nameCn ?? null;
 
-  const [clickRows, pinRows] = await Promise.all([
+  const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
+  const [clickRows, pinRows, busSnapshot] = await Promise.all([
     basePrisma.dashboardLinkClick.findMany({
       where: { userId },
       select: { slug: true, count: true },
@@ -506,6 +510,11 @@ export async function getDashboardOverviewData(
       where: { userId },
       select: { slug: true },
       orderBy: { createdAt: "asc" },
+    }),
+    getBusDashboardSnapshot({
+      locale: busLocale,
+      userId,
+      now: referenceNow.toISOString(),
     }),
   ]);
   const clickStats: Record<string, number> = Object.fromEntries(
@@ -570,6 +579,7 @@ export async function getDashboardOverviewData(
     recommendedLinks,
     pinnedLinks,
     overviewLinks,
+    busSnapshot,
   };
 }
 
@@ -802,3 +812,7 @@ export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
     updatedAt: todo.updatedAt.toISOString(),
   }));
 }
+
+export type BusDashboardData = {
+  snapshot: Awaited<ReturnType<typeof getBusDashboardSnapshot>> | null;
+};

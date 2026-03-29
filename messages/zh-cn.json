@@ -208,6 +208,10 @@
         "title": "浏览教师",
         "description": "查看教师信息及其授课班级"
       },
+      "bus": {
+        "title": "校车",
+        "description": "公开查询校车时刻并按偏好推荐路线"
+      },
       "admin": {
         "title": "管理入口",
         "description": "访问后台管理与内容审核"
@@ -317,6 +321,10 @@
       "calendar": {
         "title": "日历",
         "description": "本周课表与作业截止"
+      },
+      "bus": {
+        "title": "校车",
+        "description": "按当前时间和常用校区查看下一班校车"
       },
       "subscriptions": {
         "title": "选课",
@@ -450,6 +458,75 @@
       "dueSoon": "3 天内截止 {count}",
       "all": "全部 {count}",
       "viewAll": "查看全部"
+    }
+  },
+  "bus": {
+    "title": "校车",
+    "subtitle": "支持公开查询、偏好记忆与下一班推荐。",
+    "dashboardTitle": "校车出行",
+    "dashboardDescription": "根据当前时间和你常用的校区，优先展示最值得看的路线。",
+    "publicEntry": "公开校车查询",
+    "dayType": {
+      "weekday": "工作日",
+      "weekend": "周末",
+      "auto": "自动"
+    },
+    "query": {
+      "dayType": "时刻类型",
+      "origin": "出发校区",
+      "destination": "到达校区",
+      "originAny": "任意出发地",
+      "destinationAny": "任意目的地",
+      "showDepartedTrips": "显示已发车班次",
+      "showDepartedTripsHint": "默认只显示还没发车的班次。",
+      "version": "时刻表版本",
+      "versionCurrent": "当前生效",
+      "versionPreview": "预览其它版本",
+      "empty": "当前筛选下暂无可展示的校车班次。"
+    },
+    "recommended": {
+      "title": "推荐路线",
+      "description": "优先按你的起点/终点偏好和下一班发车时间排序。",
+      "nextTrip": "下一班",
+      "noUpcoming": "今天这条线路没有后续班次了",
+      "arrive": "到达",
+      "departIn": "约 {count} 分钟后发车",
+      "departed": "已发车"
+    },
+    "allRoutes": {
+      "title": "全部匹配路线",
+      "description": "展示符合当前筛选的所有线路和班次。"
+    },
+    "route": {
+      "favorite": "常用",
+      "totalTrips": "共 {count} 班",
+      "upcomingTrips": "后续 {count} 班",
+      "departedTrips": "已发 {count} 班",
+      "stops": "停靠",
+      "firstDeparture": "首班",
+      "lastArrival": "末班到达"
+    },
+    "preferences": {
+      "title": "偏好设置",
+      "description": "记住你常用的校区与线路，下次打开优先推荐。",
+      "signInHint": "登录后即可保存出发地、目的地和常用线路偏好。",
+      "origin": "默认出发校区",
+      "destination": "默认到达校区",
+      "favoriteCampuses": "常用校区 ID",
+      "favoriteRoutes": "常用线路 ID",
+      "idsPlaceholder": "使用英文逗号分隔，例如 1, 6",
+      "showDepartedTrips": "默认展示已发车班次",
+      "showDepartedTripsHint": "开启后会在列表中保留今天已发车的班次，方便回看全表。",
+      "unset": "未设置",
+      "save": "保存偏好",
+      "saving": "保存中...",
+      "saved": "偏好已保存",
+      "saveFailed": "偏好保存失败"
+    },
+    "versionNotice": {
+      "title": "时刻表说明",
+      "effective": "生效区间：{from} - {to}",
+      "unknown": "长期有效"
     }
   },
   "publicProfile": {

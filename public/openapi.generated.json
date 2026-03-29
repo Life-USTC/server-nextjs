@@ -489,6 +489,159 @@
         }
       }
     },
+    "/api/bus": {
+      "get": {
+        "operationId": "get-api-bus",
+        "summary": "Public shuttle-bus query API.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "now",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "dayType",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "auto",
+                "weekday",
+                "weekend"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "originCampusId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "destinationCampusId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "favoriteRouteIds",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "favoriteCampusIds",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "showDepartedTrips",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "includeAllTrips",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "versionKey",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/busQueryResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bus/preferences": {
+      "get": {
+        "operationId": "get-api-bus-preferences",
+        "summary": "Get or update bus preferences for the current user.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/busPreferenceResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-bus-preferences",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/calendar-subscriptions": {
       "post": {
         "operationId": "post-api-calendar-subscriptions",
@@ -2348,6 +2501,112 @@
           "pagination"
         ]
       },
+      "busPreferenceRequestSchema": {
+        "type": "object",
+        "properties": {
+          "preferredOriginCampusId": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "nullable": true
+          },
+          "preferredDestinationCampusId": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "nullable": true
+          },
+          "favoriteCampusIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          },
+          "favoriteRouteIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          },
+          "showDepartedTrips": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "preferredOriginCampusId",
+          "preferredDestinationCampusId",
+          "favoriteCampusIds",
+          "favoriteRouteIds",
+          "showDepartedTrips"
+        ]
+      },
+      "busPreferenceResponseSchema": {},
+      "busQuerySchema": {
+        "type": "object",
+        "properties": {
+          "now": {
+            "type": "string"
+          },
+          "dayType": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "weekday",
+              "weekend"
+            ]
+          },
+          "originCampusId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "destinationCampusId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "favoriteRouteIds": {
+            "type": "string"
+          },
+          "favoriteCampusIds": {
+            "type": "string"
+          },
+          "showDepartedTrips": {
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "includeAllTrips": {
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "versionKey": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "busQueryResponseSchema": {},
       "currentCalendarSubscriptionResponseSchema": {
         "oneOf": [
           {

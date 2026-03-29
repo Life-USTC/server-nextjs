@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import type {
+  BusDashboardData,
   DashboardNavStats,
   HomeworkSummaryItem,
   OverviewData,
@@ -7,6 +8,7 @@ import type {
   SubscriptionsTabData,
   TodoItem,
 } from "@/app/dashboard/dashboard-data";
+import { BusPanel } from "@/features/bus/components/bus-panel";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
 import { TodosPanel } from "@/features/todos/components/todos-panel";
 import { CalendarPanel } from "./calendar-panel";
@@ -19,6 +21,7 @@ import { SubscriptionsPanel } from "./subscriptions-panel";
 const VALID_TABS: HomeTabId[] = [
   "overview",
   "calendar",
+  "bus",
   "homeworks",
   "todos",
   "exams",
@@ -52,6 +55,7 @@ type HomeViewProps = {
   subscriptionsData: SubscriptionsTabData | null;
   calendarSubscriptionUrl: string | null;
   todosData: TodoItem[] | null;
+  busData: BusDashboardData | null;
 };
 
 export async function HomeView({
@@ -62,6 +66,7 @@ export async function HomeView({
   subscriptionsData,
   calendarSubscriptionUrl,
   todosData,
+  busData,
 }: HomeViewProps) {
   const params = await searchParams;
   const currentTab = parseTab(params.tab);
@@ -103,6 +108,13 @@ export async function HomeView({
             view={params.calendarView}
             month={params.calendarMonth}
             week={params.calendarWeek}
+          />
+        )}
+        {currentTab === "bus" && busData?.snapshot && (
+          <BusPanel
+            data={busData.snapshot.data}
+            signedIn={true}
+            showPreferences={true}
           />
         )}
         {currentTab === "homeworks" && (

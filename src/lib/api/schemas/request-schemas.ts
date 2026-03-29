@@ -223,6 +223,27 @@ export const coursesQuerySchema = z.object({
   limit: integerStringSchema.optional(),
 });
 
+export const busQuerySchema = z.object({
+  now: z.string().trim().datetime().optional(),
+  dayType: z.enum(["auto", "weekday", "weekend"]).optional(),
+  originCampusId: integerStringSchema.optional(),
+  destinationCampusId: integerStringSchema.optional(),
+  favoriteRouteIds: z.string().trim().optional(),
+  favoriteCampusIds: z.string().trim().optional(),
+  showDepartedTrips: z.enum(["true", "false"]).optional(),
+  includeAllTrips: z.enum(["true", "false"]).optional(),
+  limit: integerStringSchema.optional(),
+  versionKey: z.string().trim().min(1).optional(),
+});
+
+export const busPreferenceRequestSchema = z.object({
+  preferredOriginCampusId: z.number().int().positive().nullable(),
+  preferredDestinationCampusId: z.number().int().positive().nullable(),
+  favoriteCampusIds: z.array(z.number().int().positive()),
+  favoriteRouteIds: z.array(z.number().int().positive()),
+  showDepartedTrips: z.boolean(),
+});
+
 export const adminUsersQuerySchema = z.object({
   search: z.string().trim().optional(),
   page: integerStringSchema.optional(),

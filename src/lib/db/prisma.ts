@@ -54,6 +54,8 @@ const localizedNamesExtension = (locale: string) =>
     name: "localizedNames",
     result: {
       adminClass: localizedNameResult(locale),
+      busCampus: localizedNameResult(locale),
+      busRoute: localizedNameResult(locale),
       building: localizedNameResult(locale),
       campus: localizedNameResult(locale),
       classType: localizedNameResult(locale),

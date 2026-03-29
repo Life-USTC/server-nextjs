@@ -1,6 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { queryBusSchedules } from "@/features/bus/lib/bus-service";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
@@ -466,6 +467,52 @@ export function createMcpServer() {
     name: "life-ustc-mcp",
     version: "1.0.0",
   });
+
+  server.registerTool(
+    "query_bus_timetable",
+    {
+      description:
+        "Publicly query USTC shuttle bus timetable by campuses, day type, and effective version.",
+      inputSchema: {
+        originCampusId: z.number().int().positive().optional(),
+        destinationCampusId: z.number().int().positive().optional(),
+        showDepartedTrips: z.boolean().default(false),
+        dayType: z.enum(["weekday", "weekend", "auto"]).default("auto"),
+        versionKey: z.string().trim().min(1).optional(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({
+      originCampusId,
+      destinationCampusId,
+      showDepartedTrips,
+      dayType,
+      versionKey,
+      locale,
+      mode,
+    }) => {
+      const result = await queryBusSchedules({
+        locale,
+        originCampusId,
+        destinationCampusId,
+        showDepartedTrips,
+        dayType,
+        versionKey,
+      });
+
+      return jsonToolResult(
+        result ?? {
+          locale,
+          hasData: false,
+          message: "No bus schedule data available",
+        },
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
 
   server.registerTool(
     "get_my_profile",

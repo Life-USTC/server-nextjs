@@ -41,6 +41,11 @@ enum TodoPriority {
   high
 }
 
+enum BusScheduleDayType {
+  weekday
+  weekend
+}
+
 
 model AdminClass {
   id   Int  @id @default(autoincrement())
@@ -757,6 +762,7 @@ model User {
   dashboardLinkClicks  DashboardLinkClick[]
   dashboardLinkPins    DashboardLinkPin[]
   todos                Todo[]
+  busPreference        BusUserPreference?
 
   oauthClients       OAuthClient[]
   oauthAccessTokens  OAuthAccessToken[]
@@ -1053,6 +1059,110 @@ model Todo {
   @@index([userId])
   @@index([userId, completed])
   @@index([dueAt])
+}
+
+model BusCampus {
+  id Int @id
+
+  nameCn String @unique
+  nameEn String?
+
+  latitude  Float
+  longitude Float
+
+  routeStops              BusRouteStop[]
+  preferredByOriginUsers  BusUserPreference[] @relation("BusPreferenceOrigin")
+  preferredByDestinationUsers BusUserPreference[] @relation("BusPreferenceDestination")
+
+  @@index([nameCn])
+  @@index([nameEn])
+}
+
+model BusRoute {
+  id Int @id
+
+  nameCn String
+  nameEn String?
+
+  stops BusRouteStop[]
+  trips BusTrip[]
+
+  @@index([nameCn])
+  @@index([nameEn])
+}
+
+model BusRouteStop {
+  id Int @id @default(autoincrement())
+
+  routeId  Int
+  campusId Int
+  stopOrder Int
+
+  route  BusRoute  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  campus BusCampus @relation(fields: [campusId], references: [id])
+
+  @@unique([routeId, stopOrder])
+  @@index([campusId])
+}
+
+model BusScheduleVersion {
+  id Int @id @default(autoincrement())
+
+  key          String @unique
+  title        String
+  checksum     String @unique
+  sourceMessage String?
+  sourceUrl    String?
+  rawJson      Json
+
+  effectiveFrom DateTime? @db.Date
+  effectiveUntil DateTime? @db.Date
+
+  isEnabled  Boolean  @default(true)
+  importedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  trips BusTrip[]
+
+  @@index([isEnabled, effectiveFrom, effectiveUntil])
+}
+
+model BusTrip {
+  id Int @id @default(autoincrement())
+
+  versionId Int
+  routeId   Int
+  dayType   BusScheduleDayType
+  position  Int
+  stopTimes Json
+
+  version BusScheduleVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  route   BusRoute           @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, dayType, routeId, position])
+  @@index([dayType, routeId])
+  @@index([versionId])
+}
+
+model BusUserPreference {
+  userId String @id
+
+  preferredOriginCampusId      Int?
+  preferredDestinationCampusId Int?
+  favoriteCampusIds            Int[] @default([])
+  favoriteRouteIds             Int[] @default([])
+  showDepartedTrips            Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredOriginCampus BusCampus? @relation("BusPreferenceOrigin", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)
+  preferredDestinationCampus BusCampus? @relation("BusPreferenceDestination", fields: [preferredDestinationCampusId], references: [id], onDelete: SetNull)
+
+  @@index([preferredOriginCampusId])
+  @@index([preferredDestinationCampusId])
 }
 
 // ─── Better Auth OAuth 2.1 Provider Models ────────────────────────

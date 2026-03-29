@@ -2,6 +2,12 @@ import { z } from "zod";
 import {
   AdminClassModelSchema,
   BuildingModelSchema,
+  BusCampusModelSchema,
+  BusRouteModelSchema,
+  BusRouteStopModelSchema,
+  BusScheduleVersionModelSchema,
+  BusTripModelSchema,
+  BusUserPreferenceModelSchema,
   CampusModelSchema,
   ClassTypeModelSchema,
   CommentModelSchema,
@@ -63,6 +69,51 @@ const teacherAssignmentWeekIndicesSchema = z.array(z.number().int()).nullable();
 export const campusSchema = CampusModelSchema.omit({
   buildings: true,
   sections: true,
+});
+
+export const busCampusSchema = BusCampusModelSchema.omit({
+  routeStops: true,
+  preferredByOriginUsers: true,
+  preferredByDestinationUsers: true,
+});
+
+export const busRouteSchema = BusRouteModelSchema.omit({
+  stops: true,
+  trips: true,
+});
+
+export const busRouteStopSchema = BusRouteStopModelSchema.omit({
+  route: true,
+  campus: true,
+}).extend({
+  campus: busCampusSchema,
+});
+
+export const busTripSchema = BusTripModelSchema.omit({
+  version: true,
+  route: true,
+}).extend({
+  stopTimes: z.array(z.union([z.string(), z.null()])),
+});
+
+export const busScheduleVersionSchema = BusScheduleVersionModelSchema.omit({
+  trips: true,
+  rawJson: true,
+}).extend({
+  effectiveFrom: dateTimeSchema.nullable(),
+  effectiveUntil: dateTimeSchema.nullable(),
+  importedAt: dateTimeSchema,
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+});
+
+export const busUserPreferenceSchema = BusUserPreferenceModelSchema.omit({
+  user: true,
+  preferredOriginCampus: true,
+  preferredDestinationCampus: true,
+}).extend({
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
 });
 
 export const buildingSchema = BuildingModelSchema.omit({
@@ -870,6 +921,145 @@ export const currentCalendarSubscriptionResponseSchema = z.union([
     subscription: calendarSubscriptionSummarySchema,
   }),
 ]);
+
+const busTripStopTimeSummarySchema = z.object({
+  stopOrder: z.number().int(),
+  campusId: z.number().int(),
+  campusName: z.string(),
+  time: z.string().nullable(),
+  minutesSinceMidnight: z.number().int().nullable(),
+  isPassThrough: z.boolean(),
+});
+
+const busRouteSummarySchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  descriptionPrimary: z.string(),
+  descriptionSecondary: z.string().nullable(),
+  stops: z.array(
+    z.object({
+      stopOrder: z.number().int(),
+      campus: busCampusSchema.extend({
+        namePrimary: z.string(),
+        nameSecondary: z.string().nullable(),
+      }),
+    }),
+  ),
+});
+
+const busTripSummarySchema = z.object({
+  id: z.number().int(),
+  routeId: z.number().int(),
+  route: busRouteSummarySchema,
+  dayType: z.enum(["weekday", "weekend"]),
+  position: z.number().int(),
+  stopTimes: z.array(busTripStopTimeSummarySchema),
+  departureTime: z.string().nullable(),
+  departureMinutes: z.number().int().nullable(),
+  arrivalTime: z.string().nullable(),
+  arrivalMinutes: z.number().int().nullable(),
+  status: z.enum(["upcoming", "departed"]),
+  minutesUntilDeparture: z.number().int().nullable(),
+});
+
+const busRouteMatchSchema = z.object({
+  route: busRouteSummarySchema,
+  originStop: z.object({
+    stopOrder: z.number().int(),
+    campus: busCampusSchema.extend({
+      namePrimary: z.string(),
+      nameSecondary: z.string().nullable(),
+    }),
+  }),
+  destinationStop: z.object({
+    stopOrder: z.number().int(),
+    campus: busCampusSchema.extend({
+      namePrimary: z.string(),
+      nameSecondary: z.string().nullable(),
+    }),
+  }),
+  nextTrip: busTripSummarySchema.nullable(),
+  upcomingTrips: z.array(busTripSummarySchema),
+  visibleTrips: z.array(busTripSummarySchema),
+  allTrips: z.array(busTripSummarySchema),
+  totalTrips: z.number().int().nonnegative(),
+  isFavoriteRoute: z.boolean(),
+  isFavoriteOrigin: z.boolean(),
+  isFavoriteDestination: z.boolean(),
+});
+
+export const busQueryResponseSchema = z.object({
+  locale: z.enum(["zh-cn", "en-us"]),
+  now: dateTimeSchema,
+  todayType: z.enum(["weekday", "weekend"]),
+  version: z
+    .object({
+      id: z.number().int(),
+      key: z.string(),
+      title: z.string(),
+      effectiveFrom: dateTimeSchema.nullable(),
+      effectiveUntil: dateTimeSchema.nullable(),
+      importedAt: dateTimeSchema,
+      notice: z
+        .object({
+          message: z.string().nullable(),
+          url: z.string().nullable(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+  availableVersions: z.array(
+    z.object({
+      id: z.number().int(),
+      key: z.string(),
+      title: z.string(),
+      effectiveFrom: dateTimeSchema.nullable(),
+      effectiveUntil: dateTimeSchema.nullable(),
+      importedAt: dateTimeSchema,
+      notice: z
+        .object({
+          message: z.string().nullable(),
+          url: z.string().nullable(),
+        })
+        .nullable(),
+    }),
+  ),
+  campuses: z.array(
+    busCampusSchema.extend({
+      namePrimary: z.string(),
+      nameSecondary: z.string().nullable(),
+    }),
+  ),
+  routes: z.array(busRouteSummarySchema),
+  preferences: z
+    .object({
+      preferredOriginCampusId: z.number().int().nullable(),
+      preferredDestinationCampusId: z.number().int().nullable(),
+      favoriteCampusIds: z.array(z.number().int()),
+      favoriteRouteIds: z.array(z.number().int()),
+      showDepartedTrips: z.boolean(),
+    })
+    .nullable(),
+  recommended: busRouteMatchSchema.nullable(),
+  matches: z.array(busRouteMatchSchema),
+  notice: z
+    .object({
+      message: z.string().nullable(),
+      url: z.string().nullable(),
+    })
+    .nullable(),
+});
+
+export const busPreferenceResponseSchema = z.object({
+  preference: z.object({
+    preferredOriginCampusId: z.number().int().nullable(),
+    preferredDestinationCampusId: z.number().int().nullable(),
+    favoriteCampusIds: z.array(z.number().int()),
+    favoriteRouteIds: z.array(z.number().int()),
+    showDepartedTrips: z.boolean(),
+  }),
+});
 
 export const openApiDocumentResponseSchema = z.object({
   openapi: z.string(),

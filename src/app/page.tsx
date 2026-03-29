@@ -1,4 +1,4 @@
-import { Calendar, User, Users } from "lucide-react";
+import { Bus, Calendar, User, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
@@ -63,7 +63,10 @@ export default async function HomePage({
       todosData,
     ] = await Promise.all([
       getDashboardNavStats(session.user.id, debugOptions),
-      tab === "overview" || tab === "calendar" || tab === "links"
+      tab === "overview" ||
+      tab === "calendar" ||
+      tab === "links" ||
+      tab === "bus"
         ? getDashboardOverviewData(session.user.id, overviewOptions)
         : Promise.resolve(null),
       tab === "homeworks"
@@ -79,6 +82,11 @@ export default async function HomePage({
         ? getTodosTabData(session.user.id)
         : Promise.resolve(null),
     ]);
+
+    const busData =
+      tab === "bus" && overviewData?.busSnapshot
+        ? { snapshot: overviewData.busSnapshot }
+        : null;
 
     if (!navStats) {
       return (
@@ -101,6 +109,7 @@ export default async function HomePage({
           null
         }
         todosData={todosData}
+        busData={busData}
       />
     );
   }
@@ -184,6 +193,22 @@ export default async function HomePage({
               <CardPanel>
                 <p className="line-clamp-2 text-body text-muted-foreground">
                   {t("quickAccess.browseTeachers.description")}
+                </p>
+              </CardPanel>
+            </Card>
+          </Link>
+
+          <Link href="/bus" className="no-underline">
+            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Bus className="h-5 w-5 text-primary" />
+                  <CardTitle>{t("quickAccess.bus.title")}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardPanel>
+                <p className="line-clamp-2 text-body text-muted-foreground">
+                  {t("quickAccess.bus.description")}
                 </p>
               </CardPanel>
             </Card>
