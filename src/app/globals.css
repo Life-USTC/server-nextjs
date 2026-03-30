@@ -55,6 +55,10 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+  --font-family-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-family-mono:
+    var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
   @keyframes skeleton {
     to {
       background-position: -200% 0;
@@ -62,7 +66,17 @@
   }
 }
 
+@utility font-heading {
+  font-family:
+    var(--font-heading), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
   --radius: 0.625rem;
   --background: var(--color-white);
   --foreground: var(--color-zinc-800);

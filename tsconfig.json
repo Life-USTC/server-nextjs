@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@coss/ui/base-ui/*": ["./src/lib/coss-base-ui/*"]
     }
   },
   "include": [

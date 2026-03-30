@@ -1,5 +1,5 @@
-import { mergeProps } from "@base-ui/react/merge-props";
-import { useRender } from "@base-ui/react/use-render";
+import { mergeProps } from "@coss/ui/base-ui/merge-props";
+import { useRender } from "@coss/ui/base-ui/use-render";
 
 import { cn } from "@/shared/lib/utils";
 

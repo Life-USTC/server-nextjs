@@ -82,11 +82,6 @@
     --code-bg: var(--color-primary-bg);
     --code-fg: var(--color-primary-dark);
 
-    /* Fonts */
-    --font-mono:
-      "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono",
-      "Courier New", monospace;
-
     /* Body background gradients */
     --body-bg-radial-1: oklch(0.7 0.18 250 / 0.08);
     --body-bg-radial-2: oklch(0.7 0.16 40 / 0.12);
