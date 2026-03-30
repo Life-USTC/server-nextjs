@@ -522,7 +522,7 @@
       "favoriteCampuses": "Favorite campus IDs",
       "favoriteRoutes": "Favorite route IDs",
       "advanced": "Advanced options",
-      "advancedHint": "Use these IDs only if you want to fine-tune recommendations beyond the default campuses.",
+      "advancedDescription": "Use these IDs only if you want to fine-tune recommendations beyond the default campuses.",
       "idsPlaceholder": "Use commas, for example: 1, 6",
       "showDepartedTrips": "Show departed trips by default",
       "showDepartedTripsHint": "Keep today’s departed trips in the list for full timetable review.",

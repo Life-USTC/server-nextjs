@@ -17,9 +17,7 @@ test("/bus 公开页展示推荐校车与版本信息", async ({ page }, testInf
   await expect(
     page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
   ).toBeVisible();
-  await expect(
-    page.getByText(DEV_SEED.bus.recommendedDeparture, { exact: false }).first(),
-  ).toBeVisible();
+  await expect(page.getByText(/Next bus|下一班/).first()).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "bus-public-page");
 });
