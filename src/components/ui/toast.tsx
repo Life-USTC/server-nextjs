@@ -180,7 +180,7 @@ function AnchoredToasts() {
   return (
     <Toast.Portal data-slot="toast-portal-anchored">
       <Toast.Viewport
-        className="outline-none"
+        className="outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         data-slot="toast-viewport-anchored"
       >
         {toasts.map((toast) => {

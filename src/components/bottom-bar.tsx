@@ -63,7 +63,7 @@ export default function BottomBar() {
   };
 
   return (
-    <nav className="border-border border-t bg-background">
+    <nav className="border-border border-t bg-background pb-[env(safe-area-inset-bottom,0px)]">
       <div className="mx-auto flex h-14 max-w-(--layout-content-width) items-center justify-between gap-3 px-4">
         {/* Left: Life@USTC Branding */}
         <div className="flex min-w-0 items-center gap-3">

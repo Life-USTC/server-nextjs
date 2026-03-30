@@ -7,6 +7,12 @@
       "Space Grotesk", "Segoe UI", -apple-system, BlinkMacSystemFont,
       "Helvetica Neue", Arial, sans-serif;
     line-height: 1.6;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: color-mix(
+      in srgb,
+      var(--color-primary) 12%,
+      transparent
+    );
   }
 
   body::before {
@@ -72,6 +78,7 @@
     font-weight: 700;
     line-height: 1.1;
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   .text-title {
@@ -79,6 +86,7 @@
     font-weight: 600;
     line-height: 1.2;
     letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 
   .text-title-2 {
@@ -86,6 +94,7 @@
     font-weight: 600;
     line-height: 1.25;
     letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 
   .text-subtitle {
@@ -137,6 +146,12 @@
 
   .animate-float {
     animation: float 3s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-float {
+      animation: none;
+    }
   }
 }
 

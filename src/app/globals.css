@@ -161,6 +161,11 @@
   html {
     overflow-y: scroll;
     scrollbar-gutter: stable;
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
   }
 
   @supports not (scrollbar-gutter: stable) {
@@ -183,5 +188,20 @@
   }
   [data-slot="card"]:hover {
     @apply shadow-lg -translate-y-0.5;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-slot="skeleton"] {
+      animation: none;
+      background: var(--color-muted);
+    }
+
+    [data-slot="card"] {
+      transition-duration: 0.01ms;
+    }
+
+    [data-slot="card"]:hover {
+      transform: none;
+    }
   }
 }

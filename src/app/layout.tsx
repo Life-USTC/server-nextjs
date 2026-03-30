@@ -52,7 +52,9 @@ export default async function RootLayout({
                     >
                       <UserMenu />
                     </div>
-                    <div id="main-content">{children}</div>
+                    <div className="scroll-mt-4" id="main-content">
+                      {children}
+                    </div>
                   </div>
                   <div id="app-bottom-bar">
                     <BottomBar />
