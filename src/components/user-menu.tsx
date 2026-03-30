@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/menu";
 import { Link } from "@/i18n/routing";
 import { signIn, signOut, useSession } from "@/lib/auth/client";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 type UserMenuProps = {
   className?: string;

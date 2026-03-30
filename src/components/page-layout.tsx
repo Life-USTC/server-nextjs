@@ -9,7 +9,7 @@ import {
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 type PageLayoutProps = {
   title?: React.ReactNode;

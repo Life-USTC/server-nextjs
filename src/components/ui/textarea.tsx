@@ -4,7 +4,7 @@ import { Field as FieldPrimitive } from "@base-ui/react/field";
 import { mergeProps } from "@coss/ui/base-ui/merge-props";
 import type * as React from "react";
 
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import type { ControlSize } from "@/components/ui/types";
 
 type TextareaProps = React.ComponentProps<"textarea"> & {

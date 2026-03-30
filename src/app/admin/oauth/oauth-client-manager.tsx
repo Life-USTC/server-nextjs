@@ -20,7 +20,7 @@ import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 const MCP_TOOLS_SCOPE = "mcp:tools";
 const OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD = "client_secret_basic";

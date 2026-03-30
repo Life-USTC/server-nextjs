@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 export type CalendarEventVariant = "session" | "exam" | "homework" | "todo";
 

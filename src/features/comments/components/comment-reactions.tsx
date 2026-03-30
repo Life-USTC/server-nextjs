@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import type { CommentReaction, CommentViewer } from "./comment-types";
 
 const REACTION_OPTIONS = [

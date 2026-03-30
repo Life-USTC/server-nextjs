@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 
 import type { ControlSize } from "@/components/ui/types";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 const Select = SelectPrimitive.Root;
 

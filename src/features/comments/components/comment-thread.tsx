@@ -22,7 +22,7 @@ import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import type { UploadOption, UploadSummary } from "../hooks/use-comment-upload";
 import { CommentEditor } from "./comment-editor";
 import { CommentLinkCards } from "./comment-link-cards";

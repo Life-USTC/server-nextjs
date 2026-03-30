@@ -43,8 +43,8 @@ import {
   uploadDeleteResponseSchema,
   uploadRenameResponseSchema,
 } from "@/lib/api/schemas";
+import { cn } from "@/lib/utils";
 import { formatBytes } from "@/shared/lib/format-bytes";
-import { cn } from "@/shared/lib/utils";
 import { UploadFlowError, uploadFileWithPresign } from "../lib/upload-client";
 
 type UploadItem = {

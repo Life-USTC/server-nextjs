@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 type CommentMarkdownProps = {
   content: string;

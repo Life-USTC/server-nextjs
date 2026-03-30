@@ -11,9 +11,9 @@ import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-to
 import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
 import { Link } from "@/i18n/routing";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { cn } from "@/lib/utils";
 import { formatExamTypeLabel } from "@/shared/lib/exam-utils";
 import { formatTime } from "@/shared/lib/time-utils";
-import { cn } from "@/shared/lib/utils";
 
 const WEEKDAY_KEYS = [
   "sunday",

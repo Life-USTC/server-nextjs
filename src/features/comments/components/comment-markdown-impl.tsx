@@ -11,7 +11,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import type { Node, Parent } from "unist";
 import { visit } from "unist-util-visit";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import "katex/dist/katex.min.css";
 
 type MarkdownErrorBoundaryProps = {

@@ -35,8 +35,8 @@ import { HomeworkPanel } from "@/features/homeworks/components/homework-panel";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import { cn } from "@/lib/utils";
 import { formatTime } from "@/shared/lib/time-utils";
-import { cn } from "@/shared/lib/utils";
 
 const SECTION_DETAIL_INCLUDE = {
   course: true,

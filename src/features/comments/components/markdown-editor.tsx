@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTab } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import { CommentMarkdown } from "./comment-markdown";
 
 type MarkdownEditorProps = {

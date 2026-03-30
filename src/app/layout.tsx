@@ -6,7 +6,7 @@ import BottomBar from "@/components/bottom-bar";
 import { Providers } from "@/components/providers";
 import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
 import { UserMenu } from "@/components/user-menu";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const fontSans = Space_Grotesk({

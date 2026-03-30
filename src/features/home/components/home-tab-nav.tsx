@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 export type HomeTabId =
   | "overview"

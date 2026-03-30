@@ -43,7 +43,7 @@ import {
   homeworkCompletionResponseSchema,
   homeworksListResponseSchema,
 } from "@/lib/api/schemas";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import { HomeworkCreateSheet } from "./homework-create-sheet";
 import { HomeworkItemCard } from "./homework-item-card";
 

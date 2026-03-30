@@ -11,7 +11,7 @@ import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import { TodoFormSheet } from "./todo-form-sheet";
 
 type TodoPriority = "low" | "medium" | "high";

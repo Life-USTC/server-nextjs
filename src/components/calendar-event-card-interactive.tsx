@@ -9,7 +9,7 @@ import {
 } from "@/components/calendar-event-card";
 import { Popover, PopoverPopup, PopoverTrigger } from "@/components/ui/popover";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 export interface CalendarEventDetail {
   label: string;

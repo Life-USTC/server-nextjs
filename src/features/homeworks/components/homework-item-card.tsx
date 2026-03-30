@@ -7,7 +7,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 type HomeworkItemCardProps = {
   cardClassName?: string;
