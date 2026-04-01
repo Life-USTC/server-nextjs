@@ -234,63 +234,70 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
 }, testInfo) => {
   test.setTimeout(60000);
   await signInAsDevAdmin(page, `/sections/${DEV_SEED.section.jwId}`);
+  let suspensionId: string | undefined;
 
-  const commentsTab = page.getByRole("tab", { name: /评论|Comments/i }).first();
-  await expect(commentsTab).toBeVisible();
-  await commentsTab.click();
+  try {
+    const commentsTab = page
+      .getByRole("tab", { name: /评论|Comments/i })
+      .first();
+    await expect(commentsTab).toBeVisible();
+    await commentsTab.click();
 
-  const body = `e2e-admin-suspend-${Date.now()}`;
-  await page.locator("textarea").first().fill(body);
-  const createComment = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/comments") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
-  await createComment;
-  await page.waitForLoadState("networkidle");
+    const body = `e2e-admin-suspend-${Date.now()}`;
+    await page.locator("textarea").first().fill(body);
+    const createComment = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/comments") &&
+        response.request().method() === "POST" &&
+        response.status() === 200,
+    );
+    await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
+    await createComment;
+    await page.waitForLoadState("networkidle");
 
-  await gotoAndWaitForReady(page, "/admin/moderation");
-  await page
-    .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
-    .fill(body);
-  await expect(page.getByText(body).first()).toBeVisible();
-  await page.getByText(body).first().click();
+    await gotoAndWaitForReady(page, "/admin/moderation");
+    await page
+      .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
+      .fill(body);
+    await expect(page.getByText(body).first()).toBeVisible();
+    await page.getByText(body).first().click();
 
-  const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByText(/封禁|Suspension|Suspend/i).first(),
-  ).toBeVisible();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByText(/封禁|Suspension|Suspend/i).first(),
+    ).toBeVisible();
 
-  const reason = `e2e-reason-${Date.now()}`;
-  const reasonInput = dialog.getByPlaceholder(/封禁原因|reason/i).first();
-  if ((await reasonInput.count()) > 0) {
-    await reasonInput.fill(reason);
+    const reason = `e2e-reason-${Date.now()}`;
+    const reasonInput = dialog.getByPlaceholder(/封禁原因|reason/i).first();
+    if ((await reasonInput.count()) > 0) {
+      await reasonInput.fill(reason);
+    }
+
+    const suspendResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/admin/suspensions") &&
+        response.request().method() === "POST" &&
+        response.status() === 200,
+    );
+    await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
+    const created = await suspendResponse;
+    const createdBody = (await created.json()) as {
+      suspension?: { id?: string };
+    };
+    suspensionId = createdBody.suspension?.id;
+    expect(typeof suspensionId).toBe("string");
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "admin-moderation-suspended-from-dialog",
+    );
+  } finally {
+    if (suspensionId) {
+      const lift = await page.request.patch(
+        `/api/admin/suspensions/${suspensionId}`,
+      );
+      expect(lift.status()).toBe(200);
+    }
   }
-
-  const suspendResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/admin/suspensions") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  await dialog.getByRole("button", { name: /封禁|Suspend/i }).click();
-  const created = await suspendResponse;
-  const createdBody = (await created.json()) as {
-    suspension?: { id?: string };
-  };
-  const suspensionId = createdBody.suspension?.id;
-  expect(typeof suspensionId).toBe("string");
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "admin-moderation-suspended-from-dialog",
-  );
-
-  const lift = await page.request.patch(
-    `/api/admin/suspensions/${suspensionId}`,
-  );
-  expect(lift.status()).toBe(200);
 });
