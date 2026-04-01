@@ -1,4 +1,4 @@
-import { Calendar, User, Users } from "lucide-react";
+import { ArrowUpRight, Calendar, User, Users } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
@@ -11,7 +11,6 @@ import {
   getTodosTabData,
 } from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
-import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { HomeView } from "@/features/home/components/home-view";
 import { Link } from "@/i18n/routing";
 
@@ -107,39 +106,26 @@ export default async function HomePage({
 
   return (
     <main className="page-main">
-      <section className="-mx-6 fade-in slide-in-from-left-4 mb-12 flex min-h-[100dvh] animate-in items-center justify-center px-6 duration-700 md:mx-0 md:mb-12 md:min-h-0 md:px-0">
-        <div className="grid w-full grid-cols-1 items-center gap-8 py-12 md:grid-cols-2 md:gap-12">
-          <div className="fade-in slide-in-from-right-4 mb-8 flex animate-in justify-center delay-200 duration-700 md:order-2 md:mb-0">
-            <div className="relative animate-float">
-              <Image
-                src="/images/icon.png"
-                alt={t("appIconAlt")}
-                width={280}
-                height={280}
-                className="rounded-[25%] shadow-2xl shadow-primary/30"
-                priority
-              />
+      <section className="-mx-6 mb-10 border-border/70 border-b px-6 pb-10 md:mx-0 md:px-0 md:pb-12">
+        <div className="grid w-full gap-10 pt-4 lg:grid-cols-[minmax(0,1.15fr)_20rem] lg:items-start">
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <h1 className="max-w-3xl text-display">
+                <span className="block">{t("title.line1")}</span>
+                <span className="block text-primary">{t("title.line2")}</span>
+              </h1>
+
+              <p className="max-w-2xl text-muted-foreground text-subtitle">
+                {t("subtitle")}
+              </p>
             </div>
-          </div>
 
-          <div className="space-y-6 md:order-1">
-            <h1 className="text-display">
-              <span className="block">{t("title.line1")}</span>
-              <span className="block bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent">
-                {t("title.line2")}
-              </span>
-            </h1>
-
-            <p className="max-w-lg text-muted-foreground text-subtitle">
-              {t("subtitle")}
-            </p>
-
-            <div className="flex gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <a
                 href="https://apps.apple.com/us/app/life-ustc/id1660437438"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="no-underline transition-transform hover:scale-105"
+                className="hover:-translate-y-0.5 inline-flex rounded-xl no-underline transition-transform"
               >
                 <Image
                   src="/images/appstore.svg"
@@ -151,59 +137,75 @@ export default async function HomePage({
               </a>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="fade-in mb-12 animate-in delay-300 duration-700">
-        <h2 className="mb-6 text-title-2">{t("quickAccess.title")}</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Link href="/sections" className="no-underline">
-            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  <CardTitle>{t("quickAccess.viewSections.title")}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardPanel>
-                <p className="line-clamp-2 text-body text-muted-foreground">
-                  {t("quickAccess.viewSections.description")}
+          <aside className="rounded-xl border border-border/70 bg-card/72 p-5">
+            <div className="flex items-center gap-4 border-border/60 border-b pb-4">
+              <div className="rounded-[24%] border border-border/70 bg-background p-2">
+                <Image
+                  src="/images/icon.png"
+                  alt={t("appIconAlt")}
+                  width={56}
+                  height={56}
+                  className="rounded-[20%]"
+                  priority
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm">{t("quickAccess.title")}</p>
+                <p className="text-muted-foreground text-sm leading-6">
+                  {t("subtitle")}
                 </p>
-              </CardPanel>
-            </Card>
-          </Link>
+              </div>
+            </div>
 
-          <Link href="/teachers" className="no-underline">
-            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-primary" />
-                  <CardTitle>{t("quickAccess.browseTeachers.title")}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardPanel>
-                <p className="line-clamp-2 text-body text-muted-foreground">
-                  {t("quickAccess.browseTeachers.description")}
-                </p>
-              </CardPanel>
-            </Card>
-          </Link>
+            <div className="mt-4 space-y-1.5">
+              {[
+                {
+                  href: "/sections",
+                  title: t("quickAccess.viewSections.title"),
+                  description: t("quickAccess.viewSections.description"),
+                  icon: Calendar,
+                },
+                {
+                  href: "/teachers",
+                  title: t("quickAccess.browseTeachers.title"),
+                  description: t("quickAccess.browseTeachers.description"),
+                  icon: Users,
+                },
+                {
+                  href: "/",
+                  title: t("quickAccess.myProfile.title"),
+                  description: t("quickAccess.myProfile.description"),
+                  icon: User,
+                },
+              ].map((item) => {
+                const Icon = item.icon;
 
-          <Link href="/" className="no-underline">
-            <Card className="hover:-translate-y-1 h-full overflow-hidden transition-[transform,box-shadow] hover:shadow-lg">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <User className="h-5 w-5 text-primary" />
-                  <CardTitle>{t("quickAccess.myProfile.title")}</CardTitle>
-                </div>
-              </CardHeader>
-              <CardPanel>
-                <p className="line-clamp-2 text-body text-muted-foreground">
-                  {t("quickAccess.myProfile.description")}
-                </p>
-              </CardPanel>
-            </Card>
-          </Link>
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="group flex items-start gap-3 rounded-lg border border-transparent px-3 py-3 no-underline transition-colors hover:border-border/50 hover:bg-background/88 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background/80 text-primary">
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-3">
+                        <span className="font-medium text-sm leading-6">
+                          {item.title}
+                        </span>
+                        <ArrowUpRight className="group-hover:-translate-y-0.5 mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                      <span className="mt-0.5 block text-muted-foreground text-sm leading-6">
+                        {item.description}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </aside>
         </div>
       </section>
     </main>

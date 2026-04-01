@@ -10,12 +10,20 @@ import {
   Network,
   Pin,
   School,
-  Search,
   Users,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
+import { FiltersBar, FiltersBarSearch } from "@/components/filters/filters-bar";
+import { Button } from "@/components/ui/button";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
@@ -95,6 +103,7 @@ export function DashboardLinksWithSearch({
 }) {
   const t = useTranslations("meDashboard");
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [linksState, setLinksState] = useState(groupedLinks);
   const [updatingSlug, setUpdatingSlug] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +112,10 @@ export function DashboardLinksWithSearch({
     setLinksState(groupedLinks);
   }, [groupedLinks]);
 
-  const filteredGroups = filterGroupedBySearch(linksState, searchQuery);
+  const filteredGroups = useMemo(
+    () => filterGroupedBySearch(linksState, deferredSearchQuery),
+    [deferredSearchQuery, linksState],
+  );
 
   const handlePinSubmit = useCallback(
     async (slug: string, nextAction: "pin" | "unpin") => {
@@ -164,19 +176,16 @@ export function DashboardLinksWithSearch({
     <div className="space-y-4">
       {showSearch && (
         <div>
-          <div className="relative">
-            <Search className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
-            <input
-              ref={inputRef}
-              type="search"
-              aria-label={t("linkHub.searchPlaceholder")}
+          <FiltersBar className="mb-2">
+            <FiltersBarSearch
+              inputRef={inputRef}
+              ariaLabel={t("linkHub.searchPlaceholder")}
               placeholder={t("linkHub.searchPlaceholder")}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-md border bg-background py-2 pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onChange={setSearchQuery}
             />
-          </div>
-          <p className="mt-1 text-right text-muted-foreground text-xs">
+          </FiltersBar>
+          <p className="text-right text-muted-foreground text-xs">
             {t("linkHub.searchShortcutHint")}
           </p>
         </div>
@@ -184,14 +193,14 @@ export function DashboardLinksWithSearch({
       {filteredGroups.map((entry, index) => (
         <section
           key={`${entry.group}-${index}`}
-          className={entry.label ? "space-y-1.5" : undefined}
+          className={entry.label ? "space-y-2" : undefined}
         >
           {entry.label ? (
             <h3 className="font-medium text-muted-foreground text-sm">
               {entry.label}
             </h3>
           ) : null}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {entry.links.map((link) => {
               const Icon = ICON_MAP[link.icon];
               const pinLabel = link.isPinned
@@ -200,7 +209,7 @@ export function DashboardLinksWithSearch({
               return (
                 <div
                   key={link.slug}
-                  className="group relative min-w-0 overflow-hidden rounded-lg border border-border bg-muted/20 transition-colors hover:bg-accent"
+                  className="group relative min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card/72 transition-colors hover:bg-background/90"
                 >
                   <form
                     action="/api/dashboard-links/visit"
@@ -211,17 +220,21 @@ export function DashboardLinksWithSearch({
                     <input type="hidden" name="slug" value={link.slug} />
                     <button
                       type="submit"
-                      className="block min-h-20 w-full px-3 py-2.5 text-left no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex min-h-24 w-full flex-col justify-between gap-3 px-3.5 py-3 text-left no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
-                      <div className="mb-1.5 flex items-start gap-1.5">
-                        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                        <p className="line-clamp-2 font-medium text-sm">
-                          {link.title}
-                        </p>
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background/85 text-primary">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0 space-y-1">
+                          <p className="line-clamp-2 font-medium text-sm leading-5">
+                            {link.title}
+                          </p>
+                          <p className="line-clamp-2 text-muted-foreground text-xs leading-5">
+                            {link.description}
+                          </p>
+                        </div>
                       </div>
-                      <p className="line-clamp-2 text-muted-foreground text-xs">
-                        {link.description}
-                      </p>
                     </button>
                   </form>
                   <form
@@ -243,17 +256,19 @@ export function DashboardLinksWithSearch({
                       name="action"
                       value={link.isPinned ? "unpin" : "pin"}
                     />
-                    <button
+                    <Button
                       type="submit"
+                      variant="outline"
+                      size="icon-sm"
                       disabled={updatingSlug === link.slug}
                       aria-label={pinLabel}
                       title={pinLabel}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-md border bg-card/95 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                      className="bg-background/90"
                     >
                       <Pin
                         className={`h-4 w-4 ${link.isPinned ? "fill-current text-primary" : ""}`}
                       />
-                    </button>
+                    </Button>
                   </form>
                 </div>
               );

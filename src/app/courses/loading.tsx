@@ -1,3 +1,5 @@
+import { stableSkeletonKeys } from "@/lib/ui/skeleton-keys";
+
 export default function Loading() {
   return (
     <main className="page-main">
@@ -14,11 +16,8 @@ export default function Loading() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {Array.from({ length: 6 }, () => (
-            <div
-              key={`skeleton-${crypto.randomUUID()}`}
-              className="rounded-lg bg-card p-6"
-            >
+          {stableSkeletonKeys(6, "courses-card").map((key) => (
+            <div key={key} className="rounded-lg bg-card p-6">
               <div className="mb-2 h-6 w-3/4 rounded bg-muted" />
               <div className="mb-4 h-4 w-1/2 rounded bg-muted" />
               <div className="flex gap-2">

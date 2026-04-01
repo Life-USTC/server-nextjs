@@ -2,6 +2,7 @@
   body {
     position: relative;
     min-height: 100vh;
+    background-color: var(--bg-page);
     color: var(--text-main);
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
     line-height: 1.6;
@@ -21,22 +22,11 @@
     right: 0;
     bottom: 0;
     z-index: -1;
-    background:
-      radial-gradient(
-        circle at 20% 20%,
-        var(--body-bg-radial-1),
-        transparent 25%
-      ),
-      radial-gradient(
-        circle at 80% 0%,
-        var(--body-bg-radial-2),
-        transparent 23%
-      ),
-      linear-gradient(
-        180deg,
-        var(--body-bg-linear-start) 0%,
-        var(--body-bg-linear-end) 100%
-      );
+    background: radial-gradient(
+      circle at 100% 0%,
+      var(--body-bg-overlay),
+      transparent 26%
+    );
     pointer-events: none;
   }
 

@@ -39,7 +39,7 @@ export function SettingsNav() {
   ];
 
   return (
-    <div className="space-y-2 p-2">
+    <nav className="space-y-1.5 rounded-xl border border-border/70 bg-card/72 p-2">
       {items.map((item) => {
         const Icon = item.icon;
         const href = `/settings?tab=${item.tab}`;
@@ -50,17 +50,26 @@ export function SettingsNav() {
             key={href}
             href={href}
             className={cn(
-              "block rounded-md px-3 py-2 no-underline transition-colors",
+              "block rounded-lg border px-3 py-3 no-underline transition-colors",
               isActive
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                ? "border-border/80 bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+                : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-background/72 hover:text-foreground",
             )}
           >
-            <div className="flex items-start gap-2">
-              <Icon className="mt-0.5 h-4 w-4" />
-              <div>
+            <div className="flex items-start gap-3">
+              <span
+                className={cn(
+                  "inline-flex size-9 shrink-0 items-center justify-center rounded-lg border",
+                  isActive
+                    ? "border-border/80 bg-background text-primary"
+                    : "border-border/60 bg-background/80 text-muted-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
                 <p className="font-medium text-sm">{item.title}</p>
-                <p className="text-muted-foreground text-xs">
+                <p className="mt-1 text-muted-foreground text-sm leading-5">
                   {item.description}
                 </p>
               </div>
@@ -68,6 +77,6 @@ export function SettingsNav() {
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

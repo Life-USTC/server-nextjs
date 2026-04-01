@@ -1,15 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
-import { PageLayout } from "@/components/page-layout";
+import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
 import { SettingsNav } from "@/components/settings-nav";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { requireSignedInUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
@@ -31,17 +23,12 @@ export default async function SettingsLayout({
       title={tSettings("title")}
       description={tSettings("description")}
       breadcrumbs={
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{tSettings("title")}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tSettings("title") },
+          ]}
+        />
       }
     >
       <div className="grid gap-6 lg:grid-cols-[272px_minmax(0,1fr)] lg:items-start">

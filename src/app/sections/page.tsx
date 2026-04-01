@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { DataState } from "@/components/data-state";
+import {
+  PageBreadcrumbs,
+  PageLayout,
+  PageMeta,
+  PageSection,
+} from "@/components/page-layout";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
+
 import {
   Pagination,
   PaginationContent,
@@ -35,6 +29,8 @@ import {
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { getPaginationTokens } from "@/lib/navigation/pagination";
+import { buildSearchParams } from "@/lib/navigation/search-params";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
 
@@ -353,84 +349,65 @@ export default async function SectionsPage({
   );
 
   const buildUrl = (page: number) => {
-    const params = new URLSearchParams({
-      ...(semesterId && { semesterId }),
-      ...(search && { search }),
-      ...(view !== "table" && { view }),
-      page: page.toString(),
+    const query = buildSearchParams({
+      values: {
+        semesterId,
+        search,
+        view: view !== "table" ? view : "",
+        page: page > 1 ? String(page) : "",
+      },
     });
-    return `/sections?${params.toString()}`;
+    return query ? `/sections?${query}` : "/sections";
   };
 
-  const getPageNumbers = () => {
-    const pages: (number | "ellipsis")[] = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      const start = Math.max(1, currentPage - 2);
-      const end = Math.min(totalPages, currentPage + 2);
-
-      if (start > 1) {
-        pages.push(1);
-        if (start > 2) pages.push("ellipsis");
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      if (end < totalPages) {
-        if (end < totalPages - 1) pages.push("ellipsis");
-        pages.push(totalPages);
-      }
-    }
-    return pages;
-  };
+  const pageTokens = getPaginationTokens({
+    currentPage,
+    totalPages,
+    maxVisible: 5,
+  });
 
   return (
-    <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tCommon("sections")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
-      </div>
-
+    <PageLayout
+      title={t("title")}
+      description={t("subtitle")}
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tCommon("sections") },
+          ]}
+        />
+      }
+    >
       <SectionsFilter
         semesters={semesters}
         defaultValues={{ search, semesterId }}
       />
 
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-muted-foreground">
-          {t("showing", { count: sections.length, total })}
-          {search ? (
-            <span className="ml-2">{t("searchFor", { query: search })}</span>
-          ) : null}
-          {selectedSemester ? (
-            <span className="ml-2">
-              {t("inSemester", { semester: selectedSemester.nameCn })}
-            </span>
-          ) : null}
-        </p>
-      </div>
+      <PageMeta>
+        {t("showing", { count: sections.length, total })}
+        {search ? (
+          <span className="ml-2">{t("searchFor", { query: search })}</span>
+        ) : null}
+        {selectedSemester ? (
+          <span className="ml-2">
+            {t("inSemester", { semester: selectedSemester.nameCn })}
+          </span>
+        ) : null}
+      </PageMeta>
 
-      {sections.length > 0 ? (
-        <div className="mb-8">
+      <PageSection className="overflow-hidden">
+        <DataState
+          empty={sections.length === 0}
+          emptyTitle={t("noSectionsFound")}
+          emptyDescription={
+            search
+              ? t("searchFor", { query: search })
+              : selectedSemester
+                ? t("inSemester", { semester: selectedSemester.nameCn })
+                : null
+          }
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -493,24 +470,8 @@ export default async function SectionsPage({
               ))}
             </TableBody>
           </Table>
-        </div>
-      ) : (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{t("noSectionsFound")}</EmptyTitle>
-            {search ? (
-              <EmptyDescription>
-                {t("searchFor", { query: search })}
-              </EmptyDescription>
-            ) : null}
-            {selectedSemester ? (
-              <EmptyDescription>
-                {t("inSemester", { semester: selectedSemester.nameCn })}
-              </EmptyDescription>
-            ) : null}
-          </EmptyHeader>
-        </Empty>
-      )}
+        </DataState>
+      </PageSection>
 
       {totalPages > 1 ? (
         <Pagination>
@@ -520,7 +481,7 @@ export default async function SectionsPage({
                 <PaginationPrevious href={buildUrl(currentPage - 1)} />
               </PaginationItem>
             ) : null}
-            {getPageNumbers().map((pageNum, index) => (
+            {pageTokens.map((pageNum, index) => (
               <PaginationItem
                 key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
               >
@@ -544,6 +505,6 @@ export default async function SectionsPage({
           </PaginationContent>
         </Pagination>
       ) : null}
-    </main>
+    </PageLayout>
   );
 }

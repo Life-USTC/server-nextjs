@@ -6,19 +6,18 @@ import BottomBar from "@/components/bottom-bar";
 import { Providers } from "@/components/providers";
 import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
 import { UserMenu } from "@/components/user-menu";
-import { cn } from "@/lib/utils";
 import "./globals.css";
 
-const fontSans = Space_Grotesk({
+const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  variable: "--font-sans",
   display: "swap",
+  variable: "--font-sans",
 });
 
-const fontMono = JetBrains_Mono({
+const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
   display: "swap",
+  variable: "--font-mono",
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -47,9 +46,9 @@ export default async function RootLayout({
 
   return (
     <html
-      className={cn(fontSans.variable, fontMono.variable)}
       lang={locale}
       suppressHydrationWarning
+      className={`${spaceGrotesk.variable} ${jetBrainsMono.variable}`}
     >
       <body className="font-sans antialiased">
         <a

@@ -1,21 +1,14 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { DataState } from "@/components/data-state";
+import {
+  PageBreadcrumbs,
+  PageLayout,
+  PageMeta,
+  PageSection,
+} from "@/components/page-layout";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import {
   Pagination,
   PaginationContent,
@@ -35,6 +28,8 @@ import {
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
+import { getPaginationTokens } from "@/lib/navigation/pagination";
+import { buildSearchParams } from "@/lib/navigation/search-params";
 import { paginatedCourseQuery } from "@/lib/query-helpers";
 import { CoursesFilter } from "./courses-filter";
 
@@ -151,65 +146,38 @@ export default async function CoursesPage({
   const { educationLevels, categories, classTypes } = filterOptions;
 
   const buildUrl = (page: number) => {
-    const params = new URLSearchParams({
-      ...(search && { search }),
-      ...(educationLevelId && { educationLevelId }),
-      ...(categoryId && { categoryId }),
-      ...(classTypeId && { classTypeId }),
-      ...(view !== "table" && { view }),
-      page: page.toString(),
+    const query = buildSearchParams({
+      values: {
+        search,
+        educationLevelId,
+        categoryId,
+        classTypeId,
+        view: view !== "table" ? view : "",
+        page: page > 1 ? String(page) : "",
+      },
     });
-    return `/courses?${params.toString()}`;
+    return query ? `/courses?${query}` : "/courses";
   };
 
-  const getPageNumbers = () => {
-    const pages: (number | "ellipsis")[] = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      const start = Math.max(1, currentPage - 2);
-      const end = Math.min(totalPages, currentPage + 2);
-
-      if (start > 1) {
-        pages.push(1);
-        if (start > 2) pages.push("ellipsis");
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      if (end < totalPages) {
-        if (end < totalPages - 1) pages.push("ellipsis");
-        pages.push(totalPages);
-      }
-    }
-    return pages;
-  };
+  const pageTokens = getPaginationTokens({
+    currentPage,
+    totalPages,
+    maxVisible: 5,
+  });
 
   return (
-    <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{tCommon("courses")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
-      </div>
-
+    <PageLayout
+      title={t("title")}
+      description={t("subtitle")}
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tCommon("courses") },
+          ]}
+        />
+      }
+    >
       <CoursesFilter
         educationLevels={educationLevels}
         categories={categories}
@@ -222,17 +190,19 @@ export default async function CoursesPage({
         }}
       />
 
-      <div className="mb-6 flex items-center justify-between">
-        <p className="text-muted-foreground">
-          {t("showing", { count: courses.length, total })}
-          {search ? (
-            <span className="ml-2">{t("searchFor", { query: search })}</span>
-          ) : null}
-        </p>
-      </div>
+      <PageMeta>
+        {t("showing", { count: courses.length, total })}
+        {search ? (
+          <span className="ml-2">{t("searchFor", { query: search })}</span>
+        ) : null}
+      </PageMeta>
 
-      {courses.length > 0 ? (
-        <div className="mb-8">
+      <PageSection className="overflow-hidden">
+        <DataState
+          empty={courses.length === 0}
+          emptyTitle={t("noCoursesFound")}
+          emptyDescription={search ? t("searchFor", { query: search }) : null}
+        >
           <Table>
             <TableHeader>
               <TableRow>
@@ -287,19 +257,8 @@ export default async function CoursesPage({
               ))}
             </TableBody>
           </Table>
-        </div>
-      ) : (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{t("noCoursesFound")}</EmptyTitle>
-            {search ? (
-              <EmptyDescription>
-                {t("searchFor", { query: search })}
-              </EmptyDescription>
-            ) : null}
-          </EmptyHeader>
-        </Empty>
-      )}
+        </DataState>
+      </PageSection>
 
       {totalPages > 1 ? (
         <Pagination>
@@ -309,7 +268,7 @@ export default async function CoursesPage({
                 <PaginationPrevious href={buildUrl(currentPage - 1)} />
               </PaginationItem>
             ) : null}
-            {getPageNumbers().map((pageNum, index) => (
+            {pageTokens.map((pageNum, index) => (
               <PaginationItem
                 key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
               >
@@ -333,6 +292,6 @@ export default async function CoursesPage({
           </PaginationContent>
         </Pagination>
       ) : null}
-    </main>
+    </PageLayout>
   );
 }
