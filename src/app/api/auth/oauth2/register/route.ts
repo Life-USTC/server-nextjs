@@ -2,6 +2,10 @@ import { randomBytes } from "node:crypto";
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import {
+  parseOAuthDcrClientName,
+  resolveDcrStoredClientName,
+} from "@/lib/oauth/client-registration";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 export const dynamic = "force-dynamic";
@@ -92,6 +96,19 @@ export async function POST(request: Request) {
 
   const clientId = generateClientId();
 
+  const clientNameResult = parseOAuthDcrClientName(record);
+  if (!clientNameResult.ok) {
+    logOAuthDebug("dcr.register.reject", request, {
+      reason: "invalid_client_name",
+      detail: clientNameResult.error,
+    });
+    return jsonError(400, "invalid_client_metadata", clientNameResult.error);
+  }
+  const storedClientName = resolveDcrStoredClientName(
+    clientId,
+    clientNameResult.name,
+  );
+
   const scope =
     typeof record.scope === "string" && record.scope.trim().length > 0
       ? record.scope.trim()
@@ -103,6 +120,7 @@ export async function POST(request: Request) {
     await prisma.oAuthClient.create({
       data: {
         clientId,
+        name: storedClientName,
         clientSecret: storedClientSecret,
         redirectUris: redirectUris as string[],
         tokenEndpointAuthMethod,
@@ -115,6 +133,7 @@ export async function POST(request: Request) {
         metadata: {
           source: "dcr",
           requested_token_endpoint_auth_method: requestedAuthMethod,
+          ...(clientNameResult.name ? {} : { client_name_inferred: true }),
         },
       },
       select: { id: true },
@@ -133,6 +152,7 @@ export async function POST(request: Request) {
     tokenEndpointAuthMethod,
     publicClient,
     scopeTokenCount: scope.split(" ").filter(Boolean).length,
+    hasExplicitClientName: Boolean(clientNameResult.name),
   });
 
   const registrationBody: Record<string, unknown> = {
@@ -147,6 +167,7 @@ export async function POST(request: Request) {
   if (clientSecretPlain) {
     registrationBody.client_secret = clientSecretPlain;
   }
+  registrationBody.client_name = storedClientName;
 
   return jsonResponse(registrationBody);
 }

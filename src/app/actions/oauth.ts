@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { getTranslations } from "next-intl/server";
 import { auth, authApi } from "@/auth";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { logServerActionError } from "@/lib/log/app-logger";
 import {
   resolveOAuthClientScopes,
   validateOAuthRedirectUris,
@@ -111,7 +114,10 @@ export async function createOAuthClient(
       clientSecret: result.client_secret ?? null,
     };
   } catch (error) {
-    console.error(error);
+    logServerActionError("Failed to create OAuth client", error, {
+      action: "createOAuthClient",
+      userId: session.user.id,
+    });
     return { error: "Failed to create OAuth client" };
   }
 }
@@ -131,16 +137,28 @@ export async function deleteOAuthClient(clientId: string) {
     return { error: "Not authorized" };
   }
 
+  const t = await getTranslations("oauth");
+
   try {
-    await authApi.deleteOAuthClient({
-      headers: await headers(),
-      body: {
-        client_id: clientId,
-      },
+    // Admin must be able to remove clients without `userId` (e.g. anonymous DCR /
+    // PKCE public clients). `authApi.deleteOAuthClient` only allows the owning
+    // user or `referenceId` clients, so it returns UNAUTHORIZED for those rows.
+    await prisma.oAuthClient.delete({
+      where: { clientId },
     });
   } catch (error) {
-    console.error(error);
-    return { error: "Failed to delete OAuth client" };
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return { error: t("deleteClientNotFound") };
+    }
+    logServerActionError("Failed to delete OAuth client", error, {
+      action: "deleteOAuthClient",
+      userId: session.user.id,
+      clientId,
+    });
+    return { error: t("deleteClientFailed") };
   }
 
   revalidatePath("/admin/oauth");

@@ -32,12 +32,21 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
       page.getByRole("heading", { name: /OAuth 客户端管理|OAuth Clients/i }),
     ).toBeVisible();
 
-    await page.getByLabel(/应用名称|Application Name/i).fill(clientName);
     await page
+      .getByRole("button", { name: /创建客户端|Create Client/i })
+      .first()
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    const createDialog = page.getByRole("dialog");
+    await createDialog
+      .getByLabel(/应用名称|Application Name/i)
+      .fill(clientName);
+    await createDialog
       .getByLabel(/重定向 URI|Redirect URIs/i)
       .fill(`${PLAYWRIGHT_BASE_URL}/oauth-e2e/callback`);
 
-    await page
+    await createDialog
       .getByRole("button", { name: /创建客户端|Create Client/i })
       .click();
 
@@ -60,10 +69,9 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-oauth-created");
 
-    const row = page
-      .locator("div.rounded-xl.border.p-4")
-      .filter({ has: page.getByText(clientName, { exact: true }) })
-      .first();
+    const row = page.locator("tr").filter({
+      has: page.getByText(clientName, { exact: true }),
+    });
     await row.getByRole("button", { name: /删除|Delete/i }).click();
 
     await expect(page.getByText(clientName)).toHaveCount(0, {

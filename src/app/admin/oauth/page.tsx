@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
 import { requireSignedInUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { OAuthClientManager } from "./oauth-client-manager";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -55,41 +49,30 @@ export default async function AdminOAuthPage() {
   ]);
 
   return (
-    <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/admin">{tAdmin("title")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t("adminTitle")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("adminTitle")}</h1>
-        <p className="text-muted-foreground text-subtitle">
-          {t("adminSubtitle")}
-        </p>
-      </div>
-
+    <PageLayout
+      title={t("adminTitle")}
+      description={t("adminSubtitle")}
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tAdmin("title"), href: "/admin" },
+            { label: t("adminTitle") },
+          ]}
+        />
+      }
+    >
       <OAuthClientManager
         clients={clients.map((c) => ({
           clientId: c.clientId,
-          name: c.name ?? c.clientId,
+          name: c.name ?? "",
           tokenEndpointAuthMethod:
             c.tokenEndpointAuthMethod ?? "client_secret_basic",
           redirectUris: c.redirectUris,
           scopes: c.scopes,
-          createdAt: c.createdAt.toISOString(),
+          createdAt: toShanghaiIsoString(c.createdAt),
         }))}
       />
-    </main>
+    </PageLayout>
   );
 }

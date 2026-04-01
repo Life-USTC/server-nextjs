@@ -28,6 +28,9 @@ type DynamicClientRegistrationResult =
       scopes: string[];
     };
 
+/** RFC 7591 / OIDC dynamic registration: optional human-readable name. */
+const DCR_CLIENT_NAME_MAX_LENGTH = 256;
+
 const LOOPBACK_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 const SUPPORTED_DYNAMIC_CLIENT_SCOPES = new Set([
   ...DEFAULT_DYNAMIC_OAUTH_CLIENT_SCOPES,
@@ -73,6 +76,66 @@ export function validateOAuthRedirectUris(
   }
 
   return { redirectUris };
+}
+
+function truncateDcrClientName(value: string): string {
+  if (value.length <= DCR_CLIENT_NAME_MAX_LENGTH) {
+    return value;
+  }
+  return value.slice(0, DCR_CLIENT_NAME_MAX_LENGTH);
+}
+
+/**
+ * Parses `client_name` from OAuth 2.0 / OIDC dynamic client registration JSON.
+ * - Primary field: `client_name` (RFC 7591).
+ * - Fallback: `name` (some clients send this incorrectly).
+ * - Empty or whitespace-only strings are treated as absent (null).
+ */
+export function parseOAuthDcrClientName(
+  record: Record<string, unknown>,
+): { ok: true; name: string | null } | { ok: false; error: string } {
+  const raw =
+    record.client_name !== undefined && record.client_name !== null
+      ? record.client_name
+      : record.name;
+
+  if (raw === undefined || raw === null) {
+    return { ok: true, name: null };
+  }
+
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const s = String(raw).trim();
+    return { ok: true, name: s.length === 0 ? null : truncateDcrClientName(s) };
+  }
+
+  if (typeof raw !== "string") {
+    return {
+      ok: false,
+      error: "client_name must be a string",
+    };
+  }
+
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) {
+    return { ok: true, name: null };
+  }
+
+  return { ok: true, name: truncateDcrClientName(trimmed) };
+}
+
+/**
+ * When DCR omits `client_name`, persist a stable, unique label derived from
+ * `client_id` so admin lists and consent UIs are never blank (e.g. E2E or MCP
+ * clients that register metadata-only).
+ */
+export function resolveDcrStoredClientName(
+  clientId: string,
+  parsedName: string | null,
+): string {
+  if (parsedName && parsedName.length > 0) {
+    return parsedName;
+  }
+  return `OAuth client ${clientId.slice(0, 10)}`;
 }
 
 export function resolveOAuthClientScopes(options: {

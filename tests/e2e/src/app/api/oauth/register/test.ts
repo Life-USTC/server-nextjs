@@ -44,8 +44,10 @@ test("dynamic registration + consent + code exchange + userinfo works", async ({
   expect(registrationResponse.status()).toBe(200);
   const registrationBody = (await registrationResponse.json()) as {
     client_id?: string;
+    client_name?: string;
   };
   expect(typeof registrationBody.client_id).toBe("string");
+  expect(registrationBody.client_name).toMatch(/^e2e-public-/);
 
   await signInAsDebugUser(page, "/");
 
