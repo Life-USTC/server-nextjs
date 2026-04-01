@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/Life-USTC/server-nextjs/compare/v1.2.1...v1.2.2) (2026-04-01)
+
+
+### Bug Fixes
+
+* **ui:** unify dashboard tab filter controls ([a4ef876](https://github.com/Life-USTC/server-nextjs/commit/a4ef8765aa3c3b52c66ef08bc1c3bc92a3da9256))
+
 ## [1.2.1](https://github.com/Life-USTC/server-nextjs/compare/v1.2.0...v1.2.1) (2026-04-01)
 
 
