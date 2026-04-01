@@ -24,6 +24,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
     "check:e2e": "bun run tools/check-e2e-conventions.ts",
+    "check:i18n": "bun run tools/check-i18n-keys.ts",
     "commitlint:last": "commitlint --from HEAD~1 --to HEAD",
     "commitlint:main": "commitlint --from origin/main --to HEAD",
     "hooks:install": "git config core.hooksPath .githooks && chmod +x .githooks/pre-commit .githooks/commit-msg",
