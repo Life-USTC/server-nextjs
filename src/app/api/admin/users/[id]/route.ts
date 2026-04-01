@@ -131,7 +131,7 @@ export async function PATCH(
         username: updated.username,
         isAdmin: updated.isAdmin,
         email: email?.email ?? null,
-        createdAt: updated.createdAt.toISOString(),
+        createdAt: updated.createdAt,
       },
     });
   } catch (error) {

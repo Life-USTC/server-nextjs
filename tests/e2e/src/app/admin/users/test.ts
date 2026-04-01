@@ -135,17 +135,30 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
   await page.waitForLoadState("networkidle");
   await captureStepScreenshot(page, testInfo, "admin-users-updated");
 
-  await row.click();
-  const dialog2 = page.getByRole("dialog", { name: /管理用户|Manage User/i });
-  await expect(dialog2).toBeVisible();
-  const nameInput2 = dialog2.getByPlaceholder(/姓名|Name/i).first();
-  await nameInput2.fill(originalName);
+  await expect(dialog).toBeHidden();
+  const updatedRow = page
+    .locator("tr")
+    .filter({ hasText: "dev-admin" })
+    .first();
+  await expect(updatedRow).toBeVisible();
+  await updatedRow.click();
+
+  const rollbackDialog = page.getByRole("dialog", {
+    name: /管理用户|Manage User/i,
+  });
+  await expect(rollbackDialog).toBeVisible();
+  const rollbackNameInput = rollbackDialog
+    .getByPlaceholder(/姓名|Name/i)
+    .first();
+  await expect(rollbackNameInput).toBeVisible();
+  await rollbackNameInput.fill(originalName);
+
   const rollbackResponse = page.waitForResponse(
     (response) =>
       response.url().includes("/api/admin/users/") &&
       response.request().method() === "PATCH",
   );
-  await dialog2.getByRole("button", { name: /保存更改|Save/i }).click();
+  await rollbackDialog.getByRole("button", { name: /保存更改|Save/i }).click();
   const rollback = await rollbackResponse;
   expect(rollback.status()).toBe(200);
 });

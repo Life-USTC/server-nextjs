@@ -36,7 +36,7 @@ import {
   UserSuspensionModelSchema,
 } from "@/lib/api/model-schemas";
 
-const dateTimeSchema = z.string().datetime();
+const dateTimeSchema = z.string().datetime({ offset: true });
 
 const pageMetaSchema = z.object({
   page: z.number().int(),

@@ -1,21 +1,13 @@
+import { KeyRound, Shield, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Link } from "@/i18n/routing";
+  PageBreadcrumbs,
+  PageLayout,
+  PageLinkCard,
+  PageLinkGrid,
+} from "@/components/page-layout";
 import { requireSignedInUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
@@ -44,49 +36,35 @@ export default async function AdminHomePage() {
   ]);
 
   return (
-    <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t("title")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Link href="/admin/moderation" className="no-underline">
-          <Card className="transition-colors hover:bg-accent/50">
-            <CardHeader>
-              <CardTitle>{t("moderationTitle")}</CardTitle>
-              <CardDescription>{t("moderationDescription")}</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/admin/users" className="no-underline">
-          <Card className="transition-colors hover:bg-accent/50">
-            <CardHeader>
-              <CardTitle>{t("usersTitle")}</CardTitle>
-              <CardDescription>{t("usersDescription")}</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-        <Link href="/admin/oauth" className="no-underline">
-          <Card className="transition-colors hover:bg-accent/50">
-            <CardHeader>
-              <CardTitle>{t("oauthTitle")}</CardTitle>
-              <CardDescription>{t("oauthDescription")}</CardDescription>
-            </CardHeader>
-          </Card>
-        </Link>
-      </div>
-    </main>
+    <PageLayout
+      title={t("title")}
+      description={t("subtitle")}
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[{ label: tCommon("home"), href: "/" }, { label: t("title") }]}
+        />
+      }
+    >
+      <PageLinkGrid>
+        <PageLinkCard
+          href="/admin/moderation"
+          icon={Shield}
+          title={t("moderationTitle")}
+          description={t("moderationDescription")}
+        />
+        <PageLinkCard
+          href="/admin/users"
+          icon={Users}
+          title={t("usersTitle")}
+          description={t("usersDescription")}
+        />
+        <PageLinkCard
+          href="/admin/oauth"
+          icon={KeyRound}
+          title={t("oauthTitle")}
+          description={t("oauthDescription")}
+        />
+      </PageLinkGrid>
+    </PageLayout>
   );
 }

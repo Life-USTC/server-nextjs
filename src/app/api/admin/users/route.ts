@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
           username: u.username,
           isAdmin: u.isAdmin,
           email: u.verifiedEmails?.[0]?.email ?? null,
-          createdAt: u.createdAt.toISOString(),
+          createdAt: u.createdAt,
         })),
         pagination.page,
         pagination.pageSize,

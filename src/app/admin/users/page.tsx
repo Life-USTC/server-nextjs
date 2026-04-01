@@ -1,22 +1,26 @@
+import { Search } from "lucide-react";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+  PageBreadcrumbs,
+  PageLayout,
+  PageToolbar,
+} from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group";
 import { Link } from "@/i18n/routing";
 import { requireSignedInUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { ADMIN_USERS_PAGE_SIZE } from "./constants";
 
 const AdminUsersTable = dynamic(() =>
@@ -94,59 +98,47 @@ export default async function AdminUsersPage({
   const totalPages = Math.max(1, Math.ceil(total / ADMIN_USERS_PAGE_SIZE));
 
   return (
-    <main className="page-main">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/admin">{tAdmin("title")}</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{t("title")}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
-      </div>
-
-      <Form
-        className="mb-6 flex flex-wrap gap-3"
-        action="/admin/users"
-        method="get"
-      >
-        <Field className="min-w-64 max-w-md flex-1">
-          <FieldLabel className="sr-only">{tCommon("search")}</FieldLabel>
-          <Input
-            name="search"
-            type="search"
-            inputMode="search"
-            autoComplete="off"
-            defaultValue={search}
-            placeholder={t("searchPlaceholder")}
-            className="w-full"
-          />
-        </Field>
-        <Button type="submit" variant="outline">
-          {tCommon("search")}
-        </Button>
-        {search ? (
-          <Button
-            type="button"
-            variant="ghost"
-            render={<Link className="no-underline" href="/admin/users" />}
-          >
-            {tCommon("clear")}
-          </Button>
-        ) : null}
-      </Form>
-
+    <PageLayout
+      title={t("title")}
+      description={t("subtitle")}
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tAdmin("title"), href: "/admin" },
+            { label: t("title") },
+          ]}
+        />
+      }
+    >
+      <PageToolbar className="space-y-4">
+        <Form action="/admin/users" layout="toolbar" method="get">
+          <Field className="min-w-64 max-w-xl flex-1">
+            <FieldLabel className="sr-only">{tCommon("search")}</FieldLabel>
+            <InputGroup>
+              <InputGroupAddon>
+                <InputGroupText>
+                  <Search className="size-4" />
+                </InputGroupText>
+              </InputGroupAddon>
+              <InputGroupInput
+                autoComplete="off"
+                defaultValue={search}
+                inputMode="search"
+                name="search"
+                placeholder={t("searchPlaceholder")}
+                type="search"
+              />
+            </InputGroup>
+          </Field>
+          <Button type="submit">{tCommon("search")}</Button>
+          {search ? (
+            <Button render={<Link href="/admin/users" />} variant="outline">
+              {tCommon("clear")}
+            </Button>
+          ) : null}
+        </Form>
+      </PageToolbar>
       <AdminUsersTable
         users={users.map((entry) => ({
           id: entry.id,
@@ -154,13 +146,13 @@ export default async function AdminUsersPage({
           username: entry.username,
           isAdmin: entry.isAdmin,
           email: entry.verifiedEmails?.[0]?.email ?? null,
-          createdAt: entry.createdAt.toISOString(),
+          createdAt: toShanghaiIsoString(entry.createdAt),
         }))}
         total={total}
         page={page}
         totalPages={totalPages}
         search={search}
       />
-    </main>
+    </PageLayout>
   );
 }

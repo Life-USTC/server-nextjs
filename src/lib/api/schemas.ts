@@ -44,7 +44,7 @@ import type {
 
 export * from "./schemas/request-schemas";
 
-const dateTimeSchema = z.string().datetime();
+const dateTimeSchema = z.string().datetime({ offset: true });
 
 const dateTimePlacePersonTextSchema = z
   .object({ room: z.string().optional() })
@@ -694,7 +694,17 @@ const adminCommentBaseSchema = CommentModelSchema.omit({
 
 export const adminCommentSchema = adminCommentBaseSchema.extend({
   user: adminCommentUserSchema.nullable(),
-  section: z.object({ jwId: z.number().int(), code: z.string() }).nullable(),
+  section: z
+    .object({
+      jwId: z.number().int(),
+      code: z.string(),
+      course: z.object({
+        jwId: z.number().int(),
+        code: z.string(),
+        nameCn: z.string(),
+      }),
+    })
+    .nullable(),
   course: z
     .object({
       jwId: z.number().int(),
@@ -712,7 +722,15 @@ export const adminCommentSchema = adminCommentBaseSchema.extend({
     .nullable(),
   sectionTeacher: z
     .object({
-      section: z.object({ jwId: z.number().int(), code: z.string() }),
+      section: z.object({
+        jwId: z.number().int(),
+        code: z.string(),
+        course: z.object({
+          jwId: z.number().int(),
+          code: z.string(),
+          nameCn: z.string(),
+        }),
+      }),
       teacher: z.object({ nameCn: z.string() }),
     })
     .nullable(),
@@ -756,6 +774,96 @@ export const adminSuspensionsResponseSchema = createCollectionResponseSchema(
 export const adminSuspensionResponseSchema = createEntityResponseSchema(
   "suspension",
   adminSuspensionSchema,
+);
+
+const adminHomeworkSchema = HomeworkModelSchema.omit({
+  section: true,
+  createdBy: true,
+  updatedBy: true,
+  deletedBy: true,
+  description: true,
+  comments: true,
+  auditLogs: true,
+  homeworkCompletions: true,
+}).extend({
+  publishedAt: dateTimeSchema.nullable(),
+  submissionStartAt: dateTimeSchema.nullable(),
+  submissionDueAt: dateTimeSchema.nullable(),
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+  deletedAt: dateTimeSchema.nullable(),
+  section: z.object({
+    id: z.number().int(),
+    jwId: z.number().int().nullable(),
+    code: z.string().nullable(),
+    course: z.object({
+      jwId: z.number().int(),
+      code: z.string(),
+      nameCn: z.string(),
+    }),
+  }),
+  createdBy: homeworkUserSummarySchema.nullable(),
+  updatedBy: homeworkUserSummarySchema.nullable(),
+  deletedBy: homeworkUserSummarySchema.nullable(),
+});
+
+export const adminHomeworksResponseSchema = createCollectionResponseSchema(
+  "homeworks",
+  adminHomeworkSchema,
+);
+
+const adminDescriptionSchema = DescriptionModelSchema.omit({
+  section: true,
+  course: true,
+  teacher: true,
+  homework: true,
+  edits: true,
+  lastEditedBy: true,
+}).extend({
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+  lastEditedAt: dateTimeSchema.nullable(),
+  lastEditedBy: homeworkUserSummarySchema.nullable(),
+  section: z
+    .object({
+      jwId: z.number().int().nullable(),
+      code: z.string().nullable(),
+      course: z
+        .object({
+          jwId: z.number().int(),
+          code: z.string(),
+          nameCn: z.string(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+  course: z
+    .object({ jwId: z.number().int(), code: z.string(), nameCn: z.string() })
+    .nullable(),
+  teacher: z.object({ id: z.number().int(), nameCn: z.string() }).nullable(),
+  homework: z
+    .object({
+      id: z.string(),
+      title: z.string(),
+      section: z
+        .object({
+          code: z.string().nullable(),
+          course: z
+            .object({
+              jwId: z.number().int(),
+              code: z.string(),
+              nameCn: z.string(),
+            })
+            .nullable(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+});
+
+export const adminDescriptionsResponseSchema = createCollectionResponseSchema(
+  "descriptions",
+  adminDescriptionSchema,
 );
 
 const uploadSummarySchema = UploadModelSchema.pick({

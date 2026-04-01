@@ -1,17 +1,22 @@
 "use client";
 
-import { MagnifyingGlass } from "@phosphor-icons/react";
 import { useLocale, useTranslations } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { DataState } from "@/components/data-state";
+import { FiltersBar, FiltersBarSearch } from "@/components/filters/filters-bar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
+  DialogPanel,
   DialogPopup,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -25,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -40,11 +46,19 @@ import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
   adminCommentsResponseSchema,
-  adminSuspensionsResponseSchema,
+  adminDescriptionsResponseSchema,
 } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import {
+  addShanghaiTime,
+  createShanghaiDateTimeFormatter,
+  parseShanghaiDateTimeLocalInput,
+} from "@/lib/time/shanghai-format";
+import { stableSkeletonKeys } from "@/lib/ui/skeleton-keys";
 
 type CommentStatus = "active" | "softbanned" | "deleted";
-type CommentStatusFilter = CommentStatus | "all";
+type CommentStatusFilter = CommentStatus | "suspended" | "all";
 
 type AdminComment = {
   id: string;
@@ -56,7 +70,11 @@ type AdminComment = {
   createdAt: string;
   moderationNote: string | null;
   user: { name: string | null } | null;
-  section: { jwId: number | null; code: string | null } | null;
+  section: {
+    jwId: number | null;
+    code: string | null;
+    course: { jwId: number; code: string; nameCn: string } | null;
+  } | null;
   course: {
     jwId: number;
     code: string;
@@ -69,20 +87,36 @@ type AdminComment = {
     section: { code: string | null } | null;
   } | null;
   sectionTeacher: {
-    section: { jwId: number | null; code: string | null } | null;
+    section: {
+      jwId: number | null;
+      code: string | null;
+      course: { jwId: number; code: string; nameCn: string } | null;
+    } | null;
     teacher: { nameCn: string } | null;
   } | null;
 };
 
-type Suspension = {
+type AdminDescription = {
   id: string;
-  userId: string;
-  createdAt: string;
-  reason: string | null;
-  note: string | null;
-  expiresAt: string | null;
-  liftedAt: string | null;
-  user: { id: string; name: string | null } | null;
+  content: string;
+  lastEditedAt: string | null;
+  updatedAt: string;
+  lastEditedBy: { id: string; name: string | null } | null;
+  section: {
+    jwId: number | null;
+    code: string | null;
+    course: { jwId: number; code: string; nameCn: string } | null;
+  } | null;
+  course: { jwId: number; code: string; nameCn: string } | null;
+  teacher: { id: number; nameCn: string } | null;
+  homework: {
+    id: string;
+    title: string;
+    section: {
+      code: string | null;
+      course: { jwId: number; code: string; nameCn: string } | null;
+    } | null;
+  } | null;
 };
 
 const DURATION_OPTIONS = [
@@ -105,16 +139,34 @@ type CommentFiltersProps = {
 
 type CommentsTableProps = {
   comments: AdminComment[];
-  formatter: Intl.DateTimeFormat;
+  formatTimestamp: (value: string | Date) => string;
   onSelect: (comment: AdminComment) => void;
   getTargetLink: (comment: AdminComment) => { href: string; label: string };
   t: ReturnType<typeof useTranslations>;
 };
 
-type SuspensionsTableProps = {
-  suspensions: Suspension[];
-  formatter: Intl.DateTimeFormat;
-  onLift: (suspensionId: string, userName: string) => void;
+type DescriptionDetailDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  description: AdminDescription | null;
+  formatTimestamp: (value: string | Date) => string;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type DescriptionContentFilter = "all" | "withContent" | "empty";
+
+type DescriptionFiltersProps = {
+  searchQuery: string;
+  contentFilter: DescriptionContentFilter;
+  onSearchChange: (value: string) => void;
+  onContentChange: (value: DescriptionContentFilter) => void;
+  t: ReturnType<typeof useTranslations>;
+};
+
+type DescriptionsTableProps = {
+  descriptions: AdminDescription[];
+  formatTimestamp: (value: string | Date) => string;
+  onSelect: (description: AdminDescription) => void;
   t: ReturnType<typeof useTranslations>;
 };
 
@@ -134,29 +186,25 @@ type CommentDetailDialogProps = {
   onDurationChange: (value: string) => void;
   onExpiresChange: (value: string) => void;
   onReasonChange: (value: string) => void;
-  formatter: Intl.DateTimeFormat;
-  t: ReturnType<typeof useTranslations>;
-};
-
-type LiftDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  userName: string;
-  onConfirm: () => void;
+  formatTimestamp: (value: string | Date) => string;
   t: ReturnType<typeof useTranslations>;
 };
 
 export function ModerationDashboard() {
-  const t = useTranslations("moderation");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
+  const t = useTranslations("moderation");
   const { toast } = useToast();
   const [comments, setComments] = useState<AdminComment[]>([]);
-  const [suspensions, setSuspensions] = useState<Suspension[]>([]);
+  const [descriptions, setDescriptions] = useState<AdminDescription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] =
     useState<CommentStatusFilter>("active");
+  // Note: descriptionTargetTab was used by the previous nested-tab design.
+  const [descriptionContentFilter, setDescriptionContentFilter] =
+    useState<DescriptionContentFilter>("withContent");
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedComment, setSelectedComment] = useState<AdminComment | null>(
@@ -169,22 +217,26 @@ export function ModerationDashboard() {
   const [suspendExpiresAt, setSuspendExpiresAt] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
 
-  const [liftDialogOpen, setLiftDialogOpen] = useState(false);
-  const [liftSuspensionId, setLiftSuspensionId] = useState("");
-  const [liftUserName, setLiftUserName] = useState("");
-
-  const formatter = useMemo(
+  const [descriptionDialogOpen, setDescriptionDialogOpen] = useState(false);
+  const [selectedDescription, setSelectedDescription] =
+    useState<AdminDescription | null>(null);
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
-        dateStyle: "short",
+      createShanghaiDateTimeFormatter(locale, {
+        dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
+  );
+
+  const formatTimestamp = useCallback(
+    (value: string | Date) => dateTimeFormatter.format(new Date(value)),
+    [dateTimeFormatter],
   );
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const commentPromise =
         statusFilter === "all"
@@ -195,11 +247,15 @@ export function ModerationDashboard() {
               },
             });
 
-      const suspensionPromise = apiClient.GET("/api/admin/suspensions");
+      const descriptionsPromise = apiClient.GET("/api/admin/descriptions", {
+        params: {
+          query: { targetType: "all", hasContent: "withContent", limit: "200" },
+        },
+      });
 
-      const [commentResult, suspensionResult] = await Promise.all([
+      const [commentResult, descriptionsResult] = await Promise.all([
         commentPromise,
-        suspensionPromise,
+        descriptionsPromise,
       ]);
 
       if (commentResult.response.ok && commentResult.data) {
@@ -218,23 +274,26 @@ export function ModerationDashboard() {
         }
       }
 
-      if (suspensionResult.response.ok && suspensionResult.data) {
-        const parsed = adminSuspensionsResponseSchema.safeParse(
-          suspensionResult.data,
+      if (descriptionsResult.response.ok && descriptionsResult.data) {
+        const parsed = adminDescriptionsResponseSchema.safeParse(
+          descriptionsResult.data,
         );
         if (parsed.success) {
-          setSuspensions(parsed.data.suspensions);
+          setDescriptions(parsed.data.descriptions as AdminDescription[]);
         } else {
-          const maybe = suspensionResult.data as unknown as {
-            suspensions?: unknown;
+          const maybe = descriptionsResult.data as unknown as {
+            descriptions?: unknown;
           };
-          if (Array.isArray(maybe.suspensions)) {
-            setSuspensions(maybe.suspensions as Suspension[]);
+          if (Array.isArray(maybe.descriptions)) {
+            setDescriptions(maybe.descriptions as AdminDescription[]);
           }
         }
       }
     } catch (error) {
-      console.error("Failed to load moderation data", error);
+      logClientError("Failed to load moderation data", error, {
+        component: "ModerationDashboard",
+      });
+      setError(t("updateFailed"));
       toast({
         title: t("updateFailed"),
         variant: "destructive",
@@ -259,13 +318,20 @@ export function ModerationDashboard() {
       label = [sectionCode, homeworkTitle].filter(Boolean).join(" · ");
     } else if (comment.sectionTeacher?.section?.jwId) {
       url = `/sections/${comment.sectionTeacher.section.jwId}`;
-      label = `${comment.sectionTeacher.section.code} · ${comment.sectionTeacher.teacher?.nameCn ?? ""}`;
+      label =
+        comment.sectionTeacher.section.course?.nameCn ??
+        comment.sectionTeacher.section.code ??
+        t("unknownTarget");
     } else if (comment.section?.jwId) {
       url = `/sections/${comment.section.jwId}`;
-      label = comment.section.code ?? t("unknownTarget");
+      label =
+        comment.section.course?.nameCn ??
+        comment.section.code ??
+        t("unknownTarget");
     } else if (comment.course?.jwId) {
       url = `/courses/${comment.course.jwId}`;
-      label = comment.course.code ?? comment.course.nameCn;
+      label =
+        comment.course.nameCn ?? comment.course.code ?? t("unknownTarget");
     } else if (comment.teacher?.id) {
       url = `/teachers/${comment.teacher.id}`;
       label = comment.teacher.nameCn;
@@ -285,7 +351,7 @@ export function ModerationDashboard() {
     setSuspendExpiresAt("");
 
     const targetLink = getTargetLink(comment);
-    const date = formatter.format(new Date(comment.createdAt));
+    const date = formatTimestamp(comment.createdAt);
     const bodySnippet =
       comment.body.length > 50
         ? `${comment.body.slice(0, 50)}...`
@@ -299,28 +365,32 @@ export function ModerationDashboard() {
     setDetailDialogOpen(true);
   };
 
+  const openDescriptionDialog = (description: AdminDescription) => {
+    setSelectedDescription(description);
+    setDescriptionDialogOpen(true);
+  };
+
   const calculateExpiresAt = () => {
     if (suspendDuration === "permanent") return undefined;
-    if (suspendDuration === "custom") return suspendExpiresAt || undefined;
-
-    const now = new Date();
-    switch (suspendDuration) {
-      case "1d":
-        now.setDate(now.getDate() + 1);
-        break;
-      case "3d":
-        now.setDate(now.getDate() + 3);
-        break;
-      case "7d":
-        now.setDate(now.getDate() + 7);
-        break;
-      case "30d":
-        now.setDate(now.getDate() + 30);
-        break;
-      default:
-        return undefined;
+    if (suspendDuration === "custom") {
+      const parsed = parseShanghaiDateTimeLocalInput(suspendExpiresAt);
+      return parsed ? toShanghaiIsoString(parsed) : undefined;
     }
-    return now.toISOString();
+
+    const amount =
+      suspendDuration === "1d"
+        ? 1
+        : suspendDuration === "3d"
+          ? 3
+          : suspendDuration === "7d"
+            ? 7
+            : suspendDuration === "30d"
+              ? 30
+              : null;
+
+    return amount === null
+      ? undefined
+      : toShanghaiIsoString(addShanghaiTime(new Date(), amount, "day"));
   };
 
   const handleUpdateStatus = async () => {
@@ -347,7 +417,10 @@ export function ModerationDashboard() {
       await loadData();
       setDetailDialogOpen(false);
     } catch (error) {
-      console.error("Failed to update comment", error);
+      logClientError("Failed to update comment", error, {
+        component: "ModerationDashboard",
+        commentId: selectedComment?.id ?? null,
+      });
       toast({
         title: t("updateFailed"),
         variant: "destructive",
@@ -378,7 +451,10 @@ export function ModerationDashboard() {
       await loadData();
       setDetailDialogOpen(false);
     } catch (error) {
-      console.error("Failed to suspend user", error);
+      logClientError("Failed to suspend user", error, {
+        component: "ModerationDashboard",
+        commentId: selectedComment?.id ?? null,
+      });
       toast({
         title: t("suspendFailed"),
         variant: "destructive",
@@ -386,70 +462,86 @@ export function ModerationDashboard() {
     }
   };
 
-  const openLiftDialog = (suspensionId: string, userName: string) => {
-    setLiftSuspensionId(suspensionId);
-    setLiftUserName(userName);
-    setLiftDialogOpen(true);
-  };
-
-  const confirmLift = async () => {
-    try {
-      const result = await apiClient.PATCH("/api/admin/suspensions/{id}", {
-        params: {
-          path: { id: liftSuspensionId },
-        },
-      });
-
-      if (!result.response.ok) {
-        const apiMessage = extractApiErrorMessage(result.error);
-        throw new Error(apiMessage ?? "Failed to lift suspension");
-      }
-      toast({
-        title: t("liftSuccess"),
-        variant: "success",
-      });
-      setLiftDialogOpen(false);
-      await loadData();
-    } catch (error) {
-      console.error("Failed to lift suspension", error);
-      toast({
-        title: t("liftFailed"),
-        variant: "destructive",
-      });
-    }
-  };
+  // Suspensions tab removed; lifting suspensions is not handled here.
 
   const filteredComments = useMemo(() => {
-    if (!searchQuery.trim()) return comments;
-    const query = searchQuery.toLowerCase();
+    const query = deferredSearchQuery.trim().toLowerCase();
+    if (!query) return comments;
     return comments.filter(
       (c) =>
         c.body?.toLowerCase().includes(query) ||
         c.user?.name?.toLowerCase().includes(query) ||
         c.authorName?.toLowerCase().includes(query),
     );
-  }, [comments, searchQuery]);
+  }, [comments, deferredSearchQuery]);
 
-  const filteredSuspensions = useMemo(() => {
-    if (!searchQuery.trim()) return suspensions;
-    const query = searchQuery.toLowerCase();
-    return suspensions.filter(
-      (s) =>
-        s.user?.name?.toLowerCase().includes(query) ||
-        s.userId?.toLowerCase().includes(query) ||
-        s.reason?.toLowerCase().includes(query),
-    );
-  }, [suspensions, searchQuery]);
+  const filteredDescriptionsAll = useMemo(() => {
+    const query = deferredSearchQuery.trim().toLowerCase();
+    return descriptions.filter((d) => {
+      const hasContent = Boolean(d.content?.trim());
+      if (descriptionContentFilter === "withContent" && !hasContent)
+        return false;
+      if (descriptionContentFilter === "empty" && hasContent) return false;
+
+      if (!query) return true;
+      const haystack = [
+        d.content,
+        d.homework?.title ?? "",
+        d.homework?.section?.code ?? "",
+        d.homework?.section?.course?.code ?? "",
+        d.homework?.section?.course?.nameCn ?? "",
+        d.course?.code ?? "",
+        d.course?.nameCn ?? "",
+        d.section?.code ?? "",
+        d.section?.course?.code ?? "",
+        d.section?.course?.nameCn ?? "",
+        d.teacher?.nameCn ?? "",
+        d.lastEditedBy?.name ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [deferredSearchQuery, descriptions, descriptionContentFilter]);
+
+  const filteredDescriptionsHomework = useMemo(
+    () => filteredDescriptionsAll.filter((d) => Boolean(d.homework)),
+    [filteredDescriptionsAll],
+  );
+  const filteredDescriptionsCourse = useMemo(
+    () => filteredDescriptionsAll.filter((d) => Boolean(d.course)),
+    [filteredDescriptionsAll],
+  );
+  const filteredDescriptionsSection = useMemo(
+    () => filteredDescriptionsAll.filter((d) => Boolean(d.section)),
+    [filteredDescriptionsAll],
+  );
+  const filteredDescriptionsTeacher = useMemo(
+    () => filteredDescriptionsAll.filter((d) => Boolean(d.teacher)),
+    [filteredDescriptionsAll],
+  );
 
   return (
     <>
       <Tabs defaultValue="comments">
-        <TabsList>
-          <TabsTab value="comments">
+        <TabsList variant="pill">
+          <TabsTab value="comments" variant="pill">
             {t("commentsTab")} ({comments.length})
           </TabsTab>
-          <TabsTab value="suspensions">
-            {t("suspensionsTab")} ({suspensions.length})
+          <TabsTab value="description-homework" variant="pill">
+            {t("descriptionTargetHomework")} (
+            {filteredDescriptionsHomework.length})
+          </TabsTab>
+          <TabsTab value="description-course" variant="pill">
+            {t("descriptionTargetCourse")} ({filteredDescriptionsCourse.length})
+          </TabsTab>
+          <TabsTab value="description-section" variant="pill">
+            {t("descriptionTargetSection")} (
+            {filteredDescriptionsSection.length})
+          </TabsTab>
+          <TabsTab value="description-teacher" variant="pill">
+            {t("descriptionTargetTeacher")} (
+            {filteredDescriptionsTeacher.length})
           </TabsTab>
         </TabsList>
 
@@ -462,53 +554,164 @@ export function ModerationDashboard() {
             t={t}
           />
 
-          {loading ? (
-            <p className="text-muted-foreground text-sm">{t("loading")}</p>
-          ) : filteredComments.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("noResults")}</p>
-          ) : (
-            <>
-              <p className="mb-3 text-muted-foreground text-sm">
+          <DataState
+            loading={loading}
+            error={error}
+            onRetry={() => void loadData()}
+            retryLabel={t("retry")}
+            empty={filteredComments.length === 0}
+            emptyDescription={t("noResults")}
+            loadingFallback={<ModerationTableSkeleton />}
+          >
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
                 {t("showingResults", { count: filteredComments.length })}
               </p>
               <CommentsTable
                 comments={filteredComments}
-                formatter={formatter}
+                formatTimestamp={formatTimestamp}
                 onSelect={openDetailDialog}
                 getTargetLink={getTargetLink}
                 t={t}
               />
-            </>
-          )}
+            </div>
+          </DataState>
         </TabsPanel>
 
-        <TabsPanel value="suspensions">
-          <CommentFilters
+        <TabsPanel value="description-homework">
+          <DescriptionFilters
             searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            showStatusFilter={false}
+            contentFilter={descriptionContentFilter}
             onSearchChange={setSearchQuery}
-            onStatusChange={setStatusFilter}
+            onContentChange={setDescriptionContentFilter}
             t={t}
           />
 
-          {loading ? (
-            <p className="text-muted-foreground text-sm">{t("loading")}</p>
-          ) : filteredSuspensions.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("noResults")}</p>
-          ) : (
-            <>
-              <p className="mb-3 text-muted-foreground text-sm">
-                {t("showingResults", { count: filteredSuspensions.length })}
+          <DataState
+            loading={loading}
+            error={error}
+            onRetry={() => void loadData()}
+            retryLabel={t("retry")}
+            empty={filteredDescriptionsHomework.length === 0}
+            emptyDescription={t("noResults")}
+            loadingFallback={<ModerationTableSkeleton />}
+          >
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                {t("showingResults", {
+                  count: filteredDescriptionsHomework.length,
+                })}
               </p>
-              <SuspensionsTable
-                suspensions={filteredSuspensions}
-                formatter={formatter}
-                onLift={openLiftDialog}
+              <DescriptionsTable
+                descriptions={filteredDescriptionsHomework}
+                formatTimestamp={formatTimestamp}
+                onSelect={openDescriptionDialog}
                 t={t}
               />
-            </>
-          )}
+            </div>
+          </DataState>
+        </TabsPanel>
+
+        <TabsPanel value="description-course">
+          <DescriptionFilters
+            searchQuery={searchQuery}
+            contentFilter={descriptionContentFilter}
+            onSearchChange={setSearchQuery}
+            onContentChange={setDescriptionContentFilter}
+            t={t}
+          />
+
+          <DataState
+            loading={loading}
+            error={error}
+            onRetry={() => void loadData()}
+            retryLabel={t("retry")}
+            empty={filteredDescriptionsCourse.length === 0}
+            emptyDescription={t("noResults")}
+            loadingFallback={<ModerationTableSkeleton />}
+          >
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                {t("showingResults", {
+                  count: filteredDescriptionsCourse.length,
+                })}
+              </p>
+              <DescriptionsTable
+                descriptions={filteredDescriptionsCourse}
+                formatTimestamp={formatTimestamp}
+                onSelect={openDescriptionDialog}
+                t={t}
+              />
+            </div>
+          </DataState>
+        </TabsPanel>
+
+        <TabsPanel value="description-section">
+          <DescriptionFilters
+            searchQuery={searchQuery}
+            contentFilter={descriptionContentFilter}
+            onSearchChange={setSearchQuery}
+            onContentChange={setDescriptionContentFilter}
+            t={t}
+          />
+
+          <DataState
+            loading={loading}
+            error={error}
+            onRetry={() => void loadData()}
+            retryLabel={t("retry")}
+            empty={filteredDescriptionsSection.length === 0}
+            emptyDescription={t("noResults")}
+            loadingFallback={<ModerationTableSkeleton />}
+          >
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                {t("showingResults", {
+                  count: filteredDescriptionsSection.length,
+                })}
+              </p>
+              <DescriptionsTable
+                descriptions={filteredDescriptionsSection}
+                formatTimestamp={formatTimestamp}
+                onSelect={openDescriptionDialog}
+                t={t}
+              />
+            </div>
+          </DataState>
+        </TabsPanel>
+
+        <TabsPanel value="description-teacher">
+          <DescriptionFilters
+            searchQuery={searchQuery}
+            contentFilter={descriptionContentFilter}
+            onSearchChange={setSearchQuery}
+            onContentChange={setDescriptionContentFilter}
+            t={t}
+          />
+
+          <DataState
+            loading={loading}
+            error={error}
+            onRetry={() => void loadData()}
+            retryLabel={t("retry")}
+            empty={filteredDescriptionsTeacher.length === 0}
+            emptyDescription={t("noResults")}
+            loadingFallback={<ModerationTableSkeleton />}
+          >
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-sm">
+                {t("showingResults", {
+                  count: filteredDescriptionsTeacher.length,
+                })}
+              </p>
+              <DescriptionsTable
+                descriptions={filteredDescriptionsTeacher}
+                formatTimestamp={formatTimestamp}
+                onSelect={openDescriptionDialog}
+                t={t}
+              />
+            </div>
+          </DataState>
         </TabsPanel>
       </Tabs>
 
@@ -528,18 +731,43 @@ export function ModerationDashboard() {
         onDurationChange={(value) => setSuspendDuration(value ?? "3d")}
         onExpiresChange={setSuspendExpiresAt}
         onReasonChange={setSuspendReason}
-        formatter={formatter}
+        formatTimestamp={formatTimestamp}
         t={t}
       />
 
-      <LiftSuspensionDialog
-        open={liftDialogOpen}
-        onOpenChange={setLiftDialogOpen}
-        userName={liftUserName}
-        onConfirm={() => void confirmLift()}
+      <DescriptionDetailDialog
+        open={descriptionDialogOpen}
+        onOpenChange={setDescriptionDialogOpen}
+        description={selectedDescription}
+        formatTimestamp={formatTimestamp}
         t={t}
       />
     </>
+  );
+}
+
+function ModerationTableSkeleton() {
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl border border-border/70 bg-card/72">
+        <div className="p-4">
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="space-y-0 border-border/60 border-t">
+          {stableSkeletonKeys(6, "moderation-row").map((key) => (
+            <div
+              key={key}
+              className="flex items-center gap-4 border-border/60 border-b px-4 py-3 last:border-b-0"
+            >
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -552,16 +780,12 @@ function CommentFilters({
   t,
 }: CommentFiltersProps) {
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="relative flex-1">
-        <MagnifyingGlass className="absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={t("searchPlaceholder")}
-          className="pl-9"
-        />
-      </div>
+    <FiltersBar>
+      <FiltersBarSearch
+        value={searchQuery}
+        onChange={onSearchChange}
+        placeholder={t("searchPlaceholder")}
+      />
       {showStatusFilter && (
         <Select
           value={statusFilter}
@@ -570,7 +794,8 @@ function CommentFilters({
               value === "all" ||
               value === "active" ||
               value === "softbanned" ||
-              value === "deleted"
+              value === "deleted" ||
+              value === "suspended"
                 ? value
                 : "active";
             onStatusChange(next);
@@ -580,6 +805,7 @@ function CommentFilters({
             { value: "active", label: t("filterActive") },
             { value: "softbanned", label: t("filterSoftbanned") },
             { value: "deleted", label: t("filterDeleted") },
+            { value: "suspended", label: t("filterSuspended") },
           ]}
         >
           <SelectTrigger className="w-full sm:w-48">
@@ -590,16 +816,62 @@ function CommentFilters({
             <SelectItem value="active">{t("filterActive")}</SelectItem>
             <SelectItem value="softbanned">{t("filterSoftbanned")}</SelectItem>
             <SelectItem value="deleted">{t("filterDeleted")}</SelectItem>
+            <SelectItem value="suspended">{t("filterSuspended")}</SelectItem>
           </SelectPopup>
         </Select>
       )}
-    </div>
+    </FiltersBar>
+  );
+}
+
+function DescriptionFilters({
+  searchQuery,
+  contentFilter,
+  onSearchChange,
+  onContentChange,
+  t,
+}: DescriptionFiltersProps) {
+  return (
+    <FiltersBar>
+      <FiltersBarSearch
+        value={searchQuery}
+        onChange={onSearchChange}
+        placeholder={t("searchPlaceholder")}
+      />
+
+      <Select
+        value={contentFilter}
+        onValueChange={(value) => {
+          const next: DescriptionContentFilter =
+            value === "all" || value === "withContent" || value === "empty"
+              ? value
+              : "withContent";
+          onContentChange(next);
+        }}
+        items={[
+          { value: "withContent", label: t("descriptionContentWith") },
+          { value: "empty", label: t("descriptionContentEmpty") },
+          { value: "all", label: t("filterAll") },
+        ]}
+      >
+        <SelectTrigger className="w-full sm:w-48">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectPopup>
+          <SelectItem value="withContent">
+            {t("descriptionContentWith")}
+          </SelectItem>
+          <SelectItem value="empty">{t("descriptionContentEmpty")}</SelectItem>
+          <SelectItem value="all">{t("filterAll")}</SelectItem>
+        </SelectPopup>
+      </Select>
+    </FiltersBar>
   );
 }
 
 function CommentsTable({
   comments,
-  formatter,
+  formatTimestamp,
   onSelect,
   getTargetLink,
   t,
@@ -608,11 +880,11 @@ function CommentsTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>{t("author")}</TableHead>
           <TableHead>{t("content")}</TableHead>
+          <TableHead>{t("author")}</TableHead>
           <TableHead>{t("postedIn")}</TableHead>
-          <TableHead>{t("status")}</TableHead>
           <TableHead>{t("createdAt")}</TableHead>
+          <TableHead>{t("status")}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -633,19 +905,13 @@ function CommentsTable({
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => onSelect(comment)}
             >
-              <TableCell className="font-medium">{authorName}</TableCell>
               <TableCell className="max-w-md">
                 <p className="line-clamp-2 text-sm">{comment.body}</p>
               </TableCell>
-              <TableCell>
-                <Button
-                  size="xs"
-                  variant="link"
-                  render={<Link className="no-underline" href={target.href} />}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {target.label}
-                </Button>
+              <TableCell className="font-medium">{authorName}</TableCell>
+              <TableCell className="max-w-sm text-sm">{target.label}</TableCell>
+              <TableCell className="text-muted-foreground text-xs">
+                {formatTimestamp(comment.createdAt)}
               </TableCell>
               <TableCell>
                 <Badge
@@ -660,8 +926,72 @@ function CommentsTable({
                   {statusLabel}
                 </Badge>
               </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+function DescriptionsTable({
+  descriptions,
+  formatTimestamp,
+  onSelect,
+  t,
+}: DescriptionsTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>{t("descriptionPreview")}</TableHead>
+          <TableHead>{t("author")}</TableHead>
+          <TableHead>{t("postedIn")}</TableHead>
+          <TableHead>{t("createdAt")}</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {descriptions.map((d) => {
+          const target = d.homework?.id
+            ? {
+                href: `/homeworks/${d.homework.id}`,
+                label: d.homework.title ?? "—",
+              }
+            : d.section?.jwId
+              ? {
+                  href: `/sections/${d.section.jwId}`,
+                  label: d.section.course?.nameCn ?? "—",
+                }
+              : d.course?.jwId
+                ? {
+                    href: `/courses/${d.course.jwId}`,
+                    label: d.course.nameCn ?? "—",
+                  }
+                : d.teacher?.id
+                  ? {
+                      href: `/teachers/${d.teacher.id}`,
+                      label: d.teacher.nameCn,
+                    }
+                  : { href: "/", label: "—" };
+
+          const authorName = d.lastEditedBy?.name ?? "—";
+          const createdLabel = d.lastEditedAt ?? d.updatedAt;
+
+          return (
+            <TableRow
+              key={d.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => onSelect(d)}
+            >
+              <TableCell className="max-w-md font-medium">
+                <p className="line-clamp-2 whitespace-pre-wrap text-sm">
+                  {d.content?.trim() ? d.content : "—"}
+                </p>
+              </TableCell>
+              <TableCell className="font-medium">{authorName}</TableCell>
+              <TableCell className="max-w-sm text-sm">{target.label}</TableCell>
               <TableCell className="text-muted-foreground text-xs">
-                {formatter.format(new Date(comment.createdAt))}
+                {formatTimestamp(createdLabel)}
               </TableCell>
             </TableRow>
           );
@@ -671,64 +1001,111 @@ function CommentsTable({
   );
 }
 
-function SuspensionsTable({
-  suspensions,
-  formatter,
-  onLift,
+function DescriptionDetailDialog({
+  open,
+  onOpenChange,
+  description,
+  formatTimestamp,
   t,
-}: SuspensionsTableProps) {
+}: DescriptionDetailDialogProps) {
+  const adminUserHref = description?.lastEditedBy?.id
+    ? `/admin/users?search=${encodeURIComponent(description.lastEditedBy.id)}`
+    : null;
+  const target = description?.homework?.id
+    ? {
+        href: `/homeworks/${description.homework.id}`,
+        label: description.homework.title ?? "—",
+      }
+    : description?.section?.jwId
+      ? {
+          href: `/sections/${description.section.jwId}`,
+          label: description.section.course?.nameCn ?? "—",
+        }
+      : description?.course?.jwId
+        ? {
+            href: `/courses/${description.course.jwId}`,
+            label: description.course.nameCn ?? "—",
+          }
+        : description?.teacher?.id
+          ? {
+              href: `/teachers/${description.teacher.id}`,
+              label: description.teacher.nameCn,
+            }
+          : { href: "/", label: "—" };
+
+  const authorName = description?.lastEditedBy?.name ?? "—";
+  const createdLabel =
+    description?.lastEditedAt ?? description?.updatedAt ?? null;
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>{t("user")}</TableHead>
-          <TableHead>{t("reason")}</TableHead>
-          <TableHead>{t("createdAt")}</TableHead>
-          <TableHead>{t("expires")}</TableHead>
-          <TableHead>{t("status")}</TableHead>
-          <TableHead>{t("actions")}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {suspensions.map((suspension) => (
-          <TableRow key={suspension.id}>
-            <TableCell className="font-medium">
-              {suspension.user?.name ?? suspension.userId}
-            </TableCell>
-            <TableCell>{suspension.reason ?? t("noReason")}</TableCell>
-            <TableCell className="text-muted-foreground text-xs">
-              {formatter.format(new Date(suspension.createdAt))}
-            </TableCell>
-            <TableCell className="text-muted-foreground text-xs">
-              {suspension.expiresAt
-                ? formatter.format(new Date(suspension.expiresAt))
-                : t("permanent")}
-            </TableCell>
-            <TableCell>
-              <Badge variant={suspension.liftedAt ? "outline" : "destructive"}>
-                {suspension.liftedAt ? t("lifted") : t("active")}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {!suspension.liftedAt && (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogPopup className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{t("manageDescription")}</DialogTitle>
+          <DialogDescription>{t("clickToManage")}</DialogDescription>
+        </DialogHeader>
+        {description ? (
+          <DialogPanel className="space-y-4">
+            <div className="rounded-md bg-muted/50 p-3">
+              <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="text-muted-foreground text-xs">
+                    {t("author")}
+                  </dt>
+                  <dd className="font-medium">{authorName}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">
+                    {t("postedIn")}
+                  </dt>
+                  <dd className="font-medium">{target.label}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">
+                    {t("createdAt")}
+                  </dt>
+                  <dd className="font-medium">
+                    {createdLabel ? formatTimestamp(createdLabel) : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground text-xs">ID</dt>
+                  <dd className="font-mono text-xs">{description.id}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="space-y-2">
+              <h4 className="font-medium text-sm">{t("content")}</h4>
+              <div className="rounded-md border bg-card p-3">
+                <p className="whitespace-pre-wrap text-sm">
+                  {description.content?.trim() ? description.content : "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                render={<Link href={target.href} />}
+              >
+                {t("openTarget")}
+              </Button>
+              {adminUserHref ? (
                 <Button
-                  size="xs"
+                  size="sm"
                   variant="outline"
-                  onClick={() =>
-                    onLift(
-                      suspension.id,
-                      suspension.user?.name ?? suspension.userId,
-                    )
-                  }
+                  render={<Link href={adminUserHref} />}
                 >
-                  {t("liftAction")}
+                  {t("manageUser")}
                 </Button>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+              ) : null}
+            </div>
+          </DialogPanel>
+        ) : null}
+      </DialogPopup>
+    </Dialog>
   );
 }
 
@@ -748,25 +1125,123 @@ function CommentDetailDialog({
   onDurationChange,
   onExpiresChange,
   onReasonChange,
-  formatter,
+  formatTimestamp,
   t,
 }: CommentDetailDialogProps) {
+  const target = comment
+    ? (() => {
+        if (comment.homework?.id) {
+          const sectionCode = comment.homework.section?.code ?? "";
+          const homeworkTitle = comment.homework.title ?? "";
+          return {
+            href: `/comments/${comment.id}`,
+            label:
+              [sectionCode, homeworkTitle].filter(Boolean).join(" · ") || "—",
+          };
+        }
+        if (comment.sectionTeacher?.section?.jwId) {
+          const section = comment.sectionTeacher.section;
+          return {
+            href: `/sections/${section.jwId}#comment-${comment.id}`,
+            label:
+              section.course?.nameCn ??
+              section.code ??
+              comment.sectionTeacher.teacher?.nameCn ??
+              "—",
+          };
+        }
+        if (comment.section?.jwId) {
+          return {
+            href: `/sections/${comment.section.jwId}#comment-${comment.id}`,
+            label:
+              comment.section.course?.nameCn ?? comment.section.code ?? "—",
+          };
+        }
+        if (comment.course?.jwId) {
+          return {
+            href: `/courses/${comment.course.jwId}#comment-${comment.id}`,
+            label: comment.course.nameCn ?? "—",
+          };
+        }
+        if (comment.teacher?.id) {
+          return {
+            href: `/teachers/${comment.teacher.id}#comment-${comment.id}`,
+            label: comment.teacher.nameCn ?? "—",
+          };
+        }
+        return null;
+      })()
+    : null;
+  const adminUserHref = comment?.userId
+    ? `/admin/users?search=${encodeURIComponent(comment.userId)}`
+    : null;
+  const authorLabel = comment
+    ? (comment.user?.name ?? comment.authorName ?? t("guestLabel"))
+    : "—";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup className="max-w-xl">
+      <DialogPopup className="max-h-[70vh] max-w-xl">
         <DialogHeader>
           <DialogTitle>{t("manageComment")}</DialogTitle>
           <DialogDescription>{t("clickToManage")}</DialogDescription>
         </DialogHeader>
-        <div className="max-h-[70vh] overflow-y-auto p-4">
+        <DialogPanel>
           {comment && (
             <div className="space-y-6">
               <div className="rounded-md bg-muted/50 p-3">
-                <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
-                <div className="mt-2 text-muted-foreground text-xs">
-                  {t("author")}:{" "}
-                  {comment.user?.name ?? comment.authorName ?? t("guestLabel")}{" "}
-                  · {formatter.format(new Date(comment.createdAt))}
+                <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      {t("author")}
+                    </dt>
+                    <dd className="font-medium">{authorLabel}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      {t("postedIn")}
+                    </dt>
+                    <dd className="font-medium">{target?.label ?? "—"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs">
+                      {t("createdAt")}
+                    </dt>
+                    <dd className="font-medium">
+                      {formatTimestamp(comment.createdAt)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground text-xs">ID</dt>
+                    <dd className="font-mono text-xs">{comment.id}</dd>
+                  </div>
+                </dl>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {target ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      render={<Link href={target.href} />}
+                    >
+                      {t("openTarget")}
+                    </Button>
+                  ) : null}
+                  {adminUserHref ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      render={<Link href={adminUserHref} />}
+                    >
+                      {t("manageUser")}
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-medium text-sm">{t("content")}</h4>
+                <div className="rounded-md border bg-card p-3">
+                  <p className="whitespace-pre-wrap text-sm">{comment.body}</p>
                 </div>
               </div>
 
@@ -820,9 +1295,6 @@ function CommentDetailDialog({
                   >
                     {t("confirmButton")}
                   </Button>
-                  <DialogClose render={<Button variant="outline" />}>
-                    {t("cancelButton")}
-                  </DialogClose>
                 </div>
               </div>
 
@@ -884,35 +1356,10 @@ function CommentDetailDialog({
               )}
             </div>
           )}
-        </div>
+        </DialogPanel>
       </DialogPopup>
     </Dialog>
   );
 }
 
-function LiftSuspensionDialog({
-  open,
-  onOpenChange,
-  userName,
-  onConfirm,
-  t,
-}: LiftDialogProps) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPopup>
-        <DialogHeader>
-          <DialogTitle>{t("confirmLiftTitle")}</DialogTitle>
-          <DialogDescription>
-            {t("confirmLiftMessage", { userName })}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogClose render={<Button variant="outline" />}>
-            {t("cancelButton")}
-          </DialogClose>
-          <Button onClick={onConfirm}>{t("confirmButton")}</Button>
-        </DialogFooter>
-      </DialogPopup>
-    </Dialog>
-  );
-}
+// LiftSuspensionDialog removed with Suspensions tab.

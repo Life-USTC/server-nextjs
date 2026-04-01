@@ -113,7 +113,8 @@
               "enum": [
                 "active",
                 "softbanned",
-                "deleted"
+                "deleted",
+                "suspended"
               ]
             },
             "required": false
@@ -177,6 +178,149 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/descriptions": {
+      "get": {
+        "operationId": "get-api-admin-descriptions",
+        "summary": "List descriptions for moderation review.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "targetType",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "section",
+                "course",
+                "teacher",
+                "homework"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "hasContent",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "withContent",
+                "empty"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminDescriptionsResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/homeworks": {
+      "get": {
+        "operationId": "get-api-admin-homeworks",
+        "summary": "List moderation homeworks.",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "active",
+                "deleted"
+              ]
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {},
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/adminHomeworksResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/homeworks/{id}": {
+      "delete": {
+        "operationId": "delete-api-admin-homeworks-{id}",
+        "summary": "Soft delete one homework (admin).",
+        "description": "",
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -2208,7 +2352,8 @@
             "enum": [
               "active",
               "softbanned",
-              "deleted"
+              "deleted",
+              "suspended"
             ]
           },
           "limit": {
@@ -2234,6 +2379,75 @@
           "comments"
         ]
       },
+      "adminDescriptionsQuerySchema": {
+        "type": "object",
+        "properties": {
+          "targetType": {
+            "type": "string",
+            "enum": [
+              "all",
+              "section",
+              "course",
+              "teacher",
+              "homework"
+            ]
+          },
+          "hasContent": {
+            "type": "string",
+            "enum": [
+              "all",
+              "withContent",
+              "empty"
+            ]
+          },
+          "search": {
+            "type": "string"
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "adminDescriptionsResponseSchema": {},
+      "successResponseSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "adminHomeworksQuerySchema": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "all",
+              "active",
+              "deleted"
+            ]
+          },
+          "search": {
+            "type": "string"
+          },
+          "limit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          }
+        }
+      },
+      "adminHomeworksResponseSchema": {},
       "adminSuspensionResponseSchema": {
         "type": "object",
         "properties": {
@@ -2417,17 +2631,6 @@
         },
         "required": [
           "type"
-        ]
-      },
-      "successResponseSchema": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "success"
         ]
       },
       "commentThreadResponseSchema": {

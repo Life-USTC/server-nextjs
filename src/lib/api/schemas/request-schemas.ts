@@ -230,7 +230,22 @@ export const adminUsersQuerySchema = z.object({
 });
 
 export const adminCommentsQuerySchema = z.object({
-  status: z.enum(["active", "softbanned", "deleted"]).optional(),
+  status: z.enum(["active", "softbanned", "deleted", "suspended"]).optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const adminHomeworksQuerySchema = z.object({
+  status: z.enum(["all", "active", "deleted"]).optional(),
+  search: z.string().trim().optional(),
+  limit: integerStringSchema.optional(),
+});
+
+export const adminDescriptionsQuerySchema = z.object({
+  targetType: z
+    .enum(["all", "section", "course", "teacher", "homework"])
+    .optional(),
+  hasContent: z.enum(["all", "withContent", "empty"]).optional(),
+  search: z.string().trim().optional(),
   limit: integerStringSchema.optional(),
 });
 

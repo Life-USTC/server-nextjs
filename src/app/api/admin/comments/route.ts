@@ -43,11 +43,22 @@ export async function GET(request: Request) {
   const status = parsedQuery.data.status ?? "";
   const limit = parseLimit(parsedQuery.data.limit ?? null);
 
-  const where = STATUS_FILTERS.includes(
-    status as (typeof STATUS_FILTERS)[number],
-  )
-    ? { status: status as CommentStatus }
-    : {};
+  const now = new Date();
+  const where =
+    status === "suspended"
+      ? {
+          user: {
+            suspensions: {
+              some: {
+                liftedAt: null,
+                OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+              },
+            },
+          },
+        }
+      : STATUS_FILTERS.includes(status as (typeof STATUS_FILTERS)[number])
+        ? { status: status as CommentStatus }
+        : {};
 
   try {
     const comments = await prisma.comment.findMany({
@@ -57,7 +68,13 @@ export async function GET(request: Request) {
           select: { name: true },
         },
         section: {
-          select: { jwId: true, code: true },
+          select: {
+            jwId: true,
+            code: true,
+            course: {
+              select: { jwId: true, code: true, nameCn: true },
+            },
+          },
         },
         course: {
           select: { jwId: true, code: true, nameCn: true },
@@ -77,7 +94,13 @@ export async function GET(request: Request) {
         sectionTeacher: {
           select: {
             section: {
-              select: { jwId: true, code: true },
+              select: {
+                jwId: true,
+                code: true,
+                course: {
+                  select: { jwId: true, code: true, nameCn: true },
+                },
+              },
             },
             teacher: {
               select: { nameCn: true },

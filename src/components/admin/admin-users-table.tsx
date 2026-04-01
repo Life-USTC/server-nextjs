@@ -1,8 +1,7 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import { useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -44,6 +43,15 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import { adminUserResponseSchema } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { getPaginationTokens } from "@/lib/navigation/pagination";
+import { buildSearchParams } from "@/lib/navigation/search-params";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import {
+  addShanghaiTime,
+  createShanghaiDateTimeFormatter,
+  parseShanghaiDateTimeLocalInput,
+} from "@/lib/time/shanghai-format";
 
 type AdminUser = {
   id: string;
@@ -78,13 +86,12 @@ export function AdminUsersTable({
   totalPages,
   search,
 }: AdminUsersTableProps) {
+  const locale = useLocale();
   const suspendDurationLabelId = "admin-user-suspend-duration-label";
   const suspendExpiresInputId = "admin-user-suspend-expires-at";
   const suspendReasonInputId = "admin-user-suspend-reason";
   const t = useTranslations("adminUsers");
   const tModeration = useTranslations("moderation");
-  const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -97,22 +104,26 @@ export function AdminUsersTable({
   const [suspendDuration, setSuspendDuration] = useState("3d");
   const [suspendExpiresAt, setSuspendExpiresAt] = useState("");
   const [suspendReason, setSuspendReason] = useState("");
-
-  const formatter = useMemo(
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      createShanghaiDateTimeFormatter(locale, {
         dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
+  );
+  const formatTimestamp = useCallback(
+    (value: string | Date) => dateTimeFormatter.format(new Date(value)),
+    [dateTimeFormatter],
   );
 
   const buildUrl = (nextPage: number) => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (nextPage > 1) params.set("page", String(nextPage));
-    const query = params.toString();
+    const query = buildSearchParams({
+      values: {
+        search,
+        page: nextPage > 1 ? String(nextPage) : "",
+      },
+    });
     return query ? `/admin/users?${query}` : "/admin/users";
   };
 
@@ -129,13 +140,19 @@ export function AdminUsersTable({
 
   const calculateExpiresAt = () => {
     if (suspendDuration === "permanent") return null;
-    if (suspendDuration === "custom") return suspendExpiresAt || null;
-    const now = new Date();
-    if (suspendDuration === "1d") now.setDate(now.getDate() + 1);
-    if (suspendDuration === "3d") now.setDate(now.getDate() + 3);
-    if (suspendDuration === "7d") now.setDate(now.getDate() + 7);
-    if (suspendDuration === "30d") now.setDate(now.getDate() + 30);
-    return now.toISOString();
+    if (suspendDuration === "custom") {
+      const parsed = parseShanghaiDateTimeLocalInput(suspendExpiresAt);
+      return parsed ? toShanghaiIsoString(parsed) : null;
+    }
+    const amount =
+      suspendDuration === "1d"
+        ? 1
+        : suspendDuration === "3d"
+          ? 3
+          : suspendDuration === "7d"
+            ? 7
+            : 30;
+    return toShanghaiIsoString(addShanghaiTime(new Date(), amount, "day"));
   };
 
   const handleSave = async () => {
@@ -176,7 +193,10 @@ export function AdminUsersTable({
       });
       setDialogOpen(false);
     } catch (error) {
-      console.error("Failed to update user", error);
+      logClientError("Failed to update user", error, {
+        component: "AdminUsersTable",
+        userId: selectedUser?.id ?? null,
+      });
       toast({
         title: t("updateFailed"),
         variant: "destructive",
@@ -208,7 +228,10 @@ export function AdminUsersTable({
         variant: "success",
       });
     } catch (error) {
-      console.error("Failed to suspend user", error);
+      logClientError("Failed to suspend user", error, {
+        component: "AdminUsersTable",
+        userId: selectedUser?.id ?? null,
+      });
       toast({
         title: tModeration("suspendFailed"),
         variant: "destructive",
@@ -257,7 +280,7 @@ export function AdminUsersTable({
                 {entry.isAdmin ? t("adminRole") : t("userRole")}
               </TableCell>
               <TableCell className="text-muted-foreground text-sm">
-                {formatter.format(new Date(entry.createdAt))}
+                {formatTimestamp(entry.createdAt)}
               </TableCell>
             </TableRow>
           ))}
@@ -272,47 +295,26 @@ export function AdminUsersTable({
                 <PaginationPrevious href={buildUrl(page - 1)} />
               </PaginationItem>
             )}
-            {(() => {
-              const maxVisible = 7;
-              const half = Math.floor(maxVisible / 2);
-              let start = Math.max(1, page - half);
-              const end = Math.min(totalPages, start + maxVisible - 1);
-              start = Math.max(1, end - maxVisible + 1);
-              const pages: number[] = [];
-              for (let i = start; i <= end; i++) pages.push(i);
-              return (
-                <>
-                  {start > 1 && (
-                    <>
-                      <PaginationItem>
-                        <PaginationLink href={buildUrl(1)}>1</PaginationLink>
-                      </PaginationItem>
-                      {start > 2 && <PaginationEllipsis />}
-                    </>
-                  )}
-                  {pages.map((pageNum) => (
-                    <PaginationItem key={pageNum}>
-                      <PaginationLink
-                        href={buildUrl(pageNum)}
-                        isActive={pageNum === page}
-                      >
-                        {pageNum}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  {end < totalPages && (
-                    <>
-                      {end < totalPages - 1 && <PaginationEllipsis />}
-                      <PaginationItem>
-                        <PaginationLink href={buildUrl(totalPages)}>
-                          {totalPages}
-                        </PaginationLink>
-                      </PaginationItem>
-                    </>
-                  )}
-                </>
-              );
-            })()}
+            {getPaginationTokens({
+              currentPage: page,
+              totalPages,
+              maxVisible: 7,
+            }).map((pageNum, index) => (
+              <PaginationItem
+                key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
+              >
+                {pageNum === "ellipsis" ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <PaginationLink
+                    href={buildUrl(pageNum)}
+                    isActive={pageNum === page}
+                  >
+                    {pageNum}
+                  </PaginationLink>
+                )}
+              </PaginationItem>
+            ))}
             {page < totalPages && (
               <PaginationItem>
                 <PaginationNext href={buildUrl(page + 1)} />
