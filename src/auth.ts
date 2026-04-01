@@ -267,7 +267,7 @@ const authInstance = betterAuth({
           issuer: OIDC_ISSUER,
           clientId: process.env.AUTH_OIDC_CLIENT_ID || "",
           clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET || "",
-          scopes: ["openid", "profile", "email"],
+          scopes: ["openid"],
           pkce: true,
           mapProfileToUser: async (profile) => {
             const hasEmail =
