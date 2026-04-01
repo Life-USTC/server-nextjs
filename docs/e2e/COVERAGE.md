@@ -1,5 +1,7 @@
 # E2E 覆盖度对照（页面功能级）
 
+本文件是审计文档，不是设计文档。它记录当前测试证明到哪里为止，并指出哪些高风险路径仍缺覆盖。
+
 本文件用于回答两个问题：
 
 - `src/app/**/page.tsx` 的页面路由是否都有对应 E2E：是（已全覆盖）。
@@ -68,5 +70,4 @@
 
 - 本覆盖对照是“页面功能级”静态对比：根据页面/关键组件里存在的按钮、表单、Tab、菜单等交互点与当前 E2E 断言/点击路径做差分。
 - 对第三方渲染的页面（`/api-docs` Swagger UI），建议只做“关键渲染 + 关键交互一条最短路径”，避免不稳定。
-- 新增或重构 E2E 用例时，应同时遵守贡献规范：
-  [tests/e2e/CONTRIBUTING.md](/Users/tiankaima/Source/life-ustc/server-nextjs/tests/e2e/CONTRIBUTING.md)
+- 新增或重构 E2E 用例时，应同时遵守贡献规范：[`./CONTRIBUTING.md`](./CONTRIBUTING.md)
