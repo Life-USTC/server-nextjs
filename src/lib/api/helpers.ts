@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logRouteFailure } from "@/lib/log/app-logger";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 
 export type PaginatedResponse<T> = {
@@ -69,7 +70,7 @@ export function handleRouteError(
   error: unknown,
   status = 500,
 ) {
-  console.error(message, error);
+  logRouteFailure(message, status, error, { source: "route-handler" });
   return errorResponse(message, status);
 }
 

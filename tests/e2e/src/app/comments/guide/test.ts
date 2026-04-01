@@ -13,7 +13,9 @@ test("/guides/markdown-support", async ({ page }, testInfo) => {
 test("/guides/markdown-support 包含 markdown 示例段落", async ({
   page,
 }, testInfo) => {
-  await gotoAndWaitForReady(page, "/guides/markdown-support");
+  await gotoAndWaitForReady(page, "/guides/markdown-support", {
+    waitUntil: "load",
+  });
   await expect(page.locator("h1")).toBeVisible();
   await expect(page.locator("pre").first()).toContainText("**Bold**");
   await captureStepScreenshot(page, testInfo, "comments-guide-markdown");

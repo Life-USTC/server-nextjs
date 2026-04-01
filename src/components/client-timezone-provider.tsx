@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext } from "react";
+import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 
 const ClientTimezoneContext = createContext<string | null>(null);
 
@@ -11,16 +12,8 @@ type ClientTimezoneProviderProps = {
 export function ClientTimezoneProvider({
   children,
 }: ClientTimezoneProviderProps) {
-  const timeZone = useMemo(() => {
-    try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null;
-    } catch {
-      return null;
-    }
-  }, []);
-
   return (
-    <ClientTimezoneContext.Provider value={timeZone}>
+    <ClientTimezoneContext.Provider value={APP_TIME_ZONE}>
       {children}
     </ClientTimezoneContext.Provider>
   );

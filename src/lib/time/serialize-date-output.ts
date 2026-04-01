@@ -1,17 +1,11 @@
-import dayjs from "dayjs";
-import timezone from "dayjs/plugin/timezone";
-import utc from "dayjs/plugin/utc";
-import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
+import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
 export function toShanghaiIsoString(date: Date): string {
-  return dayjs(date).tz(APP_TIME_ZONE).format("YYYY-MM-DDTHH:mm:ssZ");
+  return formatShanghaiTimestamp(date);
 }
 
 export function serializeDatesDeep<T>(value: T): T {

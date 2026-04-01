@@ -1,3 +1,5 @@
+import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
+
 type OAuthLogLevel = "warn" | "error" | "info";
 
 type OAuthLogContext = {
@@ -28,7 +30,7 @@ export function logOAuthEvent(
         : console.info;
 
   const payload = {
-    timestamp: new Date().toISOString(),
+    timestamp: formatShanghaiTimestamp(new Date()),
     environment:
       process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development",
     ...sanitizeOAuthLogContext(context),

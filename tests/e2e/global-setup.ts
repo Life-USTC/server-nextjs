@@ -11,4 +11,9 @@ export default async function globalSetup(_: FullConfig) {
     stdio: "inherit",
     env: process.env,
   });
+
+  execSync("bun run tests/e2e/clear-e2e-suspensions.ts", {
+    stdio: "inherit",
+    env: process.env,
+  });
 }

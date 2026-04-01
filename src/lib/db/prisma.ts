@@ -1,7 +1,5 @@
-import { PrismaPg } from "@prisma/adapter-pg";
 import { Prisma, PrismaClient } from "@/generated/prisma/client";
-
-const connectionString = `${process.env.DATABASE_URL}`;
+import { createPrismaAdapter } from "@/lib/db/prisma-adapter";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -75,9 +73,9 @@ const localizedNamesExtension = (locale: string) =>
     },
   });
 
-export const adapter = new PrismaPg({ connectionString });
 const basePrisma: PrismaClient =
-  globalForPrisma.prisma ?? new PrismaClient({ adapter });
+  globalForPrisma.prisma ??
+  new PrismaClient({ adapter: createPrismaAdapter() });
 export const prisma = basePrisma;
 
 const _makeExtendedClient = (locale: string) =>

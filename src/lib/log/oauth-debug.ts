@@ -7,6 +7,8 @@
  * Never logs secrets, authorization codes, refresh tokens, access tokens, or cookies.
  */
 
+import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
+
 export type OAuthDebugMode = "off" | "standard" | "verbose";
 
 export function getOAuthDebugMode(): OAuthDebugMode {
@@ -95,7 +97,7 @@ export function logOAuthDebug(
   if (!isOAuthDebugLogging()) return;
 
   const payload: Record<string, unknown> = {
-    ts: new Date().toISOString(),
+    ts: formatShanghaiTimestamp(new Date()),
     event,
     ...fields,
   };

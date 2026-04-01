@@ -176,7 +176,10 @@ export async function assertPageContract(
   }
 
   const response = await gotoAndWaitForReady(page, routePath, {
-    waitUntil: routePath === "/api-docs" ? "load" : "networkidle",
+    waitUntil:
+      routePath === "/api-docs" || routePath === "/guides/markdown-support"
+        ? "load"
+        : "networkidle",
   });
 
   if (response) {

@@ -1,4 +1,6 @@
-import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
+import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 function isZhLocale(locale: string): boolean {
   const l = locale.toLowerCase().replace(/_/g, "-");
@@ -6,14 +8,14 @@ function isZhLocale(locale: string): boolean {
 }
 
 /** Monday-based week start (aligned with common 本周 usage). */
-function mondayStart(d: dayjs.Dayjs): dayjs.Dayjs {
+function mondayStart(d: Dayjs): Dayjs {
   const x = d.clone().startOf("day");
   const dow = x.day();
   const diff = dow === 0 ? -6 : 1 - dow;
   return x.add(diff, "day");
 }
 
-function sameMondayWeek(a: dayjs.Dayjs, b: dayjs.Dayjs): boolean {
+function sameMondayWeek(a: Dayjs, b: Dayjs): boolean {
   return mondayStart(a).isSame(mondayStart(b), "day");
 }
 
@@ -32,8 +34,8 @@ export function formatSmartDateTime(
   referenceInput: Date | string | number,
   locale: string,
 ): string {
-  const due = dayjs(input);
-  const ref = dayjs(referenceInput);
+  const due = shanghaiDayjs(input);
+  const ref = shanghaiDayjs(referenceInput);
   const isZh = isZhLocale(locale);
   const time = due.format("HH:mm");
   const il = intlLocale(locale);
@@ -49,9 +51,10 @@ export function formatSmartDateTime(
   }
 
   if (sameMondayWeek(due, ref)) {
-    const wk = new Intl.DateTimeFormat(il, { weekday: "short" }).format(
-      due.toDate(),
-    );
+    const wk = new Intl.DateTimeFormat(il, {
+      timeZone: APP_TIME_ZONE,
+      weekday: "short",
+    }).format(due.toDate());
     return isZh ? `${wk} ${time}` : `${wk}, ${time}`;
   }
 
@@ -66,6 +69,7 @@ export function formatSmartDateTime(
   const d = due.toDate();
   if (sameYear) {
     return new Intl.DateTimeFormat(il, {
+      timeZone: APP_TIME_ZONE,
       month: "short",
       day: "numeric",
       hour: "numeric",
@@ -73,6 +77,7 @@ export function formatSmartDateTime(
     }).format(d);
   }
   return new Intl.DateTimeFormat(il, {
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -89,8 +94,8 @@ export function formatSmartDate(
   referenceInput: Date | string | number,
   locale: string,
 ): string {
-  const due = dayjs(input).startOf("day");
-  const ref = dayjs(referenceInput).startOf("day");
+  const due = shanghaiDayjs(input).startOf("day");
+  const ref = shanghaiDayjs(referenceInput).startOf("day");
   const isZh = isZhLocale(locale);
   const il = intlLocale(locale);
 
@@ -105,9 +110,10 @@ export function formatSmartDate(
   }
 
   if (sameMondayWeek(due, ref)) {
-    return new Intl.DateTimeFormat(il, { weekday: "long" }).format(
-      due.toDate(),
-    );
+    return new Intl.DateTimeFormat(il, {
+      timeZone: APP_TIME_ZONE,
+      weekday: "long",
+    }).format(due.toDate());
   }
 
   const sameYear = due.year() === ref.year();
@@ -121,11 +127,13 @@ export function formatSmartDate(
   const d = due.toDate();
   if (sameYear) {
     return new Intl.DateTimeFormat(il, {
+      timeZone: APP_TIME_ZONE,
       month: "short",
       day: "numeric",
     }).format(d);
   }
   return new Intl.DateTimeFormat(il, {
+    timeZone: APP_TIME_ZONE,
     year: "numeric",
     month: "short",
     day: "numeric",

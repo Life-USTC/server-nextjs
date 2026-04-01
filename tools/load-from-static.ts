@@ -4,16 +4,14 @@ import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
 import { loadExams } from "./load-exams";
 import { loadSchedules } from "./load-schedules";
 import { loadSections } from "./load-sections";
 import { loadSemesters } from "./load-semesters";
 
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 const logger = {
   info: (msg: string) => console.log(`[INFO] ${msg}`),

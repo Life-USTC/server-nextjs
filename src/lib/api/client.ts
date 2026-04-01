@@ -50,10 +50,51 @@ export const apiClient = createClient<paths>({
 });
 
 export function extractApiErrorMessage(errorBody: unknown): string | null {
+  if (typeof errorBody === "string") {
+    return errorBody.trim() || null;
+  }
+  if (errorBody instanceof Error) {
+    return errorBody.message?.trim() || null;
+  }
   if (!errorBody || typeof errorBody !== "object") {
     return null;
   }
 
-  const error = (errorBody as { error?: unknown }).error;
-  return typeof error === "string" ? error : null;
+  const anyBody = errorBody as Record<string, unknown>;
+
+  const direct =
+    (typeof anyBody.error === "string" && anyBody.error) ||
+    (typeof anyBody.message === "string" && anyBody.message) ||
+    (typeof anyBody.detail === "string" && anyBody.detail);
+  if (direct) {
+    return direct.trim() || null;
+  }
+
+  const nestedError = anyBody.error;
+  if (nestedError && typeof nestedError === "object") {
+    const nested = nestedError as Record<string, unknown>;
+    const nestedDirect =
+      (typeof nested.error === "string" && nested.error) ||
+      (typeof nested.message === "string" && nested.message) ||
+      (typeof nested.detail === "string" && nested.detail);
+    if (nestedDirect) {
+      return nestedDirect.trim() || null;
+    }
+  }
+
+  const errors = anyBody.errors;
+  if (Array.isArray(errors) && errors.length > 0) {
+    const first = errors[0];
+    if (first && typeof first === "object") {
+      const firstObj = first as Record<string, unknown>;
+      const firstMessage =
+        (typeof firstObj.message === "string" && firstObj.message) ||
+        (typeof firstObj.error === "string" && firstObj.error);
+      if (firstMessage) {
+        return firstMessage.trim() || null;
+      }
+    }
+  }
+
+  return null;
 }

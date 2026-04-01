@@ -6,7 +6,9 @@ import { nextCookies, toNextJsHandler } from "better-auth/next-js";
 import { genericOAuth, jwt } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
 import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
 
@@ -290,7 +292,12 @@ const authInstance = betterAuth({
   onAPIError: {
     onError(error) {
       if (isDev) {
-        console.error("Better Auth API error:", error);
+        logAppEvent(
+          "error",
+          "Better Auth API error",
+          { source: "auth", event: "better-auth.api-error" },
+          error,
+        );
       }
       if (isOAuthDebugLogging()) {
         logOAuthDebug("better-auth.api-error", undefined, {
@@ -421,26 +428,49 @@ const ensureDebugCredentialUser = async (providerId: string) => {
   }
 
   const hashedPassword = await hashPassword(config.password);
-  const user = await prisma.user.upsert({
-    where: { username: config.username },
-    update: {
-      email: config.email,
-      emailVerified: true,
-      name: config.name,
-      image: config.image,
-      isAdmin: config.isAdmin,
-      profilePictures: { set: [config.image] },
-    },
-    create: {
-      username: config.username,
-      email: config.email,
-      emailVerified: true,
-      name: config.name,
-      image: config.image,
-      isAdmin: config.isAdmin,
-      profilePictures: [config.image],
-    },
-    select: { id: true },
+  const userData = {
+    username: config.username,
+    email: config.email,
+    emailVerified: true,
+    name: config.name,
+    image: config.image,
+    isAdmin: config.isAdmin,
+    profilePictures: [config.image],
+  };
+
+  const upsertDebugUserByIdentity = async () => {
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [{ username: config.username }, { email: config.email }],
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      return prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          ...userData,
+          profilePictures: { set: userData.profilePictures },
+        },
+        select: { id: true },
+      });
+    }
+
+    return prisma.user.create({
+      data: userData,
+      select: { id: true },
+    });
+  };
+
+  const user = await upsertDebugUserByIdentity().catch(async (error) => {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return upsertDebugUserByIdentity();
+    }
+    throw error;
   });
 
   await prisma.account.upsert({

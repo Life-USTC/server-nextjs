@@ -13,6 +13,6 @@ export async function GET() {
 
   return jsonResponse({
     user: session.user,
-    expires: session.session.expiresAt.toISOString(),
+    expires: session.session.expiresAt,
   });
 }

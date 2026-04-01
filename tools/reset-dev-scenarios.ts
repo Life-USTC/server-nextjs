@@ -1,11 +1,9 @@
 import "dotenv/config";
 
-import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
 
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 const LEGACY_SCENARIO_MARKER = "[DEV-SCENARIO]";
 const DEV_KEY_PREFIX = "dev-scenario/";

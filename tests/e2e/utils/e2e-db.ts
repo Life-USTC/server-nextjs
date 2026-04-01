@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 
-export const PLAYWRIGHT_BASE_URL = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3000"}`;
+export const PLAYWRIGHT_BASE_URL = `http://${process.env.PLAYWRIGHT_HOST ?? "127.0.0.1"}:${process.env.PLAYWRIGHT_PORT ?? "3000"}`;
 
 const BUN_DB_SCRIPT_MAX_ATTEMPTS = 3;
 

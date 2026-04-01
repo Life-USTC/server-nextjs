@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
+import { logServerActionError } from "@/lib/log/app-logger";
 
 export async function updateProfile(formData: FormData) {
   const session = await auth();
@@ -84,7 +85,10 @@ export async function updateProfile(formData: FormData) {
     }
     return { success: true };
   } catch (error) {
-    console.error("Failed to update profile:", error);
+    logServerActionError("Failed to update profile", error, {
+      action: "updateProfile",
+      userId: session.user.id,
+    });
     return { error: "Failed to update profile" };
   }
 }
@@ -143,7 +147,11 @@ export async function unlinkAccount(provider: string) {
     revalidatePath("/settings");
     return { success: true };
   } catch (error) {
-    console.error("Failed to unlink account:", error);
+    logServerActionError("Failed to unlink account", error, {
+      action: "unlinkAccount",
+      userId: session.user.id,
+      provider,
+    });
     return { error: "Failed to unlink account" };
   }
 }
@@ -170,7 +178,10 @@ export async function deleteAccount() {
 
     return { success: true };
   } catch (error) {
-    console.error("Failed to delete account:", error);
+    logServerActionError("Failed to delete account", error, {
+      action: "deleteAccount",
+      userId: session.user.id,
+    });
     return { error: "Failed to delete account" };
   }
 }

@@ -1,8 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const playwrightPort = process.env.PLAYWRIGHT_PORT ?? "3000";
-const playwrightBaseUrl = `http://localhost:${playwrightPort}`;
+const playwrightHost = process.env.PLAYWRIGHT_HOST ?? "127.0.0.1";
+const playwrightBaseUrl = `http://${playwrightHost}:${playwrightPort}`;
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === "1";
+const playwrightNoProxy = "127.0.0.1,localhost,::1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -20,7 +22,7 @@ export default defineConfig({
     screenshot: "on",
   },
   webServer: {
-    command: `node -e "require('fs').writeFileSync('.e2e-mock-s3','1')" && bun run build && AUTH_TRUST_HOST=true AUTH_URL="${playwrightBaseUrl}" BETTER_AUTH_URL="${playwrightBaseUrl}" NEXTAUTH_URL="${playwrightBaseUrl}" E2E_DEBUG_AUTH=1 E2E_MOCK_S3=1 DEV_DEBUG_PASSWORD=e2e-debug-local-only DEV_ADMIN_PASSWORD=e2e-admin-local-only bunx next start --hostname localhost --port ${playwrightPort}`,
+    command: `node -e "require('fs').writeFileSync('.e2e-mock-s3','1')" && bun run build && NO_PROXY="${playwrightNoProxy}" no_proxy="${playwrightNoProxy}" AUTH_TRUST_HOST=true AUTH_URL="${playwrightBaseUrl}" BETTER_AUTH_URL="${playwrightBaseUrl}" NEXTAUTH_URL="${playwrightBaseUrl}" E2E_DEBUG_AUTH=1 E2E_MOCK_S3=1 DEV_DEBUG_PASSWORD=e2e-debug-local-only DEV_ADMIN_PASSWORD=e2e-admin-local-only bunx next start --hostname ${playwrightHost} --port ${playwrightPort}`,
     url: playwrightBaseUrl,
     reuseExistingServer,
     stdout: "ignore",
