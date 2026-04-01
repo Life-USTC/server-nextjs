@@ -1,3 +1,11 @@
+## [1.2.1](https://github.com/Life-USTC/server-nextjs/compare/v1.2.0...v1.2.1) (2026-04-01)
+
+
+### Bug Fixes
+
+* **auth:** request openid scope for ustc oauth ([fff46fe](https://github.com/Life-USTC/server-nextjs/commit/fff46fe0ecb79fe6a0c8b6c280efc63c8d9d3f2e))
+* **ui:** simplify user menu actions ([541d940](https://github.com/Life-USTC/server-nextjs/commit/541d9406d4a3560bd8aca7129e6aeecc2247f1a6))
+
 # [1.2.0](https://github.com/Life-USTC/server-nextjs/compare/v1.1.1...v1.2.0) (2026-04-01)
 
 
