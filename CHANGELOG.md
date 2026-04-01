@@ -1,3 +1,17 @@
+# [1.2.0](https://github.com/Life-USTC/server-nextjs/compare/v1.1.1...v1.2.0) (2026-04-01)
+
+
+### Bug Fixes
+
+* **ui:** align web design with interface guidelines ([6f4abf3](https://github.com/Life-USTC/server-nextjs/commit/6f4abf30ce6a4ffd67382aeffe09864f179121bd))
+
+
+### Features
+
+* **admin:** expand moderation and user management tools ([5b5c232](https://github.com/Life-USTC/server-nextjs/commit/5b5c232309af40d43edcd7ec787a4b4338168813))
+* **app:** refresh dashboard and content workflows ([58a64b4](https://github.com/Life-USTC/server-nextjs/commit/58a64b4c925801ab911342641c049279aaa6e6a4))
+* **oauth:** improve DCR naming and admin client controls ([0e0573f](https://github.com/Life-USTC/server-nextjs/commit/0e0573fdad163a04efbb2f075ffab01ac7213130))
+
 ## [1.1.1](https://github.com/Life-USTC/server-nextjs/compare/v1.1.0...v1.1.1) (2026-03-29)
 
 
