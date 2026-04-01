@@ -4,13 +4,7 @@ import { User as UserIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Menu,
-  MenuItem,
-  MenuPopup,
-  MenuSeparator,
-  MenuTrigger,
-} from "@/components/ui/menu";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { Link } from "@/i18n/routing";
 import { signIn, signOut, useSession } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
@@ -21,13 +15,17 @@ type UserMenuProps = {
 
 export function UserMenu({ className }: UserMenuProps) {
   const tProfile = useTranslations("profile");
-  const tMe = useTranslations("meDashboard");
   const tSettings = useTranslations("settings");
   const tCommon = useTranslations("common");
   const { data: session } = useSession();
 
   const menuLabel = session ? tProfile("title") : tCommon("signIn");
   const avatarFallback = session?.user?.name?.charAt(0) ?? menuLabel.charAt(0);
+  const profileHref = session?.user?.username
+    ? `/u/${session.user.username}`
+    : session?.user?.id
+      ? `/u/id/${session.user.id}`
+      : "/";
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -57,25 +55,13 @@ export function UserMenu({ className }: UserMenuProps) {
         <MenuPopup>
           {session ? (
             <>
-              <MenuItem className="font-medium" disabled>
-                {session.user?.name || tProfile("title")}
+              <MenuItem render={<Link href="/" />}>{tCommon("home")}</MenuItem>
+              <MenuItem render={<Link href={profileHref} />}>
+                {tCommon("me")}
               </MenuItem>
-              <MenuSeparator />
-              <MenuItem render={<Link href="/" />}>{tCommon("me")}</MenuItem>
               <MenuItem render={<Link href="/settings?tab=profile" />}>
                 {tSettings("title")}
               </MenuItem>
-              {session.user?.username ? (
-                <MenuItem
-                  render={<Link href={`/u/${session.user.username}`} />}
-                >
-                  {tMe("links.publicProfile")}
-                </MenuItem>
-              ) : (
-                <MenuItem render={<Link href={`/u/id/${session.user.id}`} />}>
-                  {tMe("links.publicProfileId")}
-                </MenuItem>
-              )}
               <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
                 {tProfile("signOut")}
               </MenuItem>
