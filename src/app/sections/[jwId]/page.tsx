@@ -35,6 +35,7 @@ import { HomeworkPanel } from "@/features/homeworks/components/homework-panel";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { cn } from "@/lib/utils";
 import { formatTime } from "@/shared/lib/time-utils";
 
@@ -449,12 +450,14 @@ export default async function SectionPage({
             tabValues={["homeworks", "calendar", "comments"]}
             className="space-y-6"
           >
-            <TabsList className="w-full" variant="underline">
-              <TabsTab value="calendar">{t("tabs.calendar")}</TabsTab>
-              <TabsTab value="homeworks">
+            <TabsList variant="pill">
+              <TabsTab value="calendar" variant="pill">
+                {t("tabs.calendar")}
+              </TabsTab>
+              <TabsTab value="homeworks" variant="pill">
                 {t("tabs.homeworks")} ({homeworkCount as number})
               </TabsTab>
-              <TabsTab value="comments">
+              <TabsTab value="comments" variant="pill">
                 {t("tabs.comments")} ({commentCount})
               </TabsTab>
             </TabsList>
@@ -463,9 +466,15 @@ export default async function SectionPage({
                 <HomeworkLoader
                   sectionId={section.id}
                   semesterStart={
-                    section.semester?.startDate?.toISOString() ?? null
+                    section.semester?.startDate
+                      ? toShanghaiIsoString(section.semester.startDate)
+                      : null
                   }
-                  semesterEnd={section.semester?.endDate?.toISOString() ?? null}
+                  semesterEnd={
+                    section.semester?.endDate
+                      ? toShanghaiIsoString(section.semester.endDate)
+                      : null
+                  }
                 />
               </Suspense>
             </TabsPanel>
@@ -773,28 +782,36 @@ async function HomeworkLoader({
   const homeworkInitialData = {
     homeworks: homeworks.map((homework) => ({
       ...homework,
-      createdAt: homework.createdAt.toISOString(),
-      updatedAt: homework.updatedAt.toISOString(),
-      deletedAt: homework.deletedAt?.toISOString() ?? null,
-      publishedAt: homework.publishedAt?.toISOString() ?? null,
-      submissionStartAt: homework.submissionStartAt?.toISOString() ?? null,
-      submissionDueAt: homework.submissionDueAt?.toISOString() ?? null,
+      createdAt: toShanghaiIsoString(homework.createdAt),
+      updatedAt: toShanghaiIsoString(homework.updatedAt),
+      deletedAt: homework.deletedAt
+        ? toShanghaiIsoString(homework.deletedAt)
+        : null,
+      publishedAt: homework.publishedAt
+        ? toShanghaiIsoString(homework.publishedAt)
+        : null,
+      submissionStartAt: homework.submissionStartAt
+        ? toShanghaiIsoString(homework.submissionStartAt)
+        : null,
+      submissionDueAt: homework.submissionDueAt
+        ? toShanghaiIsoString(homework.submissionDueAt)
+        : null,
       description: homework.description
         ? {
             id: homework.description.id,
             content: homework.description.content ?? "",
             updatedAt: homework.description.updatedAt
-              ? homework.description.updatedAt.toISOString()
+              ? toShanghaiIsoString(homework.description.updatedAt)
               : null,
           }
         : null,
       completion: homework.completion
-        ? { completedAt: homework.completion.completedAt.toISOString() }
+        ? { completedAt: toShanghaiIsoString(homework.completion.completedAt) }
         : null,
     })),
     auditLogs: homeworkAuditLogs.map((log) => ({
       ...log,
-      createdAt: log.createdAt.toISOString(),
+      createdAt: toShanghaiIsoString(log.createdAt),
     })),
     viewer: homeworkViewer,
   };

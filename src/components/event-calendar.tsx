@@ -166,8 +166,8 @@ export function EventCalendar({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-border/60 border-b bg-muted/10 px-2 py-2">
+    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card/50">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-border/60 border-b bg-background/80 px-3 py-2.5">
         <div className="flex items-center gap-2">
           <span className="font-medium text-foreground text-sm">
             {monthLabel}
@@ -198,20 +198,20 @@ export function EventCalendar({
       <div className="space-y-2 p-2">
         <div className="overflow-x-auto">
           <div className="min-w-[680px] space-y-2 sm:min-w-0">
-            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-lg border border-border/60 bg-border/60">
-              <div className="flex items-center justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
+            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-xl border border-border/70 bg-card/45 p-1">
+              <div className="flex items-center justify-center rounded-lg bg-background/80 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
                 {weekLabelHeader}
               </div>
               {weekdayOrder.map((weekday) => (
                 <div
                   key={weekdayLabels[weekday]}
-                  className="flex items-center justify-center bg-muted/10 py-2 font-medium text-muted-foreground text-xs"
+                  className="flex items-center justify-center rounded-lg bg-background/80 py-2 font-medium text-muted-foreground text-xs"
                 >
                   {weekdayLabels[weekday]}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-lg border border-border/60 bg-border/60">
+            <div className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-xl border border-border/70 bg-card/45 p-1">
               {weeks.map((week) => {
                 const weekStart = week[0];
                 const weekKey = weekStart.format("YYYY-MM-DD");
@@ -222,7 +222,7 @@ export function EventCalendar({
 
                 return (
                   <div key={weekKey} className="contents">
-                    <div className="flex items-center justify-center bg-muted/10 px-1 font-medium text-[0.65rem] text-muted-foreground">
+                    <div className="flex items-center justify-center rounded-lg bg-background/70 px-1 font-medium text-[0.65rem] text-muted-foreground">
                       <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
                         {weekLabel}
                       </span>
@@ -253,8 +253,8 @@ export function EventCalendar({
                         <div
                           key={dateKey}
                           className={cn(
-                            "min-h-24 min-w-0 overflow-hidden bg-background p-1 text-xs",
-                            isCurrentMonth ? "" : "bg-muted/5",
+                            "min-h-24 min-w-0 overflow-hidden rounded-lg border border-border/50 bg-background/95 p-1 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+                            isCurrentMonth ? "" : "bg-background/75 opacity-70",
                           )}
                         >
                           <div className="flex items-center justify-between">
@@ -300,7 +300,7 @@ export function EventCalendar({
       </div>
 
       {unscheduledEvents.length > 0 && (
-        <div className="m-2 rounded-lg border border-border/60 bg-background p-2">
+        <div className="m-2 rounded-xl border border-border/70 bg-background/90 p-2.5">
           <div className="font-medium text-muted-foreground text-xs">
             {unscheduledLabel}
           </div>

@@ -2,12 +2,16 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import { DataState } from "@/components/data-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { useUploadsSummary } from "@/features/uploads/hooks/use-uploads-summary";
 import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
@@ -16,6 +20,8 @@ import {
   commentUpdateResponseSchema,
   successResponseSchema,
 } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { CommentEditor } from "./comment-editor";
 import { CommentThread } from "./comment-thread";
 import type {
@@ -59,9 +65,8 @@ export function CommentsSection({
   showAllTargets = false,
   initialData,
 }: CommentsSectionProps) {
-  const t = useTranslations("comments");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
+  const t = useTranslations("comments");
   const [activeKey] = useState(targets[0]?.key ?? "");
   const [postTargetKey, setPostTargetKey] = useState(targets[0]?.key ?? "");
   const [commentMap, setCommentMap] = useState<Record<string, CommentNode[]>>(
@@ -93,15 +98,13 @@ export function CommentsSection({
     // By design: only the first teacher matters for section-teacher comments.
     teacherOptions[0]?.id ?? null,
   );
-
-  const dateFormatter = useMemo(
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      createShanghaiDateTimeFormatter(locale, {
         dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
   );
 
   const activeTarget = useMemo(
@@ -201,12 +204,16 @@ export function CommentsSection({
         setViewer(latestViewer);
       }
     } catch (error) {
-      console.error("Failed to load comments", error);
+      logClientError("Failed to load comments", error, {
+        component: "CommentsSection",
+        activeKey,
+        showAllTargets,
+      });
       setError(t("loadFailed"));
     } finally {
       setLoading(false);
     }
-  }, [activeTarget, selectedTeacherId, showAllTargets, t, targets]);
+  }, [activeKey, activeTarget, selectedTeacherId, showAllTargets, t, targets]);
 
   useEffect(() => {
     if (initialData) return;
@@ -368,40 +375,59 @@ export function CommentsSection({
   };
 
   const renderThread = () => {
-    if (loading) {
+    if (showAllTargets) {
+      if (activeTarget?.type === "section-teacher" && !selectedTeacherId) {
+        return (
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
+              <EmptyDescription>{t("selectTeacherPrompt")}</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        );
+      }
+
+      const combinedComments = targets.flatMap((target) =>
+        (commentMap[target.key] ?? []).map((comment) => ({
+          ...comment,
+          contextLabel: target.label,
+        })),
+      );
+
       return (
-        <div className="space-y-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
+        <DataState
+          loading={loading}
+          error={error}
+          onRetry={() => void loadComments()}
+          retryLabel={t("retry")}
+          empty={combinedComments.length === 0}
+          emptyTitle={t("emptyTitle")}
+        >
+          <div className="space-y-3">
+            <CommentThread
+              comments={combinedComments}
+              viewer={viewer}
+              uploads={uploads}
+              uploadSummary={uploadSummary}
+              onUploadComplete={addUpload}
+              onReply={handleReply}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          </div>
+        </DataState>
       );
     }
 
-    if (error) {
-      return (
-        <Card className="border-dashed">
-          <CardPanel className="space-y-2">
-            <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={() => void loadComments()}>
-              {t("retry")}
-            </Button>
-          </CardPanel>
-        </Card>
-      );
-    }
-
-    if (!showAllTargets && comments.length === 0) {
-      return (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
-      );
-    }
-
-    if (!showAllTargets) {
-      return (
+    return (
+      <DataState
+        loading={loading}
+        error={error}
+        onRetry={() => void loadComments()}
+        retryLabel={t("retry")}
+        empty={comments.length === 0}
+        emptyTitle={t("emptyTitle")}
+      >
         <CommentThread
           comments={comments}
           viewer={viewer}
@@ -412,51 +438,7 @@ export function CommentsSection({
           onEdit={handleEdit}
           onDelete={handleDelete}
         />
-      );
-    }
-
-    const combinedComments = targets.flatMap((target) =>
-      (commentMap[target.key] ?? []).map((comment) => ({
-        ...comment,
-        contextLabel: target.label,
-      })),
-    );
-
-    if (combinedComments.length === 0) {
-      return (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
-      );
-    }
-
-    if (activeTarget?.type === "section-teacher" && !selectedTeacherId) {
-      return (
-        <Card className="border-dashed bg-muted/40">
-          <CardPanel>
-            <p className="text-muted-foreground text-sm">
-              {t("selectTeacherPrompt")}
-            </p>
-          </CardPanel>
-        </Card>
-      );
-    }
-
-    return (
-      <div className="space-y-3">
-        <CommentThread
-          comments={combinedComments}
-          viewer={viewer}
-          uploads={uploads}
-          uploadSummary={uploadSummary}
-          onUploadComplete={addUpload}
-          onReply={handleReply}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
-      </div>
+      </DataState>
     );
   };
 
@@ -477,7 +459,7 @@ export function CommentsSection({
             {viewer.suspensionExpiresAt ? (
               <p className="text-sm">
                 {t("suspendedExpires", {
-                  date: dateFormatter.format(
+                  date: dateTimeFormatter.format(
                     new Date(viewer.suspensionExpiresAt),
                   ),
                 })}

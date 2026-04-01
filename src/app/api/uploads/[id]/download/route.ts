@@ -30,6 +30,21 @@ function buildContentDisposition(filename: string) {
   return `attachment; filename="${safeName}"`;
 }
 
+function resolveRequestOrigin(request: Request) {
+  const requestUrl = new URL(request.url);
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const protocol =
+    request.headers.get("x-forwarded-proto") ??
+    requestUrl.protocol.replace(/:$/, "");
+
+  if (!host) {
+    return requestUrl.origin;
+  }
+
+  return `${protocol}://${host}`;
+}
+
 /**
  * Redirect to signed URL for one upload.
  * @pathParams resourceIdPathParamsSchema
@@ -69,7 +84,7 @@ export async function GET(
       ResponseContentType: upload.contentType ?? undefined,
     });
 
-    const origin = new URL(request.url).origin;
+    const origin = resolveRequestOrigin(request);
     const url = await getS3SignedUrl(command, { expiresIn: 60, origin });
     return NextResponse.redirect(url);
   } catch (error) {

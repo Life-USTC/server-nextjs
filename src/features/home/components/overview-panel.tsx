@@ -14,6 +14,13 @@ import {
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { DashboardLinksPanel } from "@/features/dashboard-links/components/dashboard-links-panel";
 import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
 import type { TodoItem } from "@/features/todos/components/todo-list";
@@ -85,13 +92,12 @@ export async function OverviewPanel({
   todosData: TodoItem[];
   overviewWeek?: string;
 }) {
+  const locale = await getLocale();
   const t = await getTranslations("meDashboard");
   const _tCommon = await getTranslations("common");
-  const locale = await getLocale();
   const {
     hasAnySelection,
     hasCurrentTermSelection,
-    currentTermName,
     todaySessions,
     tomorrowSessions,
     allSessions,
@@ -113,47 +119,23 @@ export async function OverviewPanel({
     const pendingTodosNoTerm = todosData.filter((todo) => !todo.completed);
     return (
       <div className="space-y-6">
-        <Card>
-          <CardPanel>
-            <DashboardLinksPanel
-              links={data.overviewLinks}
-              variant="overview"
-            />
-          </CardPanel>
-        </Card>
+        <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
 
-        <Card className="border-warning/30 bg-warning/5">
-          <CardHeader>
-            <CardTitle>
-              <Link
-                href="/?tab=subscriptions"
-                className="rounded-sm text-inherit no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                {t("termSelection.title")}
-              </Link>
-            </CardTitle>
-            <CardDescription>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>{t("termSelection.title")}</EmptyTitle>
+            <EmptyDescription>
               {hasAnySelection
-                ? t("termSelection.noCurrentTerm", { term: currentTermName })
+                ? t("termSelection.noCurrentTerm")
                 : t("termSelection.noAnySelection")}
-            </CardDescription>
-          </CardHeader>
-          <CardPanel className="flex flex-wrap gap-2">
-            <Button
-              render={
-                <Link className="no-underline" href="/?tab=subscriptions" />
-              }
-            >
-              {t("termSelection.openSelection")}
-            </Button>
-            <Button
-              variant="outline"
-              render={<Link className="no-underline" href="/courses" />}
-            >
+            </EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button render={<Link className="no-underline" href="/courses" />}>
               {t("termSelection.browseCourses")}
             </Button>
-          </CardPanel>
-        </Card>
+          </EmptyContent>
+        </Empty>
 
         <Card>
           <CardHeader className="pb-0">
@@ -191,6 +173,8 @@ export async function OverviewPanel({
       dayjs(t.dueAt).isAfter(todayStart) &&
       dayjs(t.dueAt).isBefore(todayStart.add(4, "day")),
   );
+  const summaryLinkClass =
+    "flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 px-3 py-2.5 no-underline transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
   return (
     <div className="space-y-6">
@@ -220,11 +204,7 @@ export async function OverviewPanel({
         </Card>
       )}
 
-      <Card>
-        <CardPanel>
-          <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
-        </CardPanel>
-      </Card>
+      <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
 
       <Card>
         <CardHeader className="pb-0">
@@ -263,9 +243,13 @@ export async function OverviewPanel({
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm">
-                  {t("today.empty")}
-                </p>
+                <Empty variant="inset">
+                  <EmptyHeader className="max-w-none">
+                    <EmptyTitle className="text-sm">
+                      {t("today.empty")}
+                    </EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
               )}
             </section>
 
@@ -292,9 +276,13 @@ export async function OverviewPanel({
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm">
-                  {t("tomorrow.empty")}
-                </p>
+                <Empty variant="inset">
+                  <EmptyHeader className="max-w-none">
+                    <EmptyTitle className="text-sm">
+                      {t("tomorrow.empty")}
+                    </EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
               )}
             </section>
           </div>
@@ -379,11 +367,7 @@ export async function OverviewPanel({
                   ? getHomeworkETA(hw.submissionDueAt, referenceNow, t, locale)
                   : null;
                 return (
-                  <Link
-                    key={hw.id}
-                    href={href}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5 no-underline transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
+                  <Link key={hw.id} href={href} className={summaryLinkClass}>
                     <div className="min-w-0">
                       <p className="truncate font-medium text-sm">{hw.title}</p>
                       <p className="truncate text-muted-foreground text-xs">
@@ -452,7 +436,7 @@ export async function OverviewPanel({
                   <Link
                     key={todo.id}
                     href="/?tab=todos"
-                    className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5 no-underline transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className={summaryLinkClass}
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium text-sm">

@@ -117,7 +117,7 @@ export async function GET() {
         key: upload.key,
         filename: upload.filename,
         size: upload.size,
-        createdAt: upload.createdAt.toISOString(),
+        createdAt: upload.createdAt,
       })),
       usedBytes,
     });

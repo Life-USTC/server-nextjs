@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export type CommentTargetType =
   | "section"
@@ -74,7 +75,9 @@ export async function getViewerContext(
     isAuthenticated: true,
     isSuspended: Boolean(suspension),
     suspensionReason: suspension?.reason ?? null,
-    suspensionExpiresAt: suspension?.expiresAt?.toISOString() ?? null,
+    suspensionExpiresAt: suspension?.expiresAt
+      ? toShanghaiIsoString(suspension.expiresAt)
+      : null,
   };
 }
 

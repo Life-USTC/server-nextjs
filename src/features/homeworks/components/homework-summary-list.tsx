@@ -4,16 +4,20 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
-  CardHeader,
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
@@ -21,6 +25,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import { homeworkCompletionResponseSchema } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { cn } from "@/lib/utils";
+import { formatSmartDateTime } from "@/shared/lib/time-utils";
 import { HomeworkCreateSheet } from "./homework-create-sheet";
 
 type HomeworkSummary = {
@@ -66,7 +73,6 @@ export function HomeworkSummaryList({
   const t = useTranslations("homeworks");
   const tComments = useTranslations("comments");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const router = useRouter();
   const [items, setItems] = useState(homeworks);
@@ -74,16 +80,6 @@ export function HomeworkSummaryList({
   const [completionSaving, setCompletionSaving] = useState<
     Record<string, boolean>
   >({});
-  const formatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
-      }),
-    [clientTimeZone, locale],
-  );
-
   useEffect(() => {
     setItems(homeworks);
   }, [homeworks]);
@@ -100,9 +96,7 @@ export function HomeworkSummaryList({
 
   const formatDate = (value: string | null) => {
     if (!value) return t("dateTBD");
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return t("dateTBD");
-    return formatter.format(parsed);
+    return formatSmartDateTime(value, new Date(), locale);
   };
 
   const renderTags = (homework: HomeworkSummary) => (
@@ -133,9 +127,14 @@ export function HomeworkSummaryList({
 
       if (!result.response.ok || !result.data) {
         const apiMessage = extractApiErrorMessage(result.error);
-        console.error(
-          "Failed to update completion",
+        logClientError(
+          "Failed to update homework completion",
           apiMessage ?? result.error,
+          {
+            feature: "homeworks",
+            homeworkId,
+            nextCompleted,
+          },
         );
         toast({
           title: t("completionFailed"),
@@ -167,7 +166,11 @@ export function HomeworkSummaryList({
         ),
       );
     } catch (error) {
-      console.error("Failed to update completion", error);
+      logClientError("Failed to update homework completion", error, {
+        feature: "homeworks",
+        homeworkId,
+        nextCompleted,
+      });
       toast({
         title: t("completionFailed"),
         variant: "destructive",
@@ -192,72 +195,79 @@ export function HomeworkSummaryList({
         };
       });
   }, [sections]);
+  const filterButtonClass = (active: boolean) =>
+    cn(
+      "rounded-lg px-3 py-1.5",
+      active
+        ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+    );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-6">
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-md border border-border/70 p-1">
-              <Button
-                size="sm"
-                variant={filter === "incomplete" ? "secondary" : "ghost"}
-                onClick={() => setFilter("incomplete")}
-              >
-                {t("filterIncomplete")}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === "completed" ? "secondary" : "ghost"}
-                onClick={() => setFilter("completed")}
-              >
-                {t("filterCompleted")}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === "all" ? "secondary" : "ghost"}
-                onClick={() => setFilter("all")}
-              >
-                {t("filterAll")}
-              </Button>
-            </div>
-            <HomeworkCreateSheet
-              canCreate={sectionOptions.length > 0}
-              t={t}
-              tComments={tComments}
-              sectionOptions={sectionOptions}
-              defaultSectionId={sectionOptions[0]?.id ?? null}
-              idPrefix="dashboard-homework"
-              createButtonTestId="dashboard-homework-create"
-              onCreated={() => {
-                router.refresh();
-              }}
-              triggerRender={
-                <Button
-                  disabled={sectionOptions.length === 0}
-                  data-testid="dashboard-homeworks-add"
-                />
-              }
-              triggerChildren={
-                <>
-                  <Plus className="h-4 w-4" />
-                  {t("addButton")}
-                </>
-              }
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 p-1">
+        <div className="inline-flex rounded-lg">
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "incomplete")}
+            onClick={() => setFilter("incomplete")}
+          >
+            {t("filterIncomplete")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "completed")}
+            onClick={() => setFilter("completed")}
+          >
+            {t("filterCompleted")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "all")}
+            onClick={() => setFilter("all")}
+          >
+            {t("filterAll")}
+          </Button>
+        </div>
+        <HomeworkCreateSheet
+          canCreate={sectionOptions.length > 0}
+          t={t}
+          tComments={tComments}
+          sectionOptions={sectionOptions}
+          defaultSectionId={sectionOptions[0]?.id ?? null}
+          idPrefix="dashboard-homework"
+          createButtonTestId="dashboard-homework-create"
+          onCreated={() => {
+            router.refresh();
+          }}
+          triggerRender={
+            <Button
+              disabled={sectionOptions.length === 0}
+              data-testid="dashboard-homeworks-add"
             />
-          </div>
-        </CardHeader>
+          }
+          triggerChildren={
+            <>
+              <Plus className="h-4 w-4" />
+              {t("addButton")}
+            </>
+          }
+        />
       </div>
 
       {filteredItems.length === 0 ? (
-        <div className="flex flex-col gap-6">
-          <CardHeader>
-            <CardTitle className="text-base">{t("filterEmptyTitle")}</CardTitle>
-          </CardHeader>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>{t("filterEmptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("filterEmptyDescription")}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : null}
 
-      <div className="columns-1 [column-gap:1rem] sm:columns-2 lg:columns-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filteredItems.map((homework) => {
           const section = homework.section;
           const courseLabel = section?.courseName?.trim() || "";
@@ -268,54 +278,56 @@ export function HomeworkSummaryList({
           return (
             <Card
               key={homework.id}
-              className="mb-4 flex min-h-0 break-inside-avoid flex-col border-border/60"
+              className="flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72"
             >
-              <CardHeader className="shrink-0 pb-2">
-                <CardTitle className="min-w-0 truncate font-medium text-base">
-                  <Link
-                    className="block truncate no-underline hover:underline"
-                    href={href}
-                    title={homework.title}
-                  >
-                    {homework.title}
-                  </Link>
-                </CardTitle>
-                {courseLabel ? (
-                  <CardDescription className="min-w-0 truncate">
-                    {courseLabel}
-                  </CardDescription>
-                ) : null}
-              </CardHeader>
-              <CardPanel className="min-h-0 flex-1 space-y-2 pt-0 text-sm">
+              <CardPanel className="flex min-h-0 flex-1 flex-col gap-3">
+                <div className="space-y-1">
+                  <CardTitle className="min-w-0 truncate font-medium text-base">
+                    <Link
+                      className="block truncate no-underline hover:underline"
+                      href={href}
+                      title={homework.title}
+                    >
+                      {homework.title}
+                    </Link>
+                  </CardTitle>
+                  {courseLabel ? (
+                    <CardDescription className="min-w-0 truncate">
+                      {courseLabel}
+                    </CardDescription>
+                  ) : null}
+                </div>
                 {homework.description ? (
-                  <div className="mb-8 line-clamp-2 rounded-lg border border-border/60 bg-muted/5 px-2 py-1.5 text-muted-foreground text-xs">
+                  <div className="line-clamp-2 rounded-lg border border-border/50 bg-background/70 px-2.5 py-2 text-muted-foreground text-xs">
                     <CommentMarkdown content={homework.description} />
                   </div>
                 ) : null}
-                <p className="font-semibold text-foreground tabular-nums">
-                  {formatDate(homework.submissionDueAt)}
-                </p>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {renderTags(homework)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id={`homework-completed-summary-${homework.id}`}
-                      checked={Boolean(homework.completion)}
-                      onCheckedChange={(checked) =>
-                        void handleCompletionToggle(homework.id, checked)
-                      }
-                      disabled={completionSaving[homework.id]}
-                    />
-                    <Label
-                      htmlFor={`homework-completed-summary-${homework.id}`}
-                      className="sr-only"
-                    >
-                      {homework.completion
-                        ? t("completedLabel")
-                        : t("filterIncomplete")}
-                    </Label>
+                <div className="mt-auto space-y-2 text-sm">
+                  <p className="font-semibold text-foreground tabular-nums">
+                    {formatDate(homework.submissionDueAt)}
+                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {renderTags(homework)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id={`homework-completed-summary-${homework.id}`}
+                        checked={Boolean(homework.completion)}
+                        onCheckedChange={(checked) =>
+                          void handleCompletionToggle(homework.id, checked)
+                        }
+                        disabled={completionSaving[homework.id]}
+                      />
+                      <Label
+                        htmlFor={`homework-completed-summary-${homework.id}`}
+                        className="sr-only"
+                      >
+                        {homework.completion
+                          ? t("completedLabel")
+                          : t("filterIncomplete")}
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </CardPanel>

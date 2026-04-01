@@ -45,11 +45,11 @@ export function HomeworkItemCard({
   footerEnd,
 }: HomeworkItemCardProps) {
   return (
-    <Card className={cn("border-border/60", cardClassName)}>
+    <Card className={cn("border-border/70 bg-card/72", cardClassName)}>
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <CardTitle className="text-base">{title}</CardTitle>
+            <CardTitle>{title}</CardTitle>
             <p className="text-muted-foreground text-xs">{createdAtLabel}</p>
             {secondaryLabel ? (
               <p className="text-muted-foreground text-xs">{secondaryLabel}</p>
@@ -64,12 +64,12 @@ export function HomeworkItemCard({
             <p className="text-muted-foreground text-xs">
               {submissionDueLabel}
             </p>
-            <p className="font-semibold text-foreground text-xl">
+            <p className="font-semibold text-foreground text-lg leading-6">
               {submissionDueValue}
             </p>
           </div>
         </div>
-        <div className="rounded-lg border border-border/60 bg-muted/5 px-3 py-3">
+        <div className="rounded-lg border border-border/50 bg-background/70 px-3 py-3">
           {description ? (
             <CommentMarkdown content={description} />
           ) : (

@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import { DataState } from "@/components/data-state";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -16,7 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -43,6 +42,16 @@ import {
   homeworkCompletionResponseSchema,
   homeworksListResponseSchema,
 } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import {
+  addShanghaiTime,
+  createShanghaiDateTimeFormatter,
+  endOfShanghaiDay,
+  parseShanghaiDateTimeLocalInput,
+  startOfShanghaiDay,
+  toShanghaiDateTimeLocalValue,
+} from "@/lib/time/shanghai-format";
 import { cn } from "@/lib/utils";
 import { HomeworkCreateSheet } from "./homework-create-sheet";
 import { HomeworkItemCard } from "./homework-item-card";
@@ -121,7 +130,7 @@ type HomeworkPanelProps = {
 
 type AuditLogSheetProps = {
   auditLogs: AuditLogEntry[];
-  formatter: Intl.DateTimeFormat;
+  formatTimestamp: (value: string | Date) => string;
   labels: {
     title: string;
     empty: string;
@@ -134,7 +143,7 @@ type AuditLogSheetProps = {
 
 type HomeworkCardEditFormProps = {
   homework: HomeworkEntry;
-  formatter: Intl.DateTimeFormat;
+  formatTimestamp: (value: string | Date) => string;
   canDelete: boolean;
   semesterStartDate: Date | null;
   semesterEndDate: Date | null;
@@ -169,39 +178,16 @@ const EMPTY_VIEWER: ViewerSummary = {
   suspensionExpiresAt: null,
 };
 
-function toLocalInputValue(value: string | null | undefined) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 16);
-}
-
-function toIsoFromLocalInput(value: string): string | null | undefined {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
-function endOfDay(date: Date) {
-  const copy = new Date(date);
-  copy.setHours(23, 59, 0, 0);
-  return copy;
-}
-
 export function HomeworkPanel({
   sectionId,
   semesterStart,
   semesterEnd,
   initialData,
 }: HomeworkPanelProps) {
+  const locale = useLocale();
   const t = useTranslations("homeworks");
   const tComments = useTranslations("comments");
   const tDescriptions = useTranslations("descriptions");
-  const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
   const { toast } = useToast();
   const [homeworks, setHomeworks] = useState<HomeworkEntry[]>(
     initialData?.homeworks ?? [],
@@ -222,15 +208,18 @@ export function HomeworkPanel({
   const [completionSaving, setCompletionSaving] = useState<
     Record<string, boolean>
   >({});
-
-  const formatter = useMemo(
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      createShanghaiDateTimeFormatter(locale, {
         dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
+  );
+
+  const formatTimestamp = useCallback(
+    (value: string | Date) => dateTimeFormatter.format(new Date(value)),
+    [dateTimeFormatter],
   );
 
   const semesterEndDate = useMemo(
@@ -332,10 +321,13 @@ export function HomeworkPanel({
         );
         setCommentCounts(Object.fromEntries(responses));
       } catch (err) {
-        console.error("Failed to load comment counts", err);
+        logClientError("Failed to load comment counts", err, {
+          component: "HomeworkPanel",
+          sectionId,
+        });
       }
     },
-    [countCommentNodes],
+    [countCommentNodes, sectionId],
   );
 
   const loadHomeworks = useCallback(async () => {
@@ -380,7 +372,10 @@ export function HomeworkPanel({
       setViewer(parsed.data.viewer ?? EMPTY_VIEWER);
       void loadCommentCounts(parsed.data.homeworks ?? []);
     } catch (err) {
-      console.error("Failed to load homeworks", err);
+      logClientError("Failed to load homeworks", err, {
+        component: "HomeworkPanel",
+        sectionId,
+      });
       setError(t("loadFailed"));
     } finally {
       setLoading(false);
@@ -428,9 +423,14 @@ export function HomeworkPanel({
 
       if (!result.response.ok || !result.data) {
         const apiMessage = extractApiErrorMessage(result.error);
-        console.error(
+        logClientError(
           "Failed to update completion",
           apiMessage ?? result.error,
+          {
+            component: "HomeworkPanel",
+            sectionId,
+            homeworkId,
+          },
         );
         toast({
           title: t("completionFailed"),
@@ -462,7 +462,11 @@ export function HomeworkPanel({
         ),
       );
     } catch (err) {
-      console.error("Failed to update completion", err);
+      logClientError("Failed to update completion", err, {
+        component: "HomeworkPanel",
+        sectionId,
+        homeworkId,
+      });
       toast({
         title: t("completionFailed"),
         variant: "destructive",
@@ -498,7 +502,7 @@ export function HomeworkPanel({
         )}
         <AuditLogSheet
           auditLogs={auditLogs}
-          formatter={formatter}
+          formatTimestamp={formatTimestamp}
           labels={{
             title: t("auditTitle"),
             empty: t("auditEmpty"),
@@ -524,28 +528,22 @@ export function HomeworkPanel({
         </Card>
       )}
 
-      {loading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-28 w-full" />
-          <Skeleton className="h-28 w-full" />
-          <Skeleton className="h-28 w-full" />
-        </div>
-      ) : error ? (
-        <Card className="border-dashed">
-          <CardPanel className="space-y-2">
-            <p className="text-muted-foreground text-sm">{error}</p>
-            <Button variant="outline" onClick={() => void loadHomeworks()}>
-              {t("retry")}
-            </Button>
-          </CardPanel>
-        </Card>
-      ) : homeworks.length === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
-          </EmptyHeader>
-        </Empty>
-      ) : (
+      <DataState
+        loading={loading}
+        error={error}
+        onRetry={() => void loadHomeworks()}
+        retryLabel={t("retry")}
+        empty={homeworks.length === 0}
+        emptyTitle={t("emptyTitle")}
+        emptyDescription={t("emptyDescription")}
+        loadingFallback={
+          <div className="space-y-3">
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+        }
+      >
         <div className="space-y-4">
           {homeworks.map((homework) => {
             const isEditing = editingId === homework.id;
@@ -554,7 +552,7 @@ export function HomeworkPanel({
               !viewer.isSuspended &&
               (viewer.isAdmin || homework.createdById === viewer.userId);
             const createdAtLabel = t("createdAt", {
-              date: formatter.format(new Date(homework.createdAt)),
+              date: formatTimestamp(homework.createdAt),
             });
 
             if (!isEditing) {
@@ -605,7 +603,7 @@ export function HomeworkPanel({
                   submissionDueLabel={t("submissionDue")}
                   submissionDueValue={
                     homework.submissionDueAt
-                      ? formatter.format(new Date(homework.submissionDueAt))
+                      ? formatTimestamp(homework.submissionDueAt)
                       : t("dateTBD")
                   }
                   description={homework.description?.content ?? null}
@@ -613,13 +611,13 @@ export function HomeworkPanel({
                   startAtLabel={t("submissionStart")}
                   startAtValue={
                     homework.submissionStartAt
-                      ? formatter.format(new Date(homework.submissionStartAt))
+                      ? formatTimestamp(homework.submissionStartAt)
                       : t("dateTBD")
                   }
                   publishedAtLabel={t("publishedAt")}
                   publishedAtValue={
                     homework.publishedAt
-                      ? formatter.format(new Date(homework.publishedAt))
+                      ? formatTimestamp(homework.publishedAt)
                       : t("dateTBD")
                   }
                   footerStart={renderTagBadges(homework)}
@@ -659,7 +657,7 @@ export function HomeworkPanel({
                 <CardPanel className="space-y-4">
                   <HomeworkCardEditForm
                     homework={homework}
-                    formatter={formatter}
+                    formatTimestamp={formatTimestamp}
                     canDelete={canDelete}
                     semesterStartDate={semesterStartDate}
                     semesterEndDate={semesterEndDate}
@@ -673,19 +671,19 @@ export function HomeworkPanel({
                       }
 
                       try {
-                        const publishedAtIso = toIsoFromLocalInput(
+                        const publishedAtDate = parseShanghaiDateTimeLocalInput(
                           data.publishedAt,
                         );
-                        const submissionStartAtIso = toIsoFromLocalInput(
-                          data.submissionStartAt,
-                        );
-                        const submissionDueAtIso = toIsoFromLocalInput(
-                          data.submissionDueAt,
-                        );
+                        const submissionStartAtDate =
+                          parseShanghaiDateTimeLocalInput(
+                            data.submissionStartAt,
+                          );
+                        const submissionDueAtDate =
+                          parseShanghaiDateTimeLocalInput(data.submissionDueAt);
                         if (
-                          publishedAtIso === undefined ||
-                          submissionStartAtIso === undefined ||
-                          submissionDueAtIso === undefined
+                          publishedAtDate === undefined ||
+                          submissionStartAtDate === undefined ||
+                          submissionDueAtDate === undefined
                         ) {
                           toast({
                             title: t("updateFailed"),
@@ -703,9 +701,15 @@ export function HomeworkPanel({
                             },
                             body: {
                               title: data.title.trim(),
-                              publishedAt: publishedAtIso,
-                              submissionStartAt: submissionStartAtIso,
-                              submissionDueAt: submissionDueAtIso,
+                              publishedAt: publishedAtDate
+                                ? toShanghaiIsoString(publishedAtDate)
+                                : null,
+                              submissionStartAt: submissionStartAtDate
+                                ? toShanghaiIsoString(submissionStartAtDate)
+                                : null,
+                              submissionDueAt: submissionDueAtDate
+                                ? toShanghaiIsoString(submissionDueAtDate)
+                                : null,
                               isMajor: data.isMajor,
                               requiresTeam: data.requiresTeam,
                             },
@@ -758,7 +762,11 @@ export function HomeworkPanel({
                         await loadHomeworks();
                         return true;
                       } catch (err) {
-                        console.error("Failed to update homework", err);
+                        logClientError("Failed to update homework", err, {
+                          component: "HomeworkPanel",
+                          sectionId,
+                          homeworkId: homework.id,
+                        });
                         toast({
                           title: t("updateFailed"),
                           variant: "destructive",
@@ -797,7 +805,11 @@ export function HomeworkPanel({
                         await loadHomeworks();
                         return true;
                       } catch (err) {
-                        console.error("Failed to delete homework", err);
+                        logClientError("Failed to delete homework", err, {
+                          component: "HomeworkPanel",
+                          sectionId,
+                          homeworkId: homework.id,
+                        });
                         toast({
                           title: t("deleteFailed"),
                           variant: "destructive",
@@ -815,14 +827,14 @@ export function HomeworkPanel({
             );
           })}
         </div>
-      )}
+      </DataState>
     </div>
   );
 }
 
 function HomeworkCardEditForm({
   homework,
-  formatter,
+  formatTimestamp,
   canDelete,
   semesterStartDate,
   semesterEndDate,
@@ -838,13 +850,13 @@ function HomeworkCardEditForm({
     homework.description?.content ?? "",
   );
   const [editPublishedAt, setEditPublishedAt] = useState(
-    toLocalInputValue(homework.publishedAt),
+    toShanghaiDateTimeLocalValue(homework.publishedAt),
   );
   const [editSubmissionStartAt, setEditSubmissionStartAt] = useState(
-    toLocalInputValue(homework.submissionStartAt),
+    toShanghaiDateTimeLocalValue(homework.submissionStartAt),
   );
   const [editSubmissionDueAt, setEditSubmissionDueAt] = useState(
-    toLocalInputValue(homework.submissionDueAt),
+    toShanghaiDateTimeLocalValue(homework.submissionDueAt),
   );
   const [editIsMajor, setEditIsMajor] = useState(homework.isMajor);
   const [editRequiresTeam, setEditRequiresTeam] = useState(
@@ -887,7 +899,10 @@ function HomeworkCardEditForm({
         error: null,
       });
     } catch (err) {
-      console.error("Failed to load description history", err);
+      logClientError("Failed to load description history", err, {
+        component: "HomeworkCardEditForm",
+        homeworkId: homework.id,
+      });
       setDescriptionHistory((prev) => ({
         ...prev,
         loading: false,
@@ -921,23 +936,25 @@ function HomeworkCardEditForm({
   };
 
   const applyStartNow = (setter: (value: string) => void) => {
-    setter(toLocalInputValue(new Date().toISOString()));
+    setter(toShanghaiDateTimeLocalValue(new Date()));
   };
 
   const applyDueInAWeek = (setter: (value: string) => void) => {
-    const now = new Date();
-    now.setDate(now.getDate() + 7);
-    setter(toLocalInputValue(endOfDay(now).toISOString()));
+    setter(
+      toShanghaiDateTimeLocalValue(
+        endOfShanghaiDay(addShanghaiTime(new Date(), 7, "day")),
+      ),
+    );
   };
 
   const applySemesterEnd = (setter: (value: string) => void) => {
     if (!semesterEndDate || Number.isNaN(semesterEndDate.getTime())) return;
-    setter(toLocalInputValue(endOfDay(semesterEndDate).toISOString()));
+    setter(toShanghaiDateTimeLocalValue(endOfShanghaiDay(semesterEndDate)));
   };
 
   const applySemesterStart = (setter: (value: string) => void) => {
     if (!semesterStartDate || Number.isNaN(semesterStartDate.getTime())) return;
-    setter(toLocalInputValue(semesterStartDate.toISOString()));
+    setter(toShanghaiDateTimeLocalValue(startOfShanghaiDay(semesterStartDate)));
   };
 
   const renderHelperActions = (target: "start" | "due") => {
@@ -1052,7 +1069,7 @@ function HomeworkCardEditForm({
               size="sm"
               variant="ghost"
               onClick={() =>
-                setEditPublishedAt(toLocalInputValue(new Date().toISOString()))
+                setEditPublishedAt(toShanghaiDateTimeLocalValue(new Date()))
               }
             >
               {t("helperPublishNow")}
@@ -1136,9 +1153,7 @@ function HomeworkCardEditForm({
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2 text-muted-foreground text-xs">
                             <span>{editorName}</span>
-                            <span>
-                              {formatter.format(new Date(entry.createdAt))}
-                            </span>
+                            <span>{formatTimestamp(entry.createdAt)}</span>
                           </div>
                           <div className="space-y-2 text-sm">
                             <p className="text-muted-foreground text-xs">
@@ -1225,7 +1240,11 @@ function HomeworkCardEditForm({
   );
 }
 
-function AuditLogSheet({ auditLogs, formatter, labels }: AuditLogSheetProps) {
+function AuditLogSheet({
+  auditLogs,
+  formatTimestamp,
+  labels,
+}: AuditLogSheetProps) {
   return (
     <Sheet>
       <SheetTrigger render={<Button size="sm" variant="outline" />}>
@@ -1268,7 +1287,7 @@ function AuditLogSheet({ auditLogs, formatter, labels }: AuditLogSheetProps) {
                     <div className="text-muted-foreground text-xs">
                       {labels.meta({
                         name: actorName,
-                        date: formatter.format(new Date(log.createdAt)),
+                        date: formatTimestamp(log.createdAt),
                       })}
                     </div>
                   </div>

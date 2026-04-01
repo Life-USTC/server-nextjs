@@ -103,7 +103,7 @@ export async function PATCH(
         key: updated.key,
         filename: updated.filename,
         size: updated.size,
-        createdAt: updated.createdAt.toISOString(),
+        createdAt: updated.createdAt,
       },
     });
   } catch (error) {

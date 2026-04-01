@@ -3,8 +3,7 @@
 import { DotsThree, Trash, Warning } from "@phosphor-icons/react";
 import { Link2, Pencil, Reply } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -22,6 +21,7 @@ import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { cn } from "@/lib/utils";
 import type { UploadOption, UploadSummary } from "../hooks/use-comment-upload";
 import { CommentEditor } from "./comment-editor";
@@ -72,20 +72,39 @@ export function CommentThread({
   const [highlightedId, setHighlightedId] = useState<string | null>(
     initialHighlightId ?? null,
   );
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flashHighlightedComment = useCallback((commentId: string) => {
+    setHighlightedId(commentId);
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+    }
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightedId(null);
+      highlightTimerRef.current = null;
+    }, 2000);
+  }, []);
 
   useEffect(() => {
-    if (initialHighlightId) {
-      setHighlightedId(initialHighlightId);
-      const element = document.getElementById(`comment-${initialHighlightId}`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
       }
-      const timer = setTimeout(() => setHighlightedId(null), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [initialHighlightId]);
+    };
+  }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll and highlight on hash change
+  useEffect(() => {
+    if (!initialHighlightId) {
+      return;
+    }
+    const element = document.getElementById(`comment-${initialHighlightId}`);
+    if (!element) {
+      return;
+    }
+    element.scrollIntoView({ behavior: "smooth" });
+    flashHighlightedComment(initialHighlightId);
+  }, [flashHighlightedComment, initialHighlightId]);
+
   useEffect(() => {
     const handleHashChange = () => {
       if (window.location.hash) {
@@ -94,18 +113,30 @@ export function CommentThread({
         if (element) {
           element.scrollIntoView({ behavior: "smooth" });
           if (id.startsWith("comment-")) {
-            const commentId = id.replace("comment-", "");
-            setHighlightedId(commentId);
-            setTimeout(() => setHighlightedId(null), 2000);
+            flashHighlightedComment(id.replace("comment-", ""));
           }
         }
       }
     };
 
-    handleHashChange();
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
-  }, [comments.length]);
+  }, [flashHighlightedComment]);
+
+  useEffect(() => {
+    if (!comments.length || !window.location.hash) {
+      return;
+    }
+    const id = window.location.hash.substring(1);
+    const element = document.getElementById(id);
+    if (!element) {
+      return;
+    }
+    element.scrollIntoView({ behavior: "smooth" });
+    if (id.startsWith("comment-")) {
+      flashHighlightedComment(id.replace("comment-", ""));
+    }
+  }, [comments.length, flashHighlightedComment]);
 
   if (comments.length === 0) {
     return null;
@@ -172,9 +203,8 @@ function CommentItem({
   depth = 0,
   highlightId,
 }: CommentItemProps) {
-  const t = useTranslations("comments");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
+  const t = useTranslations("comments");
   const { toast } = useToast();
   const { copyToClipboard } = useCopyToClipboard();
   const [isReplying, setIsReplying] = useState(false);
@@ -212,15 +242,13 @@ function CommentItem({
   const authorName =
     comment.author?.name ??
     (comment.isAnonymous ? t("anonymousLabel") : t("guestBadge"));
-
-  const dateFormatter = useMemo(
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      createShanghaiDateTimeFormatter(locale, {
         dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
   );
 
   const isHighlighted = highlightId === comment.id;
@@ -276,12 +304,14 @@ function CommentItem({
                   href={`#comment-${comment.id}`}
                   className="block text-muted-foreground text-xs hover:underline"
                 >
-                  {dateFormatter.format(new Date(comment.createdAt))}
+                  {dateTimeFormatter.format(new Date(comment.createdAt))}
                 </Link>
                 {comment.updatedAt !== comment.createdAt && (
                   <p className="text-muted-foreground text-xs">
                     {t("editedAt", {
-                      date: dateFormatter.format(new Date(comment.updatedAt)),
+                      date: dateTimeFormatter.format(
+                        new Date(comment.updatedAt),
+                      ),
                     })}
                   </p>
                 )}

@@ -59,11 +59,11 @@ export function MarkdownEditor({
         className="w-full"
       >
         <div className="mb-2 flex items-end justify-between gap-2">
-          <TabsList className="h-8 bg-muted/50 p-0.5">
-            <TabsTab value="write" className="h-7 px-3 text-xs">
+          <TabsList variant="pill" className="w-full">
+            <TabsTab value="write" variant="pill" className="py-1.5 text-xs">
               {tabWriteLabel}
             </TabsTab>
-            <TabsTab value="preview" className="h-7 px-3 text-xs">
+            <TabsTab value="preview" variant="pill" className="py-1.5 text-xs">
               {tabPreviewLabel}
             </TabsTab>
           </TabsList>

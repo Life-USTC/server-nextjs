@@ -1,7 +1,15 @@
 import dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
 import type { SubscriptionsTabData } from "@/app/dashboard/dashboard-data";
-import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Link } from "@/i18n/routing";
 import { ExamsList } from "./exams-list";
 
 type ExamRow = {
@@ -19,7 +27,7 @@ type ExamRow = {
 
 export async function ExamsPanel({ data }: { data: SubscriptionsTabData }) {
   const tNav = await getTranslations("meDashboard.nav");
-  const tSubscriptions = await getTranslations("subscriptions");
+  const tCommon = await getTranslations("common");
 
   const exams: ExamRow[] = data.subscriptions.flatMap((subscription) =>
     subscription.sections.flatMap((section) =>
@@ -60,25 +68,30 @@ export async function ExamsPanel({ data }: { data: SubscriptionsTabData }) {
 
   if (data.subscriptions.length === 0) {
     return (
-      <div className="flex flex-col gap-6">
-        <CardHeader>
-          <CardTitle>{tSubscriptions("noSubscriptions")}</CardTitle>
-          <CardDescription>
-            {tSubscriptions("noSubscriptionsDescription")}
-          </CardDescription>
-        </CardHeader>
-      </div>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>{tNav("exams.noSubscriptionsTitle")}</EmptyTitle>
+          <EmptyDescription>
+            {tNav("exams.noSubscriptionsDescription")}
+          </EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button render={<Link className="no-underline" href="/courses" />}>
+            {tCommon("browseCourses")}
+          </Button>
+        </EmptyContent>
+      </Empty>
     );
   }
 
   if (exams.length === 0) {
     return (
-      <div className="flex flex-col gap-6">
-        <CardHeader>
-          <CardTitle>{tNav("exams.title")}</CardTitle>
-          <CardDescription>{tNav("exams.empty")}</CardDescription>
-        </CardHeader>
-      </div>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>{tNav("exams.title")}</EmptyTitle>
+          <EmptyDescription>{tNav("exams.empty")}</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 

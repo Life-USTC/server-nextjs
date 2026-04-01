@@ -7,11 +7,17 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardDescription,
-  CardHeader,
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Link } from "@/i18n/routing";
+import { cn } from "@/lib/utils";
 import { formatTime } from "@/shared/lib/time-utils";
 
 type ExamRow = {
@@ -63,48 +69,55 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
     }
     return exams;
   }, [exams, filter]);
+  const filterButtonClass = (active: boolean) =>
+    cn(
+      "rounded-lg px-3 py-1.5",
+      active
+        ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+    );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-6">
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-md border border-border/70 p-1">
-              <Button
-                size="sm"
-                variant={filter === "incomplete" ? "secondary" : "ghost"}
-                onClick={() => setFilter("incomplete")}
-              >
-                {t("filterIncomplete")}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === "completed" ? "secondary" : "ghost"}
-                onClick={() => setFilter("completed")}
-              >
-                {t("filterCompleted")}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === "all" ? "secondary" : "ghost"}
-                onClick={() => setFilter("all")}
-              >
-                {t("filterAll")}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 p-1">
+        <div className="inline-flex rounded-lg">
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "incomplete")}
+            onClick={() => setFilter("incomplete")}
+          >
+            {t("filterIncomplete")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "completed")}
+            onClick={() => setFilter("completed")}
+          >
+            {t("filterCompleted")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "all")}
+            onClick={() => setFilter("all")}
+          >
+            {t("filterAll")}
+          </Button>
+        </div>
       </div>
 
       {filteredExams.length === 0 ? (
-        <div className="flex flex-col gap-6">
-          <CardHeader>
-            <CardTitle className="text-base">{t("filterEmpty")}</CardTitle>
-          </CardHeader>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>{t("filterEmpty")}</EmptyTitle>
+            <EmptyDescription>{t("filterEmptyDescription")}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       ) : null}
 
-      <div className="columns-1 [column-gap:1rem] sm:columns-2 lg:columns-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filteredExams.map((exam) => {
           const dateLabel = exam.examDate
             ? dayjs(exam.examDate).format("YYYY-MM-DD")
@@ -122,33 +135,35 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
           return (
             <Card
               key={`${exam.sectionId}-${exam.examId}`}
-              className="mb-4 flex min-h-0 break-inside-avoid flex-col border-border/60"
+              className="flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72"
             >
-              <CardHeader className="shrink-0 pb-2">
-                <CardTitle className="min-w-0 truncate font-medium text-base">
-                  <Link
-                    className="block truncate no-underline hover:underline"
-                    href={sectionHref}
-                    title={exam.courseName ?? undefined}
-                  >
-                    {exam.courseName ?? "—"}
-                  </Link>
-                </CardTitle>
-                {roomSubtitle ? (
-                  <CardDescription className="min-w-0 truncate">
-                    {roomSubtitle}
-                  </CardDescription>
-                ) : null}
-              </CardHeader>
-              <CardPanel className="min-h-0 flex-1 space-y-2 pt-0 text-sm">
-                <p className="font-semibold text-foreground tabular-nums">
-                  {dateLabel} {timeLabel}
-                </p>
-                {exam.examMode ? (
-                  <p className="text-muted-foreground text-xs">
-                    {exam.examMode}
+              <CardPanel className="flex min-h-0 flex-1 flex-col gap-3">
+                <div className="space-y-1">
+                  <CardTitle className="min-w-0 truncate font-medium text-base">
+                    <Link
+                      className="block truncate no-underline hover:underline"
+                      href={sectionHref}
+                      title={exam.courseName ?? undefined}
+                    >
+                      {exam.courseName ?? "—"}
+                    </Link>
+                  </CardTitle>
+                  {roomSubtitle ? (
+                    <CardDescription className="min-w-0 truncate">
+                      {roomSubtitle}
+                    </CardDescription>
+                  ) : null}
+                </div>
+                <div className="mt-auto space-y-2 text-sm">
+                  <p className="font-semibold text-foreground tabular-nums">
+                    {dateLabel} {timeLabel}
                   </p>
-                ) : null}
+                  {exam.examMode ? (
+                    <p className="text-muted-foreground text-xs">
+                      {exam.examMode}
+                    </p>
+                  ) : null}
+                </div>
               </CardPanel>
             </Card>
           );

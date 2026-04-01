@@ -1,3 +1,5 @@
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+
 export type CommentAuthorSummary = {
   id?: string;
   name: string | null;
@@ -240,8 +242,8 @@ export function buildCommentNodes(
       authorHidden,
       isAnonymous: Boolean(comment.isAnonymous),
       isAuthor,
-      createdAt: comment.createdAt.toISOString(),
-      updatedAt: comment.updatedAt.toISOString(),
+      createdAt: toShanghaiIsoString(comment.createdAt),
+      updatedAt: toShanghaiIsoString(comment.updatedAt),
       parentId: comment.parentId ?? null,
       rootId: comment.rootId ?? null,
       replies: [],

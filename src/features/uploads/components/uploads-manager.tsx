@@ -2,8 +2,7 @@
 
 import { ArrowUpRight, Pencil, UploadCloud } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
-import { useMemo, useRef, useState } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -43,6 +42,8 @@ import {
   uploadDeleteResponseSchema,
   uploadRenameResponseSchema,
 } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import { cn } from "@/lib/utils";
 import { formatBytes } from "@/shared/lib/format-bytes";
 import { UploadFlowError, uploadFileWithPresign } from "../lib/upload-client";
@@ -91,7 +92,7 @@ type UploadsTableProps = {
   editingName: string;
   isSaving: boolean;
   isDeleting: boolean;
-  formatter: Intl.DateTimeFormat;
+  formatTimestamp: (value: string) => string;
   onStartRename: (item: UploadItem) => void;
   onCancelRename: () => void;
   onRename: (item: UploadItem) => void;
@@ -131,7 +132,7 @@ function UsageSummaryCard({
   remainingLabel,
 }: UsageSummaryCardProps) {
   return (
-    <div className="rounded-2xl border bg-muted/10 p-5">
+    <div className="rounded-xl border border-border/70 bg-card/72 p-5">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <p className="font-medium text-sm">{usageLabel}</p>
@@ -163,7 +164,7 @@ function UploadDropzone({
     <div className="space-y-3">
       <Card
         className={cn(
-          "rounded-2xl border border-dashed bg-muted/20 p-5 transition-colors",
+          "rounded-xl border border-border/70 border-dashed bg-card/72 p-5 transition-colors",
           isDragActive && "border-primary bg-primary/10",
         )}
         onDragOver={(event) => {
@@ -219,7 +220,7 @@ function UploadsTable({
   editingName,
   isSaving,
   isDeleting,
-  formatter,
+  formatTimestamp,
   onStartRename,
   onCancelRename,
   onRename,
@@ -231,7 +232,7 @@ function UploadsTable({
 }: UploadsTableProps) {
   if (uploads.length === 0) {
     return (
-      <Empty className="border-none bg-muted/20">
+      <Empty variant="soft">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <UploadCloud className="h-4 w-4" />
@@ -300,9 +301,7 @@ function UploadsTable({
               )}
             </TableCell>
             <TableCell>{formatBytes(upload.size)}</TableCell>
-            <TableCell>
-              {formatter.format(new Date(upload.createdAt))}
-            </TableCell>
+            <TableCell>{formatTimestamp(upload.createdAt)}</TableCell>
             <TableCell className="text-right">
               {editingId === upload.id ? null : (
                 <div className="flex flex-nowrap justify-end gap-2 overflow-x-auto">
@@ -373,9 +372,8 @@ export function UploadsManager({
   quotaBytes,
   accessUrl: _accessUrl,
 }: UploadsManagerProps) {
-  const t = useTranslations("uploads");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
+  const t = useTranslations("uploads");
   const { toast } = useToast();
   const [uploads, setUploads] = useState<UploadItem[]>(initialUploads);
   const [usedBytes, setUsedBytes] = useState(initialUsedBytes);
@@ -388,15 +386,17 @@ export function UploadsManager({
   const [editingName, setEditingName] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<UploadItem | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const formatter = useMemo(
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      createShanghaiDateTimeFormatter(locale, {
         dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
+  );
+  const formatTimestamp = useCallback(
+    (value: string) => dateTimeFormatter.format(new Date(value)),
+    [dateTimeFormatter],
   );
 
   const usagePercent = quotaBytes
@@ -461,7 +461,10 @@ export function UploadsManager({
           return;
         }
       }
-      console.error("Upload failed", error);
+      logClientError("Upload failed", error, {
+        component: "UploadsManager",
+        filename: file.name,
+      });
       toast({
         title: t("toastUploadErrorTitle"),
         description: t("toastUploadErrorDescription"),
@@ -478,7 +481,10 @@ export function UploadsManager({
     try {
       window.open(url, "_blank", "noopener,noreferrer");
     } catch (error) {
-      console.error("Open failed", error);
+      logClientError("Open failed", error, {
+        component: "UploadsManager",
+        uploadId: item.id,
+      });
       toast({
         title: t("toastDownloadErrorTitle"),
         description: t("toastDownloadErrorDescription"),
@@ -501,7 +507,10 @@ export function UploadsManager({
         variant: "success",
       });
     } catch (error) {
-      console.error("Copy failed", error);
+      logClientError("Copy failed", error, {
+        component: "UploadsManager",
+        uploadId: item.id,
+      });
       toast({
         title: t("toastLinkCopyErrorTitle"),
         description: t("toastLinkCopyErrorDescription"),
@@ -565,7 +574,10 @@ export function UploadsManager({
         variant: "success",
       });
     } catch (error) {
-      console.error("Rename failed", error);
+      logClientError("Rename failed", error, {
+        component: "UploadsManager",
+        uploadId: item.id,
+      });
       toast({
         title: t("toastRenameErrorTitle"),
         description: t("toastRenameErrorDescription"),
@@ -614,7 +626,10 @@ export function UploadsManager({
         variant: "success",
       });
     } catch (error) {
-      console.error("Delete failed", error);
+      logClientError("Delete failed", error, {
+        component: "UploadsManager",
+        uploadId: deleteTarget.id,
+      });
       toast({
         title: t("toastDeleteErrorTitle"),
         description: t("toastDeleteErrorDescription"),
@@ -674,7 +689,7 @@ export function UploadsManager({
                 editingName={editingName}
                 isSaving={isSaving}
                 isDeleting={isDeleting}
-                formatter={formatter}
+                formatTimestamp={formatTimestamp}
                 onStartRename={startRename}
                 onCancelRename={cancelRename}
                 onRename={handleRename}

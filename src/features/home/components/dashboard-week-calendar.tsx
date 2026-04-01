@@ -148,24 +148,26 @@ export async function DashboardWeekCalendar({
   const sep = navHrefBase.includes("?") ? "&" : "?";
   const weekLink = (d: dayjs.Dayjs) =>
     `${navHrefBase}${sep}${weekQueryKey}=${d.format("YYYY-MM-DD")}`;
+  const weekNavButtonClass =
+    "rounded-lg border border-border/70 bg-card/72 px-2.5 py-1.5 text-sm no-underline transition-colors hover:bg-background/90";
+  const weekGridFrameClass =
+    "grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-2xl border border-border/70 bg-card/50 p-1";
+  const weekGridHeaderCellClass =
+    "rounded-xl bg-background/85 px-1 py-3 text-center font-medium text-muted-foreground text-xs";
+  const weekGridWeekLabelClass =
+    "flex items-start justify-center rounded-xl bg-background/70 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground";
 
   return (
     <div className="space-y-2">
       {showWeekNav && t ? (
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href={weekLink(weekPrev)}
-            className="rounded-md border border-border px-2 py-1 text-sm no-underline hover:bg-accent/50"
-          >
+          <Link href={weekLink(weekPrev)} className={weekNavButtonClass}>
             {t("calendarWeek.prev")}
           </Link>
           <span className="min-w-0 shrink font-medium text-foreground text-sm">
             {weekLabel}
           </span>
-          <Link
-            href={weekLink(weekNext)}
-            className="rounded-md border border-border px-2 py-1 text-sm no-underline hover:bg-accent/50"
-          >
+          <Link href={weekLink(weekNext)} className={weekNavButtonClass}>
             {t("calendarWeek.next")}
           </Link>
         </div>
@@ -173,21 +175,18 @@ export async function DashboardWeekCalendar({
 
       <div className="overflow-x-auto">
         <div className="min-w-[640px]">
-          <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60">
-            <div className="rounded-tl-lg bg-muted/10 px-2 py-3 text-center font-medium text-muted-foreground text-xs">
+          <div className={weekGridFrameClass}>
+            <div className={cn(weekGridHeaderCellClass, "rounded-t-xl")}>
               {tSection("weekLabel")}
             </div>
             {weekdayLabels.map((label) => (
-              <div
-                key={label}
-                className="bg-muted/10 px-1 py-3 text-center font-medium text-muted-foreground text-xs"
-              >
+              <div key={label} className={weekGridHeaderCellClass}>
                 {label}
               </div>
             ))}
 
             <div className="contents">
-              <div className="flex items-start justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
+              <div className={weekGridWeekLabelClass}>
                 <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
                   {weekLabel}
                 </span>
@@ -202,7 +201,7 @@ export async function DashboardWeekCalendar({
                 return (
                   <div
                     key={dateKey}
-                    className="min-h-[7rem] min-w-0 overflow-hidden bg-background p-1.5 text-xs"
+                    className="min-h-[7rem] min-w-0 overflow-hidden rounded-xl border border-border/50 bg-background/95 p-1.5 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                   >
                     <div className="mb-1.5 flex items-center justify-between">
                       <span

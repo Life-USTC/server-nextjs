@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { logClientError } from "@/lib/log/app-logger";
 
 interface UseCopyToClipboardOptions {
   onCopy?: () => void;
@@ -16,7 +17,9 @@ export function useCopyToClipboard(options: UseCopyToClipboardOptions = {}) {
         setIsCopied(true);
         onCopy?.();
       } catch (err) {
-        console.error("Failed to copy:", err);
+        logClientError("Failed to copy to clipboard", err, {
+          feature: "clipboard",
+        });
         setIsCopied(false);
       }
     },

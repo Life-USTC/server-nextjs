@@ -35,11 +35,11 @@ const BASE_STYLES =
 
 const VARIANT_STYLES: Record<CalendarEventVariant, string> = {
   session:
-    "rounded border border-border/60 bg-muted/20 hover:bg-muted/40 active:bg-muted/50 data-[pressed]:bg-muted/50 data-[open]:bg-muted/50",
-  exam: "rounded border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 active:bg-blue-500/30 data-[pressed]:bg-blue-500/30 data-[open]:bg-blue-500/30",
+    "rounded-lg border border-border/70 bg-card/88 hover:bg-background active:bg-card data-[pressed]:bg-card data-[open]:bg-card",
+  exam: "rounded-lg border border-blue-500/35 bg-blue-500/[0.08] hover:bg-blue-500/[0.14] active:bg-blue-500/[0.18] data-[pressed]:bg-blue-500/[0.18] data-[open]:bg-blue-500/[0.18]",
   homework:
-    "rounded border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 active:bg-amber-500/30 data-[pressed]:bg-amber-500/30 data-[open]:bg-amber-500/30",
-  todo: "rounded border border-violet-500/40 bg-violet-500/10 hover:bg-violet-500/20 active:bg-violet-500/30 data-[pressed]:bg-violet-500/30 data-[open]:bg-violet-500/30",
+    "rounded-lg border border-amber-500/35 bg-amber-500/[0.08] hover:bg-amber-500/[0.14] active:bg-amber-500/[0.18] data-[pressed]:bg-amber-500/[0.18] data-[open]:bg-amber-500/[0.18]",
+  todo: "rounded-lg border border-violet-500/35 bg-violet-500/[0.08] hover:bg-violet-500/[0.14] active:bg-violet-500/[0.18] data-[pressed]:bg-violet-500/[0.18] data-[open]:bg-violet-500/[0.18]",
 };
 
 /** Hover popover: solid (opaque) background, variant-tinted. */
@@ -47,11 +47,11 @@ export const calendarEventVariantPopoverClassName: Record<
   CalendarEventVariant,
   string
 > = {
-  session: "!border-border/60 !bg-zinc-50 dark:!bg-zinc-950 !text-foreground",
-  exam: "!border-blue-500/40 !bg-blue-50 dark:!bg-blue-950 !text-foreground",
+  session: "!border-border/70 !bg-popover !text-foreground",
+  exam: "!border-blue-500/35 !bg-blue-50/95 dark:!bg-blue-950/95 !text-foreground",
   homework:
-    "!border-amber-500/40 !bg-amber-50 dark:!bg-amber-950 !text-foreground",
-  todo: "!border-violet-500/40 !bg-violet-50 dark:!bg-violet-950 !text-foreground",
+    "!border-amber-500/35 !bg-amber-50/95 dark:!bg-amber-950/95 !text-foreground",
+  todo: "!border-violet-500/35 !bg-violet-50/95 dark:!bg-violet-950/95 !text-foreground",
 };
 
 export interface CalendarEventCardProps

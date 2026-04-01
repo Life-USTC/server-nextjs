@@ -1,5 +1,6 @@
 import { getViewerContext } from "@/features/comments/server/comment-utils";
 import { prisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 type TargetType = "section" | "course" | "teacher" | "homework";
 
@@ -108,8 +109,12 @@ export async function getDescriptionPayload(
       ? {
           id: description.id,
           content: description.content ?? "",
-          updatedAt: description.updatedAt?.toISOString() ?? null,
-          lastEditedAt: description.lastEditedAt?.toISOString() ?? null,
+          updatedAt: description.updatedAt
+            ? toShanghaiIsoString(description.updatedAt)
+            : null,
+          lastEditedAt: description.lastEditedAt
+            ? toShanghaiIsoString(description.lastEditedAt)
+            : null,
           lastEditedBy: description.lastEditedBy ?? null,
         }
       : {
@@ -121,7 +126,7 @@ export async function getDescriptionPayload(
         },
     history: history.map((entry) => ({
       id: entry.id,
-      createdAt: entry.createdAt.toISOString(),
+      createdAt: toShanghaiIsoString(entry.createdAt),
       previousContent: entry.previousContent ?? null,
       nextContent: entry.nextContent ?? "",
       editor: entry.editor

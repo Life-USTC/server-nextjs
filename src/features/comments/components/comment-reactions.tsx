@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
+import { logClientError } from "@/lib/log/app-logger";
 import { cn } from "@/lib/utils";
 import type { CommentReaction, CommentViewer } from "./comment-types";
 
@@ -115,7 +116,11 @@ export function CommentReactions({
         toggled: !shouldRemove,
       });
     } catch (error) {
-      console.error("Reaction failed", error);
+      logClientError("Failed to toggle comment reaction", error, {
+        feature: "comments",
+        commentId,
+        reactionType: type,
+      });
       toast({
         title: t("reactionFailed"),
         description: t("pleaseRetry"),

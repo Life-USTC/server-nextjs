@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
+import { DataState } from "@/components/data-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel } from "@/components/ui/card";
@@ -240,180 +241,172 @@ export function CommentThreadPage({ commentId }: CommentThreadPageProps) {
     await loadThread();
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="border-dashed">
-        <CardPanel className="space-y-2">
-          <p className="text-muted-foreground text-sm">{error}</p>
-          <Button variant="outline" onClick={() => void loadThread()}>
-            {t("retry")}
-          </Button>
-        </CardPanel>
-      </Card>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardPanel className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="font-semibold text-base">{t("threadTitle")}</h3>
-              <p className="text-muted-foreground text-sm">
-                {t("threadSubtitle")}
-              </p>
-            </div>
-            {viewer.isAuthenticated ? (
-              <Badge variant="secondary">{t("loggedInBadge")}</Badge>
-            ) : (
-              <Badge variant="outline">{t("guestBadge")}</Badge>
-            )}
-          </div>
-          <CommentEditor
-            viewer={viewer}
-            uploads={uploads}
-            uploadSummary={uploadSummary}
-            onUploadComplete={addUpload}
-            submitLabel={t("postReply")}
-            onSubmit={(payload) => createReply(payload)}
-          />
-        </CardPanel>
-      </Card>
-
-      {(target.sectionJwId ||
-        target.courseJwId ||
-        target.teacherId ||
-        target.sectionTeacherSectionJwId ||
-        target.sectionTeacherCourseJwId ||
-        target.homeworkId) && (
+    <DataState
+      loading={loading}
+      error={error}
+      onRetry={() => void loadThread()}
+      retryLabel={t("retry")}
+      empty={false}
+      loadingFallback={
+        <div className="space-y-4">
+          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      }
+    >
+      <div className="space-y-6">
         <Card>
-          <CardPanel className="flex flex-wrap gap-3">
-            {target.homeworkId && target.homeworkSectionJwId && (
-              <Button
-                size="sm"
-                variant="outline"
-                render={
-                  <Link
-                    className="no-underline"
-                    href={`/sections/${target.homeworkSectionJwId}#homework-${target.homeworkId}`}
-                  />
-                }
-              >
-                {target.homeworkTitle ?? t("viewHomework")}
-              </Button>
-            )}
-            {target.sectionTeacherSectionJwId ? (
-              <Button
-                size="sm"
-                variant="outline"
-                render={
-                  <Link
-                    className="no-underline"
-                    href={`/sections/${target.sectionTeacherSectionJwId}`}
-                  />
-                }
-              >
-                {target.sectionTeacherSectionCode ?? t("viewSection")}
-              </Button>
-            ) : (
-              target.sectionJwId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  render={
-                    <Link
-                      className="no-underline"
-                      href={`/sections/${target.sectionJwId}`}
-                    />
-                  }
-                >
-                  {target.sectionCode ?? t("viewSection")}
-                </Button>
-              )
-            )}
-            {target.sectionTeacherCourseJwId ? (
-              <Button
-                size="sm"
-                variant="outline"
-                render={
-                  <Link
-                    className="no-underline"
-                    href={`/courses/${target.sectionTeacherCourseJwId}`}
-                  />
-                }
-              >
-                {target.sectionTeacherCourseName ?? t("viewCourse")}
-              </Button>
-            ) : (
-              target.courseJwId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  render={
-                    <Link
-                      className="no-underline"
-                      href={`/courses/${target.courseJwId}`}
-                    />
-                  }
-                >
-                  {target.courseName ?? t("viewCourse")}
-                </Button>
-              )
-            )}
-            {target.sectionTeacherTeacherId ? (
-              <Button
-                size="sm"
-                variant="outline"
-                render={
-                  <Link
-                    className="no-underline"
-                    href={`/teachers/${target.sectionTeacherTeacherId}`}
-                  />
-                }
-              >
-                {target.sectionTeacherTeacherName ?? t("viewTeacher")}
-              </Button>
-            ) : (
-              target.teacherId && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  render={
-                    <Link
-                      className="no-underline"
-                      href={`/teachers/${target.teacherId}`}
-                    />
-                  }
-                >
-                  {target.teacherName ?? t("viewTeacher")}
-                </Button>
-              )
-            )}
+          <CardPanel className="space-y-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-semibold text-base">{t("threadTitle")}</h3>
+                <p className="text-muted-foreground text-sm">
+                  {t("threadSubtitle")}
+                </p>
+              </div>
+              {viewer.isAuthenticated ? (
+                <Badge variant="secondary">{t("loggedInBadge")}</Badge>
+              ) : (
+                <Badge variant="outline">{t("guestBadge")}</Badge>
+              )}
+            </div>
+            <CommentEditor
+              viewer={viewer}
+              uploads={uploads}
+              uploadSummary={uploadSummary}
+              onUploadComplete={addUpload}
+              submitLabel={t("postReply")}
+              onSubmit={(payload) => createReply(payload)}
+            />
           </CardPanel>
         </Card>
-      )}
 
-      <CommentThread
-        comments={thread}
-        viewer={viewer}
-        uploads={uploads}
-        uploadSummary={uploadSummary}
-        onUploadComplete={addUpload}
-        onReply={(parentId, payload) => createReply({ ...payload, parentId })}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        highlightId={focusId}
-      />
-    </div>
+        {(target.sectionJwId ||
+          target.courseJwId ||
+          target.teacherId ||
+          target.sectionTeacherSectionJwId ||
+          target.sectionTeacherCourseJwId ||
+          target.homeworkId) && (
+          <Card>
+            <CardPanel className="flex flex-wrap gap-3">
+              {target.homeworkId && target.homeworkSectionJwId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/sections/${target.homeworkSectionJwId}#homework-${target.homeworkId}`}
+                    />
+                  }
+                >
+                  {target.homeworkTitle ?? t("viewHomework")}
+                </Button>
+              )}
+              {target.sectionTeacherSectionJwId ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/sections/${target.sectionTeacherSectionJwId}`}
+                    />
+                  }
+                >
+                  {target.sectionTeacherSectionCode ?? t("viewSection")}
+                </Button>
+              ) : (
+                target.sectionJwId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={
+                      <Link
+                        className="no-underline"
+                        href={`/sections/${target.sectionJwId}`}
+                      />
+                    }
+                  >
+                    {target.sectionCode ?? t("viewSection")}
+                  </Button>
+                )
+              )}
+              {target.sectionTeacherCourseJwId ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/courses/${target.sectionTeacherCourseJwId}`}
+                    />
+                  }
+                >
+                  {target.sectionTeacherCourseName ?? t("viewCourse")}
+                </Button>
+              ) : (
+                target.courseJwId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={
+                      <Link
+                        className="no-underline"
+                        href={`/courses/${target.courseJwId}`}
+                      />
+                    }
+                  >
+                    {target.courseName ?? t("viewCourse")}
+                  </Button>
+                )
+              )}
+              {target.sectionTeacherTeacherId ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={
+                    <Link
+                      className="no-underline"
+                      href={`/teachers/${target.sectionTeacherTeacherId}`}
+                    />
+                  }
+                >
+                  {target.sectionTeacherTeacherName ?? t("viewTeacher")}
+                </Button>
+              ) : (
+                target.teacherId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={
+                      <Link
+                        className="no-underline"
+                        href={`/teachers/${target.teacherId}`}
+                      />
+                    }
+                  >
+                    {target.teacherName ?? t("viewTeacher")}
+                  </Button>
+                )
+              )}
+            </CardPanel>
+          </Card>
+        )}
+
+        <CommentThread
+          comments={thread}
+          viewer={viewer}
+          uploads={uploads}
+          uploadSummary={uploadSummary}
+          onUploadComplete={addUpload}
+          onReply={(parentId, payload) => createReply({ ...payload, parentId })}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          highlightId={focusId}
+        />
+      </div>
+    </DataState>
   );
 }

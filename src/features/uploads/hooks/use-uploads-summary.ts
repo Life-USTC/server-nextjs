@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api/client";
 import { uploadsListResponseSchema } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
 import type { UploadSummary } from "../lib/upload-client";
 
 export type UploadOption = {
@@ -44,7 +45,9 @@ export function useUploadsSummary({ enabled }: { enabled: boolean }) {
           usedBytes: parsed.data.usedBytes,
         });
       } catch (error) {
-        console.error("Failed to load uploads", error);
+        logClientError("Failed to load uploads summary", error, {
+          feature: "uploads",
+        });
       }
     };
 

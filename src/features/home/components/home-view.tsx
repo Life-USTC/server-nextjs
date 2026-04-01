@@ -7,6 +7,7 @@ import type {
   SubscriptionsTabData,
   TodoItem,
 } from "@/app/dashboard/dashboard-data";
+import { PageLayout } from "@/components/page-layout";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
 import { TodosPanel } from "@/features/todos/components/todos-panel";
 import { CalendarPanel } from "./calendar-panel";
@@ -74,11 +75,9 @@ export async function HomeView({
   const pendingTodosCount = navStats.pendingTodosCount;
 
   return (
-    <main className="page-main">
-      <div className="mb-6">
-        <h1 className="mb-3 text-display">
-          {t("descriptionV2", { name: userName })}
-        </h1>
+    <PageLayout
+      title={t("descriptionV2", { name: userName })}
+      headerChildren={
         <HomeTabNav
           currentTab={currentTab}
           pendingHomeworksCount={pendingHomeworksCount}
@@ -86,8 +85,8 @@ export async function HomeView({
           examsCount={examsCount}
           pendingTodosCount={pendingTodosCount}
         />
-      </div>
-
+      }
+    >
       <section className="w-full min-w-0 space-y-6">
         {currentTab === "overview" && overviewData && (
           <OverviewPanel
@@ -122,6 +121,6 @@ export async function HomeView({
           <LinksTabPanel links={overviewData.dashboardLinks} />
         )}
       </section>
-    </main>
+    </PageLayout>
   );
 }

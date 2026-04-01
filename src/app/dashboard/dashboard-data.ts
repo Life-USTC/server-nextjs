@@ -16,6 +16,7 @@ import {
 } from "@/lib/calendar-feed-token";
 import { selectCurrentSemesterFromList } from "@/lib/current-semester";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   createWeekDayFormatter,
@@ -485,7 +486,7 @@ export async function getDashboardOverviewData(
           {
             id: row.id,
             title: row.title,
-            dueAt: row.dueAt.toISOString(),
+            dueAt: toShanghaiIsoString(row.dueAt),
             priority: row.priority as "low" | "medium" | "high",
             content: row.content ?? null,
           },
@@ -640,10 +641,10 @@ export async function getHomeworksTabData(userId: string) {
           courseName: section.course?.namePrimary ?? null,
           semesterName: section.semester?.nameCn ?? null,
           semesterStart: section.semester?.startDate
-            ? section.semester.startDate.toISOString()
+            ? toShanghaiIsoString(section.semester.startDate)
             : null,
           semesterEnd: section.semester?.endDate
-            ? section.semester.endDate.toISOString()
+            ? toShanghaiIsoString(section.semester.endDate)
             : null,
         }))
       : [];
@@ -671,13 +672,21 @@ export async function getHomeworksTabData(userId: string) {
     title: hw.title,
     isMajor: hw.isMajor,
     requiresTeam: hw.requiresTeam,
-    publishedAt: hw.publishedAt?.toISOString() ?? null,
-    submissionStartAt: hw.submissionStartAt?.toISOString() ?? null,
-    submissionDueAt: hw.submissionDueAt?.toISOString() ?? null,
-    createdAt: hw.createdAt.toISOString(),
+    publishedAt: hw.publishedAt ? toShanghaiIsoString(hw.publishedAt) : null,
+    submissionStartAt: hw.submissionStartAt
+      ? toShanghaiIsoString(hw.submissionStartAt)
+      : null,
+    submissionDueAt: hw.submissionDueAt
+      ? toShanghaiIsoString(hw.submissionDueAt)
+      : null,
+    createdAt: toShanghaiIsoString(hw.createdAt),
     description: hw.description?.content ?? null,
     completion: hw.homeworkCompletions[0]
-      ? { completedAt: hw.homeworkCompletions[0].completedAt.toISOString() }
+      ? {
+          completedAt: toShanghaiIsoString(
+            hw.homeworkCompletions[0].completedAt,
+          ),
+        }
       : null,
     section: hw.section
       ? {
@@ -797,8 +806,8 @@ export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
     content: todo.content ?? null,
     completed: todo.completed,
     priority: todo.priority as "low" | "medium" | "high",
-    dueAt: todo.dueAt?.toISOString() ?? null,
-    createdAt: todo.createdAt.toISOString(),
-    updatedAt: todo.updatedAt.toISOString(),
+    dueAt: todo.dueAt ? toShanghaiIsoString(todo.dueAt) : null,
+    createdAt: toShanghaiIsoString(todo.createdAt),
+    updatedAt: toShanghaiIsoString(todo.updatedAt),
   }));
 }

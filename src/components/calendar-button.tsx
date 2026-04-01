@@ -1,7 +1,7 @@
 "use client";
 
 import { Calendar, Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { logClientError } from "@/lib/log/app-logger";
 
 interface CalendarButtonProps {
   sectionId: number;
@@ -38,12 +39,15 @@ export function CalendarButton({
   learnMoreLabel,
 }: CalendarButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [calendarUrl, setCalendarUrl] = useState("");
 
-  // Construct the full calendar URL (will include locale automatically via next-intl)
-  const calendarUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${window.location.pathname.split("/sections/")[0]}/sections/${sectionId}/calendar.ics`
-      : "";
+  useEffect(() => {
+    const localeBasePath =
+      window.location.pathname.split("/sections/")[0] ?? "";
+    setCalendarUrl(
+      `${window.location.origin}${localeBasePath}/sections/${sectionId}/calendar.ics`,
+    );
+  }, [sectionId]);
 
   const handleCopy = async () => {
     try {
@@ -51,7 +55,10 @@ export function CalendarButton({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy:", err);
+      logClientError("Failed to copy calendar URL", err, {
+        feature: "calendar",
+        sectionId,
+      });
     }
   };
 

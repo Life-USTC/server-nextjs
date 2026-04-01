@@ -33,6 +33,7 @@ import { anchoredToastManager, toastManager } from "@/components/ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { Link } from "@/i18n/routing";
+import { logClientError } from "@/lib/log/app-logger";
 
 interface SubscriptionCalendarButtonProps {
   sectionDatabaseId: number;
@@ -106,10 +107,15 @@ export function SubscriptionCalendarButton({
     useState<SubscriptionState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOperating, setIsOperating] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   const singleCopyButtonRef = useRef<HTMLButtonElement>(null);
   const subscriptionCopyButtonRef = useRef<HTMLButtonElement>(null);
   const toastTimeout = 2000;
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const { copyToClipboard: copySingle, isCopied: isSingleCopied } =
     useCopyToClipboard({
@@ -148,11 +154,15 @@ export function SubscriptionCalendarButton({
       const state = await getSubscriptionState();
       setSubscriptionState(state);
     } catch (e) {
-      console.error("Failed to fetch subscription state:", e);
+      logClientError("Failed to fetch subscription state", e, {
+        feature: "calendar-subscription",
+        sectionDatabaseId,
+        sectionJwId,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [sectionDatabaseId, sectionJwId]);
 
   useEffect(() => {
     fetchState();
@@ -165,22 +175,23 @@ export function SubscriptionCalendarButton({
   const subscriptionIcsUrl = subscriptionState?.subscriptionIcsUrl ?? null;
 
   // Single section calendar URL
-  const singleCalendarUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/sections/${sectionJwId}/calendar.ics`
-      : "";
+  const singleCalendarUrl = origin
+    ? `${origin}/api/sections/${sectionJwId}/calendar.ics`
+    : "";
 
   // Full subscription ICS URL
   const fullSubscriptionUrl =
-    typeof window !== "undefined" && subscriptionIcsUrl
-      ? `${window.location.origin}${subscriptionIcsUrl}`
-      : "";
+    origin && subscriptionIcsUrl ? `${origin}${subscriptionIcsUrl}` : "";
+  const canCopySingle = Boolean(singleCalendarUrl);
+  const canCopySubscription = Boolean(fullSubscriptionUrl);
 
   const handleCopySingle = () => {
+    if (!canCopySingle) return;
     copySingle(singleCalendarUrl);
   };
 
   const handleCopySubscription = () => {
+    if (!canCopySubscription) return;
     copySubscription(fullSubscriptionUrl);
   };
 
@@ -351,7 +362,9 @@ export function SubscriptionCalendarButton({
                           render={
                             <Button
                               aria-label={copyLabel}
-                              disabled={isSubscriptionCopied}
+                              disabled={
+                                isSubscriptionCopied || !canCopySubscription
+                              }
                               onClick={handleCopySubscription}
                               ref={subscriptionCopyButtonRef}
                               size="icon"
@@ -394,7 +407,7 @@ export function SubscriptionCalendarButton({
                         render={
                           <Button
                             aria-label={copyLabel}
-                            disabled={isSingleCopied}
+                            disabled={isSingleCopied || !canCopySingle}
                             onClick={handleCopySingle}
                             ref={singleCopyButtonRef}
                             size="icon"

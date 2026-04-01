@@ -25,7 +25,7 @@ export function ScheduleSessionLink({
       <Link
         href={href}
         className={cn(
-          "flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 px-3 py-2.5 no-underline transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 px-3 py-2.5 no-underline transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           className,
         )}
       >
@@ -53,7 +53,7 @@ export function ScheduleSessionLink({
     <Link
       href={href}
       className={cn(
-        "block rounded-lg border border-border bg-muted/20 px-3 py-2.5 no-underline transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "block rounded-xl border border-border/70 bg-card/72 px-3 py-2.5 no-underline transition-colors hover:bg-background/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className,
       )}
     >

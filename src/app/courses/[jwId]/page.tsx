@@ -165,9 +165,11 @@ export default async function CoursePage({
             tabValues={["sections", "comments"]}
             className="space-y-6"
           >
-            <TabsList className="w-full" variant="underline">
-              <TabsTab value="sections">{t("tabs.sections")}</TabsTab>
-              <TabsTab value="comments">
+            <TabsList variant="pill">
+              <TabsTab value="sections" variant="pill">
+                {t("tabs.sections")}
+              </TabsTab>
+              <TabsTab value="comments" variant="pill">
                 {t("tabs.comments")} ({commentCount})
               </TabsTab>
             </TabsList>

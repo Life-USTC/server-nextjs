@@ -5,11 +5,12 @@ import type {
 } from "@/app/dashboard/dashboard-data";
 import { Button } from "@/components/ui/button";
 import {
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@/components/ui/card";
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { HomeworkSummaryList } from "@/features/homeworks/components/homework-summary-list";
 import { Link } from "@/i18n/routing";
 
@@ -27,17 +28,17 @@ export async function HomeworksPanel({
 
   if (sections.length === 0) {
     return (
-      <div className="flex flex-col gap-6">
-        <CardHeader>
-          <CardTitle>{t("noSubscriptions")}</CardTitle>
-          <CardDescription>{t("noSubscriptionsDescription")}</CardDescription>
-        </CardHeader>
-        <CardPanel>
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>{t("noSubscriptions")}</EmptyTitle>
+          <EmptyDescription>{t("noSubscriptionsDescription")}</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
           <Button render={<Link className="no-underline" href="/courses" />}>
             {tCommon("browseCourses")}
           </Button>
-        </CardPanel>
-      </div>
+        </EmptyContent>
+      </Empty>
     );
   }
 

@@ -62,9 +62,47 @@ export async function HomeTabNav({
     links: Link2,
   };
 
+  const renderLabel = (tabId: HomeTabId, isActive: boolean) => {
+    const countClassName = cn(
+      "inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] tabular-nums",
+      isActive
+        ? "bg-background/90 text-foreground/75"
+        : "bg-background/70 text-muted-foreground",
+    );
+
+    if (tabId === "homeworks") {
+      return (
+        <>
+          <span>{tabLabels[tabId]}</span>
+          <span className={countClassName}>{pendingHomeworksCount}</span>
+        </>
+      );
+    }
+
+    if (tabId === "exams") {
+      return (
+        <>
+          <span>{tabLabels[tabId]}</span>
+          <span className={countClassName}>{examsCount}</span>
+        </>
+      );
+    }
+
+    if (tabId === "todos") {
+      return (
+        <>
+          <span>{tabLabels[tabId]}</span>
+          <span className={countClassName}>{pendingTodosCount}</span>
+        </>
+      );
+    }
+
+    return tabLabels[tabId];
+  };
+
   return (
     <nav
-      className="flex flex-wrap items-center gap-1 border-border border-b pb-2"
+      className="flex flex-wrap items-center gap-2"
       aria-label={t("ariaLabel")}
     >
       {(
@@ -81,45 +119,26 @@ export async function HomeTabNav({
             key={tabId}
             href={href}
             className={cn(
-              "flex items-center gap-2 rounded-md px-3 py-2 font-medium text-sm no-underline transition-colors",
+              "inline-flex items-center gap-2 rounded-full border px-3 py-2 font-medium text-sm no-underline transition-colors",
               isActive
-                ? "bg-accent text-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                ? "border-border/80 bg-card text-foreground"
+                : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-background/70 hover:text-foreground",
             )}
           >
             <Icon className="h-4 w-4" />
-            {tabId === "homeworks" ? (
-              <span className="inline-flex items-center gap-1">
-                <span>{tabLabels[tabId]}</span>
-                <span className="tabular-nums opacity-70">
-                  ({pendingHomeworksCount})
-                </span>
-              </span>
-            ) : tabId === "exams" ? (
-              <span className="inline-flex items-center gap-1">
-                <span>{tabLabels[tabId]}</span>
-                <span className="tabular-nums opacity-70">({examsCount})</span>
-              </span>
-            ) : tabId === "todos" ? (
-              <span className="inline-flex items-center gap-1">
-                <span>{tabLabels[tabId]}</span>
-                <span className="tabular-nums opacity-70">
-                  ({pendingTodosCount})
-                </span>
-              </span>
-            ) : (
-              tabLabels[tabId]
-            )}
+            <span className="inline-flex items-center gap-1.5">
+              {renderLabel(tabId, isActive)}
+            </span>
           </Link>
         );
       })}
       <Link
         href="/?tab=subscriptions"
         className={cn(
-          "ml-auto flex items-center gap-2 rounded-md px-3 py-2 font-medium text-sm no-underline transition-colors",
+          "inline-flex items-center gap-2 rounded-full border px-3 py-2 font-medium text-sm no-underline transition-colors sm:ml-auto",
           currentTab === "subscriptions"
-            ? "bg-accent text-foreground"
-            : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+            ? "border-border/80 bg-card text-foreground"
+            : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-background/70 hover:text-foreground",
         )}
       >
         <BookOpen className="h-4 w-4" />

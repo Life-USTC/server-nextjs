@@ -7,6 +7,7 @@ import {
   CardPanel,
   CardTitle,
 } from "@/components/ui/card";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 import type { ProfileData } from "./profile-data";
 
 type ProfileViewProps = {
@@ -24,7 +25,7 @@ export function ProfileView({
   showUserId = false,
 }: ProfileViewProps) {
   const { user, sectionCount, weeks, totalContributions } = data;
-  const formatter = new Intl.DateTimeFormat(locale, {
+  const dateFormatter = createShanghaiDateTimeFormatter(locale, {
     dateStyle: "medium",
   });
 
@@ -70,7 +71,7 @@ export function ProfileView({
           </CardHeader>
           <CardPanel className="space-y-3 text-sm">
             <p className="text-muted-foreground">
-              {t("joinedAt", { date: formatter.format(user.createdAt) })}
+              {t("joinedAt", { date: dateFormatter.format(user.createdAt) })}
             </p>
             {showUserId ? (
               <p className="text-muted-foreground">
@@ -129,7 +130,7 @@ export function ProfileView({
                         className={`${colorForCount(day.count)} h-3.5 w-3.5 rounded-[2px]`}
                         title={t("contribution.cell", {
                           count: day.count,
-                          date: formatter.format(new Date(day.date)),
+                          date: dateFormatter.format(new Date(day.date)),
                         })}
                       />
                     ))}

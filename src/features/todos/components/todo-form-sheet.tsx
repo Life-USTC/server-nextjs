@@ -23,6 +23,12 @@ import {
 } from "@/components/ui/sheet";
 import { MarkdownEditor } from "@/features/comments/components/markdown-editor";
 import { useToast } from "@/hooks/use-toast";
+import { logClientError } from "@/lib/log/app-logger";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import {
+  parseShanghaiDateTimeLocalInput,
+  toShanghaiDateTimeLocalValue,
+} from "@/lib/time/shanghai-format";
 import type { TodoItem } from "./todo-list";
 
 type TodoFormSheetProps = {
@@ -36,22 +42,6 @@ type TodoFormSheetProps = {
   triggerAriaLabel?: string;
   triggerClassName?: string;
 };
-
-function toLocalInputValue(value: string | null | undefined) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 16);
-}
-
-function parseLocalDateInput(value: string): Date | null | undefined {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  const date = new Date(trimmed);
-  return Number.isNaN(date.getTime()) ? undefined : date;
-}
 
 export function TodoFormSheet({
   mode,
@@ -75,14 +65,14 @@ export function TodoFormSheet({
   const [priority, setPriority] = useState<"low" | "medium" | "high">(
     todo?.priority ?? "medium",
   );
-  const [dueAt, setDueAt] = useState(toLocalInputValue(todo?.dueAt));
+  const [dueAt, setDueAt] = useState(toShanghaiDateTimeLocalValue(todo?.dueAt));
 
   useEffect(() => {
     if (open) {
       setTitle(todo?.title ?? "");
       setContent(todo?.content ?? "");
       setPriority(todo?.priority ?? "medium");
-      setDueAt(toLocalInputValue(todo?.dueAt));
+      setDueAt(toShanghaiDateTimeLocalValue(todo?.dueAt));
     }
   }, [open, todo]);
 
@@ -102,7 +92,7 @@ export function TodoFormSheet({
       return;
     }
 
-    const parsedDueAt = parseLocalDateInput(dueAt);
+    const parsedDueAt = parseShanghaiDateTimeLocalInput(dueAt);
     if (parsedDueAt === undefined) {
       toast({ title: t("errorInvalidDueAt"), variant: "destructive" });
       return;
@@ -114,7 +104,7 @@ export function TodoFormSheet({
         title: normalizedTitle,
         content: normalizedContent || null,
         priority,
-        dueAt: parsedDueAt ? parsedDueAt.toISOString() : null,
+        dueAt: parsedDueAt ? toShanghaiIsoString(parsedDueAt) : null,
       };
 
       const url =
@@ -139,7 +129,11 @@ export function TodoFormSheet({
       setOpen(false);
       await onSaved?.();
     } catch (error) {
-      console.error("Failed to save todo", error);
+      logClientError("Failed to save todo", error, {
+        component: "TodoFormSheet",
+        mode,
+        todoId: todo?.id ?? null,
+      });
       toast({ title: t("saveFailed"), variant: "destructive" });
     } finally {
       setSaving(false);

@@ -6,6 +6,7 @@ import {
   uploadFileWithPresign,
 } from "@/features/uploads/lib/upload-client";
 import { useToast } from "@/hooks/use-toast";
+import { logClientError } from "@/lib/log/app-logger";
 import { formatBytes } from "@/shared/lib/format-bytes";
 
 export type UploadOption = {
@@ -71,7 +72,9 @@ export function useCommentUpload({
           return null;
         }
       }
-      console.error("Attachment upload failed", error);
+      logClientError("Attachment upload failed", error, {
+        component: "useCommentUpload",
+      });
       toast({
         title: tu("toastUploadErrorTitle"),
         description: tu("toastUploadErrorDescription"),

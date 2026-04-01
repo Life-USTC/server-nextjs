@@ -4,14 +4,20 @@ import { AlertCircle, Circle, Clock, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
-import { useClientTimezone } from "@/components/client-timezone-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
+import { Card, CardPanel, CardTitle } from "@/components/ui/card";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { cn } from "@/lib/utils";
+import { formatSmartDateTime } from "@/shared/lib/time-utils";
 import { TodoFormSheet } from "./todo-form-sheet";
 
 type TodoPriority = "low" | "medium" | "high";
@@ -50,7 +56,6 @@ async function deleteTodoApi(id: string) {
 export function TodoList({ todos }: TodoListProps) {
   const t = useTranslations("todos");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
   const router = useRouter();
   const [filter, setFilter] = useState<TodoFilter>("incomplete");
   const [, startTransition] = useTransition();
@@ -82,15 +87,6 @@ export function TodoList({ todos }: TodoListProps) {
     },
   );
 
-  const formatter = useMemo(
-    () =>
-      new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
-      }),
-    [clientTimeZone, locale],
-  );
-
   const filteredTodos = useMemo(() => {
     if (filter === "completed")
       return optimisticTodos.filter((t) => t.completed);
@@ -98,6 +94,7 @@ export function TodoList({ todos }: TodoListProps) {
       return optimisticTodos.filter((t) => !t.completed);
     return optimisticTodos;
   }, [filter, optimisticTodos]);
+  const referenceNow = new Date();
 
   const handleToggle = (todo: TodoItem, nextCompleted?: boolean) => {
     startTransition(async () => {
@@ -139,72 +136,79 @@ export function TodoList({ todos }: TodoListProps) {
     medium: Clock,
     low: Circle,
   };
+  const filterButtonClass = (active: boolean) =>
+    cn(
+      "rounded-lg px-3 py-1.5",
+      active
+        ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+    );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-6">
-        <CardHeader className="gap-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex rounded-md border border-border/70 p-1">
-              <Button
-                size="sm"
-                variant={filter === "incomplete" ? "secondary" : "ghost"}
-                onClick={() => setFilter("incomplete")}
-              >
-                {t("filterIncomplete")}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === "completed" ? "secondary" : "ghost"}
-                onClick={() => setFilter("completed")}
-              >
-                {t("filterCompleted")}
-              </Button>
-              <Button
-                size="sm"
-                variant={filter === "all" ? "secondary" : "ghost"}
-                onClick={() => setFilter("all")}
-              >
-                {t("filterAll")}
-              </Button>
-            </div>
-            <TodoFormSheet
-              mode="create"
-              onSaved={() => router.refresh()}
-              triggerChildren={
-                <>
-                  <Plus className="h-4 w-4" />
-                  {t("addButton")}
-                </>
-              }
-            />
-          </div>
-        </CardHeader>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 p-1">
+        <div className="inline-flex rounded-lg">
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "incomplete")}
+            onClick={() => setFilter("incomplete")}
+          >
+            {t("filterIncomplete")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "completed")}
+            onClick={() => setFilter("completed")}
+          >
+            {t("filterCompleted")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={filterButtonClass(filter === "all")}
+            onClick={() => setFilter("all")}
+          >
+            {t("filterAll")}
+          </Button>
+        </div>
+        <TodoFormSheet
+          mode="create"
+          onSaved={() => router.refresh()}
+          triggerChildren={
+            <>
+              <Plus className="h-4 w-4" />
+              {t("addButton")}
+            </>
+          }
+        />
       </div>
 
       {filteredTodos.length === 0 && (
-        <div className="flex flex-col gap-6">
-          <CardHeader>
-            <CardTitle className="text-base">{t("filterEmptyTitle")}</CardTitle>
-          </CardHeader>
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>{t("filterEmptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("filterEmptyDescription")}</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       )}
 
-      <div className="columns-1 [column-gap:1rem] sm:columns-2 lg:columns-3">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filteredTodos.map((todo) => {
           const Icon = PriorityIcon[todo.priority];
           const dueLabel = todo.dueAt
-            ? formatter.format(new Date(todo.dueAt))
+            ? formatSmartDateTime(todo.dueAt, referenceNow, locale)
             : null;
           return (
             <Card
               key={todo.id}
               className={cn(
-                "mb-4 flex min-h-0 break-inside-avoid flex-col border-border/60",
+                "flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72",
                 todo.completed && "opacity-60",
               )}
             >
-              <CardHeader className="shrink-0 pb-2">
+              <CardPanel className="flex min-h-0 flex-1 flex-col gap-3">
                 <CardTitle className="min-w-0 truncate font-medium text-base">
                   <TodoFormSheet
                     mode="edit"
@@ -229,42 +233,44 @@ export function TodoList({ todos }: TodoListProps) {
                     triggerClassName="h-auto w-full justify-start px-0 font-medium text-base hover:bg-transparent"
                   />
                 </CardTitle>
-              </CardHeader>
-              <CardPanel className="min-h-0 flex-1 space-y-2 pt-0 text-sm">
                 {todo.content ? (
-                  <div className="mb-8 line-clamp-2 rounded-lg border border-border/60 bg-muted/5 px-2 py-1.5 text-muted-foreground text-xs">
+                  <div className="line-clamp-2 rounded-lg border border-border/50 bg-background/70 px-2.5 py-2 text-muted-foreground text-xs">
                     <CommentMarkdown content={todo.content} />
                   </div>
                 ) : null}
-                {dueLabel ? (
-                  <p className="font-semibold text-foreground tabular-nums">
-                    {dueLabel}
-                  </p>
-                ) : null}
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <Badge
-                      variant={priorityVariant[todo.priority]}
-                      className="border-0 text-xs"
-                    >
-                      <Icon className="mr-0.5 h-3 w-3" />
-                      {t(`priority.${todo.priority}`)}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id={`todo-completed-${todo.id}`}
-                      checked={todo.completed}
-                      onCheckedChange={(checked) =>
-                        void handleToggle(todo, checked)
-                      }
-                    />
-                    <Label
-                      htmlFor={`todo-completed-${todo.id}`}
-                      className="sr-only"
-                    >
-                      {todo.completed ? t("markIncomplete") : t("markComplete")}
-                    </Label>
+                <div className="mt-auto space-y-2 text-sm">
+                  {dueLabel ? (
+                    <p className="font-semibold text-foreground tabular-nums">
+                      {dueLabel}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        variant={priorityVariant[todo.priority]}
+                        className="border-0 text-xs"
+                      >
+                        <Icon className="mr-0.5 h-3 w-3" />
+                        {t(`priority.${todo.priority}`)}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id={`todo-completed-${todo.id}`}
+                        checked={todo.completed}
+                        onCheckedChange={(checked) =>
+                          void handleToggle(todo, checked)
+                        }
+                      />
+                      <Label
+                        htmlFor={`todo-completed-${todo.id}`}
+                        className="sr-only"
+                      >
+                        {todo.completed
+                          ? t("markIncomplete")
+                          : t("markComplete")}
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </CardPanel>

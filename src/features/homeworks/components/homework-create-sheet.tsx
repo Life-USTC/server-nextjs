@@ -30,6 +30,15 @@ import { Switch } from "@/components/ui/switch";
 import { MarkdownEditor } from "@/features/comments/components/markdown-editor";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
+import { logClientError } from "@/lib/log/app-logger";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
+import {
+  addShanghaiTime,
+  endOfShanghaiDay,
+  parseShanghaiDateTimeLocalInput,
+  startOfShanghaiDay,
+  toShanghaiDateTimeLocalValue,
+} from "@/lib/time/shanghai-format";
 
 type TranslateFn = (
   key: string,
@@ -113,61 +122,48 @@ export function HomeworkCreateSheet({
   useEffect(() => {
     if (!open) return;
     if (!publishedAt) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      setPublishedAt(toLocalInputValue(today.toISOString()));
+      setPublishedAt(toShanghaiDateTimeLocalValue(startOfShanghaiDay()));
     }
     if (!submissionStartAt) {
-      setSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
+      setSubmissionStartAt(toShanghaiDateTimeLocalValue(new Date()));
     }
   }, [open, publishedAt, submissionStartAt]);
 
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    setPublishedAt(toLocalInputValue(today.toISOString()));
-    setSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
+    setPublishedAt(toShanghaiDateTimeLocalValue(startOfShanghaiDay()));
+    setSubmissionStartAt(toShanghaiDateTimeLocalValue(new Date()));
     setSubmissionDueAt("");
     setIsMajor(false);
     setRequiresTeam(false);
     setAdvancedOpen(false);
   };
 
-  const parseLocalDateInput = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const date = new Date(trimmed);
-    return Number.isNaN(date.getTime()) ? undefined : date;
-  };
-
-  const endOfDay = (date: Date) => {
-    const copy = new Date(date);
-    copy.setHours(23, 59, 0, 0);
-    return copy;
-  };
-
   const applyStartNow = () => {
-    setSubmissionStartAt(toLocalInputValue(new Date().toISOString()));
+    setSubmissionStartAt(toShanghaiDateTimeLocalValue(new Date()));
   };
 
   const applyDueInAWeek = () => {
-    const now = new Date();
-    now.setDate(now.getDate() + 7);
-    setSubmissionDueAt(toLocalInputValue(endOfDay(now).toISOString()));
+    setSubmissionDueAt(
+      toShanghaiDateTimeLocalValue(
+        endOfShanghaiDay(addShanghaiTime(new Date(), 7, "day")),
+      ),
+    );
   };
 
   const applyDueInAMonth = () => {
-    const now = new Date();
-    now.setMonth(now.getMonth() + 1);
-    setSubmissionDueAt(toLocalInputValue(endOfDay(now).toISOString()));
+    setSubmissionDueAt(
+      toShanghaiDateTimeLocalValue(
+        endOfShanghaiDay(addShanghaiTime(new Date(), 1, "month")),
+      ),
+    );
   };
 
   const applySemesterEnd = () => {
     if (!semesterEndDate) return;
     setSubmissionDueAt(
-      toLocalInputValue(endOfDay(semesterEndDate).toISOString()),
+      toShanghaiDateTimeLocalValue(endOfShanghaiDay(semesterEndDate)),
     );
   };
 
@@ -271,7 +267,7 @@ export function HomeworkCreateSheet({
       return;
     }
 
-    const parsedPublishedAt = parseLocalDateInput(publishedAt);
+    const parsedPublishedAt = parseShanghaiDateTimeLocalInput(publishedAt);
     if (parsedPublishedAt === undefined) {
       toast({
         title: t("createFailed"),
@@ -281,7 +277,8 @@ export function HomeworkCreateSheet({
       return;
     }
 
-    const parsedSubmissionStartAt = parseLocalDateInput(submissionStartAt);
+    const parsedSubmissionStartAt =
+      parseShanghaiDateTimeLocalInput(submissionStartAt);
     if (parsedSubmissionStartAt === undefined) {
       toast({
         title: t("createFailed"),
@@ -291,7 +288,8 @@ export function HomeworkCreateSheet({
       return;
     }
 
-    const parsedSubmissionDueAt = parseLocalDateInput(submissionDueAt);
+    const parsedSubmissionDueAt =
+      parseShanghaiDateTimeLocalInput(submissionDueAt);
     if (parsedSubmissionDueAt === undefined) {
       toast({
         title: t("createFailed"),
@@ -322,13 +320,13 @@ export function HomeworkCreateSheet({
           title: normalizedTitle,
           description: normalizedDescription,
           publishedAt: parsedPublishedAt
-            ? parsedPublishedAt.toISOString()
+            ? toShanghaiIsoString(parsedPublishedAt)
             : null,
           submissionStartAt: parsedSubmissionStartAt
-            ? parsedSubmissionStartAt.toISOString()
+            ? toShanghaiIsoString(parsedSubmissionStartAt)
             : null,
           submissionDueAt: parsedSubmissionDueAt
-            ? parsedSubmissionDueAt.toISOString()
+            ? toShanghaiIsoString(parsedSubmissionDueAt)
             : null,
           isMajor,
           requiresTeam,
@@ -351,7 +349,10 @@ export function HomeworkCreateSheet({
       setOpen(false);
       await onCreated?.();
     } catch (error) {
-      console.error("Failed to create homework", error);
+      logClientError("Failed to create homework", error, {
+        component: "HomeworkCreateSheet",
+        sectionId,
+      });
       toast({ title: t("createFailed"), variant: "destructive" });
     } finally {
       setSaving(false);
@@ -463,9 +464,7 @@ export function HomeworkCreateSheet({
                       variant="ghost"
                       className="text-muted-foreground"
                       onClick={() =>
-                        setPublishedAt(
-                          toLocalInputValue(new Date().toISOString()),
-                        )
+                        setPublishedAt(toShanghaiDateTimeLocalValue(new Date()))
                       }
                     >
                       {t("helperPublishNow")}
@@ -539,13 +538,4 @@ export function HomeworkCreateSheet({
       </SheetPopup>
     </Sheet>
   );
-}
-
-function toLocalInputValue(value: string | null | undefined) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60000);
-  return local.toISOString().slice(0, 16);
 }

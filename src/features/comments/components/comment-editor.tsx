@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
+import { logClientError } from "@/lib/log/app-logger";
 import { useCommentUpload } from "../hooks/use-comment-upload";
 import type { CommentViewer } from "./comment-types";
 import { MarkdownEditor } from "./markdown-editor";
@@ -197,7 +198,10 @@ export function CommentEditor({
       setContent("");
       setSelectedAttachments([]);
     } catch (error) {
-      console.error("Comment submit failed", error);
+      logClientError("Comment submit failed", error, {
+        component: "CommentEditor",
+        hasTargetSelector: Boolean(targetOptions?.length),
+      });
       toast({
         title: t("submitFailed"),
         description: t("pleaseRetry"),

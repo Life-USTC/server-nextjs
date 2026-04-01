@@ -3,12 +3,14 @@ import type { SubscriptionsTabData } from "@/app/dashboard/dashboard-data";
 import { groupSectionsBySemester } from "@/app/dashboard/subscriptions/sections/sections-page-helpers";
 import { BulkImportSectionsDialog } from "@/components/bulk-import-sections-dialog";
 import { Button } from "@/components/ui/button";
+import { CardPanel } from "@/components/ui/card";
 import {
-  CardDescription,
-  CardHeader,
-  CardPanel,
-  CardTitle,
-} from "@/components/ui/card";
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import {
   Table,
   TableBody,
@@ -33,30 +35,28 @@ export async function SubscriptionsPanel({
     <div className="space-y-6">
       <div className="grid min-w-0 max-w-5xl gap-6">
         {subscriptions.length === 0 ? (
-          <div className="flex flex-col gap-6">
-            <CardHeader>
-              <CardTitle>{t("noSubscriptions")}</CardTitle>
-              <CardDescription>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>{t("noSubscriptions")}</EmptyTitle>
+              <EmptyDescription>
                 {t("noSubscriptionsDescription")}
-              </CardDescription>
-            </CardHeader>
-            <CardPanel>
-              <div className="flex flex-wrap gap-2">
-                <BulkImportSectionsDialog
-                  semesters={semesters}
-                  defaultSemesterId={currentSemesterId}
-                  triggerVariant="default"
-                  triggerSize="default"
-                />
-                <Button
-                  variant="outline"
-                  render={<Link className="no-underline" href="/courses" />}
-                >
-                  {t("browseCourses")}
-                </Button>
-              </div>
-            </CardPanel>
-          </div>
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent className="sm:max-w-none sm:flex-row sm:justify-center">
+              <BulkImportSectionsDialog
+                semesters={semesters}
+                defaultSemesterId={currentSemesterId}
+                triggerVariant="default"
+                triggerSize="default"
+              />
+              <Button
+                variant="outline"
+                render={<Link className="no-underline" href="/courses" />}
+              >
+                {t("browseCourses")}
+              </Button>
+            </EmptyContent>
+          </Empty>
         ) : (
           subscriptions.map(
             (sub: SubscriptionsTabData["subscriptions"][number]) => {

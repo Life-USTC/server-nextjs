@@ -161,11 +161,11 @@ export default async function TeacherPage({
             tabValues={["sections", "comments"]}
             className="space-y-6"
           >
-            <TabsList className="w-full" variant="underline">
-              <TabsTab value="sections">
+            <TabsList variant="pill">
+              <TabsTab value="sections" variant="pill">
                 {t("teachingSections", { count: teacher.sections.length })}
               </TabsTab>
-              <TabsTab value="comments">
+              <TabsTab value="comments" variant="pill">
                 {tComments("title")} ({commentCount})
               </TabsTab>
             </TabsList>

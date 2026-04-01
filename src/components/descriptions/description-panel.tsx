@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
-import { useClientTimezone } from "@/components/client-timezone-provider";
+import { DataState } from "@/components/data-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +29,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import { descriptionsResponseSchema } from "@/lib/api/schemas";
+import { logClientError } from "@/lib/log/app-logger";
+import { createShanghaiDateTimeFormatter } from "@/lib/time/shanghai-format";
 
 type TargetType = "section" | "course" | "teacher" | "homework";
 
@@ -140,9 +142,8 @@ export function DescriptionPanel({
   targetId,
   initialData,
 }: DescriptionPanelProps) {
-  const t = useTranslations("descriptions");
   const locale = useLocale();
-  const clientTimeZone = useClientTimezone();
+  const t = useTranslations("descriptions");
   const { toast } = useToast();
   const [description, setDescription] = useState<DescriptionData>(
     initialData?.description ?? EMPTY_DESCRIPTION,
@@ -158,15 +159,13 @@ export function DescriptionPanel({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  const dateFormatter = useMemo(
+  const dateTimeFormatter = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      createShanghaiDateTimeFormatter(locale, {
         dateStyle: "medium",
         timeStyle: "short",
-        ...(clientTimeZone ? { timeZone: clientTimeZone } : {}),
       }),
-    [clientTimeZone, locale],
+    [locale],
   );
 
   const loadDescription = useCallback(async () => {
@@ -200,7 +199,11 @@ export function DescriptionPanel({
       setHistory(parsedData.data.history ?? []);
       setViewer(parsedData.data.viewer ?? EMPTY_VIEWER);
     } catch (err) {
-      console.error("Failed to load description", err);
+      logClientError("Failed to load description", err, {
+        component: "DescriptionPanel",
+        targetType,
+        targetId,
+      });
       setError(t("loadFailed"));
     } finally {
       setLoading(false);
@@ -250,7 +253,11 @@ export function DescriptionPanel({
       setDraft("");
       await loadDescription();
     } catch (err) {
-      console.error("Failed to update description", err);
+      logClientError("Failed to update description", err, {
+        component: "DescriptionPanel",
+        targetType,
+        targetId,
+      });
       toast({
         title: t("updateError"),
         variant: "destructive",
@@ -262,7 +269,7 @@ export function DescriptionPanel({
 
   const canEdit = viewer.isAuthenticated && !viewer.isSuspended;
   const lastEditedAt = description.lastEditedAt
-    ? dateFormatter.format(new Date(description.lastEditedAt))
+    ? dateTimeFormatter.format(new Date(description.lastEditedAt))
     : null;
   const lastEditorName =
     description.lastEditedBy?.name ||
@@ -305,7 +312,7 @@ export function DescriptionPanel({
               {viewer.suspensionExpiresAt ? (
                 <p className="text-sm">
                   {t("suspendedExpires", {
-                    date: dateFormatter.format(
+                    date: dateTimeFormatter.format(
                       new Date(viewer.suspensionExpiresAt),
                     ),
                   })}
@@ -319,23 +326,7 @@ export function DescriptionPanel({
           </Alert>
         )}
 
-        {loading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-6 w-2/3" />
-            <Skeleton className="h-20 w-full" />
-          </div>
-        ) : error ? (
-          <div className="space-y-3">
-            <p className="text-muted-foreground text-sm">{error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void loadDescription()}
-            >
-              {t("retry")}
-            </Button>
-          </div>
-        ) : editing ? (
+        {editing ? (
           <div className="space-y-3">
             <MarkdownEditor
               value={draft}
@@ -357,20 +348,31 @@ export function DescriptionPanel({
               </Button>
             </div>
           </div>
-        ) : description.content ? (
-          <div className="space-y-2">
-            <CommentMarkdown content={description.content} />
-            {lastEditedAt && (
-              <p className="text-muted-foreground text-xs">
-                {t("lastEdited", { date: lastEditedAt })} ·{" "}
-                {t("editedBy", { name: lastEditorName })}
-              </p>
-            )}
-          </div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-muted-foreground text-sm">{t("empty")}</p>
-          </div>
+          <DataState
+            loading={loading}
+            error={error}
+            onRetry={() => void loadDescription()}
+            retryLabel={t("retry")}
+            empty={!description.content}
+            emptyDescription={t("empty")}
+            loadingFallback={
+              <div className="space-y-3">
+                <Skeleton className="h-6 w-2/3" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            }
+          >
+            <div className="space-y-2">
+              <CommentMarkdown content={description.content} />
+              {lastEditedAt && (
+                <p className="text-muted-foreground text-xs">
+                  {t("lastEdited", { date: lastEditedAt })} ·{" "}
+                  {t("editedBy", { name: lastEditorName })}
+                </p>
+              )}
+            </div>
+          </DataState>
         )}
 
         <Sheet>
@@ -416,7 +418,7 @@ export function DescriptionPanel({
                           </span>
                           <span>·</span>
                           <span>
-                            {dateFormatter.format(new Date(item.createdAt))}
+                            {dateTimeFormatter.format(new Date(item.createdAt))}
                           </span>
                         </div>
                         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">

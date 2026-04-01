@@ -7,6 +7,7 @@ import type {
 import type { ExamItem, SessionItem } from "@/app/dashboard/types";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
 import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
+import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
 import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
 import { Link } from "@/i18n/routing";
@@ -99,7 +100,13 @@ export async function CalendarPanel({
   } = data;
 
   if (semesterWeeks.length === 0) {
-    return <p className="text-muted-foreground text-sm">{t("today.empty")}</p>;
+    return (
+      <Empty>
+        <EmptyHeader>
+          <EmptyTitle>{t("today.empty")}</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
+    );
   }
 
   const currentView = parseCalendarView(view);
@@ -205,13 +212,19 @@ export async function CalendarPanel({
     `${weekNavHrefBase}&calendarWeek=${d.format("YYYY-MM-DD")}`;
 
   const contextNavBtnClass =
-    "rounded-md border border-border px-2 py-1 text-sm no-underline hover:bg-accent/50 shrink-0";
+    "shrink-0 rounded-lg border border-border/70 bg-card/72 px-2.5 py-1.5 text-sm no-underline transition-colors hover:bg-background/90";
+  const calendarGridFrameClass =
+    "grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-2xl border border-border/70 bg-card/50 p-1";
+  const calendarGridHeaderCellClass =
+    "rounded-xl bg-background/85 px-1 py-3 text-center font-medium text-muted-foreground text-xs";
+  const calendarGridWeekLabelClass =
+    "flex items-start justify-center rounded-xl bg-background/70 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground";
 
   return (
     <div className="min-w-0 space-y-3">
       <div className="grid grid-cols-1 items-center gap-y-2 border-border/60 border-b pb-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:gap-y-0">
         <div className="flex justify-start">
-          <div className="inline-flex shrink-0 overflow-hidden rounded-md border border-border">
+          <div className="inline-flex shrink-0 overflow-hidden rounded-xl border border-border/70 bg-card/72 p-1">
             {(
               [
                 { id: "semester", labelKey: "calendarViewSemester" as const },
@@ -225,10 +238,10 @@ export async function CalendarPanel({
                   key={item.id}
                   href={`${baseHref}&calendarView=${item.id}`}
                   className={cn(
-                    "px-3 py-1.5 text-sm no-underline transition-colors",
+                    "rounded-lg px-3 py-1.5 text-sm no-underline transition-colors",
                     active
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                      ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
+                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
                   )}
                 >
                   {t(item.labelKey)}
@@ -322,15 +335,14 @@ export async function CalendarPanel({
         <div className="space-y-2">
           <div className="overflow-x-auto">
             <div className="min-w-[640px]">
-              <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60">
-                <div className="rounded-tl-lg bg-muted/10 px-2 py-3 text-center font-medium text-muted-foreground text-xs">
+              <div className={calendarGridFrameClass}>
+                <div
+                  className={cn(calendarGridHeaderCellClass, "rounded-t-xl")}
+                >
                   {tSection("weekLabel")}
                 </div>
                 {weekdayLabels.map((label) => (
-                  <div
-                    key={label}
-                    className="bg-muted/10 px-1 py-3 text-center font-medium text-muted-foreground text-xs"
-                  >
+                  <div key={label} className={calendarGridHeaderCellClass}>
                     {label}
                   </div>
                 ))}
@@ -345,7 +357,7 @@ export async function CalendarPanel({
                       : "—";
                   return (
                     <div key={wKey} className="contents">
-                      <div className="flex items-start justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
+                      <div className={calendarGridWeekLabelClass}>
                         <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
                           {wLabel}
                         </span>
@@ -363,8 +375,8 @@ export async function CalendarPanel({
                           <div
                             key={dateKey}
                             className={cn(
-                              "min-h-[7rem] min-w-0 overflow-hidden bg-background p-1.5 text-xs",
-                              !isCurrentMonth && "opacity-60",
+                              "min-h-[7rem] min-w-0 overflow-hidden rounded-xl border border-border/50 bg-background/95 p-1.5 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
+                              !isCurrentMonth && "bg-background/75 opacity-70",
                             )}
                           >
                             <div className="mb-1.5 flex items-center justify-between">
@@ -563,15 +575,14 @@ export async function CalendarPanel({
         <div className="space-y-2">
           <div className="overflow-x-auto">
             <div className="min-w-[640px]">
-              <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-px overflow-hidden rounded-xl border border-border/60 bg-border/60">
-                <div className="rounded-tl-lg bg-muted/10 px-2 py-3 text-center font-medium text-muted-foreground text-xs">
+              <div className={calendarGridFrameClass}>
+                <div
+                  className={cn(calendarGridHeaderCellClass, "rounded-t-xl")}
+                >
                   {tSection("weekLabel")}
                 </div>
                 {weekdayLabels.map((label) => (
-                  <div
-                    key={label}
-                    className="bg-muted/10 px-1 py-3 text-center font-medium text-muted-foreground text-xs"
-                  >
+                  <div key={label} className={calendarGridHeaderCellClass}>
                     {label}
                   </div>
                 ))}
@@ -586,7 +597,7 @@ export async function CalendarPanel({
                       key={week[0].format("YYYY-MM-DD")}
                       className="contents"
                     >
-                      <div className="flex items-start justify-center bg-muted/10 px-1 py-2 font-medium text-[0.65rem] text-muted-foreground">
+                      <div className={calendarGridWeekLabelClass}>
                         <span className="[text-orientation:mixed] [writing-mode:vertical-rl]">
                           {weekLabel}
                         </span>
@@ -617,7 +628,7 @@ export async function CalendarPanel({
                         return (
                           <div
                             key={dateKey}
-                            className="min-h-[7rem] min-w-0 overflow-hidden bg-background p-1.5 text-xs"
+                            className="min-h-[7rem] min-w-0 overflow-hidden rounded-xl border border-border/50 bg-background/95 p-1.5 text-xs shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                           >
                             <div className="mb-1.5 flex items-center justify-between">
                               <span

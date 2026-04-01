@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import {
   ICalCalendar,
   ICalCategory,
@@ -6,6 +5,25 @@ import {
 } from "ical-generator";
 import type { Prisma } from "@/generated/prisma/client";
 import { getBuildingImagePath, getLocationGeo } from "@/lib/location-utils";
+import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
+import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+
+function generateShanghaiVTimezone(timezone: string): string | null {
+  if (timezone !== APP_TIME_ZONE) return null;
+
+  return [
+    "BEGIN:VTIMEZONE",
+    `TZID:${APP_TIME_ZONE}`,
+    `X-LIC-LOCATION:${APP_TIME_ZONE}`,
+    "BEGIN:STANDARD",
+    "TZOFFSETFROM:+0800",
+    "TZOFFSETTO:+0800",
+    "TZNAME:CST",
+    "DTSTART:19700101T000000",
+    "END:STANDARD",
+    "END:VTIMEZONE",
+  ].join("\r\n");
+}
 
 type CalendarSection = Prisma.SectionGetPayload<{
   include: {
@@ -85,7 +103,10 @@ export async function createSectionCalendar(
   const calendar = createBaseCalendar({
     name: `${section.course.nameCn} (${section.code})`,
     description: `Calendar for ${section.course.nameCn} (${section.code}), brought to you by Life@USTC`,
-    timezone: "Asia/Shanghai",
+    timezone: {
+      name: APP_TIME_ZONE,
+      generator: generateShanghaiVTimezone,
+    },
     url: `https://life-ustc.tiankaima.dev/sections/${section.jwId}`,
     scale: "GREGORIAN",
   });
@@ -105,7 +126,10 @@ export async function createMultiSectionCalendar(
     name: "Life @ USTC",
     description:
       "Calendar for subscribed courses, brought to you by Life@USTC <https://life-ustc.tiankaima.dev/>",
-    timezone: "Asia/Shanghai",
+    timezone: {
+      name: APP_TIME_ZONE,
+      generator: generateShanghaiVTimezone,
+    },
     url: "https://life-ustc.tiankaima.dev",
     scale: "GREGORIAN",
   });
@@ -128,7 +152,10 @@ export async function createUserCalendar({
     name: "Life @ USTC",
     description:
       "Calendar for the current user, including subscribed courses and personal deadlines, brought to you by Life@USTC <https://life-ustc.tiankaima.dev/>",
-    timezone: "Asia/Shanghai",
+    timezone: {
+      name: APP_TIME_ZONE,
+      generator: generateShanghaiVTimezone,
+    },
     url: "https://life-ustc.tiankaima.dev",
     scale: "GREGORIAN",
   });
@@ -173,17 +200,15 @@ async function createScheduleEvent(
 ): Promise<void> {
   if (!schedule.date) return;
 
-  const startDate = dayjs(schedule.date)
+  const startDate = shanghaiDayjs(schedule.date)
     .hour(Math.floor(schedule.startTime / 100))
     .minute(schedule.startTime % 100)
-    .second(0)
-    .toDate();
+    .second(0);
 
-  const endDate = dayjs(schedule.date)
+  const endDate = shanghaiDayjs(schedule.date)
     .hour(Math.floor(schedule.endTime / 100))
     .minute(schedule.endTime % 100)
-    .second(0)
-    .toDate();
+    .second(0);
 
   const location = schedule.room?.building?.campus
     ? `${schedule.room.nameCn} (${schedule.room.building.campus.nameCn}-${schedule.room.building.nameCn})`
@@ -225,6 +250,7 @@ async function createScheduleEvent(
   const eventData: Parameters<typeof calendar.createEvent>[0] = {
     start: startDate,
     end: endDate,
+    timezone: APP_TIME_ZONE,
     summary,
     description,
     location: {
@@ -266,17 +292,15 @@ async function createExamEvent(
 ): Promise<void> {
   if (!exam.examDate) return;
 
-  const startDate = dayjs(exam.examDate)
+  const startDate = shanghaiDayjs(exam.examDate)
     .hour(Math.floor((exam.startTime || 0) / 100))
     .minute((exam.startTime || 0) % 100)
-    .second(0)
-    .toDate();
+    .second(0);
 
-  const endDate = dayjs(exam.examDate)
+  const endDate = shanghaiDayjs(exam.examDate)
     .hour(Math.floor((exam.endTime || 0) / 100))
     .minute((exam.endTime || 0) % 100)
-    .second(0)
-    .toDate();
+    .second(0);
 
   const rooms = exam.examRooms
     .map((examRoom) => examRoom.room)
@@ -324,6 +348,7 @@ async function createExamEvent(
   const eventData: Parameters<typeof calendar.createEvent>[0] = {
     start: startDate,
     end: endDate,
+    timezone: APP_TIME_ZONE,
     summary,
     description,
     location: {
@@ -353,8 +378,8 @@ async function createHomeworkEvent(
 ): Promise<void> {
   if (!homework.submissionDueAt) return;
 
-  const dueDate = dayjs(homework.submissionDueAt);
-  const endDate = dueDate.add(30, "minute").toDate();
+  const dueDate = shanghaiDayjs(homework.submissionDueAt);
+  const endDate = dueDate.add(30, "minute");
   const section = homework.section;
   const courseName = section.course.nameCn;
   const summary = `${courseName} - 作业截止: ${homework.title}`;
@@ -378,8 +403,9 @@ async function createHomeworkEvent(
     .map((category) => new ICalCategory({ name: category }));
 
   const eventData: Parameters<typeof calendar.createEvent>[0] = {
-    start: dueDate.toDate(),
+    start: dueDate,
     end: endDate,
+    timezone: APP_TIME_ZONE,
     summary,
     description,
     id: `life-ustc.tiankaima.dev/homework/${homework.id}`,
@@ -392,8 +418,8 @@ async function createHomeworkEvent(
 }
 
 function createTodoEvent(todo: CalendarTodo, calendar: ICalCalendar): void {
-  const dueDate = dayjs(todo.dueAt);
-  const endDate = dueDate.add(30, "minute").toDate();
+  const dueDate = shanghaiDayjs(todo.dueAt);
+  const endDate = dueDate.add(30, "minute");
   const priorityLabel =
     todo.priority === "high"
       ? "高优先级"
@@ -409,8 +435,9 @@ function createTodoEvent(todo: CalendarTodo, calendar: ICalCalendar): void {
     .map((category) => new ICalCategory({ name: category }));
 
   const eventData: Parameters<typeof calendar.createEvent>[0] = {
-    start: dueDate.toDate(),
+    start: dueDate,
     end: endDate,
+    timezone: APP_TIME_ZONE,
     summary: `待办截止: ${todo.title}`,
     description,
     id: `life-ustc.tiankaima.dev/todo/${todo.id}`,
