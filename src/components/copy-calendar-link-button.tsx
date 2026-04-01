@@ -28,8 +28,8 @@ export function CopyCalendarLinkButton({
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleClick}>
-      <Calendar className="mr-2 h-4 w-4" />
+    <Button onClick={handleClick}>
+      <Calendar className="h-4 w-4" />
       {label}
     </Button>
   );

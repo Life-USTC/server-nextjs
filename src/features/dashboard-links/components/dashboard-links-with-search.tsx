@@ -22,12 +22,31 @@ import {
   useState,
 } from "react";
 import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
-import { FiltersBar, FiltersBarSearch } from "@/components/filters/filters-bar";
+import { DashboardTabToolbar } from "@/components/filters/dashboard-tab-toolbar";
+import { FiltersBarSearch } from "@/components/filters/filters-bar";
 import { Button } from "@/components/ui/button";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
 } from "../lib/dashboard-links";
+
+type SearchShortcutHint = {
+  modifier: "Cmd" | "Ctrl";
+  key: "K";
+};
+
+function resolveSearchShortcutHint(): SearchShortcutHint | null {
+  if (typeof navigator === "undefined") return null;
+
+  const normalizedPlatform = (navigator.platform ?? "").toLowerCase();
+  const normalizedUserAgent = (navigator.userAgent ?? "").toLowerCase();
+
+  return /mac|iphone|ipad|ipod/.test(
+    `${normalizedPlatform} ${normalizedUserAgent}`,
+  )
+    ? { modifier: "Cmd", key: "K" }
+    : { modifier: "Ctrl", key: "K" };
+}
 
 const ICON_MAP: Record<DashboardLinkIcon, typeof BookOpen> = {
   "book-open": BookOpen,
@@ -106,11 +125,17 @@ export function DashboardLinksWithSearch({
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [linksState, setLinksState] = useState(groupedLinks);
   const [updatingSlug, setUpdatingSlug] = useState<string | null>(null);
+  const [searchShortcutHint, setSearchShortcutHint] =
+    useState<SearchShortcutHint | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setLinksState(groupedLinks);
   }, [groupedLinks]);
+
+  useEffect(() => {
+    setSearchShortcutHint(resolveSearchShortcutHint());
+  }, []);
 
   const filteredGroups = useMemo(
     () => filterGroupedBySearch(linksState, deferredSearchQuery),
@@ -175,20 +200,28 @@ export function DashboardLinksWithSearch({
   return (
     <div className="space-y-4">
       {showSearch && (
-        <div>
-          <FiltersBar className="mb-2">
-            <FiltersBarSearch
-              inputRef={inputRef}
-              ariaLabel={t("linkHub.searchPlaceholder")}
-              placeholder={t("linkHub.searchPlaceholder")}
-              value={searchQuery}
-              onChange={setSearchQuery}
-            />
-          </FiltersBar>
-          <p className="text-right text-muted-foreground text-xs">
-            {t("linkHub.searchShortcutHint")}
-          </p>
-        </div>
+        <DashboardTabToolbar>
+          <FiltersBarSearch
+            className="sm:max-w-xl"
+            inputRef={inputRef}
+            ariaLabel={t("linkHub.searchPlaceholder")}
+            placeholder={t("linkHub.searchPlaceholder")}
+            value={searchQuery}
+            onChange={setSearchQuery}
+            endAddon={
+              searchShortcutHint ? (
+                <span className="inline-flex items-center gap-1 text-muted-foreground">
+                  <kbd className="inline-flex h-6 items-center rounded-md border border-border/60 bg-background/90 px-1.5 font-medium font-sans text-[11px] leading-none shadow-[0_1px_1px_rgba(15,23,42,0.04)]">
+                    {searchShortcutHint.modifier}
+                  </kbd>
+                  <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-border/60 bg-background/90 px-1.5 font-medium font-sans text-[11px] leading-none shadow-[0_1px_1px_rgba(15,23,42,0.04)]">
+                    {searchShortcutHint.key}
+                  </kbd>
+                </span>
+              ) : null
+            }
+          />
+        </DashboardTabToolbar>
       )}
       {filteredGroups.map((entry, index) => (
         <section

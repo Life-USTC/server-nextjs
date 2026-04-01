@@ -7,6 +7,11 @@ import type {
 import type { ExamItem, SessionItem } from "@/app/dashboard/types";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
 import { CopyCalendarLinkButton } from "@/components/copy-calendar-link-button";
+import {
+  DashboardTabToolbar,
+  DashboardTabToolbarGroup,
+  dashboardTabToolbarItemClass,
+} from "@/components/filters/dashboard-tab-toolbar";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
 import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
@@ -135,9 +140,6 @@ export async function CalendarPanel({
       ? calendarSemesterNavList[semesterNavIdx + 1]?.id
       : null;
 
-  const semesterNavDisabledClass =
-    "shrink-0 rounded-md border border-border px-2 py-1 text-sm text-muted-foreground opacity-50";
-
   let weekIndex = 1;
 
   const sessionsByDay = new Map<string, SessionItem[]>();
@@ -212,7 +214,9 @@ export async function CalendarPanel({
     `${weekNavHrefBase}&calendarWeek=${d.format("YYYY-MM-DD")}`;
 
   const contextNavBtnClass =
-    "shrink-0 rounded-lg border border-border/70 bg-card/72 px-2.5 py-1.5 text-sm no-underline transition-colors hover:bg-background/90";
+    "shrink-0 rounded-lg px-2.5 py-1.5 text-sm no-underline transition-colors hover:bg-background/90";
+  const contextNavLabelClass =
+    "min-w-0 shrink text-center font-medium text-foreground text-sm";
   const calendarGridFrameClass =
     "grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] gap-1 rounded-2xl border border-border/70 bg-card/50 p-1";
   const calendarGridHeaderCellClass =
@@ -222,9 +226,9 @@ export async function CalendarPanel({
 
   return (
     <div className="min-w-0 space-y-3">
-      <div className="grid grid-cols-1 items-center gap-y-2 border-border/60 border-b pb-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:gap-y-0">
+      <DashboardTabToolbar className="grid grid-cols-1 gap-y-2 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center sm:gap-x-4 sm:gap-y-0">
         <div className="flex justify-start">
-          <div className="inline-flex shrink-0 overflow-hidden rounded-xl border border-border/70 bg-card/72 p-1">
+          <DashboardTabToolbarGroup className="shrink-0 overflow-hidden">
             {(
               [
                 { id: "semester", labelKey: "calendarViewSemester" as const },
@@ -237,29 +241,29 @@ export async function CalendarPanel({
                 <Link
                   key={item.id}
                   href={`${baseHref}&calendarView=${item.id}`}
-                  className={cn(
-                    "rounded-lg px-3 py-1.5 text-sm no-underline transition-colors",
-                    active
-                      ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-                  )}
+                  className={dashboardTabToolbarItemClass(active)}
                 >
                   {t(item.labelKey)}
                 </Link>
               );
             })}
-          </div>
+          </DashboardTabToolbarGroup>
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-center gap-2">
           {currentView === "month" ? (
-            <>
+            <DashboardTabToolbarGroup className="justify-center">
               <Link
                 href={`${baseHref}&calendarView=month&calendarMonth=${monthPrev.format("YYYY-MM")}`}
                 className={contextNavBtnClass}
               >
                 {tSection("previousMonth")}
               </Link>
-              <span className="min-w-0 max-w-[12rem] shrink truncate text-center font-medium text-foreground text-sm sm:max-w-none">
+              <span
+                className={cn(
+                  contextNavLabelClass,
+                  "max-w-[12rem] truncate sm:max-w-none",
+                )}
+              >
                 {currentMonthLabel}
               </span>
               <Link
@@ -268,27 +272,25 @@ export async function CalendarPanel({
               >
                 {tSection("nextMonth")}
               </Link>
-            </>
+            </DashboardTabToolbarGroup>
           ) : currentView === "week" ? (
-            <>
+            <DashboardTabToolbarGroup className="justify-center">
               <Link
                 href={weekNavLink(weekNavPrev)}
                 className={contextNavBtnClass}
               >
                 {t("calendarWeek.prev")}
               </Link>
-              <span className="min-w-0 shrink text-center font-medium text-foreground text-sm">
-                {weekNavLabel}
-              </span>
+              <span className={contextNavLabelClass}>{weekNavLabel}</span>
               <Link
                 href={weekNavLink(weekNavNext)}
                 className={contextNavBtnClass}
               >
                 {t("calendarWeek.next")}
               </Link>
-            </>
+            </DashboardTabToolbarGroup>
           ) : (
-            <>
+            <DashboardTabToolbarGroup className="justify-center">
               {prevSemesterId != null ? (
                 <Link
                   href={hrefSemesterCalendar(prevSemesterId)}
@@ -297,11 +299,22 @@ export async function CalendarPanel({
                   {t("calendarSemesterPrev")}
                 </Link>
               ) : (
-                <span className={semesterNavDisabledClass} aria-disabled>
+                <span
+                  className={cn(
+                    contextNavBtnClass,
+                    "cursor-not-allowed text-muted-foreground opacity-50 hover:bg-transparent hover:text-muted-foreground",
+                  )}
+                  aria-disabled
+                >
                   {t("calendarSemesterPrev")}
                 </span>
               )}
-              <span className="min-w-0 max-w-[min(100%,14rem)] shrink truncate text-center font-medium text-foreground text-sm">
+              <span
+                className={cn(
+                  contextNavLabelClass,
+                  "max-w-[min(100%,14rem)] truncate",
+                )}
+              >
                 {activeCalendarSemesterName ?? "—"}
               </span>
               {nextSemesterId != null ? (
@@ -312,11 +325,17 @@ export async function CalendarPanel({
                   {t("calendarSemesterNext")}
                 </Link>
               ) : (
-                <span className={semesterNavDisabledClass} aria-disabled>
+                <span
+                  className={cn(
+                    contextNavBtnClass,
+                    "cursor-not-allowed text-muted-foreground opacity-50 hover:bg-transparent hover:text-muted-foreground",
+                  )}
+                  aria-disabled
+                >
                   {t("calendarSemesterNext")}
                 </span>
               )}
-            </>
+            </DashboardTabToolbarGroup>
           )}
         </div>
         <div className="flex justify-center sm:shrink-0 sm:justify-end">
@@ -329,7 +348,7 @@ export async function CalendarPanel({
             />
           ) : null}
         </div>
-      </div>
+      </DashboardTabToolbar>
 
       {currentView === "month" ? (
         <div className="space-y-2">

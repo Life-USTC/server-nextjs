@@ -3,6 +3,11 @@
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import {
+  DashboardTabToolbar,
+  DashboardTabToolbarGroup,
+  dashboardTabToolbarItemClass,
+} from "@/components/filters/dashboard-tab-toolbar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,7 +22,6 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { Link } from "@/i18n/routing";
-import { cn } from "@/lib/utils";
 import { formatTime } from "@/shared/lib/time-utils";
 
 type ExamRow = {
@@ -69,22 +73,15 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
     }
     return exams;
   }, [exams, filter]);
-  const filterButtonClass = (active: boolean) =>
-    cn(
-      "rounded-lg px-3 py-1.5",
-      active
-        ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-    );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 p-1">
-        <div className="inline-flex rounded-lg">
+      <DashboardTabToolbar>
+        <DashboardTabToolbarGroup>
           <Button
             size="sm"
             variant="ghost"
-            className={filterButtonClass(filter === "incomplete")}
+            className={dashboardTabToolbarItemClass(filter === "incomplete")}
             onClick={() => setFilter("incomplete")}
           >
             {t("filterIncomplete")}
@@ -92,7 +89,7 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
           <Button
             size="sm"
             variant="ghost"
-            className={filterButtonClass(filter === "completed")}
+            className={dashboardTabToolbarItemClass(filter === "completed")}
             onClick={() => setFilter("completed")}
           >
             {t("filterCompleted")}
@@ -100,13 +97,13 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
           <Button
             size="sm"
             variant="ghost"
-            className={filterButtonClass(filter === "all")}
+            className={dashboardTabToolbarItemClass(filter === "all")}
             onClick={() => setFilter("all")}
           >
             {t("filterAll")}
           </Button>
-        </div>
-      </div>
+        </DashboardTabToolbarGroup>
+      </DashboardTabToolbar>
 
       {filteredExams.length === 0 ? (
         <Empty>

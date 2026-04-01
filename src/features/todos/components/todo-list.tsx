@@ -4,6 +4,11 @@ import { AlertCircle, Circle, Clock, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
+import {
+  DashboardTabToolbar,
+  DashboardTabToolbarGroup,
+  dashboardTabToolbarItemClass,
+} from "@/components/filters/dashboard-tab-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardPanel, CardTitle } from "@/components/ui/card";
@@ -136,22 +141,15 @@ export function TodoList({ todos }: TodoListProps) {
     medium: Clock,
     low: Circle,
   };
-  const filterButtonClass = (active: boolean) =>
-    cn(
-      "rounded-lg px-3 py-1.5",
-      active
-        ? "bg-background text-foreground shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-        : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-    );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/72 p-1">
-        <div className="inline-flex rounded-lg">
+      <DashboardTabToolbar>
+        <DashboardTabToolbarGroup>
           <Button
             size="sm"
             variant="ghost"
-            className={filterButtonClass(filter === "incomplete")}
+            className={dashboardTabToolbarItemClass(filter === "incomplete")}
             onClick={() => setFilter("incomplete")}
           >
             {t("filterIncomplete")}
@@ -159,7 +157,7 @@ export function TodoList({ todos }: TodoListProps) {
           <Button
             size="sm"
             variant="ghost"
-            className={filterButtonClass(filter === "completed")}
+            className={dashboardTabToolbarItemClass(filter === "completed")}
             onClick={() => setFilter("completed")}
           >
             {t("filterCompleted")}
@@ -167,12 +165,12 @@ export function TodoList({ todos }: TodoListProps) {
           <Button
             size="sm"
             variant="ghost"
-            className={filterButtonClass(filter === "all")}
+            className={dashboardTabToolbarItemClass(filter === "all")}
             onClick={() => setFilter("all")}
           >
             {t("filterAll")}
           </Button>
-        </div>
+        </DashboardTabToolbarGroup>
         <TodoFormSheet
           mode="create"
           onSaved={() => router.refresh()}
@@ -183,7 +181,7 @@ export function TodoList({ todos }: TodoListProps) {
             </>
           }
         />
-      </div>
+      </DashboardTabToolbar>
 
       {filteredTodos.length === 0 && (
         <Empty>

@@ -29,6 +29,7 @@ export function FiltersBar({
 export function FiltersBarSearch({
   className,
   inputClassName,
+  endAddon,
   value,
   onChange,
   placeholder,
@@ -38,6 +39,7 @@ export function FiltersBarSearch({
 }: {
   className?: string;
   inputClassName?: string;
+  endAddon?: React.ReactNode;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
@@ -62,6 +64,9 @@ export function FiltersBarSearch({
           type={type}
           className={inputClassName}
         />
+        {endAddon ? (
+          <InputGroupAddon align="inline-end">{endAddon}</InputGroupAddon>
+        ) : null}
       </InputGroup>
     </div>
   );
