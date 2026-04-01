@@ -22,9 +22,10 @@
   - Test: bun run test:e2e
 
 - Rules
+  - Delegate some work to sub-agent to speed things up
   - Check for best practice for implementations & fixes
   - Commit
-    - Before commit, always check, build and test in full.
+    - Before commit, always check, build and test in full
       - Git hook enabled at `.githooks/pre-commit`
       - Remeber to check for file changes after commit (where the hook may have formatted some file and not commited), ammend them before pushing to remote
     - Use conventional commit message(feat/fix/chore/...)
@@ -32,7 +33,7 @@
       - Git hook enabled at `.githooks/commit-msg`
     - Cherry pick file/changes related only
       - Break down into smaller commits if absolutely necessary
-    - If you're absolutely confident about this change, and all check/build/test have passed (whether or not bring by this change, it must pass), then you can push to origin to update (might need rebase first).
+    - If you're absolutely confident about this change, and all check/build/test have passed (whether or not bring by this change, it must pass), then you can push to origin to update (might need rebase first)
       - Push unless you are absolutely certain
   - For each feature added, remember to:
     - Add seed data if new model or special logic is introduced (for example, empty check on some field)
@@ -57,6 +58,6 @@ _Only applies to Cursor Cloud/Web Agent environments._
 
 ### Non-obvious gotchas
 
-- Docker-in-Docker in Cursor Cloud requires the `fuse-overlayfs` storage driver and `iptables-legacy`. Docker daemon config is at `/etc/docker/daemon.json`.
-- Start `dockerd` manually with `sudo dockerd &>/dev/null &` before running any `docker compose` command.
+- Docker-in-Docker in Cursor Cloud requires the `fuse-overlayfs` storage driver and `iptables-legacy`. Docker daemon config is at `/etc/docker/daemon.json`
+- Start `dockerd` manually with `sudo dockerd &>/dev/null &` before running any `docker compose` command
 
