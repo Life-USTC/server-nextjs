@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/Life-USTC/server-nextjs/compare/v1.2.2...v1.3.0) (2026-04-02)
+
+
+### Bug Fixes
+
+* **profile:** tighten yearly activity heatmap ([37fae41](https://github.com/Life-USTC/server-nextjs/commit/37fae41132b5a6dca24e6d42c6561dcf5452dc04))
+* **ui:** refine app shell and settings navigation ([f8febd0](https://github.com/Life-USTC/server-nextjs/commit/f8febd0af2f829b8796760356c84054ef45abbf4))
+
+
+### Features
+
+* **home:** add public dashboard and mobile app entry ([a7adbf6](https://github.com/Life-USTC/server-nextjs/commit/a7adbf60aff902da2783bdfff5502f868b702d9d))
+
 ## [1.2.2](https://github.com/Life-USTC/server-nextjs/compare/v1.2.1...v1.2.2) (2026-04-01)
 
 
