@@ -1,4 +1,3 @@
-import { getTranslations } from "next-intl/server";
 import type {
   DashboardNavStats,
   HomeworkSummaryItem,
@@ -66,9 +65,6 @@ export async function HomeView({
 }: HomeViewProps) {
   const params = await searchParams;
   const currentTab = parseTab(params.tab);
-  const t = await getTranslations("meDashboard");
-  const rawUserName = navStats.user.name ?? navStats.user.username;
-  const userName = rawUserName?.trim() ? rawUserName : t("fallbackName");
   const pendingHomeworksCount = navStats.pendingHomeworksCount;
   const hasDueTodayHomework = navStats.highlightPendingHomeworks;
   const examsCount = navStats.examsCount;
@@ -76,7 +72,8 @@ export async function HomeView({
 
   return (
     <PageLayout
-      title={t("descriptionV2", { name: userName })}
+      className="home-dashboard-layout pt-2 md:pt-3 lg:pt-3"
+      headerClassName="gap-5 pb-4.5 md:gap-6 md:pb-5.5"
       headerChildren={
         <HomeTabNav
           currentTab={currentTab}

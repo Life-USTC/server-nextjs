@@ -48,7 +48,8 @@ function PageLayout({
   contentClassName,
   children,
 }: PageLayoutProps) {
-  const hasHeader = title || description || actions || headerChildren;
+  const hasIntro = title || description || actions;
+  const hasHeader = hasIntro || headerChildren;
 
   return (
     <main className={cn("page-main flex flex-col gap-5 md:gap-6", className)}>
@@ -60,25 +61,27 @@ function PageLayout({
             headerClassName,
           )}
         >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl space-y-2">
-              {title && (
-                <h1 className="text-balance font-heading text-title-2 md:text-title">
-                  {title}
-                </h1>
-              )}
-              {description && (
-                <p className="max-w-2xl text-muted-foreground text-sm leading-6 md:text-[0.95rem]">
-                  {description}
-                </p>
+          {hasIntro ? (
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl space-y-2">
+                {title && (
+                  <h1 className="text-balance font-heading text-title-2 md:text-title">
+                    {title}
+                  </h1>
+                )}
+                {description && (
+                  <p className="max-w-2xl text-muted-foreground text-sm leading-6 md:text-[0.95rem]">
+                    {description}
+                  </p>
+                )}
+              </div>
+              {actions && (
+                <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                  {actions}
+                </div>
               )}
             </div>
-            {actions && (
-              <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-                {actions}
-              </div>
-            )}
-          </div>
+          ) : null}
           {headerChildren ? <div>{headerChildren}</div> : null}
         </header>
       )}

@@ -1,11 +1,20 @@
 @layer base {
+  #main-content {
+    min-height: 100svh;
+    background-color: var(--bg-page);
+  }
+
   body {
     position: relative;
     min-height: 100vh;
     background-color: var(--bg-page);
     color: var(--text-main);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family:
+      var(--font-sans), var(--font-sans-fallback), ui-sans-serif, system-ui,
+      sans-serif;
+    font-kerning: normal;
     line-height: 1.6;
+    text-rendering: optimizeLegibility;
     touch-action: manipulation;
     -webkit-tap-highlight-color: color-mix(
       in srgb,
@@ -43,6 +52,7 @@
 
 @layer components {
   .page-main {
+    box-sizing: border-box;
     max-width: var(--layout-content-width);
     width: min(100%, var(--layout-content-width));
     margin-inline: auto;
@@ -60,28 +70,87 @@
     }
   }
 
+  main.page-main {
+    min-height: 100svh;
+  }
+
+  @supports selector(:has(*)) {
+    #main-content:has(.home-dashboard-layout) > #app-brand-row {
+      padding-top: 1.6rem;
+
+      @media (min-width: 800px) {
+        padding-top: 2.15rem;
+      }
+
+      @media (min-width: 1024px) {
+        padding-top: 2.45rem;
+      }
+    }
+
+    #main-content:has(.home-dashboard-layout)
+      #app-logo
+      [data-slot="app-logo-link"] {
+      gap: 0.75rem;
+      padding-block: 0.35rem;
+      margin-bottom: -0.55rem;
+
+      @media (min-width: 800px) {
+        margin-bottom: -0.75rem;
+      }
+    }
+
+    #main-content:has(.home-dashboard-layout)
+      #app-logo
+      [data-slot="app-logo-icon"] {
+      width: 2.5rem;
+      height: 2.5rem;
+
+      @media (min-width: 800px) {
+        width: 2.85rem;
+        height: 2.85rem;
+      }
+    }
+
+    #main-content:has(.home-dashboard-layout)
+      #app-logo
+      [data-slot="app-logo-label"] {
+      font-size: clamp(1.45rem, 2vw, 1.9rem);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+    }
+  }
+
   /* Type scale */
   .text-display {
+    font-family:
+      var(--font-sans), var(--font-sans-fallback), ui-sans-serif, system-ui,
+      sans-serif;
     font-size: var(--font-size-display);
     font-weight: 700;
     line-height: 1.1;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     text-wrap: balance;
   }
 
   .text-title {
+    font-family:
+      var(--font-sans), var(--font-sans-fallback), ui-sans-serif, system-ui,
+      sans-serif;
     font-size: var(--font-size-title);
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 
   .text-title-2 {
+    font-family:
+      var(--font-sans), var(--font-sans-fallback), ui-sans-serif, system-ui,
+      sans-serif;
     font-size: var(--font-size-title-2);
     font-weight: 600;
     line-height: 1.25;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     text-wrap: balance;
   }
 

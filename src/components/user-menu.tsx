@@ -6,25 +6,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { Link } from "@/i18n/routing";
-import { signIn, signOut, useSession } from "@/lib/auth/client";
+import { signOut, useSession } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 
 type UserMenuProps = {
   className?: string;
+  initialUser?: {
+    id: string;
+    name: string | null;
+    image: string | null;
+    username: string | null;
+  } | null;
 };
 
-export function UserMenu({ className }: UserMenuProps) {
+export function UserMenu({ className, initialUser = null }: UserMenuProps) {
   const tProfile = useTranslations("profile");
   const tSettings = useTranslations("settings");
   const tCommon = useTranslations("common");
   const { data: session } = useSession();
+  const user = session?.user ?? initialUser;
 
-  const menuLabel = session ? tProfile("title") : tCommon("signIn");
-  const avatarFallback = session?.user?.name?.charAt(0) ?? menuLabel.charAt(0);
-  const profileHref = session?.user?.username
-    ? `/u/${session.user.username}`
-    : session?.user?.id
-      ? `/u/id/${session.user.id}`
+  if (!user) {
+    return null;
+  }
+
+  const menuLabel = tProfile("title");
+  const avatarFallback = user.name?.charAt(0) ?? menuLabel.charAt(0);
+  const profileHref = user.username
+    ? `/u/${user.username}`
+    : user.id
+      ? `/u/id/${user.id}`
       : "/";
 
   return (
@@ -38,12 +49,9 @@ export function UserMenu({ className }: UserMenuProps) {
               size="icon"
               variant="outline"
             >
-              {session?.user?.image ? (
+              {user.image ? (
                 <Avatar className="h-6 w-6">
-                  <AvatarImage
-                    src={session.user.image}
-                    alt={session.user.name || menuLabel}
-                  />
+                  <AvatarImage src={user.image} alt={user.name || menuLabel} />
                   <AvatarFallback>{avatarFallback}</AvatarFallback>
                 </Avatar>
               ) : (
@@ -53,22 +61,24 @@ export function UserMenu({ className }: UserMenuProps) {
           }
         />
         <MenuPopup>
-          {session ? (
-            <>
-              <MenuItem render={<Link href="/" />}>{tCommon("home")}</MenuItem>
-              <MenuItem render={<Link href={profileHref} />}>
-                {tCommon("me")}
-              </MenuItem>
-              <MenuItem render={<Link href="/settings?tab=profile" />}>
-                {tSettings("title")}
-              </MenuItem>
-              <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
-                {tProfile("signOut")}
-              </MenuItem>
-            </>
-          ) : (
-            <MenuItem onClick={() => signIn()}>{tCommon("signIn")}</MenuItem>
-          )}
+          <MenuItem render={<Link className="no-underline" href="/" />}>
+            {tCommon("home")}
+          </MenuItem>
+          <MenuItem
+            render={<Link className="no-underline" href={profileHref} />}
+          >
+            {tCommon("me")}
+          </MenuItem>
+          <MenuItem
+            render={
+              <Link className="no-underline" href="/settings?tab=profile" />
+            }
+          >
+            {tSettings("title")}
+          </MenuItem>
+          <MenuItem onClick={() => signOut({ callbackUrl: "/" })}>
+            {tProfile("signOut")}
+          </MenuItem>
         </MenuPopup>
       </Menu>
     </div>

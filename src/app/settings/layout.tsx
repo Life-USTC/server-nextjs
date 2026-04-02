@@ -22,6 +22,7 @@ export default async function SettingsLayout({
     <PageLayout
       title={tSettings("title")}
       description={tSettings("description")}
+      headerChildren={<SettingsNav />}
       breadcrumbs={
         <PageBreadcrumbs
           items={[
@@ -31,12 +32,7 @@ export default async function SettingsLayout({
         />
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[272px_minmax(0,1fr)] lg:items-start">
-        <aside className="lg:sticky lg:top-20">
-          <SettingsNav />
-        </aside>
-        <section className="w-full min-w-0 space-y-5">{children}</section>
-      </div>
+      <section className="w-full min-w-0 space-y-5">{children}</section>
     </PageLayout>
   );
 }

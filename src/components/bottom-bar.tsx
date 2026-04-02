@@ -1,6 +1,6 @@
 "use client";
 
-import { Github, Globe, Monitor, Moon, Sun } from "lucide-react";
+import { Globe, Monitor, Moon, Sun } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -18,9 +18,9 @@ import {
 
 export default function BottomBar() {
   const _commonT = useTranslations("common");
+  const homepageActionsT = useTranslations("homepage.actions");
   const langT = useTranslations("language");
   const themeT = useTranslations("theme");
-  const a11yT = useTranslations("accessibility");
   const locale = useLocale();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -63,53 +63,38 @@ export default function BottomBar() {
   };
 
   return (
-    <nav className="border-border border-t bg-background pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="mx-auto flex h-14 max-w-(--layout-content-width) items-center justify-between gap-3 px-4">
-        {/* Left: Life@USTC Branding */}
-        <div className="flex min-w-0 items-center gap-3">
+    <nav className="mt-8 border-border border-t bg-background pb-[env(safe-area-inset-bottom,0px)] md:mt-12">
+      <div className="page-main flex min-h-16 flex-col items-start gap-4 py-4 md:gap-5 md:py-5">
+        <div className="flex min-w-0 flex-col items-start gap-2 pt-0.5 md:gap-2.5">
           <Link
-            href="/"
-            className="font-medium text-body text-foreground no-underline transition-colors hover:text-primary"
+            href="/terms"
+            className="block w-fit text-muted-foreground text-sm/6 no-underline transition-colors hover:text-foreground"
           >
-            Life@USTC
+            {_commonT("terms")}
           </Link>
-          <div className="hidden items-center gap-3 sm:flex">
-            <Link
-              href="/terms"
-              className="text-muted-foreground text-sm no-underline transition-colors hover:text-foreground"
-            >
-              {_commonT("terms")}
-            </Link>
-            <Link
-              href="/privacy"
-              className="text-muted-foreground text-sm no-underline transition-colors hover:text-foreground"
-            >
-              {_commonT("privacy")}
-            </Link>
-          </div>
+          <Link
+            href="/privacy"
+            className="block w-fit text-muted-foreground text-sm/6 no-underline transition-colors hover:text-foreground"
+          >
+            {_commonT("privacy")}
+          </Link>
+          <Link
+            href="https://github.com/Life-USTC/server-nextjs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-fit text-muted-foreground text-sm/6 no-underline transition-colors hover:text-foreground"
+          >
+            GitHub
+          </Link>
+          <Link
+            href="/mobile-app"
+            className="block w-fit text-muted-foreground text-sm/6 no-underline transition-colors hover:text-foreground"
+          >
+            {homepageActionsT("mobileApp")}
+          </Link>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-3">
-          {/* GitHub Link */}
-          <Button
-            aria-label={a11yT("viewSourceOnGithub")}
-            className="h-9 w-9"
-            size="icon"
-            variant="outline"
-            render={
-              <Link
-                href="https://github.com/Life-USTC/server-nextjs"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={a11yT("viewSourceOnGithub")}
-              />
-            }
-          >
-            <Github className="h-5 w-5" />
-          </Button>
-
-          {/* Language Switcher */}
+        <div className="flex items-center gap-3 pt-0.5">
           <Menu>
             <MenuTrigger
               render={
@@ -134,7 +119,6 @@ export default function BottomBar() {
             </MenuPopup>
           </Menu>
 
-          {/* Theme Switcher */}
           {mounted && (
             <Button
               aria-label={getThemeLabel()}
