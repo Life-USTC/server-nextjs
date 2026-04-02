@@ -21,6 +21,12 @@
   - Build: bun run build
   - Test: bun run test:e2e
 
+- Images
+  - For UI updates, capture a screenshot first
+  - Inspect the saved screenshot with `view_image`
+  - Prefer adjusting layout from the screenshot instead of guessing from class names
+  - After visual changes, rerun a focused screenshot check when needed
+
 - Rules
   - Delegate some work to sub-agent to speed things up
   - Check for best practice for implementations & fixes
