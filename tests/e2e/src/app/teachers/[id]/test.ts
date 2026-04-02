@@ -37,7 +37,9 @@ test("/teachers/[id] 面包屑可返回教师列表", async ({ page }, testInfo)
     `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
   );
   await page.locator("tbody a[href^='/teachers/']").first().click();
-  const breadcrumb = page.locator('a[href="/teachers"]').first();
+  const breadcrumb = page
+    .getByRole("link", { name: /^(教师|Teachers)$/i })
+    .first();
   await expect(breadcrumb).toBeVisible();
   await breadcrumb.click();
   await expect(page).toHaveURL(/\/teachers(?:\?.*)?$/);

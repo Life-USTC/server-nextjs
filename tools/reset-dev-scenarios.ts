@@ -99,10 +99,30 @@ async function cleanupScenarioData(userIds: string[]) {
   }
 
   await prisma.description.deleteMany({
-    where: { content: { contains: LEGACY_SCENARIO_MARKER } },
+    where: {
+      OR: [
+        { content: { contains: LEGACY_SCENARIO_MARKER } },
+        { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+        { course: { jwId: { in: [...COURSE_JW_IDS] } } },
+        { teacher: { code: { in: [...TEACHER_CODES] } } },
+        { homework: { section: { jwId: { in: [...SECTION_JW_IDS] } } } },
+      ],
+    },
   });
   await prisma.descriptionEdit.deleteMany({
-    where: { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
+    where: {
+      OR: [
+        { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
+        { description: { section: { jwId: { in: [...SECTION_JW_IDS] } } } },
+        { description: { course: { jwId: { in: [...COURSE_JW_IDS] } } } },
+        { description: { teacher: { code: { in: [...TEACHER_CODES] } } } },
+        {
+          description: {
+            homework: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+          },
+        },
+      ],
+    },
   });
 
   await prisma.schedule.deleteMany({

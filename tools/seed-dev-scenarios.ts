@@ -133,11 +133,25 @@ async function cleanupScenarioData(userIds: string[]) {
     await prisma.homework.deleteMany({ where: { id: { in: homeworkIds } } });
   }
 
-  await prisma.description.deleteMany({
-    where: { content: { contains: LEGACY_SCENARIO_MARKER } },
-  });
   await prisma.descriptionEdit.deleteMany({
-    where: { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
+    where: {
+      OR: [
+        { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
+        { description: { section: { jwId: { in: [...SECTION_JW_IDS] } } } },
+        { description: { course: { jwId: { in: [...COURSE_JW_IDS] } } } },
+        { description: { teacher: { code: { in: [...TEACHER_CODES] } } } },
+      ],
+    },
+  });
+  await prisma.description.deleteMany({
+    where: {
+      OR: [
+        { content: { contains: LEGACY_SCENARIO_MARKER } },
+        { section: { jwId: { in: [...SECTION_JW_IDS] } } },
+        { course: { jwId: { in: [...COURSE_JW_IDS] } } },
+        { teacher: { code: { in: [...TEACHER_CODES] } } },
+      ],
+    },
   });
 
   await prisma.schedule.deleteMany({
@@ -194,48 +208,42 @@ async function cleanupScenarioData(userIds: string[]) {
 }
 
 async function main() {
-  const [debugUser, adminUser] = await Promise.all([
-    prisma.user.upsert({
-      where: { username: debugUsername },
-      update: {
-        email: `${debugUsername}@users.local`,
-        emailVerified: true,
-        name: debugName,
-        image:
-          "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user",
-      },
-      create: {
-        username: debugUsername,
-        email: `${debugUsername}@users.local`,
-        emailVerified: true,
-        name: debugName,
-        image:
-          "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user",
-      },
-      select: { id: true, username: true },
-    }),
-    prisma.user.upsert({
-      where: { username: adminUsername },
-      update: {
-        email: `${adminUsername}@users.local`,
-        emailVerified: true,
-        name: "Dev Moderator",
-        isAdmin: true,
-        image:
-          "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
-      },
-      create: {
-        username: adminUsername,
-        email: `${adminUsername}@users.local`,
-        emailVerified: true,
-        name: "Dev Moderator",
-        isAdmin: true,
-        image:
-          "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
-      },
-      select: { id: true, username: true },
-    }),
-  ]);
+  const debugUser = await prisma.user.upsert({
+    where: { username: debugUsername },
+    update: {
+      email: `${debugUsername}@users.local`,
+      emailVerified: true,
+      name: debugName,
+      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user",
+    },
+    create: {
+      username: debugUsername,
+      email: `${debugUsername}@users.local`,
+      emailVerified: true,
+      name: debugName,
+      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-user",
+    },
+    select: { id: true, username: true },
+  });
+  const adminUser = await prisma.user.upsert({
+    where: { username: adminUsername },
+    update: {
+      email: `${adminUsername}@users.local`,
+      emailVerified: true,
+      name: "Dev Moderator",
+      isAdmin: true,
+      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
+    },
+    create: {
+      username: adminUsername,
+      email: `${adminUsername}@users.local`,
+      emailVerified: true,
+      name: "Dev Moderator",
+      isAdmin: true,
+      image: "https://api.dicebear.com/9.x/shapes/svg?seed=life-ustc-dev-admin",
+    },
+    select: { id: true, username: true },
+  });
 
   await cleanupScenarioData([debugUser.id, adminUser.id]);
 

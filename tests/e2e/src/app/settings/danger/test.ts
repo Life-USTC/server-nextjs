@@ -12,7 +12,7 @@ test("/settings/danger 未登录重定向到登录页", async ({ page }, testInf
 });
 
 test("/settings/danger 登录后展示删除确认交互", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/settings/danger");
+  await signInAsDebugUser(page, "/settings?tab=danger", "/settings?tab=danger");
 
   await expectPagePath(page, "/settings/danger");
   const openDialogButton = page

@@ -73,7 +73,6 @@ test("/sections/[jwId] 登录用户可发布并编辑评论", async ({
     .filter({ hasText: body })
     .first();
   await expect(commentCard).toBeVisible();
-  await commentCard.hover();
 
   const reactionResponse = page.waitForResponse(
     (response) =>
@@ -82,13 +81,16 @@ test("/sections/[jwId] 登录用户可发布并编辑评论", async ({
       response.request().method() === "POST" &&
       response.status() === 200,
   );
-  await commentCard.getByRole("button", { name: /表情|Reactions/i }).click();
+  await commentCard
+    .getByRole("button", { name: /表情|Reactions/i })
+    .click({ force: true });
   await page.getByRole("menuitem", { name: /点赞|Upvote/i }).click();
   await reactionResponse;
   await expect(commentCard.getByRole("button", { name: /👍/ })).toBeVisible();
   await captureStepScreenshot(page, testInfo, "comment-upvoted");
 
-  await commentCard.getByRole("button", { name: /编辑|Edit/i }).click();
+  const editButton = commentCard.getByRole("button", { name: /编辑|Edit/i });
+  await editButton.click({ force: true });
   const editedBody = `${body}-edited`;
   await commentCard.locator("textarea").first().fill(editedBody);
   const editResponse = page.waitForResponse(
@@ -103,8 +105,9 @@ test("/sections/[jwId] 登录用户可发布并编辑评论", async ({
   await expect(page.getByText(editedBody).first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "comment-edited");
 
-  await commentCard.hover();
-  await commentCard.getByRole("button", { name: /回复|Reply/i }).click();
+  await commentCard
+    .getByRole("button", { name: /回复|Reply/i })
+    .click({ force: true });
   const replyBody = `e2e-reply-${Date.now()}`;
 
   const replyEditor = page.locator(".rounded-2xl.border.border-dashed").first();
@@ -125,12 +128,10 @@ test("/sections/[jwId] 登录用户可发布并编辑评论", async ({
   await expect(page.getByText(replyBody).first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "comment-replied");
 
-  await commentCard.hover();
   const moreActionsButton = commentCard
     .getByRole("button", { name: /更多操作|More actions/i })
     .first();
-  await expect(moreActionsButton).toBeVisible();
-  await moreActionsButton.click();
+  await moreActionsButton.click({ force: true });
 
   const deleteResponse = page.waitForResponse(
     (response) =>

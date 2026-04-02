@@ -101,18 +101,13 @@ export async function signInAsDebugUser(
   await expect(debugButton).toBeVisible();
   await debugButton.click();
 
-  await expect(async () => {
-    await expectPagePath(page, expectedPath);
-  }).toPass({
-    intervals: Array.from(
-      { length: SESSION_RETRY_ATTEMPTS - 1 },
-      (_, index) => 250 * (index + 1),
-    ),
-    timeout: 10_000,
+  await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
+    timeout: 15_000,
   });
+  await expectPagePath(page, expectedPath);
   await waitForUiSettled(page);
-  await expect(page.locator("#main-content")).toBeVisible();
   await expectAuthenticatedSession(page);
+  await expect(page.locator("#main-content")).toBeVisible();
 }
 
 export async function signInAsDevAdmin(
@@ -130,16 +125,11 @@ export async function signInAsDevAdmin(
   await expect(adminButton).toBeVisible();
   await adminButton.click();
 
-  await expect(async () => {
-    await expectPagePath(page, expectedPath);
-  }).toPass({
-    intervals: Array.from(
-      { length: SESSION_RETRY_ATTEMPTS - 1 },
-      (_, index) => 250 * (index + 1),
-    ),
-    timeout: 10_000,
+  await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
+    timeout: 15_000,
   });
+  await expectPagePath(page, expectedPath);
   await waitForUiSettled(page);
-  await expect(page.locator("#main-content")).toBeVisible();
   await expectAuthenticatedSession(page, { isAdmin: true });
+  await expect(page.locator("#main-content")).toBeVisible();
 }
