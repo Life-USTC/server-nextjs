@@ -118,16 +118,16 @@ export function ProfileView({
           </CardHeader>
           <CardPanel>
             <div className="overflow-x-auto pb-2">
-              <div className="inline-flex gap-1">
+              <div className="inline-flex gap-px">
                 {weeks.map((week, weekIndex) => (
                   <div
                     key={week[0]?.date ?? `week-${weekIndex}`}
-                    className="flex flex-col gap-1"
+                    className="flex flex-col gap-px"
                   >
                     {week.map((day) => (
                       <div
                         key={day.date}
-                        className={`${colorForCount(day.count)} h-3.5 w-3.5 rounded-[2px]`}
+                        className={`${colorForCount(day.count)} h-2 w-2 rounded-[2px] md:h-2.5 md:w-2.5`}
                         title={t("contribution.cell", {
                           count: day.count,
                           date: dateFormatter.format(new Date(day.date)),
@@ -140,11 +140,11 @@ export function ProfileView({
             </div>
             <div className="mt-4 flex items-center justify-end gap-2 text-muted-foreground text-xs">
               <span>{t("contribution.less")}</span>
-              <span className="h-3 w-3 rounded-[2px] bg-muted/40" />
-              <span className="h-3 w-3 rounded-[2px] bg-emerald-200" />
-              <span className="h-3 w-3 rounded-[2px] bg-emerald-400" />
-              <span className="h-3 w-3 rounded-[2px] bg-emerald-600" />
-              <span className="h-3 w-3 rounded-[2px] bg-emerald-800" />
+              <span className="h-2 w-2 rounded-[2px] bg-muted/40 md:h-2.5 md:w-2.5" />
+              <span className="h-2 w-2 rounded-[2px] bg-emerald-200 md:h-2.5 md:w-2.5" />
+              <span className="h-2 w-2 rounded-[2px] bg-emerald-400 md:h-2.5 md:w-2.5" />
+              <span className="h-2 w-2 rounded-[2px] bg-emerald-600 md:h-2.5 md:w-2.5" />
+              <span className="h-2 w-2 rounded-[2px] bg-emerald-800 md:h-2.5 md:w-2.5" />
               <span>{t("contribution.more")}</span>
             </div>
             {totalContributions === 0 ? (
