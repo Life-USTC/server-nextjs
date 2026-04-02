@@ -22,7 +22,8 @@
       "apiDocs": "API Docs",
       "welcome": "Complete Your Profile",
       "privacy": "Privacy Policy",
-      "terms": "Terms of Service"
+      "terms": "Terms of Service",
+      "mobileApp": "Mobile App"
     }
   },
   "common": {
@@ -184,10 +185,45 @@
       "line2": "USTC"
     },
     "subtitle": "Your all-in-one app for course schedules, campus resources, and student life at USTC",
+    "actions": {
+      "mobileApp": "Mobile App",
+      "openDashboard": "Open dashboard",
+      "signIn": "Sign in"
+    },
     "downloadBadgeAlt": "Download Life@USTC on the App Store",
     "appIconAlt": "Life@USTC app icon",
+    "publicDashboard": {
+      "title": "Start with public campus tools",
+      "description": "Browse campus websites, courses, sections, and teachers before you sign in for your personal dashboard.",
+      "cards": {
+        "signIn": {
+          "title": "Sign in for your dashboard",
+          "description": "Unlock personal schedule, homework, selected sections, and settings."
+        },
+        "mobileApp": {
+          "title": "See the mobile app",
+          "description": "Open the App Store page and overview for the iPhone app experience."
+        },
+        "sections": {
+          "title": "Browse sections",
+          "description": "Inspect schedules, classrooms, teachers, and calendar feeds."
+        },
+        "courses": {
+          "title": "Browse courses",
+          "description": "Search the course catalog and jump into section details."
+        },
+        "teachers": {
+          "title": "Browse teachers",
+          "description": "Look up teacher profiles and the sections they teach."
+        }
+      }
+    },
     "quickAccess": {
       "title": "Quick Access",
+      "openDashboard": {
+        "title": "Open Dashboard",
+        "description": "Browse public campus links now, then sign in for personal tools."
+      },
       "browseCourses": {
         "title": "Browse Courses",
         "description": "Explore available courses and find the perfect classes for your schedule"

@@ -35,12 +35,18 @@ export async function HomeTabNav({
   pendingHomeworksCount = 0,
   examsCount = 0,
   pendingTodosCount = 0,
+  visibleTabs,
+  trailingTabIds = ["subscriptions"],
+  trailingContent,
 }: {
   currentTab: HomeTabId;
   pendingHomeworksCount?: number;
   highlightPendingHomeworks?: boolean;
   examsCount?: number;
   pendingTodosCount?: number;
+  visibleTabs?: HomeTabId[];
+  trailingTabIds?: HomeTabId[];
+  trailingContent?: React.ReactNode;
 }) {
   const t = await getTranslations("meDashboard.nav");
   const tabLabels: Record<HomeTabId, string> = {
@@ -61,6 +67,9 @@ export async function HomeTabNav({
     subscriptions: BookOpen,
     links: Link2,
   };
+  const tabsToRender = visibleTabs ?? TAB_IDS;
+  const trailingTabIdSet = new Set(trailingTabIds);
+  let hasAppliedTrailingOffset = false;
 
   const renderLabel = (tabId: HomeTabId, isActive: boolean) => {
     const countClassName = cn(
@@ -105,21 +114,24 @@ export async function HomeTabNav({
       className="flex flex-wrap items-center gap-2"
       aria-label={t("ariaLabel")}
     >
-      {(
-        TAB_IDS.filter((id) => id !== "subscriptions") as Exclude<
-          HomeTabId,
-          "subscriptions"
-        >[]
-      ).map((tabId) => {
+      {tabsToRender.map((tabId) => {
         const Icon = tabIcons[tabId];
         const isActive = currentTab === tabId;
         const href = tabId === "overview" ? "/" : `/?tab=${tabId}`;
+        const shouldOffsetTrailingTab =
+          trailingTabIdSet.has(tabId) && !hasAppliedTrailingOffset;
+
+        if (shouldOffsetTrailingTab) {
+          hasAppliedTrailingOffset = true;
+        }
+
         return (
           <Link
             key={tabId}
             href={href}
             className={cn(
               "inline-flex items-center gap-2 rounded-full border px-3 py-2 font-medium text-sm no-underline transition-colors",
+              shouldOffsetTrailingTab && "sm:ml-auto",
               isActive
                 ? "border-border/80 bg-card text-foreground"
                 : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-background/70 hover:text-foreground",
@@ -132,18 +144,9 @@ export async function HomeTabNav({
           </Link>
         );
       })}
-      <Link
-        href="/?tab=subscriptions"
-        className={cn(
-          "inline-flex items-center gap-2 rounded-full border px-3 py-2 font-medium text-sm no-underline transition-colors sm:ml-auto",
-          currentTab === "subscriptions"
-            ? "border-border/80 bg-card text-foreground"
-            : "border-transparent text-muted-foreground hover:border-border/60 hover:bg-background/70 hover:text-foreground",
-        )}
-      >
-        <BookOpen className="h-4 w-4" />
-        {tabLabels.subscriptions}
-      </Link>
+      {trailingContent ? (
+        <div className="sm:ml-auto">{trailingContent}</div>
+      ) : null}
     </nav>
   );
 }

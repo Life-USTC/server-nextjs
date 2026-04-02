@@ -10,8 +10,19 @@ test("/", async ({ page }, testInfo) => {
 test("/ 首页快速入口可见", async ({ page }, testInfo) => {
   await gotoAndWaitForReady(page, "/");
 
-  await expect(page.locator('a[href="/sections"]').first()).toBeVisible();
-  await expect(page.locator('a[href="/teachers"]').first()).toBeVisible();
+  await expect(page.locator("#app-logo")).toBeVisible();
+  await expect(page.locator("#app-user-menu")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: /^(网站|Websites)$/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("searchbox", {
+      name: /搜索网站名称或描述|Search by name or description/i,
+    }),
+  ).toBeVisible();
   await captureStepScreenshot(page, testInfo, "home-shortcuts");
 });
 

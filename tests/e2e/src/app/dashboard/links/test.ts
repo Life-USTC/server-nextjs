@@ -7,6 +7,22 @@ test.describe.configure({ mode: "serial" });
 const PIN_LABEL = /^(?:置顶|Pin)$/i;
 const UNPIN_LABEL = /^(?:取消置顶|Unpin)$/i;
 
+test("/?tab=links 未登录可访问公开网站列表", async ({ page }, testInfo) => {
+  await page.goto("/?tab=links", { waitUntil: "networkidle" });
+
+  const searchInput = page.getByRole("searchbox", {
+    name: /搜索网站名称或描述|Search by name or description/i,
+  });
+  await expect(searchInput).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /教务系统/i }).first(),
+  ).toBeVisible();
+  await expect(
+    page.locator('form[action="/api/dashboard-links/pin"]').first(),
+  ).toHaveCount(0);
+  await captureStepScreenshot(page, testInfo, "public-dashboard-links-tab");
+});
+
 test("/ 可点击网站 Tab 进入 links 页面", async ({ page }, testInfo) => {
   await signInAsDebugUser(page, "/");
 

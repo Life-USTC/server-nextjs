@@ -22,7 +22,8 @@
       "apiDocs": "API 文档",
       "welcome": "完善个人信息",
       "privacy": "隐私政策",
-      "terms": "服务条款"
+      "terms": "服务条款",
+      "mobileApp": "移动应用"
     }
   },
   "common": {
@@ -184,10 +185,45 @@
       "line2": "USTC"
     },
     "subtitle": "您的一站式应用，用于查看课程表、校园资源和中国科大的学生生活",
+    "actions": {
+      "mobileApp": "移动应用",
+      "openDashboard": "打开仪表盘",
+      "signIn": "登录"
+    },
     "downloadBadgeAlt": "在 App Store 下载 Life@USTC",
     "appIconAlt": "Life@USTC 应用图标",
+    "publicDashboard": {
+      "title": "先从公开校园工具开始",
+      "description": "登录前也可以先浏览常用网站、课程、班级和教师，登录后再进入你的个人仪表盘。",
+      "cards": {
+        "signIn": {
+          "title": "登录进入个人仪表盘",
+          "description": "解锁个人课表、作业、已选班级和账户设置。"
+        },
+        "mobileApp": {
+          "title": "查看移动应用",
+          "description": "打开 App Store 页面，并查看 iPhone 端的应用介绍。"
+        },
+        "sections": {
+          "title": "浏览班级",
+          "description": "查看上课时间、教室、教师与日历订阅信息。"
+        },
+        "courses": {
+          "title": "浏览课程",
+          "description": "搜索课程目录，并继续查看各个班级详情。"
+        },
+        "teachers": {
+          "title": "浏览教师",
+          "description": "查看教师资料以及他们当前授课的班级。"
+        }
+      }
+    },
     "quickAccess": {
       "title": "快速访问",
+      "openDashboard": {
+        "title": "打开仪表盘",
+        "description": "先浏览公开校园链接，登录后再进入个人工具。"
+      },
       "browseCourses": {
         "title": "浏览课程",
         "description": "探索可用课程，为您的课表找到完美的课程"

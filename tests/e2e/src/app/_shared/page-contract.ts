@@ -237,7 +237,14 @@ export async function assertPageContract(
 
   if (routePath === "/") {
     await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.locator('a[href="/sections"]').first()).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("searchbox", {
+        name: /搜索网站名称或描述|Search by name or description/i,
+      }),
+    ).toBeVisible();
     await maybeCapture(page, testInfo, "home");
     return;
   }

@@ -6,6 +6,7 @@ import type {
   DashboardLinkIcon,
 } from "@/features/dashboard-links/lib/dashboard-links";
 import {
+  DASHBOARD_LINK_GROUPS,
   getDashboardLinkGroup,
   recommendDashboardLinks,
   USTC_DASHBOARD_LINKS,
@@ -188,6 +189,31 @@ export type DashboardLinkSummary = {
   isPinned: boolean;
   clickCount: number;
 };
+
+export function getPublicDashboardLinksData(): {
+  dashboardLinks: DashboardLinkSummary[];
+  overviewLinks: DashboardLinkSummary[];
+} {
+  const emptyClickStats: Record<string, number> = {};
+  const emptyPinnedSet = new Set<string>();
+  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) =>
+    toDashboardLinkSummary(link, emptyClickStats, emptyPinnedSet),
+  );
+  const dashboardLinkBySlug = new Map(
+    dashboardLinks.map((link) => [link.slug, link] as const),
+  );
+  const overviewLinks = DASHBOARD_LINK_GROUPS.mostClicked
+    .slice(0, 5)
+    .flatMap((slug) => {
+      const link = dashboardLinkBySlug.get(slug);
+      return link ? [link] : [];
+    });
+
+  return {
+    dashboardLinks,
+    overviewLinks,
+  };
+}
 
 function toDashboardLinkSummary(
   link: (typeof USTC_DASHBOARD_LINKS)[number],

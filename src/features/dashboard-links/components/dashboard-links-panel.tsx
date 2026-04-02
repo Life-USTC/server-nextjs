@@ -22,9 +22,11 @@ const GROUP_LABEL_KEY: Record<DashboardLinkGroup, string> = {
 export async function DashboardLinksPanel({
   links,
   variant,
+  allowPinning = true,
 }: {
   links: DashboardLinkSummary[];
   variant: PanelVariant;
+  allowPinning?: boolean;
 }) {
   const t = await getTranslations("meDashboard");
   const isAllTab = variant === "all";
@@ -48,6 +50,7 @@ export async function DashboardLinksPanel({
       groupedLinks={groupedLinks}
       returnTo={returnTo}
       showSearch={isAllTab}
+      allowPinning={allowPinning}
     >
       {isAllTab && (
         <p className="text-muted-foreground text-xs">

@@ -114,11 +114,13 @@ export function DashboardLinksWithSearch({
   returnTo,
   children,
   showSearch = false,
+  allowPinning = true,
 }: {
   groupedLinks: GroupedLinksEntry[];
   returnTo: string;
   children?: React.ReactNode;
   showSearch?: boolean;
+  allowPinning?: boolean;
 }) {
   const t = useTranslations("meDashboard");
   const [searchQuery, setSearchQuery] = useState("");
@@ -270,39 +272,41 @@ export function DashboardLinksWithSearch({
                       </div>
                     </button>
                   </form>
-                  <form
-                    action="/api/dashboard-links/pin"
-                    method="post"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      void handlePinSubmit(
-                        link.slug,
-                        link.isPinned ? "unpin" : "pin",
-                      );
-                    }}
-                    className={`pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"}`}
-                  >
-                    <input type="hidden" name="slug" value={link.slug} />
-                    <input type="hidden" name="returnTo" value={returnTo} />
-                    <input
-                      type="hidden"
-                      name="action"
-                      value={link.isPinned ? "unpin" : "pin"}
-                    />
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="icon-sm"
-                      disabled={updatingSlug === link.slug}
-                      aria-label={pinLabel}
-                      title={pinLabel}
-                      className="bg-background/90"
+                  {allowPinning ? (
+                    <form
+                      action="/api/dashboard-links/pin"
+                      method="post"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void handlePinSubmit(
+                          link.slug,
+                          link.isPinned ? "unpin" : "pin",
+                        );
+                      }}
+                      className={`pointer-events-auto absolute top-2 right-2 opacity-100 transition-opacity ${link.isPinned ? "" : "md:pointer-events-none md:opacity-0 md:group-hover:pointer-events-auto md:group-hover:opacity-100 md:group-focus-within:pointer-events-auto md:group-focus-within:opacity-100"}`}
                     >
-                      <Pin
-                        className={`h-4 w-4 ${link.isPinned ? "fill-current text-primary" : ""}`}
+                      <input type="hidden" name="slug" value={link.slug} />
+                      <input type="hidden" name="returnTo" value={returnTo} />
+                      <input
+                        type="hidden"
+                        name="action"
+                        value={link.isPinned ? "unpin" : "pin"}
                       />
-                    </Button>
-                  </form>
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        size="icon-sm"
+                        disabled={updatingSlug === link.slug}
+                        aria-label={pinLabel}
+                        title={pinLabel}
+                        className="bg-background/90"
+                      >
+                        <Pin
+                          className={`h-4 w-4 ${link.isPinned ? "fill-current text-primary" : ""}`}
+                        />
+                      </Button>
+                    </form>
+                  ) : null}
                 </div>
               );
             })}
