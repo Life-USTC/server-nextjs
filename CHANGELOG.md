@@ -1,3 +1,15 @@
+# [1.6.0](https://github.com/Life-USTC/server-nextjs/compare/v1.5.1...v1.6.0) (2026-04-04)
+
+
+### Bug Fixes
+
+* **bus:** update i18n labels and move notice to bottom ([2b551a5](https://github.com/Life-USTC/server-nextjs/commit/2b551a50e9e71423ec4ba318f1ae7ccae36de55f))
+
+
+### Features
+
+* **admin:** add bus timetable management page ([6a7b964](https://github.com/Life-USTC/server-nextjs/commit/6a7b964178c9692165d3873e69811dddf1cdadd0))
+
 ## [1.5.1](https://github.com/Life-USTC/server-nextjs/compare/v1.5.0...v1.5.1) (2026-04-04)
 
 
