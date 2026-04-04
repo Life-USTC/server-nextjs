@@ -1,4 +1,4 @@
-import { KeyRound, Shield, Users } from "lucide-react";
+import { Bus, KeyRound, Shield, Users } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
@@ -63,6 +63,12 @@ export default async function AdminHomePage() {
           icon={KeyRound}
           title={t("oauthTitle")}
           description={t("oauthDescription")}
+        />
+        <PageLinkCard
+          href="/admin/bus"
+          icon={Bus}
+          title={t("busTitle")}
+          description={t("busDescription")}
         />
       </PageLinkGrid>
     </PageLayout>
