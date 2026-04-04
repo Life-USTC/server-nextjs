@@ -1,3 +1,23 @@
+/**
+ * E2E tests for /teachers — Teacher Search Page
+ *
+ * ## Data Represented
+ * - Teachers with code, name (cn/en), department, title, sections
+ * - Seed teacher: DEV-T-001 "王测试" (dynamic id, resolved via search)
+ * - Department filter backed by getSeedTeacherDepartmentFixture
+ *
+ * ## UI/UX Elements
+ * - h1: "教师" / "Teachers"
+ * - SearchBox with search button and clear button
+ * - Department filter dropdown from URL param
+ * - Table with teacher name linking to /teachers/[id]
+ * - Server-side rendered HTML with search params
+ *
+ * ## Edge Cases
+ * - Teacher IDs are dynamic (no static DEV_SEED.teacher.id)
+ * - Department fixture may return null if seed data not loaded
+ * - Search and clear buttons may be absent in minimal UI
+ */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
@@ -5,80 +25,84 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
-test("/teachers", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/teachers", testInfo });
-});
+test.describe("/teachers", () => {
+  test("contract", async ({ page }, testInfo) => {
+    await assertPageContract(page, { routePath: "/teachers", testInfo });
+  });
 
-test("/teachers SSR 输出包含查询参数", async ({ request }) => {
-  const response = await request.get(
-    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-  );
-  expect(response.status()).toBe(200);
-  const html = await response.text();
-  expect(html).toContain('id="main-content"');
-  expect(html).toContain(DEV_SEED.teacher.nameCn);
-});
+  test("SSR output includes search params", async ({ request }) => {
+    const response = await request.get(
+      `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+    );
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('id="main-content"');
+    expect(html).toContain(DEV_SEED.teacher.nameCn);
+  });
 
-test("/teachers 可从列表进入详情", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(
-    page,
-    `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-  );
+  test("list-to-detail navigation", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(
+      page,
+      `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+    );
 
-  const detailLink = page.locator("tbody a[href^='/teachers/']").first();
-  await expect(detailLink).toBeVisible();
-  await detailLink.click();
+    const detailLink = page.locator("tbody a[href^='/teachers/']").first();
+    await expect(detailLink).toBeVisible();
+    await detailLink.click();
 
-  await expect(page).toHaveURL(/\/teachers\/\d+(?:\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
-});
-
-test("/teachers 搜索与清除按钮可用", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/teachers");
-
-  const searchbox = page.getByRole("searchbox").first();
-  if ((await searchbox.count()) === 0) {
+    await expect(page).toHaveURL(/\/teachers\/\d+(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
+    await captureStepScreenshot(page, testInfo, "teachers-navigate-detail");
+  });
 
-  await searchbox.fill(DEV_SEED.teacher.nameCn);
-  const searchButton = page
-    .getByRole("button", { name: /搜索|Search/i })
-    .first();
-  if ((await searchButton.count()) > 0) {
-    await searchButton.click();
-  }
+  test("search and clear buttons work", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/teachers");
 
-  await expect(page).toHaveURL(/search=/);
+    const searchbox = page.getByRole("searchbox").first();
+    if ((await searchbox.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
 
-  const clearButton = page.getByRole("button", { name: /清除|Clear/i }).first();
-  if ((await clearButton.count()) > 0) {
-    await clearButton.click();
-    await expect(page).not.toHaveURL(/search=/);
-  }
+    await searchbox.fill(DEV_SEED.teacher.nameCn);
+    const searchButton = page
+      .getByRole("button", { name: /搜索|Search/i })
+      .first();
+    if ((await searchButton.count()) > 0) {
+      await searchButton.click();
+    }
 
-  await captureStepScreenshot(page, testInfo, "teachers-search-clear");
-});
+    await expect(page).toHaveURL(/search=/);
 
-test("/teachers seed 院系筛选参数可保留教师结果", async ({
-  page,
-}, testInfo) => {
-  const filter = getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
-  await gotoAndWaitForReady(
+    const clearButton = page
+      .getByRole("button", { name: /清除|Clear/i })
+      .first();
+    if ((await clearButton.count()) > 0) {
+      await clearButton.click();
+      await expect(page).not.toHaveURL(/search=/);
+    }
+
+    await captureStepScreenshot(page, testInfo, "teachers-search-clear");
+  });
+
+  test("department filter preserves teacher results", async ({
     page,
-    `/teachers?departmentId=${filter.departmentId ?? ""}`,
-  );
+  }, testInfo) => {
+    const filter = getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
+    await gotoAndWaitForReady(
+      page,
+      `/teachers?departmentId=${filter.departmentId ?? ""}`,
+    );
 
-  if (!filter.departmentName) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
+    if (!filter.departmentName) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
 
-  await expect(page).toHaveURL(
-    new RegExp(`departmentId=${filter.departmentId}`),
-  );
-  await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "teachers-filter-department");
+    await expect(page).toHaveURL(
+      new RegExp(`departmentId=${filter.departmentId}`),
+    );
+    await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "teachers-filter-department");
+  });
 });

@@ -1,3 +1,25 @@
+/**
+ * E2E tests for /courses — Paginated Course Catalog
+ *
+ * ## Data Represented
+ * - Courses with nameCn/nameEn, code, educationLevel, category, classType
+ * - Seed course: DEV-CS201 "软件工程实践" (jwId 9901001)
+ *
+ * ## UI/UX Elements
+ * - Search input (searchbox) with search/clear buttons
+ * - Filter dropdowns: education level, category, class type
+ * - Table with columns: Course Name, Code, Education Level, Category, Class Type
+ * - Clickable rows navigating to /courses/{jwId}
+ * - Pagination controls (Previous, page numbers, Next) when totalPages > 1
+ * - DataState empty state when no results
+ * - Breadcrumbs: Home > Courses
+ *
+ * ## Edge Cases
+ * - SSR output should contain search query for SEO
+ * - Language switching (zh-cn ↔ en-us) persists UI locale
+ * - Filter params preserved in URL and restrict results
+ * - Search supports nameCn, nameEn, and code fields
+ */
 import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedCourseFilterFixture } from "../../../utils/e2e-db";
@@ -5,101 +27,108 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
-test("/courses", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/courses", testInfo });
-});
-
-test("/courses SSR 输出包含查询参数", async ({ request }) => {
-  const response = await request.get(
-    `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-  );
-  expect(response.status()).toBe(200);
-  const html = await response.text();
-  expect(html).toContain('id="main-content"');
-  expect(html).toContain(DEV_SEED.course.code);
-});
-
-test("/courses 语言切换可生效", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/courses");
-
-  const localeResponse = await page.request.post("/api/locale", {
-    data: { locale: "en-us" },
+test.describe("/courses", () => {
+  test("contract", async ({ page }, testInfo) => {
+    await assertPageContract(page, { routePath: "/courses", testInfo });
   });
-  expect(localeResponse.status()).toBe(200);
 
-  await gotoAndWaitForReady(page, "/courses");
-  await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
-  await captureStepScreenshot(page, testInfo, "courses-en-us");
+  test("SSR output contains search query", async ({ request }) => {
+    const response = await request.get(
+      `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+    );
+    expect(response.status()).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('id="main-content"');
+    expect(html).toContain(DEV_SEED.course.code);
+  });
 
-  await page
-    .getByRole("button", {
-      name: /语言选择|Language selector/i,
-    })
-    .click();
-  await page
-    .getByRole("menuitemradio", { name: /中文|Chinese/i })
-    .first()
-    .click();
+  test("language switching works", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/courses");
 
-  await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
-  await captureStepScreenshot(page, testInfo, "courses-zh-cn");
-});
+    const localeResponse = await page.request.post("/api/locale", {
+      data: { locale: "en-us" },
+    });
+    expect(localeResponse.status()).toBe(200);
 
-test("/courses 可从列表点击进入详情", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(
+    await gotoAndWaitForReady(page, "/courses");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
+    await captureStepScreenshot(page, testInfo, "courses-en-us");
+
+    await page
+      .getByRole("button", { name: /语言选择|Language selector/i })
+      .click();
+    await page
+      .getByRole("menuitemradio", { name: /中文|Chinese/i })
+      .first()
+      .click();
+
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-cn");
+    await captureStepScreenshot(page, testInfo, "courses-zh-cn");
+  });
+
+  test("can navigate from list to detail", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(
+      page,
+      `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+    );
+    const detailLink = page.locator("tbody a[href^='/courses/']").first();
+    await expect(detailLink).toBeVisible();
+    await detailLink.click();
+    await expect(page).toHaveURL(
+      new RegExp(`/courses/${DEV_SEED.course.jwId}`),
+    );
+    await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
+  });
+
+  test("search and clear button", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/courses");
+
+    const searchbox = page.getByRole("searchbox").first();
+    if ((await searchbox.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
+
+    await searchbox.fill(DEV_SEED.course.code);
+    const searchButton = page
+      .getByRole("button", { name: /搜索|Search/i })
+      .first();
+    if ((await searchButton.count()) > 0) {
+      await searchButton.click();
+    }
+
+    await expect(page).toHaveURL(/search=/);
+    await captureStepScreenshot(page, testInfo, "courses-search-filled");
+
+    const clearButton = page
+      .getByRole("button", { name: /清除|Clear/i })
+      .first();
+    if ((await clearButton.count()) > 0) {
+      await clearButton.click();
+      await expect(page).not.toHaveURL(/search=/);
+    }
+
+    await captureStepScreenshot(page, testInfo, "courses-search-clear");
+  });
+
+  test("filter by seed dimensions preserves results", async ({
     page,
-    `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-  );
-  const detailLink = page.locator("tbody a[href^='/courses/']").first();
-  await expect(detailLink).toBeVisible();
-  await detailLink.click();
-  await expect(page).toHaveURL(new RegExp(`/courses/${DEV_SEED.course.jwId}`));
-  await captureStepScreenshot(page, testInfo, "courses-navigate-detail");
-});
+  }, testInfo) => {
+    const filters = getSeedCourseFilterFixture(DEV_SEED.course.jwId);
+    const params = new URLSearchParams();
+    if (filters.educationLevelId) {
+      params.set("educationLevelId", String(filters.educationLevelId));
+    }
+    if (filters.categoryId) {
+      params.set("categoryId", String(filters.categoryId));
+    }
+    if (filters.classTypeId) {
+      params.set("classTypeId", String(filters.classTypeId));
+    }
 
-test("/courses 搜索与清除按钮可用", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/courses");
+    await gotoAndWaitForReady(page, `/courses?${params.toString()}`);
 
-  const searchbox = page.getByRole("searchbox").first();
-  if ((await searchbox.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
-
-  await searchbox.fill(DEV_SEED.course.code);
-  const searchButton = page
-    .getByRole("button", { name: /搜索|Search/i })
-    .first();
-  if ((await searchButton.count()) > 0) {
-    await searchButton.click();
-  }
-
-  await expect(page).toHaveURL(/search=/);
-
-  const clearButton = page.getByRole("button", { name: /清除|Clear/i }).first();
-  if ((await clearButton.count()) > 0) {
-    await clearButton.click();
-    await expect(page).not.toHaveURL(/search=/);
-  }
-
-  await captureStepScreenshot(page, testInfo, "courses-search-clear");
-});
-
-test("/courses seed 维度筛选参数可保留课程结果", async ({ page }, testInfo) => {
-  const filters = getSeedCourseFilterFixture(DEV_SEED.course.jwId);
-  const params = new URLSearchParams();
-  if (filters.educationLevelId) {
-    params.set("educationLevelId", String(filters.educationLevelId));
-  }
-  if (filters.categoryId) {
-    params.set("categoryId", String(filters.categoryId));
-  }
-  if (filters.classTypeId) {
-    params.set("classTypeId", String(filters.classTypeId));
-  }
-
-  await gotoAndWaitForReady(page, `/courses?${params.toString()}`);
-
-  await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "courses-filter-seed");
+    await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "courses-filter-seed");
+  });
 });
