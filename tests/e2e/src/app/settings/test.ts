@@ -1,22 +1,80 @@
+/**
+ * E2E tests for the Settings Hub Page (`/settings`)
+ *
+ * ## Data Represented
+ * - Central settings page using tab-based navigation via `?tab=` query param.
+ * - Tabs: profile (default), accounts, content, danger.
+ * - Each tab renders a different section component server-side.
+ * - Layout requires authentication (`requireSignedInUserId`).
+ *
+ * ## UI/UX Elements
+ * - Settings nav bar with 4 tab links (profile, accounts, content, danger)
+ * - Breadcrumbs: Home → Settings
+ * - Page title and description
+ * - Default tab is "profile" which shows the profile edit form
+ *
+ * ## Edge Cases
+ * - Unauthenticated → redirects to /signin
+ * - No `?tab` param → defaults to profile tab
+ * - Invalid `?tab` value → defaults to profile tab
+ */
 import { expect, test } from "@playwright/test";
 import { expectRequiresSignIn, signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
-test("/settings 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/settings");
-  await captureStepScreenshot(page, testInfo, "settings-unauthorized");
-});
+test.describe("/settings", () => {
+  test("requires authentication", async ({ page }, testInfo) => {
+    await expectRequiresSignIn(page, "/settings");
+    await captureStepScreenshot(page, testInfo, "settings-unauthorized");
+  });
 
-test("/settings 登录后重定向到 profile 并展示 seed 用户", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/settings");
+  test("defaults to profile tab with seed user data", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/settings");
 
-  await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
-  await expect(page.locator("input#name")).toBeVisible();
-  await expect(page.locator("input#username")).toHaveValue(
-    DEV_SEED.debugUsername,
-  );
-  await captureStepScreenshot(page, testInfo, "settings-redirect-profile");
+    await expect(page).toHaveURL(/\/settings(?:\?.*)?$/);
+    await expect(page.locator("input#name")).toBeVisible();
+    await expect(page.locator("input#username")).toHaveValue(
+      DEV_SEED.debugUsername,
+    );
+    await captureStepScreenshot(page, testInfo, "settings-default-profile");
+  });
+
+  test("tab navigation switches sections", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/settings");
+
+    // Navigate to accounts tab
+    const accountsTab = page.getByRole("link", {
+      name: /账号关联|Accounts/i,
+    });
+    await expect(accountsTab).toBeVisible();
+    await accountsTab.click();
+    await expect(page).toHaveURL(/tab=accounts/);
+    await expect(page.getByText("GitHub").first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-accounts-tab");
+
+    // Navigate to danger tab
+    const dangerTab = page.getByRole("link", {
+      name: /危险区|Danger/i,
+    });
+    await expect(dangerTab).toBeVisible();
+    await dangerTab.click();
+    await expect(page).toHaveURL(/tab=danger/);
+    await expect(
+      page.getByRole("button", { name: /删除|Delete/i }).first(),
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-danger-tab");
+
+    // Navigate back to profile tab
+    const profileTab = page.getByRole("link", {
+      name: /个人资料|Profile/i,
+    });
+    await expect(profileTab).toBeVisible();
+    await profileTab.click();
+    await expect(page).toHaveURL(/tab=profile/);
+    await expect(page.locator("input#name")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-profile-tab");
+  });
 });

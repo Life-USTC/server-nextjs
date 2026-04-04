@@ -1,3 +1,17 @@
+/**
+ * E2E tests for the Settings Uploads Route (`/settings/uploads`)
+ *
+ * ## Data Represented
+ * - This route is **deprecated/unused**. The page simply redirects to `/`.
+ * - The settings layout still requires authentication before the redirect fires.
+ *
+ * ## UI/UX Elements
+ * - None — the page performs an immediate server-side redirect.
+ *
+ * ## Edge Cases
+ * - Unauthenticated → settings layout redirects to /signin
+ * - Authenticated → page redirects to `/` (home)
+ */
 import { expect, test } from "@playwright/test";
 import {
   expectRequiresSignIn,
@@ -5,17 +19,21 @@ import {
 } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/settings/uploads 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/settings/uploads");
-  await captureStepScreenshot(page, testInfo, "settings-uploads-unauthorized");
-});
+test.describe("/settings/uploads", () => {
+  test("requires authentication", async ({ page }, testInfo) => {
+    await expectRequiresSignIn(page, "/settings/uploads");
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "settings-uploads-unauthorized",
+    );
+  });
 
-test("/settings/uploads 登录后重定向并展示 seed 上传", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/settings/uploads", "/");
+  test("redirects to home when authenticated", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/settings/uploads", "/");
 
-  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "settings-uploads-redirect");
+    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+    await expect(page.locator("#main-content")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-uploads-redirect");
+  });
 });

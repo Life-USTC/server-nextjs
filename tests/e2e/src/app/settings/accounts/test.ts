@@ -1,3 +1,27 @@
+/**
+ * E2E tests for the Settings Accounts Tab (`/settings/accounts`)
+ *
+ * ## Data Represented
+ * - `/settings/accounts` redirects to `/settings?tab=accounts`.
+ * - Shows linked OAuth provider accounts for the current user.
+ * - Three providers: GitHub, Google, USTC (OIDC).
+ * - Each provider card shows: name, "Connected" badge (if linked),
+ *   and a Connect or Disconnect button.
+ *
+ * ## UI/UX Elements
+ * - Card with title "Linked Accounts" / "关联账号"
+ * - Per-provider row: provider name, connected badge, action button
+ * - Connect button → starts OAuth sign-in flow (redirects to `/api/auth/...`)
+ * - Disconnect button → opens confirmation dialog with Cancel + Disconnect
+ * - When only 1 account linked: Disconnect is disabled + warning text
+ * - Toast notifications for link/unlink success/error
+ *
+ * ## Edge Cases
+ * - Unauthenticated → redirects to /signin
+ * - Only one linked account → Disconnect disabled, warning shown
+ * - Cancel in unlink dialog → dialog closes, account stays linked
+ * - Confirm unlink → account removed, button changes to Connect
+ */
 import { expect, test } from "@playwright/test";
 import {
   expectPagePath,
@@ -11,130 +35,137 @@ import {
 } from "../../../../utils/e2e-db";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/settings/accounts 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/settings/accounts");
-  await captureStepScreenshot(page, testInfo, "settings-accounts-unauthorized");
-});
+test.describe("/settings/accounts", () => {
+  test("requires authentication", async ({ page }, testInfo) => {
+    await expectRequiresSignIn(page, "/settings/accounts");
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "settings-accounts-unauthorized",
+    );
+  });
 
-test("/settings/accounts 登录后展示绑定平台", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/settings/accounts");
+  test("displays all provider cards", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/settings/accounts");
 
-  await expectPagePath(page, "/settings/accounts");
-  await expect(page.getByText("GitHub").first()).toBeVisible();
-  await expect(page.getByText("Google").first()).toBeVisible();
-  await expect(page.getByText("USTC").first()).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "settings-accounts-platforms");
-});
-
-test("/settings/accounts 可点击连接按钮进入 OAuth 登录流程", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/settings/accounts");
-
-  const connectButton = page
-    .getByRole("button", { name: /连接|Connect/i })
-    .first();
-  if ((await connectButton.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
-
-  const currentOrigin = new URL(page.url()).origin;
-  const localAuthStartRequestPromise = page.waitForRequest(
-    (request) => {
-      const url = new URL(request.url());
-      if (url.origin !== currentOrigin) {
-        return false;
-      }
-      if (!url.pathname.startsWith("/api/auth/")) {
-        return false;
-      }
-      return url.pathname !== "/api/auth/session";
-    },
-    { timeout: 5_000 },
-  );
-
-  await connectButton.click();
-  // Assert the OAuth flow starts with a local auth endpoint request, rather than
-  // relying on third-party pages.
-  await localAuthStartRequestPromise;
-
-  try {
-    await captureStepScreenshot(page, testInfo, "settings-accounts-oauth");
-  } catch {}
-});
-
-test("/settings/accounts 仅剩一个账户时断开按钮禁用并提示", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/settings/accounts");
-
-  const disconnectButton = page
-    .getByRole("button", { name: /断开连接|Disconnect/i })
-    .first();
-  if ((await disconnectButton.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
-
-  await expect(disconnectButton).toBeDisabled();
-  await expect(
-    page.getByText(/不能断开唯一关联的账户|cannot disconnect/i).first(),
-  ).toBeVisible();
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "settings-accounts-disconnect-disabled",
-  );
-});
-
-test("/settings/accounts 多账户时可取消并确认解绑", async ({
-  page,
-}, testInfo) => {
-  const provider = "github";
-  await signInAsDebugUser(page, "/settings/accounts");
-  const user = await getCurrentSessionUser(page);
-
-  deleteLinkedAccountFixture({ userId: user.id, provider });
-  ensureLinkedAccountFixture({ userId: user.id, provider });
-
-  try {
-    await page.reload({ waitUntil: "networkidle" });
     await expectPagePath(page, "/settings/accounts");
+    await expect(page.getByText("GitHub").first()).toBeVisible();
+    await expect(page.getByText("Google").first()).toBeVisible();
+    await expect(page.getByText("USTC").first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-accounts-platforms");
+  });
 
-    const providerCard = page
-      .locator("#main-content .rounded-lg.border")
-      .filter({ has: page.getByText("GitHub", { exact: true }) })
+  test("connect button initiates OAuth flow", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/settings/accounts");
+
+    const connectButton = page
+      .getByRole("button", { name: /连接|Connect/i })
       .first();
-    await expect(providerCard).toBeVisible();
+    if ((await connectButton.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
 
-    const disconnectButton = providerCard.getByRole("button", {
-      name: /断开连接|Disconnect/i,
-    });
-    await expect(disconnectButton).toBeEnabled();
-    await disconnectButton.click();
+    const currentOrigin = new URL(page.url()).origin;
+    const localAuthStartRequestPromise = page.waitForRequest(
+      (request) => {
+        const url = new URL(request.url());
+        if (url.origin !== currentOrigin) return false;
+        if (!url.pathname.startsWith("/api/auth/")) return false;
+        return url.pathname !== "/api/auth/session";
+      },
+      { timeout: 5_000 },
+    );
 
-    const dialog = page
-      .getByRole("dialog")
-      .or(page.getByRole("alertdialog"))
+    await connectButton.click();
+    await localAuthStartRequestPromise;
+
+    try {
+      await captureStepScreenshot(page, testInfo, "settings-accounts-oauth");
+    } catch {
+      // OAuth redirect may leave the page in an unscreenshottable state
+    }
+  });
+
+  test("disconnect disabled when only one account linked", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/settings/accounts");
+
+    const disconnectButton = page
+      .getByRole("button", { name: /断开连接|Disconnect/i })
       .first();
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
-    await expect(dialog).not.toBeVisible();
+    if ((await disconnectButton.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
 
-    await disconnectButton.click();
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: /断开连接|Disconnect/i }).click();
+    await expect(disconnectButton).toBeDisabled();
+    await expect(
+      page.getByText(/不能断开唯一关联的账户|cannot disconnect/i).first(),
+    ).toBeVisible();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "settings-accounts-disconnect-disabled",
+    );
+  });
 
-    await expect(dialog).not.toBeVisible({ timeout: 15000 });
-    await expect(
-      providerCard.getByRole("button", { name: /连接|Connect/i }),
-    ).toBeVisible({ timeout: 15000 });
-    await expect(
-      providerCard.getByRole("button", { name: /断开连接|Disconnect/i }),
-    ).toHaveCount(0);
-    await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
-  } finally {
+  test("multi-account: cancel and confirm unlink flow", async ({
+    page,
+  }, testInfo) => {
+    const provider = "github";
+    await signInAsDebugUser(page, "/settings/accounts");
+    const user = await getCurrentSessionUser(page);
+
+    // Ensure a second account exists for the test
     deleteLinkedAccountFixture({ userId: user.id, provider });
-  }
+    ensureLinkedAccountFixture({ userId: user.id, provider });
+
+    try {
+      await page.reload({ waitUntil: "networkidle" });
+      await expectPagePath(page, "/settings/accounts");
+
+      const providerCard = page
+        .locator("#main-content .rounded-lg.border")
+        .filter({ has: page.getByText("GitHub", { exact: true }) })
+        .first();
+      await expect(providerCard).toBeVisible();
+
+      const disconnectButton = providerCard.getByRole("button", {
+        name: /断开连接|Disconnect/i,
+      });
+      await expect(disconnectButton).toBeEnabled();
+
+      // Cancel flow
+      await disconnectButton.click();
+      const dialog = page
+        .getByRole("dialog")
+        .or(page.getByRole("alertdialog"))
+        .first();
+      await expect(dialog).toBeVisible();
+      await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
+      await expect(dialog).not.toBeVisible();
+
+      // Confirm unlink flow
+      await disconnectButton.click();
+      await expect(dialog).toBeVisible();
+      await dialog
+        .getByRole("button", { name: /断开连接|Disconnect/i })
+        .click();
+
+      await expect(dialog).not.toBeVisible({ timeout: 15_000 });
+      await expect(
+        providerCard.getByRole("button", { name: /连接|Connect/i }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(
+        providerCard.getByRole("button", {
+          name: /断开连接|Disconnect/i,
+        }),
+      ).toHaveCount(0);
+      await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
+    } finally {
+      deleteLinkedAccountFixture({ userId: user.id, provider });
+    }
+  });
 });

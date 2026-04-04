@@ -1,3 +1,17 @@
+/**
+ * E2E tests for the Settings Comments Route (`/settings/comments`)
+ *
+ * ## Data Represented
+ * - This route is **deprecated/unused**. The page simply redirects to `/`.
+ * - The settings layout still requires authentication before the redirect fires.
+ *
+ * ## UI/UX Elements
+ * - None — the page performs an immediate server-side redirect.
+ *
+ * ## Edge Cases
+ * - Unauthenticated → settings layout redirects to /signin
+ * - Authenticated → page redirects to `/` (home)
+ */
 import { expect, test } from "@playwright/test";
 import {
   expectRequiresSignIn,
@@ -5,17 +19,21 @@ import {
 } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/settings/comments 未登录重定向到登录页", async ({ page }, testInfo) => {
-  await expectRequiresSignIn(page, "/settings/comments");
-  await captureStepScreenshot(page, testInfo, "settings-comments-unauthorized");
-});
+test.describe("/settings/comments", () => {
+  test("requires authentication", async ({ page }, testInfo) => {
+    await expectRequiresSignIn(page, "/settings/comments");
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "settings-comments-unauthorized",
+    );
+  });
 
-test("/settings/comments 登录后重定向并展示 seed 评论", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/settings/comments", "/");
+  test("redirects to home when authenticated", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/settings/comments", "/");
 
-  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "settings-comments-redirect");
+    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+    await expect(page.locator("#main-content")).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "settings-comments-redirect");
+  });
 });
