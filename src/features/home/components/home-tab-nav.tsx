@@ -1,6 +1,7 @@
 import {
   BookOpen,
   BookOpenCheck,
+  Bus,
   CalendarDays,
   CheckSquare,
   GraduationCap,
@@ -14,6 +15,7 @@ import { cn } from "@/lib/utils";
 export type HomeTabId =
   | "overview"
   | "calendar"
+  | "bus"
   | "homeworks"
   | "todos"
   | "exams"
@@ -23,6 +25,7 @@ export type HomeTabId =
 const TAB_IDS: HomeTabId[] = [
   "overview",
   "calendar",
+  "bus",
   "homeworks",
   "todos",
   "exams",
@@ -52,6 +55,7 @@ export async function HomeTabNav({
   const tabLabels: Record<HomeTabId, string> = {
     overview: t("overview.title"),
     calendar: t("calendar.title"),
+    bus: t("bus.title"),
     homeworks: t("homeworks.title"),
     todos: t("todos.title"),
     exams: t("exams.title"),
@@ -61,6 +65,7 @@ export async function HomeTabNav({
   const tabIcons: Record<HomeTabId, typeof LayoutDashboard> = {
     overview: LayoutDashboard,
     calendar: CalendarDays,
+    bus: Bus,
     homeworks: BookOpenCheck,
     todos: CheckSquare,
     exams: GraduationCap,

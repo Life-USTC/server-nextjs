@@ -1,5 +1,7 @@
 import "dotenv/config";
 
+import { importBusStaticPayload } from "../src/features/bus/lib/bus-import";
+import type { BusStaticPayload } from "../src/features/bus/lib/bus-types";
 import {
   CommentReactionType,
   CommentStatus,
@@ -36,6 +38,190 @@ const DEV_BUILDING_JW_ID = 9_910_021;
 const DEV_ROOM_JW_ID = 9_910_031;
 const DEV_TEACHER_TITLE_JW_ID = 9_910_041;
 const DEV_TEACHER_LESSON_TYPE_JW_ID = 9_910_051;
+const DEV_BUS_VERSION_KEY = "dev-scenario-bus";
+
+const _DEV_BUS_PAYLOAD: BusStaticPayload = {
+  campuses: [
+    { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+    { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+    { id: 3, name: "北区", latitude: 117.268125, longitude: 31.841933 },
+    { id: 4, name: "南区", latitude: 117.283853, longitude: 31.822112 },
+    { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+    { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+  ],
+  routes: [
+    {
+      id: 1,
+      campuses: [
+        { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+        { id: 3, name: "北区", latitude: 117.268125, longitude: 31.841933 },
+        { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+      ],
+    },
+    {
+      id: 3,
+      campuses: [
+        { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+        { id: 4, name: "南区", latitude: 117.283853, longitude: 31.822112 },
+      ],
+    },
+    {
+      id: 7,
+      campuses: [
+        { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+        { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+        { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+        { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+      ],
+    },
+    {
+      id: 8,
+      campuses: [
+        { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+        { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+        { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+        { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+      ],
+    },
+  ],
+  weekday_routes: [
+    {
+      id: 1,
+      route: {
+        id: 1,
+        campuses: [
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+          { id: 3, name: "北区", latitude: 117.268125, longitude: 31.841933 },
+          { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+        ],
+      },
+      time: [
+        ["07:30", null, "07:40"],
+        ["09:20", null, "09:30"],
+        ["18:40", null, "18:50"],
+        ["21:15", null, "21:25"],
+      ],
+    },
+    {
+      id: 3,
+      route: {
+        id: 3,
+        campuses: [
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+          { id: 4, name: "南区", latitude: 117.283853, longitude: 31.822112 },
+        ],
+      },
+      time: [
+        ["08:30", "08:45"],
+        ["12:35", "12:50"],
+        ["17:45", "18:00"],
+      ],
+    },
+    {
+      id: 7,
+      route: {
+        id: 7,
+        campuses: [
+          { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+          { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+          { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+        ],
+      },
+      time: [
+        ["08:00", "08:05", null, "08:50"],
+        ["14:30", "14:35", null, "15:25"],
+        ["18:30", "18:35", null, "19:25"],
+      ],
+    },
+    {
+      id: 8,
+      route: {
+        id: 8,
+        campuses: [
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+          { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+          { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+          { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+        ],
+      },
+      time: [
+        ["06:50", "07:00", null, "07:40"],
+        ["12:50", "13:00", null, "13:40"],
+        ["21:20", "21:30", null, "22:00"],
+      ],
+    },
+  ],
+  weekend_routes: [
+    {
+      id: 1,
+      route: {
+        id: 1,
+        campuses: [
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+          { id: 3, name: "北区", latitude: 117.268125, longitude: 31.841933 },
+          { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+        ],
+      },
+      time: [
+        ["07:30", null, "07:40"],
+        ["17:30", null, "17:40"],
+        ["21:15", null, "21:25"],
+      ],
+    },
+    {
+      id: 3,
+      route: {
+        id: 3,
+        campuses: [
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+          { id: 4, name: "南区", latitude: 117.283853, longitude: 31.822112 },
+        ],
+      },
+      time: [
+        ["11:45", "12:00"],
+        ["19:00", "19:15"],
+      ],
+    },
+    {
+      id: 7,
+      route: {
+        id: 7,
+        campuses: [
+          { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+          { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+          { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+        ],
+      },
+      time: [
+        ["08:00", "08:05", null, "08:50"],
+        ["21:50", "21:55", null, "22:40"],
+      ],
+    },
+    {
+      id: 8,
+      route: {
+        id: 8,
+        campuses: [
+          { id: 1, name: "东区", latitude: 117.268264, longitude: 31.83892 },
+          { id: 2, name: "西区", latitude: 117.256645, longitude: 31.839258 },
+          { id: 5, name: "先研院", latitude: 117.129257, longitude: 31.826345 },
+          { id: 6, name: "高新", latitude: 117.129369, longitude: 31.820447 },
+        ],
+      },
+      time: [
+        ["07:00", "07:10", null, "07:50"],
+        ["18:30", "18:40", null, "19:30"],
+      ],
+    },
+  ],
+  message: {
+    message:
+      "本表为 DEV 调试用校车时刻表，可用于 Dashboard、公开查询和 MCP 测试。",
+    url: "https://github.com/Life-USTC/static",
+  },
+};
 
 function makeDateAt(hour: number, minute: number, offsetDays = 0) {
   const now = new Date();
@@ -204,6 +390,19 @@ async function cleanupScenarioData(userIds: string[]) {
   });
   await prisma.dashboardLinkPin.deleteMany({
     where: { userId: { in: userIds } },
+  });
+  await prisma.busUserPreference.deleteMany({
+    where: { userId: { in: userIds } },
+  });
+  await prisma.busTrip.deleteMany({
+    where: {
+      version: {
+        key: DEV_BUS_VERSION_KEY,
+      },
+    },
+  });
+  await prisma.busScheduleVersion.deleteMany({
+    where: { key: DEV_BUS_VERSION_KEY },
   });
 }
 
@@ -1378,6 +1577,32 @@ async function main() {
       expiresAt: makeDateAt(23, 59, 3),
       liftedAt: makeDateAt(9, 0, 0),
       liftedById: adminUser.id,
+    },
+  });
+
+  await importBusStaticPayload(prisma, _DEV_BUS_PAYLOAD, {
+    versionKey: DEV_BUS_VERSION_KEY,
+    versionTitle: "DEV 校车时刻表",
+    effectiveFrom: makeDateAt(0, 0, -7),
+    disablePreviousVersions: true,
+  });
+
+  await prisma.busUserPreference.upsert({
+    where: { userId: debugUser.id },
+    update: {
+      preferredOriginCampusId: 1,
+      preferredDestinationCampusId: 6,
+      favoriteCampusIds: [1, 6],
+      favoriteRouteIds: [8],
+      showDepartedTrips: false,
+    },
+    create: {
+      userId: debugUser.id,
+      preferredOriginCampusId: 1,
+      preferredDestinationCampusId: 6,
+      favoriteCampusIds: [1, 6],
+      favoriteRouteIds: [8],
+      showDepartedTrips: false,
     },
   });
 

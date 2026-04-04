@@ -19,6 +19,7 @@
       "subscriptions": "Selected Sections",
       "uploads": "My Uploads",
       "homeworks": "My Homework",
+      "bus": "Shuttle Bus",
       "apiDocs": "API Docs",
       "welcome": "Complete Your Profile",
       "privacy": "Privacy Policy",
@@ -244,6 +245,10 @@
         "title": "Browse Teachers",
         "description": "View teacher information and their teaching sections"
       },
+      "busTimetable": {
+        "title": "Shuttle Bus",
+        "description": "Check the next campus shuttle and keep route preferences."
+      },
       "admin": {
         "title": "Admin",
         "description": "Access moderation and admin tools"
@@ -354,6 +359,10 @@
       "calendar": {
         "title": "Calendar",
         "description": "This week's schedule and homework deadlines"
+      },
+      "bus": {
+        "title": "Shuttle Bus",
+        "description": "See the next shuttle and route changes across campuses."
       },
       "subscriptions": {
         "title": "Section Management",
@@ -490,6 +499,101 @@
       "all": "All {count}",
       "viewAll": "View all"
     }
+  },
+  "bus": {
+    "title": "Shuttle Bus",
+    "description": "Public shuttle timetable across USTC campuses. Logged-in users can save preferences and jump to the next bus faster.",
+    "subtitle": "Public query, remembered preferences, and next-bus recommendations.",
+    "dashboardTitle": "Campus shuttle",
+    "dashboardDescription": "Prioritize the most relevant routes based on the current time and your usual campuses.",
+    "publicEntry": "Public shuttle query",
+    "stats": {
+      "matches": "{count} matching routes",
+      "upcomingTrips": "{count} upcoming trips",
+      "currentDayType": "{dayType} timetable"
+    },
+    "dayType": {
+      "weekday": "Weekday",
+      "weekend": "Weekend",
+      "auto": "Auto"
+    },
+    "query": {
+      "dayType": "Schedule type",
+      "origin": "Origin campus",
+      "destination": "Destination campus",
+      "originAny": "Any origin",
+      "destinationAny": "Any destination",
+      "showDepartedTrips": "Show departed trips",
+      "showDepartedTripsHint": "By default only upcoming trips are shown.",
+      "version": "Timetable version",
+      "versionCurrent": "Current effective version",
+      "versionPreview": "Preview another version",
+      "empty": "No shuttle trips are available under the current filters."
+    },
+    "recommended": {
+      "title": "Recommended route",
+      "description": "Sorted by your preferred origin/destination and the next departure time.",
+      "nextTrip": "Next bus",
+      "noUpcoming": "No more upcoming trips on this route today",
+      "arrive": "Arrive",
+      "departIn": "Departs in about {count} minutes",
+      "departed": "Departed"
+    },
+    "allRoutes": {
+      "title": "All matching routes",
+      "description": "Shows all routes and trips that match the current filters."
+    },
+    "route": {
+      "favorite": "Favorite",
+      "totalTrips": "{count} total trips",
+      "upcomingTrips": "{count} upcoming",
+      "departedTrips": "{count} departed",
+      "stops": "Stops",
+      "firstDeparture": "First departure",
+      "lastArrival": "Last arrival"
+    },
+    "preferences": {
+      "title": "Preferences",
+      "description": "Remember your usual campuses and routes to improve recommendations next time.",
+      "signInHint": "Sign in to save preferred campuses and route filters.",
+      "origin": "Default origin campus",
+      "destination": "Default destination campus",
+      "favoriteCampuses": "Favorite campus IDs",
+      "favoriteRoutes": "Favorite route IDs",
+      "advanced": "Advanced options",
+      "advancedDescription": "Use these IDs only if you want to fine-tune recommendations beyond the default campuses.",
+      "idsPlaceholder": "Use commas, for example: 1, 6",
+      "showDepartedTrips": "Show departed trips by default",
+      "showDepartedTripsHint": "Keep today’s departed trips in the list for full timetable review.",
+      "unset": "Not set",
+      "save": "Save preferences",
+      "saving": "Saving...",
+      "saved": "Preferences saved.",
+      "saveFailed": "Failed to save preferences."
+    },
+    "versionNotice": {
+      "title": "Timetable notice",
+      "effective": "Effective: {from} - {to}",
+      "unknown": "Long-term"
+    },
+    "activeVersion": "Active version",
+    "hidePreferences": "Hide preferences",
+    "editPreferences": "Edit preferences",
+    "empty": "No shuttle data is available right now.",
+    "weekday": "Weekday",
+    "weekend": "Weekend",
+    "bestMatch": "Best match",
+    "nextDeparture": "Next departure",
+    "arriveAt": "Arrive at",
+    "upcomingTrips": "Upcoming trips",
+    "passThrough": "Pass through",
+    "departed": "Departed",
+    "totalTrips": "{count} total trips",
+    "upcomingCount": "{count} upcoming",
+    "allRoutesLabel": "All routes",
+    "noMoreBusToday": "No more buses on this route today",
+    "switchVersionHint": "Try another timetable version or show departed trips.",
+    "moreTrips": "{count} more trips"
   },
   "publicProfile": {
     "idLabel": "User ID",

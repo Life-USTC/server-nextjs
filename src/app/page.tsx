@@ -61,7 +61,10 @@ export default async function HomePage({
       todosData,
     ] = await Promise.all([
       getDashboardNavStats(session.user.id, debugOptions),
-      tab === "overview" || tab === "calendar" || tab === "links"
+      tab === "overview" ||
+      tab === "calendar" ||
+      tab === "links" ||
+      tab === "bus"
         ? getDashboardOverviewData(session.user.id, overviewOptions)
         : Promise.resolve(null),
       tab === "homeworks"
@@ -77,6 +80,11 @@ export default async function HomePage({
         ? getTodosTabData(session.user.id)
         : Promise.resolve(null),
     ]);
+
+    const busData =
+      tab === "bus" && overviewData?.busSnapshot
+        ? { snapshot: overviewData.busSnapshot }
+        : null;
 
     if (!navStats) {
       return (
@@ -99,6 +107,7 @@ export default async function HomePage({
           null
         }
         todosData={todosData}
+        busData={busData}
       />
     );
   }
