@@ -2,11 +2,13 @@ import { getTranslations } from "next-intl/server";
 import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
+import { BusPanel } from "@/features/bus/components/bus-panel";
+import type { BusQueryResult } from "@/features/bus/lib/bus-types";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
 import { Link } from "@/i18n/routing";
 import { type HomeTabId, HomeTabNav } from "./home-tab-nav";
 
-const VALID_PUBLIC_TABS = ["links"] as const satisfies HomeTabId[];
+const VALID_PUBLIC_TABS = ["links", "bus"] as const satisfies HomeTabId[];
 
 function parsePublicTab(
   tab: string | undefined,
@@ -23,9 +25,11 @@ function parsePublicTab(
 export async function PublicHomeView({
   searchParams,
   dashboardLinks,
+  busData,
 }: {
   searchParams: Promise<{ tab?: string }>;
   dashboardLinks: DashboardLinkSummary[];
+  busData: BusQueryResult | null;
 }) {
   const [params, t] = await Promise.all([
     searchParams,
@@ -41,7 +45,7 @@ export async function PublicHomeView({
       headerChildren={
         <HomeTabNav
           currentTab={currentTab}
-          visibleTabs={["links"]}
+          visibleTabs={["links", "bus"]}
           trailingTabIds={[]}
           trailingContent={
             <Button
@@ -54,7 +58,17 @@ export async function PublicHomeView({
         />
       }
     >
-      <LinksTabPanel links={dashboardLinks} allowPinning={false} />
+      {currentTab === "links" && (
+        <LinksTabPanel links={dashboardLinks} allowPinning={false} />
+      )}
+      {currentTab === "bus" && busData && (
+        <BusPanel data={busData} signedIn={false} />
+      )}
+      {currentTab === "bus" && !busData && (
+        <p className="py-8 text-center text-muted-foreground text-sm">
+          {/* Fallback handled by translation in BusPanel; minimal fallback here */}
+        </p>
+      )}
     </PageLayout>
   );
 }

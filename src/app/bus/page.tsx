@@ -66,7 +66,7 @@ export default async function BusPage({
           data={result}
           signedIn={Boolean(userId)}
           initialPreference={preference}
-          compact={false}
+          showPreferences={Boolean(userId)}
         />
       ) : (
         <p className="text-muted-foreground text-sm">{t("empty")}</p>

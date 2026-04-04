@@ -12,12 +12,11 @@ test("/bus 公开页展示推荐校车与版本信息", async ({ page }, testInf
   await gotoAndWaitForReady(page, "/bus");
 
   await expect(
-    page.getByText(DEV_SEED.bus.versionTitle, { exact: false }).first(),
-  ).toBeVisible();
-  await expect(
     page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
   ).toBeVisible();
-  await expect(page.getByText(/Next bus|下一班/).first()).toBeVisible();
+  await expect(
+    page.getByText(/Weekday|Weekend|工作日|周末/).first(),
+  ).toBeVisible();
 
   await captureStepScreenshot(page, testInfo, "bus-public-page");
 });

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import {
   getCalendarSubscriptionUrl,
   getDashboardNavStats,
@@ -10,6 +10,8 @@ import {
   getTodosTabData,
 } from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
+import { queryBusSchedules } from "@/features/bus/lib/bus-service";
+import type { BusLocale } from "@/features/bus/lib/bus-types";
 import { HomeView } from "@/features/home/components/home-view";
 import { PublicHomeView } from "@/features/home/components/public-home-view";
 
@@ -112,10 +114,25 @@ export default async function HomePage({
     );
   }
 
+  const params = await searchParams;
+  const publicTab = params.tab;
+
+  // Fetch bus data for public view when bus tab is selected
+  let publicBusData = null;
+  if (publicTab === "bus") {
+    const locale = await getLocale();
+    const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
+    publicBusData = await queryBusSchedules({
+      locale: busLocale,
+      userId: null,
+    });
+  }
+
   return (
     <PublicHomeView
       searchParams={searchParams}
       dashboardLinks={getPublicDashboardLinksData().dashboardLinks}
+      busData={publicBusData}
     />
   );
 }

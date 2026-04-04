@@ -1,30 +1,206 @@
 "use client";
 
-import {
-  Bus,
-  ChevronDown,
-  Clock3,
-  Route,
-  Settings2,
-  Sparkles,
-  Star,
-} from "lucide-react";
+import { ChevronDown, Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogDescription,
+  DialogHeader,
+  DialogPanel,
+  DialogPopup,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { BusPreferenceForm } from "@/features/bus/components/bus-preference-form";
-import type { BusQueryResult } from "@/features/bus/lib/bus-types";
+import type {
+  BusCampusSummary,
+  BusQueryResult,
+  BusRouteMatch,
+  BusTripSummary,
+} from "@/features/bus/lib/bus-types";
 import { cn } from "@/shared/lib/utils";
 
-function formatMinutes(minutes: number | null) {
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
+
+function formatEta(
+  minutes: number | null,
+  t: (key: string, values?: Record<string, number | string>) => string,
+): string | null {
   if (minutes == null) return null;
-  if (minutes <= 0) return "即将发车";
-  if (minutes < 60) return `${minutes} 分钟后`;
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  return rest === 0 ? `${hours} 小时后` : `${hours} 小时 ${rest} 分钟后`;
+  if (minutes <= 0) return t("recommended.departIn", { count: 0 });
+  return t("recommended.departIn", { count: minutes });
 }
+
+function stopTimeChain(trip: BusTripSummary): string {
+  return trip.stopTimes
+    .map((s) => (s.time ? `${s.time} ${s.campusName}` : `— ${s.campusName}`))
+    .join(" → ");
+}
+
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Pill toggle for weekday / weekend */
+function DayTypePills({
+  value,
+  onChange,
+  t,
+}: {
+  value: "weekday" | "weekend";
+  onChange: (v: "weekday" | "weekend") => void;
+  t: (key: string) => string;
+}) {
+  return (
+    <div className="inline-flex gap-1 rounded-full border border-border p-0.5">
+      {(["weekday", "weekend"] as const).map((dt) => (
+        <button
+          key={dt}
+          type="button"
+          aria-pressed={value === dt}
+          onClick={() => onChange(dt)}
+          className={cn(
+            "rounded-full px-3 py-1.5 font-medium text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+            value === dt
+              ? "bg-foreground text-background"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {t(`dayType.${dt}`)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Campus origin filter pills */
+function CampusFilter({
+  campuses,
+  selectedId,
+  onSelect,
+  allLabel,
+}: {
+  campuses: BusCampusSummary[];
+  selectedId: number | null;
+  onSelect: (id: number | null) => void;
+  allLabel: string;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <button
+        type="button"
+        aria-pressed={selectedId === null}
+        onClick={() => onSelect(null)}
+        className={cn(
+          "rounded-full border px-3 py-1.5 font-medium text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+          selectedId === null
+            ? "border-border/80 bg-card text-foreground"
+            : "border-transparent text-muted-foreground hover:border-border/60 hover:text-foreground",
+        )}
+      >
+        {allLabel}
+      </button>
+      {campuses.map((c) => (
+        <button
+          key={c.id}
+          type="button"
+          aria-pressed={selectedId === c.id}
+          aria-label={`${allLabel}: ${c.namePrimary}`}
+          onClick={() => onSelect(c.id === selectedId ? null : c.id)}
+          className={cn(
+            "rounded-full border px-3 py-1.5 font-medium text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+            selectedId === c.id
+              ? "border-border/80 bg-card text-foreground"
+              : "border-transparent text-muted-foreground hover:border-border/60 hover:text-foreground",
+          )}
+        >
+          {c.namePrimary}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Next-bus hero for a single route match */
+function NextBusHero({
+  match,
+  t,
+}: {
+  match: BusRouteMatch;
+  t: (key: string, values?: Record<string, number | string>) => string;
+}) {
+  const trip = match.nextTrip;
+  if (!trip) {
+    return (
+      <p className="py-4 text-center text-muted-foreground text-sm">
+        {t("noMoreBusToday")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="font-semibold text-3xl tabular-nums">
+          {trip.departureTime}
+        </span>
+        <span className="text-primary text-sm">
+          {formatEta(trip.minutesUntilDeparture, t)}
+        </span>
+      </div>
+      <p className="text-muted-foreground text-xs tabular-nums">
+        {stopTimeChain(trip)}
+      </p>
+    </div>
+  );
+}
+
+/** Compact trip row for the collapsible list */
+function TripRow({
+  trip,
+  departedLabel,
+}: {
+  trip: BusTripSummary;
+  departedLabel: string;
+}) {
+  const etaText =
+    trip.minutesUntilDeparture != null && trip.minutesUntilDeparture > 0
+      ? trip.minutesUntilDeparture < 60
+        ? `${trip.minutesUntilDeparture}min`
+        : `${Math.floor(trip.minutesUntilDeparture / 60)}h${trip.minutesUntilDeparture % 60 > 0 ? `${trip.minutesUntilDeparture % 60}m` : ""}`
+      : null;
+
+  return (
+    <div
+      className={cn(
+        "flex items-baseline justify-between gap-3 py-1.5 text-sm",
+        trip.status === "departed" && "text-muted-foreground",
+      )}
+    >
+      <span className="min-w-0 truncate text-xs tabular-nums">
+        {stopTimeChain(trip)}
+      </span>
+      {trip.status === "departed" ? (
+        <span className="shrink-0 text-muted-foreground text-xs">
+          {departedLabel}
+        </span>
+      ) : etaText ? (
+        <span className="shrink-0 text-primary text-xs tabular-nums">
+          {etaText}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main panel                                                        */
+/* ------------------------------------------------------------------ */
 
 type BusPanelProps = {
   data: BusQueryResult;
@@ -40,418 +216,216 @@ export function BusPanel({
   signedIn = false,
   initialPreference = null,
   showPreferences = false,
-  compact = false,
   className,
 }: BusPanelProps) {
   const t = useTranslations("bus");
-  const [showSettings, setShowSettings] = useState(false);
 
-  const alternativeMatches = useMemo(
-    () =>
-      data.recommended
-        ? data.matches
-            .filter((item) => item.route.id !== data.recommended?.route.id)
-            .slice(0, compact ? 2 : 3)
-        : data.matches.slice(0, compact ? 2 : 3),
-    [compact, data.matches, data.recommended],
+  // Local filter state
+  const [dayType, setDayType] = useState<"weekday" | "weekend">(data.todayType);
+  const [originFilter, setOriginFilter] = useState<number | null>(
+    data.preferences?.preferredOriginCampusId ?? null,
   );
 
-  const topMetrics = useMemo(
-    () => [
-      {
-        label: t("query.origin"),
-        value:
-          data.recommended?.originStop.campus.namePrimary ??
-          initialPreference?.preferredOriginCampusId?.toString() ??
-          t("query.originAny"),
-      },
-      {
-        label: t("query.destination"),
-        value:
-          data.recommended?.destinationStop.campus.namePrimary ??
-          initialPreference?.preferredDestinationCampusId?.toString() ??
-          t("query.destinationAny"),
-      },
-      {
-        label: t("recommended.nextTrip"),
-        value: data.recommended?.nextTrip?.departureTime ?? "—",
-      },
-      {
-        label: t("allRoutes.title"),
-        value: `${data.matches.length}`,
-      },
-    ],
-    [data.matches.length, data.recommended, initialPreference, t],
-  );
+  // Filter matches by origin campus and day type
+  const filteredMatches = useMemo(() => {
+    let matches = data.matches;
+    if (originFilter != null) {
+      matches = matches.filter((m) =>
+        m.route.stops.some((s) => s.campus.id === originFilter),
+      );
+    }
+    // Day type filter: only show trips matching the selected day type
+    if (dayType !== data.todayType) {
+      // When viewing a different day type, hide matches since trip data
+      // is for today's type only; show all routes but mark "no trips"
+      matches = matches.map((m) => ({
+        ...m,
+        nextTrip: null,
+        upcomingTrips: [],
+        visibleTrips: [],
+        allTrips: dayType === data.todayType ? m.allTrips : [],
+      }));
+    }
+    return matches;
+  }, [data.matches, data.todayType, originFilter, dayType]);
 
-  const shouldShowAllRoutes =
-    data.matches.length > 1 || (!compact && data.matches.length > 0);
+  // The first match is the recommended/best one
+  const topMatch = filteredMatches[0] ?? null;
+
+  const handleDayTypeChange = useCallback((v: "weekday" | "weekend") => {
+    setDayType(v);
+    // Update URL without navigation
+    const url = new URL(window.location.href);
+    url.searchParams.set("dayType", v);
+    window.history.replaceState(null, "", url.toString());
+  }, []);
+
+  const handleOriginChange = useCallback((id: number | null) => {
+    setOriginFilter(id);
+    const url = new URL(window.location.href);
+    if (id != null) {
+      url.searchParams.set("from", String(id));
+    } else {
+      url.searchParams.delete("from");
+    }
+    window.history.replaceState(null, "", url.toString());
+  }, []);
 
   return (
-    <div className={cn("space-y-6", className)}>
-      <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-xs">
-        <div className="border-border/70 border-b bg-gradient-to-br from-primary/8 via-background to-background px-6 py-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-primary text-xs">
-                <Bus className="h-3.5 w-3.5" />
-                {t("dashboardTitle")}
-              </div>
-              <div className="space-y-1">
-                <h2 className="font-semibold text-xl">{t("title")}</h2>
-                <p className="max-w-2xl text-muted-foreground text-sm">
-                  {signedIn ? t("dashboardDescription") : t("description")}
-                </p>
-              </div>
-              {data.notice?.message ? (
-                <p className="text-muted-foreground text-xs">
-                  {data.notice.url ? (
-                    <a
-                      href={data.notice.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline underline-offset-2"
-                    >
-                      {data.notice.message}
-                    </a>
-                  ) : (
-                    data.notice.message
-                  )}
-                </p>
-              ) : null}
-            </div>
+    <div className={cn("space-y-4", className)}>
+      {/* Controls bar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <DayTypePills value={dayType} onChange={handleDayTypeChange} t={t} />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" size="default" className="border-0">
-                {t("activeVersion")}: {data.version?.title ?? "—"}
-              </Badge>
-              <Badge variant="outline" size="default" className="border-0">
-                {data.todayType === "weekday"
-                  ? t("dayType.weekday")
-                  : t("dayType.weekend")}
-              </Badge>
-              {showPreferences ? (
+        <span className="hidden h-5 w-px bg-border sm:block" />
+
+        <CampusFilter
+          campuses={data.campuses}
+          selectedId={originFilter}
+          onSelect={handleOriginChange}
+          allLabel={t("query.originAny")}
+        />
+
+        {showPreferences && signedIn ? (
+          <Dialog>
+            <DialogTrigger
+              render={
                 <Button
-                  variant={showSettings ? "secondary" : "outline"}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setShowSettings((value) => !value)}
-                >
-                  <Settings2 className="h-4 w-4" />
-                  {showSettings ? t("hidePreferences") : t("editPreferences")}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-4">
-            {topMetrics.map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-border/70 bg-background/80 px-4 py-3"
-              >
-                <p className="text-muted-foreground text-xs">{item.label}</p>
-                <p className="mt-1 font-medium text-sm">{item.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {showSettings && showPreferences ? (
-          <div className="border-border/70 border-b px-6 py-5">
-            <BusPreferenceForm
-              campuses={data.campuses}
-              preference={initialPreference ?? data.preferences}
-              signedIn={signedIn}
-            />
-          </div>
+                  className="ml-auto"
+                  aria-label={t("editPreferences")}
+                />
+              }
+            >
+              <Settings2 className="h-4 w-4" />
+            </DialogTrigger>
+            <DialogPopup>
+              <DialogHeader>
+                <DialogTitle>{t("preferences.title")}</DialogTitle>
+                <DialogDescription>
+                  {t("preferences.description")}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogPanel>
+                <BusPreferenceForm
+                  campuses={data.campuses}
+                  preference={initialPreference ?? data.preferences}
+                  signedIn={signedIn}
+                />
+              </DialogPanel>
+            </DialogPopup>
+          </Dialog>
         ) : null}
+      </div>
 
-        {data.matches.length === 0 ? (
-          <div className="px-6 py-12 text-center text-muted-foreground text-sm">
-            {t("query.empty")}
-          </div>
-        ) : (
-          <div className="space-y-6 px-6 py-6">
-            <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)]">
-              <div className="rounded-3xl border border-primary/20 bg-primary/5 p-5 shadow-xs">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <h3 className="font-semibold text-base">
-                        {t("recommended.title")}
-                      </h3>
-                    </div>
-                    <p className="text-muted-foreground text-sm">
-                      {t("recommended.description")}
-                    </p>
+      {/* Notice banner */}
+      {data.notice?.message ? (
+        <p className="text-muted-foreground text-xs">
+          {data.notice.url ? (
+            <a
+              href={data.notice.url}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              {data.notice.message}
+            </a>
+          ) : (
+            data.notice.message
+          )}
+        </p>
+      ) : null}
+
+      {/* Empty state */}
+      {filteredMatches.length === 0 ? (
+        <p className="py-8 text-center text-muted-foreground text-sm">
+          {t("query.empty")}
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {/* Hero: next bus from top match */}
+          {topMatch ? (
+            <section>
+              <div className="mb-1 flex items-baseline gap-2">
+                <h3 className="font-medium text-sm">
+                  {topMatch.route.descriptionPrimary}
+                </h3>
+                {topMatch.nextTrip ? (
+                  <Badge variant="default" size="sm">
+                    {t("bestMatch")}
+                  </Badge>
+                ) : null}
+              </div>
+              <NextBusHero match={topMatch} t={t} />
+            </section>
+          ) : null}
+
+          {/* All routes as collapsible details */}
+          {filteredMatches.map((match, i) => {
+            const isTop = i === 0;
+            const remainingTrips = match.visibleTrips.filter(
+              (trip) => !isTop || trip.id !== match.nextTrip?.id,
+            );
+
+            return (
+              <details
+                key={match.route.id}
+                open={isTop && remainingTrips.length > 0}
+                className="group"
+              >
+                <summary className="flex cursor-pointer select-none list-none items-center justify-between gap-3 rounded-lg px-1 py-2 transition-colors hover:bg-accent/30 [&::-webkit-details-marker]:hidden">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
+                    <span className="truncate font-medium text-sm">
+                      {isTop
+                        ? t("upcomingTrips")
+                        : match.route.descriptionPrimary}
+                    </span>
                   </div>
-                  {data.recommended ? (
-                    <Badge variant="default" size="sm">
-                      {t("bestMatch")}
-                    </Badge>
+                  <div className="flex shrink-0 items-center gap-2 text-muted-foreground text-xs">
+                    {!isTop && match.nextTrip ? (
+                      <span className="tabular-nums">
+                        {match.nextTrip.departureTime}
+                      </span>
+                    ) : null}
+                    <span>
+                      {match.upcomingTrips.length > 0
+                        ? t("route.upcomingTrips", {
+                            count: match.upcomingTrips.length,
+                          })
+                        : t("route.totalTrips", {
+                            count: match.totalTrips,
+                          })}
+                    </span>
+                  </div>
+                </summary>
+
+                <div className="ml-2.5 space-y-0 border-border/50 border-l-2 py-1 pl-4">
+                  {/* For non-top routes, show next bus inline */}
+                  {!isTop && match.nextTrip ? (
+                    <div className="pb-1">
+                      <NextBusHero match={match} t={t} />
+                    </div>
+                  ) : null}
+                  {(isTop ? remainingTrips : match.allTrips).map((trip) => (
+                    <TripRow
+                      key={trip.id}
+                      trip={trip}
+                      departedLabel={t("departed")}
+                    />
+                  ))}
+                  {match.allTrips.length === 0 ? (
+                    <p className="py-2 text-muted-foreground text-xs">
+                      {t("noMoreBusToday")}
+                    </p>
                   ) : null}
                 </div>
-
-                {data.recommended ? (
-                  <div className="space-y-4">
-                    <div className="rounded-2xl border border-primary/20 bg-background px-4 py-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-lg">
-                            {data.recommended.route.descriptionPrimary}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            {data.recommended.route.descriptionSecondary ??
-                              `${data.recommended.originStop.campus.namePrimary} -> ${data.recommended.destinationStop.campus.namePrimary}`}
-                          </p>
-                        </div>
-                        <Badge variant="outline" size="sm">
-                          <Route className="h-3.5 w-3.5" />
-                          {t("route.totalTrips", {
-                            count: data.recommended.totalTrips,
-                          })}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                        <div>
-                          <p className="flex items-center gap-2 text-muted-foreground text-xs">
-                            <Clock3 className="h-3.5 w-3.5" />
-                            {t("recommended.nextTrip")}
-                          </p>
-                          <p className="mt-1 font-semibold text-4xl tabular-nums">
-                            {data.recommended.nextTrip?.departureTime ?? "—"}
-                          </p>
-                          <p className="mt-1 text-primary text-sm">
-                            {formatMinutes(
-                              data.recommended.nextTrip
-                                ?.minutesUntilDeparture ?? null,
-                            ) ?? t("recommended.noUpcoming")}
-                          </p>
-                        </div>
-
-                        <div className="rounded-2xl bg-muted/40 px-4 py-3 text-right">
-                          <p className="text-muted-foreground text-xs">
-                            {t("recommended.arrive")}
-                          </p>
-                          <p className="font-medium text-lg tabular-nums">
-                            {data.recommended.nextTrip?.arrivalTime ?? "—"}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-medium text-sm">
-                          {t("upcomingTrips")}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {t("route.upcomingTrips", {
-                            count: data.recommended.upcomingTrips.length,
-                          })}
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        {data.recommended.visibleTrips
-                          .slice(0, compact ? 2 : 3)
-                          .map((trip) => (
-                            <div
-                              key={trip.id}
-                              className="rounded-2xl border border-border bg-background px-4 py-3"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="font-medium text-sm tabular-nums">
-                                    {trip.departureTime ?? "—"} {"->"}{" "}
-                                    {trip.arrivalTime ?? "—"}
-                                  </p>
-                                  <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
-                                    {trip.stopTimes
-                                      .map((stopTime) =>
-                                        stopTime.time
-                                          ? `${stopTime.campusName} ${stopTime.time}`
-                                          : `${stopTime.campusName} ${t("passThrough")}`,
-                                      )
-                                      .join(" / ")}
-                                  </p>
-                                </div>
-                                <Badge
-                                  variant={
-                                    trip.status === "upcoming"
-                                      ? "success"
-                                      : "outline"
-                                  }
-                                  size="sm"
-                                >
-                                  {trip.status === "upcoming"
-                                    ? formatMinutes(trip.minutesUntilDeparture)
-                                    : t("departed")}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-border border-dashed bg-background px-6 py-10 text-center text-muted-foreground text-sm">
-                    {t("recommended.noUpcoming")}
-                  </div>
-                )}
-              </div>
-
-              {!compact && alternativeMatches.length > 0 ? (
-                <div className="space-y-3 rounded-3xl border border-border bg-card p-5 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-primary" />
-                    <h3 className="font-semibold text-base">
-                      {t("allRoutes.title")}
-                    </h3>
-                  </div>
-                  <p className="text-muted-foreground text-sm">
-                    {t("allRoutes.description")}
-                  </p>
-                  <div className="space-y-3">
-                    {alternativeMatches.map((match) => (
-                      <div
-                        key={`alternative-${match.route.id}`}
-                        className="rounded-2xl border border-border/80 px-4 py-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm">
-                              {match.route.descriptionPrimary}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              {match.nextTrip?.departureTime
-                                ? `${t("nextDeparture")}: ${match.nextTrip.departureTime}`
-                                : t("noMoreBusToday")}
-                            </p>
-                          </div>
-                          <Badge variant="outline" size="sm">
-                            {match.upcomingTrips.length > 0
-                              ? t("route.upcomingTrips", {
-                                  count: match.upcomingTrips.length,
-                                })
-                              : t("recommended.departed")}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </section>
-
-            {shouldShowAllRoutes ? (
-              <section className="space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold text-base">
-                      {t("allRoutes.title")}
-                    </h3>
-                    <p className="text-muted-foreground text-sm">
-                      {t("allRoutes.description")}
-                    </p>
-                  </div>
-                  <Badge variant="outline" size="sm">
-                    {t("route.totalTrips", { count: data.matches.length })}
-                  </Badge>
-                </div>
-
-                <div className="space-y-3">
-                  {(compact ? data.matches.slice(0, 6) : data.matches).map(
-                    (match) => (
-                      <details
-                        key={`all-${match.route.id}`}
-                        className="group overflow-hidden rounded-2xl border border-border bg-card shadow-xs"
-                      >
-                        <summary className="cursor-pointer list-none px-4 py-4 transition-colors hover:bg-accent/30">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div className="flex items-start gap-3">
-                              <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-                              <div>
-                                <p className="font-medium">
-                                  {match.route.descriptionPrimary}
-                                </p>
-                                <p className="text-muted-foreground text-xs">
-                                  {match.nextTrip?.departureTime
-                                    ? `${t("nextDeparture")}: ${match.nextTrip.departureTime}`
-                                    : t("noMoreBusToday")}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="text-right text-xs">
-                              <p className="text-muted-foreground">
-                                {t("route.totalTrips", {
-                                  count: match.totalTrips,
-                                })}
-                              </p>
-                              <p>
-                                {match.upcomingTrips.length > 0
-                                  ? t("route.upcomingTrips", {
-                                      count: match.upcomingTrips.length,
-                                    })
-                                  : t("recommended.departed")}
-                              </p>
-                            </div>
-                          </div>
-                        </summary>
-
-                        <div className="border-border/70 border-t bg-muted/10 px-4 py-4">
-                          <div className="space-y-2">
-                            {match.allTrips.map((trip) => (
-                              <div
-                                key={`trip-${trip.id}`}
-                                className="rounded-xl border border-border/70 bg-background px-4 py-3"
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <p className="font-medium text-sm tabular-nums">
-                                      {trip.departureTime ?? "—"} {"->"}{" "}
-                                      {trip.arrivalTime ?? "—"}
-                                    </p>
-                                    <p className="mt-1 line-clamp-2 text-muted-foreground text-xs">
-                                      {trip.stopTimes
-                                        .map((stopTime) =>
-                                          stopTime.time
-                                            ? `${stopTime.campusName} ${stopTime.time}`
-                                            : `${stopTime.campusName} ${t("passThrough")}`,
-                                        )
-                                        .join(" / ")}
-                                    </p>
-                                  </div>
-                                  <Badge
-                                    variant={
-                                      trip.status === "upcoming"
-                                        ? "success"
-                                        : "outline"
-                                    }
-                                    size="sm"
-                                  >
-                                    {trip.status === "upcoming"
-                                      ? formatMinutes(
-                                          trip.minutesUntilDeparture,
-                                        )
-                                      : t("departed")}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </details>
-                    ),
-                  )}
-                </div>
-              </section>
-            ) : null}
-          </div>
-        )}
-      </div>
+              </details>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
