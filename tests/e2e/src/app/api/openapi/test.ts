@@ -1,34 +1,63 @@
+/**
+ * E2E tests for GET /api/openapi
+ *
+ * ## Endpoints
+ * - `GET /api/openapi` — Get the generated OpenAPI specification document.
+ *
+ * ## Request
+ * - No query params
+ *
+ * ## Response
+ * - 200: Full OpenAPI 3.0.0 JSON spec `{ openapi: "3.0.0", info: { title, version }, paths: {...} }`
+ *
+ * ## Auth Requirements
+ * - Public (no authentication required)
+ *
+ * ## Edge Cases
+ * - Reads from public/openapi.generated.json on disk
+ * - Static file at /openapi.generated.json should also be accessible
+ */
 import { expect, test } from "@playwright/test";
 import { assertApiContract } from "../../_shared/api-contract";
 
-test("/api/openapi", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/openapi" });
-});
+test.describe("GET /api/openapi", () => {
+  test("contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: "/api/openapi" });
+  });
 
-test("/api/openapi OpenAPI 内容包含关键路径", async ({ request }) => {
-  const response = await request.get("/api/openapi");
-  expect(response.status()).toBe(200);
+  test("returns valid OpenAPI 3.0.0 spec", async ({ request }) => {
+    const response = await request.get("/api/openapi");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      openapi?: string;
+      info?: { title?: string; version?: string };
+    };
+    expect(body.openapi).toBe("3.0.0");
+    expect(body.info).toBeDefined();
+    expect(typeof body.info?.title).toBe("string");
+  });
 
-  const body = (await response.json()) as {
-    openapi?: string;
-    paths?: Record<string, unknown>;
-  };
+  test("spec contains known API paths", async ({ request }) => {
+    const response = await request.get("/api/openapi");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      paths?: Record<string, unknown>;
+    };
+    expect(body.paths).toBeDefined();
+    expect(body.paths?.["/api/sections/match-codes"]).toBeTruthy();
+    expect(body.paths?.["/api/homeworks"]).toBeTruthy();
+    expect(body.paths?.["/api/descriptions"]).toBeTruthy();
+  });
 
-  expect(body.openapi).toBe("3.0.0");
-  expect(body.paths?.["/api/sections/match-codes"]).toBeTruthy();
-  expect(body.paths?.["/api/homeworks"]).toBeTruthy();
-  expect(body.paths?.["/api/descriptions"]).toBeTruthy();
-});
-
-test("/api/openapi 静态 openapi.generated.json 可访问", async ({ request }) => {
-  const response = await request.get("/openapi.generated.json");
-  expect(response.status()).toBe(200);
-  expect(response.headers()["content-type"]).toContain("application/json");
-
-  const body = (await response.json()) as {
-    openapi?: string;
-    info?: { title?: string };
-  };
-  expect(body.openapi).toBe("3.0.0");
-  expect(body.info?.title).toBe("Life@USTC API");
+  test("static openapi.generated.json is accessible", async ({ request }) => {
+    const response = await request.get("/openapi.generated.json");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("application/json");
+    const body = (await response.json()) as {
+      openapi?: string;
+      info?: { title?: string };
+    };
+    expect(body.openapi).toBe("3.0.0");
+    expect(body.info?.title).toBe("Life@USTC API");
+  });
 });
