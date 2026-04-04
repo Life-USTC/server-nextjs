@@ -3,14 +3,12 @@ import "dotenv/config";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { importBusStaticPayload } from "../src/features/bus/lib/bus-import";
 import type { BusStaticPayload } from "../src/features/bus/lib/bus-types";
 import { PrismaClient } from "../src/generated/prisma/client";
+import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
 
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
 const logger = {
   info: (msg: string) => console.log(`[INFO] ${msg}`),
@@ -40,18 +38,24 @@ async function downloadStaticRepo(targetDir: string): Promise<string> {
       repoDir,
     );
     run("git fetch --depth 1 origin master gh-pages", repoDir);
-    run("git checkout master || git checkout gh-pages", repoDir);
+    run("git checkout -B master || git checkout -B gh-pages", repoDir);
     run(
       "git reset --hard origin/master || git reset --hard origin/gh-pages",
       repoDir,
     );
+    run("git sparse-checkout init --cone", repoDir);
+    run("git sparse-checkout set static", repoDir);
+    run("git checkout", repoDir);
   } else {
-    logger.info("Cloning Life-USTC/static...");
+    logger.info("Cloning Life-USTC/static (sparse)...");
     fs.mkdirSync(repoDir, { recursive: true });
     run(
-      "git clone --depth 1 https://github.com/Life-USTC/static.git .",
+      "git clone --no-checkout --depth 1 https://github.com/Life-USTC/static.git .",
       repoDir,
     );
+    run("git sparse-checkout init --cone", repoDir);
+    run("git sparse-checkout set static", repoDir);
+    run("git checkout", repoDir);
   }
 
   return repoDir;
