@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Settings2 } from "lucide-react";
+import { Settings2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +34,14 @@ function formatEta(
   if (minutes == null) return null;
   if (minutes <= 0) return t("recommended.departIn", { count: 0 });
   return t("recommended.departIn", { count: minutes });
+}
+
+function formatEtaShort(minutes: number | null): string | null {
+  if (minutes == null || minutes <= 0) return null;
+  if (minutes < 60) return `${minutes}min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}h${m}m` : `${h}h`;
 }
 
 function stopTimeChain(trip: BusTripSummary): string {
@@ -126,73 +134,135 @@ function CampusFilter({
   );
 }
 
-/** Next-bus hero for a single route match */
-function NextBusHero({
+/** Route list item in sidebar */
+function RouteListItem({
+  match,
+  isSelected,
+  onSelect,
+  t,
+}: {
+  match: BusRouteMatch;
+  isSelected: boolean;
+  onSelect: () => void;
+  t: (key: string, values?: Record<string, number | string>) => string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "w-full rounded-lg px-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+        isSelected
+          ? "bg-primary/10 text-foreground"
+          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+      )}
+    >
+      <p
+        className={cn(
+          "truncate text-sm",
+          isSelected ? "font-semibold" : "font-medium",
+        )}
+      >
+        {match.route.descriptionPrimary}
+      </p>
+      <div className="mt-0.5 flex items-center gap-2 text-xs">
+        {match.nextTrip ? (
+          <>
+            <span className="tabular-nums">{match.nextTrip.departureTime}</span>
+            <span className="text-muted-foreground">
+              {t("route.upcomingTrips", {
+                count: match.upcomingTrips.length,
+              })}
+            </span>
+          </>
+        ) : (
+          <span>{t("noMoreBusToday")}</span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+/** Detail panel: next bus hero + full trip list */
+function RouteDetail({
   match,
   t,
 }: {
   match: BusRouteMatch;
   t: (key: string, values?: Record<string, number | string>) => string;
 }) {
-  const trip = match.nextTrip;
-  if (!trip) {
-    return (
-      <p className="py-4 text-center text-muted-foreground text-sm">
-        {t("noMoreBusToday")}
-      </p>
-    );
-  }
-
   return (
-    <div className="space-y-1">
-      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-        <span className="font-semibold text-3xl tabular-nums">
-          {trip.departureTime}
-        </span>
-        <span className="text-primary text-sm">
-          {formatEta(trip.minutesUntilDeparture, t)}
-        </span>
+    <div className="space-y-4">
+      {/* Route header */}
+      <div className="flex items-baseline gap-2">
+        <h3 className="text-balance font-semibold text-base">
+          {match.route.descriptionPrimary}
+        </h3>
+        <Badge variant="outline" size="sm" className="shrink-0">
+          {t("route.totalTrips", { count: match.totalTrips })}
+        </Badge>
       </div>
-      <p className="text-muted-foreground text-xs tabular-nums">
-        {stopTimeChain(trip)}
-      </p>
-    </div>
-  );
-}
 
-/** Compact trip row for the collapsible list */
-function TripRow({
-  trip,
-  departedLabel,
-}: {
-  trip: BusTripSummary;
-  departedLabel: string;
-}) {
-  const etaText =
-    trip.minutesUntilDeparture != null && trip.minutesUntilDeparture > 0
-      ? trip.minutesUntilDeparture < 60
-        ? `${trip.minutesUntilDeparture}min`
-        : `${Math.floor(trip.minutesUntilDeparture / 60)}h${trip.minutesUntilDeparture % 60 > 0 ? `${trip.minutesUntilDeparture % 60}m` : ""}`
-      : null;
-
-  return (
-    <div
-      className={cn(
-        "flex items-baseline justify-between gap-3 py-1.5 text-sm",
-        trip.status === "departed" && "text-muted-foreground",
+      {/* Next bus hero */}
+      {match.nextTrip ? (
+        <div className="space-y-1">
+          <p className="text-muted-foreground text-xs">{t("nextDeparture")}</p>
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <span className="font-semibold text-3xl tabular-nums">
+              {match.nextTrip.departureTime}
+            </span>
+            <span className="text-primary text-sm">
+              {formatEta(match.nextTrip.minutesUntilDeparture, t)}
+            </span>
+          </div>
+          <p className="text-muted-foreground text-xs tabular-nums">
+            {stopTimeChain(match.nextTrip)}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-lg bg-muted/30 px-4 py-6 text-center">
+          <p className="text-muted-foreground text-sm">{t("noMoreBusToday")}</p>
+        </div>
       )}
-    >
-      <span className="min-w-0 truncate text-xs tabular-nums">
-        {stopTimeChain(trip)}
-      </span>
-      {trip.status === "departed" ? (
-        <span className="shrink-0 text-muted-foreground text-xs">
-          {departedLabel}
-        </span>
-      ) : etaText ? (
-        <span className="shrink-0 text-primary text-xs tabular-nums">
-          {etaText}
-        </span>
+
+      {/* Full trip list — no folding */}
+      {match.allTrips.length > 0 ? (
+        <div>
+          <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
+            <span>{t("allRoutesLabel")}</span>
+            {match.upcomingTrips.length > 0 && (
+              <span>
+                {t("route.upcomingTrips", {
+                  count: match.upcomingTrips.length,
+                })}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-border/50">
+            {match.allTrips.map((trip) => (
+              <div
+                key={trip.id}
+                className={cn(
+                  "flex items-baseline justify-between gap-3 py-2 text-sm",
+                  trip.status === "departed" && "text-muted-foreground",
+                )}
+              >
+                <span className="min-w-0 truncate text-xs tabular-nums">
+                  {stopTimeChain(trip)}
+                </span>
+                {trip.status === "departed" ? (
+                  <span className="shrink-0 text-muted-foreground text-xs">
+                    {t("departed")}
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-primary text-xs tabular-nums">
+                    {formatEtaShort(trip.minutesUntilDeparture)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -207,7 +277,6 @@ type BusPanelProps = {
   signedIn?: boolean;
   initialPreference?: BusQueryResult["preferences"] | null;
   showPreferences?: boolean;
-  compact?: boolean;
   className?: string;
 };
 
@@ -220,41 +289,44 @@ export function BusPanel({
 }: BusPanelProps) {
   const t = useTranslations("bus");
 
-  // Local filter state
   const [dayType, setDayType] = useState<"weekday" | "weekend">(data.todayType);
   const [originFilter, setOriginFilter] = useState<number | null>(
     data.preferences?.preferredOriginCampusId ?? null,
   );
+  const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
 
-  // Filter matches by origin campus and day type
+  // Filter matches: origin = first stop of route that user can board
   const filteredMatches = useMemo(() => {
     let matches = data.matches;
     if (originFilter != null) {
-      matches = matches.filter((m) =>
-        m.route.stops.some((s) => s.campus.id === originFilter),
-      );
+      matches = matches.filter((m) => {
+        const firstStop = m.route.stops[0];
+        return firstStop?.campus.id === originFilter;
+      });
     }
-    // Day type filter: only show trips matching the selected day type
     if (dayType !== data.todayType) {
-      // When viewing a different day type, hide matches since trip data
-      // is for today's type only; show all routes but mark "no trips"
       matches = matches.map((m) => ({
         ...m,
         nextTrip: null,
         upcomingTrips: [],
         visibleTrips: [],
-        allTrips: dayType === data.todayType ? m.allTrips : [],
+        allTrips: [],
       }));
     }
     return matches;
   }, [data.matches, data.todayType, originFilter, dayType]);
 
-  // The first match is the recommended/best one
-  const topMatch = filteredMatches[0] ?? null;
+  // Resolve selected route
+  const selectedMatch = useMemo(() => {
+    if (selectedRouteId != null) {
+      const found = filteredMatches.find((m) => m.route.id === selectedRouteId);
+      if (found) return found;
+    }
+    return filteredMatches[0] ?? null;
+  }, [filteredMatches, selectedRouteId]);
 
   const handleDayTypeChange = useCallback((v: "weekday" | "weekend") => {
     setDayType(v);
-    // Update URL without navigation
     const url = new URL(window.location.href);
     url.searchParams.set("dayType", v);
     window.history.replaceState(null, "", url.toString());
@@ -262,6 +334,7 @@ export function BusPanel({
 
   const handleOriginChange = useCallback((id: number | null) => {
     setOriginFilter(id);
+    setSelectedRouteId(null);
     const url = new URL(window.location.href);
     if (id != null) {
       url.searchParams.set("from", String(id));
@@ -343,87 +416,33 @@ export function BusPanel({
           {t("query.empty")}
         </p>
       ) : (
-        <div className="space-y-2">
-          {/* Hero: next bus from top match */}
-          {topMatch ? (
-            <section>
-              <div className="mb-1 flex items-baseline gap-2">
-                <h3 className="font-medium text-sm">
-                  {topMatch.route.descriptionPrimary}
-                </h3>
-                {topMatch.nextTrip ? (
-                  <Badge variant="default" size="sm">
-                    {t("bestMatch")}
-                  </Badge>
-                ) : null}
-              </div>
-              <NextBusHero match={topMatch} t={t} />
-            </section>
-          ) : null}
-
-          {/* All routes as collapsible details */}
-          {filteredMatches.map((match, i) => {
-            const isTop = i === 0;
-            const remainingTrips = match.visibleTrips.filter(
-              (trip) => !isTop || trip.id !== match.nextTrip?.id,
-            );
-
-            return (
-              <details
+        <div className="grid gap-4 md:grid-cols-[minmax(200px,280px)_1fr]">
+          {/* Left: route sidebar */}
+          <nav
+            className="space-y-1 md:border-border/50 md:border-r md:pr-4"
+            aria-label={t("allRoutesLabel")}
+          >
+            {filteredMatches.map((match) => (
+              <RouteListItem
                 key={match.route.id}
-                open={isTop && remainingTrips.length > 0}
-                className="group"
-              >
-                <summary className="flex cursor-pointer select-none list-none items-center justify-between gap-3 rounded-lg px-1 py-2 transition-colors hover:bg-accent/30 [&::-webkit-details-marker]:hidden">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-                    <span className="truncate font-medium text-sm">
-                      {isTop
-                        ? t("upcomingTrips")
-                        : match.route.descriptionPrimary}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2 text-muted-foreground text-xs">
-                    {!isTop && match.nextTrip ? (
-                      <span className="tabular-nums">
-                        {match.nextTrip.departureTime}
-                      </span>
-                    ) : null}
-                    <span>
-                      {match.upcomingTrips.length > 0
-                        ? t("route.upcomingTrips", {
-                            count: match.upcomingTrips.length,
-                          })
-                        : t("route.totalTrips", {
-                            count: match.totalTrips,
-                          })}
-                    </span>
-                  </div>
-                </summary>
+                match={match}
+                isSelected={selectedMatch?.route.id === match.route.id}
+                onSelect={() => setSelectedRouteId(match.route.id)}
+                t={t}
+              />
+            ))}
+          </nav>
 
-                <div className="ml-2.5 space-y-0 border-border/50 border-l-2 py-1 pl-4">
-                  {/* For non-top routes, show next bus inline */}
-                  {!isTop && match.nextTrip ? (
-                    <div className="pb-1">
-                      <NextBusHero match={match} t={t} />
-                    </div>
-                  ) : null}
-                  {(isTop ? remainingTrips : match.allTrips).map((trip) => (
-                    <TripRow
-                      key={trip.id}
-                      trip={trip}
-                      departedLabel={t("departed")}
-                    />
-                  ))}
-                  {match.allTrips.length === 0 ? (
-                    <p className="py-2 text-muted-foreground text-xs">
-                      {t("noMoreBusToday")}
-                    </p>
-                  ) : null}
-                </div>
-              </details>
-            );
-          })}
+          {/* Right: detail panel */}
+          <div className="min-w-0">
+            {selectedMatch ? (
+              <RouteDetail match={selectedMatch} t={t} />
+            ) : (
+              <p className="py-8 text-center text-muted-foreground text-sm">
+                {t("query.empty")}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
