@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/Life-USTC/server-nextjs/compare/v1.3.0...v1.4.0) (2026-04-04)
+
+
+### Features
+
+* **bus:** add shuttle bus schedule with preferences and dashboard ([2c24107](https://github.com/Life-USTC/server-nextjs/commit/2c241075a5617bb561742109ee1ba4c54d3d3848))
+
 # [1.3.0](https://github.com/Life-USTC/server-nextjs/compare/v1.2.2...v1.3.0) (2026-04-02)
 
 
