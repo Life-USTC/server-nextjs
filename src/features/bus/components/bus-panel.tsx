@@ -392,24 +392,6 @@ export function BusPanel({
         ) : null}
       </div>
 
-      {/* Notice banner */}
-      {data.notice?.message ? (
-        <p className="text-muted-foreground text-xs">
-          {data.notice.url ? (
-            <a
-              href={data.notice.url}
-              target="_blank"
-              rel="noreferrer"
-              className="underline underline-offset-2"
-            >
-              {data.notice.message}
-            </a>
-          ) : (
-            data.notice.message
-          )}
-        </p>
-      ) : null}
-
       {/* Empty state */}
       {filteredMatches.length === 0 ? (
         <p className="py-8 text-center text-muted-foreground text-sm">
@@ -445,6 +427,24 @@ export function BusPanel({
           </div>
         </div>
       )}
+
+      {/* Notice banner — bottom */}
+      {data.notice?.message ? (
+        <p className="text-muted-foreground text-xs">
+          {data.notice.url ? (
+            <a
+              href={data.notice.url}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              {data.notice.message}
+            </a>
+          ) : (
+            data.notice.message
+          )}
+        </p>
+      ) : null}
     </div>
   );
 }
