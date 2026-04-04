@@ -1,192 +1,243 @@
+/**
+ * E2E tests for the Subscriptions Tab (`?tab=subscriptions`)
+ *
+ * ## Data Represented
+ * - Subscriptions grouped by subscription type, then by semester within each
+ * - Each section row: code (DEV-CS201.01), course name (软件工程实践),
+ *   teacher names (王测试), credits, opt-out button
+ * - Seed data includes subscription to section DEV-CS201.01
+ * - Calendar subscription URL for iCal feed
+ *
+ * ## UI/UX Elements
+ * - Table with columns: section code, course name, teachers, credits, opt-out
+ * - All table cells (except opt-out) are links to `/sections/{jwId}`
+ * - Semester header with section count badge
+ * - Bulk import dialog (textarea → match codes → confirm dialog)
+ * - iCal calendar link copy button
+ * - Opt-out button: initial → confirm → success states
+ * - Empty state with bulk import + browse courses buttons
+ *
+ * ## Edge Cases
+ * - Unauthenticated users see public links view (subscriptions is auth-only)
+ * - Bulk import with invalid codes shows only matched sections in dialog
+ * - Calendar link format: /api/users/{userId}:{token}/calendar.ics
+ */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 
-test("/?tab=subscriptions 未登录可访问", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/?tab=subscriptions", {
-    expectMainContent: true,
+test.describe("dashboard subscriptions", () => {
+  test("unauthenticated ?tab=subscriptions shows public view", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=subscriptions");
+
+    await expect(page).toHaveURL(/\/\?tab=subscriptions$/);
+    await expect(page.locator("#main-content")).toBeVisible();
+
+    await expect(
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+    ).toBeVisible();
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-unauthorized",
+    );
   });
 
-  await expect(page).toHaveURL(/\/\?tab=subscriptions$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(
+  test("authenticated shows seed section subscription", async ({
     page,
-    testInfo,
-    "dashboard-subscriptions-unauthorized",
-  );
-});
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=subscriptions");
 
-test("/?tab=subscriptions 登录后展示 seed 选课", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=subscriptions");
-
-  await expect(page).toHaveURL(/\/(?:\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-seed");
-});
-
-test("/?tab=subscriptions 可点击条目跳转班级详情", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=subscriptions");
-  const rowLink = page.locator("tbody a[href^='/sections/']").first();
-  if ((await rowLink.count()) === 0) {
+    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
-  await rowLink.click();
-  await expect(page).toHaveURL(/\/sections\/\d+/);
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "dashboard-subscriptions-navigate-section",
-  );
-});
+    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
 
-test("/?tab=subscriptions 退选按钮可进入确认状态", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=subscriptions");
-
-  const firstRow = page.locator("tbody tr").first();
-  await expect(firstRow).toBeVisible();
-  await firstRow.hover();
-
-  const optOutButton = firstRow.getByRole("button", { name: /移除|Opt out/i });
-  await expect(optOutButton).toBeVisible();
-  await optOutButton.click();
-  await expect(
-    firstRow.getByRole("button", { name: /确认|Confirm/i }),
-  ).toBeVisible();
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "dashboard-subscriptions-opt-out-confirm",
-  );
-});
-
-test("/?tab=subscriptions 复制日历链接", async ({ page }, testInfo) => {
-  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
-  await signInAsDebugUser(page, "/?tab=subscriptions");
-
-  const copyButton = page
-    .getByRole("button", { name: /复制日历链接|iCal/i })
-    .first();
-  if ((await copyButton.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
-  await copyButton.click();
-
-  const clipboardText = await page.evaluate(async () =>
-    navigator.clipboard.readText(),
-  );
-  expect(clipboardText).toContain("calendar.ics");
-  expect(clipboardText).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
-
-  const calendarResponse = await page.request.get(clipboardText);
-  expect(calendarResponse.status()).toBe(200);
-  expect(calendarResponse.headers()["content-type"]).toContain("text/calendar");
-  const calendarBody = await calendarResponse.text();
-  expect(calendarBody.trim().length).toBeGreaterThan(0);
-  expect(calendarBody).toContain("BEGIN:VCALENDAR");
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "dashboard-subscriptions-ical-copied",
-  );
-});
-
-test("/?tab=subscriptions 批量导入可打开确认弹窗并取消", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(60000);
-  await signInAsDebugUser(page, "/?tab=subscriptions");
-
-  const textarea = page.getByRole("textbox", {
-    name: /粘贴|placeholder|Paste/i,
+    await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-seed");
   });
-  if ((await textarea.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
 
-  await textarea.first().fill(DEV_SEED.section.code);
-  const matchResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/sections/match-codes") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
-  await matchResponse;
-
-  const dialog = page
-    .getByRole("alertdialog")
-    .or(page.getByRole("dialog"))
-    .first();
-  await expect(dialog).toBeVisible({ timeout: 15000 });
-  await captureStepScreenshot(
+  test("can navigate to section detail from table row", async ({
     page,
-    testInfo,
-    "dashboard-subscriptions-bulk-import-dialog",
-  );
-  await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
-  await expect(dialog).not.toBeVisible();
-});
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=subscriptions");
 
-test("/?tab=subscriptions 批量导入可确认加入并提示成功", async ({
-  page,
-}, testInfo) => {
-  test.setTimeout(60000);
-  await signInAsDebugUser(page, "/?tab=subscriptions");
+    const rowLink = page.locator("tbody a[href^='/sections/']").first();
+    await expect(rowLink).toBeVisible();
+    await rowLink.click();
 
-  const textarea = page.getByRole("textbox", {
-    name: /粘贴|placeholder|Paste/i,
+    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-navigate-section",
+    );
   });
-  if ((await textarea.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
 
-  await textarea.first().fill(`\n${DEV_SEED.section.code}\nDEVXX000.99\n`);
+  test("opt-out button enters confirm state", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=subscriptions");
 
-  const matchResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/sections/match-codes") &&
-      response.request().method() === "POST" &&
-      response.status() === 200,
-  );
-  await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
-  await matchResponse;
+    const firstRow = page.locator("tbody tr").first();
+    await expect(firstRow).toBeVisible();
+    await firstRow.hover();
 
-  const dialog = page
-    .getByRole("alertdialog")
-    .or(page.getByRole("dialog"))
-    .first();
-  await expect(dialog).toBeVisible({ timeout: 15000 });
-  await expect(dialog.getByText(DEV_SEED.section.code).first()).toBeVisible();
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "dashboard-subscriptions-bulk-import-ready",
-  );
+    const optOutButton = firstRow.getByRole("button", {
+      name: /移除|Opt out/i,
+    });
+    await expect(optOutButton).toBeVisible();
+    await optOutButton.click();
 
-  await dialog
-    .getByRole("button", {
-      name: /加入已选的 \d+ 个班级|加入已选|Add \d+ selected|Add selected|Subscribe/i,
-    })
-    .click();
+    await expect(
+      firstRow.getByRole("button", { name: /确认|Confirm/i }),
+    ).toBeVisible();
 
-  await expect(page.getByText(/已加入|Added/i).first()).toBeVisible({
-    timeout: 15000,
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-opt-out-confirm",
+    );
   });
-  await page.waitForLoadState("networkidle");
-  await captureStepScreenshot(
+
+  test("copy calendar link produces valid iCal URL", async ({
     page,
-    testInfo,
-    "dashboard-subscriptions-bulk-import-success",
-  );
+  }, testInfo) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await signInAsDebugUser(page, "/?tab=subscriptions");
+
+    const copyButton = page
+      .getByRole("button", { name: /复制日历链接|iCal/i })
+      .first();
+    if ((await copyButton.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
+    await copyButton.click();
+
+    const clipboardText = await page.evaluate(async () =>
+      navigator.clipboard.readText(),
+    );
+    expect(clipboardText).toContain("calendar.ics");
+    expect(clipboardText).toMatch(/\/api\/users\/[^/]+:[^/]+\/calendar\.ics$/);
+
+    // Verify the calendar endpoint returns valid iCal data
+    const calendarResponse = await page.request.get(clipboardText);
+    expect(calendarResponse.status()).toBe(200);
+    expect(calendarResponse.headers()["content-type"]).toContain(
+      "text/calendar",
+    );
+    const calendarBody = await calendarResponse.text();
+    expect(calendarBody).toContain("BEGIN:VCALENDAR");
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-ical-copied",
+    );
+  });
+
+  test("bulk import opens confirm dialog and can cancel", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, "/?tab=subscriptions");
+
+    const textarea = page.getByRole("textbox", {
+      name: /粘贴|placeholder|Paste/i,
+    });
+    if ((await textarea.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
+
+    await textarea.first().fill(DEV_SEED.section.code);
+
+    const matchResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/sections/match-codes") &&
+        response.request().method() === "POST" &&
+        response.status() === 200,
+    );
+    await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
+    await matchResponse;
+
+    const dialog = page
+      .getByRole("alertdialog")
+      .or(page.getByRole("dialog"))
+      .first();
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-bulk-import-dialog",
+    );
+
+    await dialog.getByRole("button", { name: /取消|Cancel/i }).click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test("bulk import can confirm and shows success", async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, "/?tab=subscriptions");
+
+    const textarea = page.getByRole("textbox", {
+      name: /粘贴|placeholder|Paste/i,
+    });
+    if ((await textarea.count()) === 0) {
+      await expect(page.locator("#main-content")).toBeVisible();
+      return;
+    }
+
+    // Include a valid code and an invalid one
+    await textarea.first().fill(`\n${DEV_SEED.section.code}\nDEVXX000.99\n`);
+
+    const matchResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/sections/match-codes") &&
+        response.request().method() === "POST" &&
+        response.status() === 200,
+    );
+    await page.getByRole("button", { name: /识别并匹配课程|Match/i }).click();
+    await matchResponse;
+
+    const dialog = page
+      .getByRole("alertdialog")
+      .or(page.getByRole("dialog"))
+      .first();
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByText(DEV_SEED.section.code).first()).toBeVisible();
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-bulk-import-ready",
+    );
+
+    await dialog
+      .getByRole("button", {
+        name: /加入已选的 \d+ 个班级|加入已选|Add \d+ selected|Add selected|Subscribe/i,
+      })
+      .click();
+
+    await expect(page.getByText(/已加入|Added/i).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.waitForLoadState("networkidle");
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-subscriptions-bulk-import-success",
+    );
+  });
 });

@@ -1,53 +1,105 @@
+/**
+ * E2E tests for the Todos Tab (`?tab=todos`)
+ *
+ * ## Data Represented
+ * - Seed todos: "[DEV-SCENARIO] 今天截止待办" (due today, incomplete) and
+ *   "[DEV-SCENARIO] 已完成待办" (completed)
+ * - Each todo card shows: title, priority badge, due date, completion switch,
+ *   and optional markdown content
+ *
+ * ## UI/UX Elements
+ * - Filter toolbar: incomplete (default) / completed / all
+ * - Completion toggle switch per todo card
+ * - Add button opens a sheet form (title, priority, due date, content)
+ * - Clicking a todo title opens an edit sheet with a delete button
+ * - Todo cards display priority icons (high/medium/low)
+ *
+ * ## Edge Cases
+ * - Unauthenticated users see public links view (todos tab is auth-only)
+ * - Optimistic updates via useOptimistic for toggle/delete/add
+ * - Empty state shown when filter yields no matching todos
+ */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/?tab=todos 未登录可访问", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/?tab=todos");
+test.describe("dashboard todos", () => {
+  test("unauthenticated ?tab=todos shows public view", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=todos");
 
-  await expect(page).toHaveURL(/\/\?tab=todos$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-todos-unauthorized");
-});
+    await expect(page).toHaveURL(/\/\?tab=todos$/);
+    await expect(page.locator("#main-content")).toBeVisible();
 
-test("/?tab=todos 登录后展示 seed 待办", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=todos");
+    await expect(
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+    ).toBeVisible();
 
-  await expect(
-    page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
-});
-
-test("/?tab=todos 可切换已完成筛选", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=todos");
-
-  await page.getByRole("button", { name: /已完成|Completed/i }).click();
-  await expect(
-    page.getByText(DEV_SEED.todos.completedTitle).first(),
-  ).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
-});
-
-test("/?tab=todos 可创建并删除待办", async ({ page }, testInfo) => {
-  test.setTimeout(60000);
-  await signInAsDebugUser(page, "/?tab=todos");
-
-  const title = `e2e-dashboard-todo-${Date.now()}`;
-
-  await page.getByRole("button", { name: /添加待办|Add Todo/i }).click();
-  await page.getByLabel(/标题|Title/i).fill(title);
-  await page.getByRole("button", { name: /创建待办|Create Todo/i }).click();
-
-  await expect(page.getByText(title).first()).toBeVisible({ timeout: 15000 });
-  await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
-
-  await page.getByText(title).first().click();
-  await page.getByRole("button", { name: /删除待办|Delete todo/i }).click();
-  await expect(page.getByText(title)).toHaveCount(0, {
-    timeout: 15000,
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-unauthorized");
   });
-  await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+
+  test("authenticated shows seed todos", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=todos");
+
+    await expect(page.locator("#main-content")).toBeVisible();
+    await expect(
+      page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
+  });
+
+  test("completed filter shows completed todo", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=todos");
+
+    await page
+      .getByRole("button", { name: /已完成|Completed/i })
+      .first()
+      .click();
+
+    await expect(
+      page.getByText(DEV_SEED.todos.completedTitle).first(),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
+  });
+
+  test("can create and delete a todo", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, "/?tab=todos");
+
+    const title = `e2e-dashboard-todo-${Date.now()}`;
+
+    // Create a new todo via sheet form
+    await page
+      .getByRole("button", { name: /添加待办|Add Todo/i })
+      .first()
+      .click();
+    await page.getByLabel(/标题|Title/i).fill(title);
+    await page
+      .getByRole("button", { name: /创建待办|Create Todo/i })
+      .first()
+      .click();
+
+    await expect(page.getByText(title).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-created");
+
+    // Delete the todo via edit sheet
+    await page.getByText(title).first().click();
+    await page
+      .getByRole("button", { name: /删除待办|Delete todo/i })
+      .first()
+      .click();
+
+    await expect(page.getByText(title)).toHaveCount(0, { timeout: 15_000 });
+    await captureStepScreenshot(page, testInfo, "dashboard-todos-deleted");
+  });
 });

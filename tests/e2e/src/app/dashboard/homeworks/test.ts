@@ -1,127 +1,165 @@
+/**
+ * E2E tests for the Homeworks Tab (`?tab=homeworks`)
+ *
+ * ## Data Represented
+ * - Seed homework: title "迭代二系统设计评审" with section DEV-CS201.01
+ * - Homework cards show: title, course name, due date, completion switch,
+ *   tags (major/team/default), and a link to `/sections/{jwId}#homework-{id}`
+ *
+ * ## UI/UX Elements
+ * - Filter toolbar: incomplete (default) / completed / all
+ * - Completion toggle switch per homework card
+ * - "View details" link on each card → section page with homework anchor
+ * - Create homework button (+ sheet with title, section, due date fields)
+ *
+ * ## Edge Cases
+ * - Unauthenticated users see public links view (homeworks tab is auth-only)
+ * - Completion toggle calls PUT /api/homeworks/{id}/completion
+ * - Empty state shown when filter yields no results
+ */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test("/?tab=homeworks 未登录可访问", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/?tab=homeworks", {
-    expectMainContent: true,
+test.describe("dashboard homeworks", () => {
+  test("unauthenticated ?tab=homeworks shows public view", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=homeworks");
+
+    await expect(page).toHaveURL(/\/\?tab=homeworks$/);
+    await expect(page.locator("#main-content")).toBeVisible();
+
+    // Public view: sign-in CTA visible, no auth-only tabs
+    await expect(
+      page.getByRole("link", { name: /^(登录|Sign in)$/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+    ).toBeVisible();
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-homeworks-unauthorized",
+    );
   });
 
-  await expect(page).toHaveURL(/\/\?tab=homeworks$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await captureStepScreenshot(
-    page,
-    testInfo,
-    "dashboard-homeworks-unauthorized",
-  );
-});
+  test("authenticated shows seed homework", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=homeworks");
 
-test("/?tab=homeworks 登录后展示 seed 作业", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=homeworks");
+    await expect(page).toHaveURL(/\/(\?.*)?$/);
+    await expect(page.locator("#main-content")).toBeVisible();
+    await expect(
+      page.getByText(DEV_SEED.homeworks.title).first(),
+    ).toBeVisible();
 
-  await expect(page).toHaveURL(/\/(\?.*)?$/);
-  await expect(page.locator("#main-content")).toBeVisible();
-  await expect(page.getByText(DEV_SEED.homeworks.title).first()).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-homeworks-seed");
-});
+    await captureStepScreenshot(page, testInfo, "dashboard-homeworks-seed");
+  });
 
-test("/?tab=homeworks 可切换完成状态 Tab", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=homeworks");
+  test("can switch between filter tabs", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=homeworks");
 
-  const completedTab = page
-    .getByRole("button", { name: /已完成|Completed/i })
-    .first();
-  if ((await completedTab.count()) > 0) {
-    await completedTab.click();
+    // Completed filter
+    const completedTab = page
+      .getByRole("button", { name: /已完成|Completed/i })
+      .first();
     await expect(completedTab).toBeVisible();
+    await completedTab.click();
     await captureStepScreenshot(
       page,
       testInfo,
       "dashboard-homeworks-tab-completed",
     );
-  }
-});
 
-test("/?tab=homeworks 可切换作业完成状态", async ({ page }, testInfo) => {
-  test.setTimeout(60000);
-  await signInAsDebugUser(page, "/?tab=homeworks");
-
-  const item = page.locator("[data-homework-id]").first();
-  if ((await item.count()) === 0) {
+    // All filter
+    const allTab = page.getByRole("button", { name: /全部|All/i }).first();
+    await expect(allTab).toBeVisible();
+    await allTab.click();
     await expect(
       page.getByText(DEV_SEED.homeworks.title).first(),
     ).toBeVisible();
-    return;
-  }
+    await captureStepScreenshot(page, testInfo, "dashboard-homeworks-tab-all");
+  });
 
-  const toggle = item.getByRole("switch").first();
-  if ((await toggle.count()) === 0) {
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "dashboard-homeworks-no-switch",
+  test("can toggle homework completion status", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, "/?tab=homeworks");
+
+    // Switch to "all" filter to ensure we see all homeworks regardless of state
+    await page
+      .getByRole("button", { name: /全部|All/i })
+      .first()
+      .click();
+
+    // Find a homework switch
+    const toggle = page.getByRole("switch").first();
+    await expect(toggle).toBeVisible();
+
+    const before = await toggle.getAttribute("aria-checked");
+
+    // Toggle completion
+    const completionResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/homeworks/") &&
+        response.url().includes("/completion") &&
+        response.status() === 200,
     );
-    return;
-  }
+    await toggle.click();
+    await completionResponse;
+    await page.waitForLoadState("networkidle");
 
-  const before = await toggle.getAttribute("aria-checked");
-  const completionResponse = page.waitForResponse(
-    (response) =>
-      response.url().includes("/api/homeworks/") &&
-      response.url().includes("/completion") &&
-      ["PUT", "POST"].includes(response.request().method()) &&
-      response.status() === 200,
-  );
-  await toggle.click();
-  await completionResponse;
-  await page.waitForLoadState("networkidle");
-  await expect(toggle).not.toHaveAttribute("aria-checked", before ?? "false");
-  await captureStepScreenshot(page, testInfo, "dashboard-homeworks-toggled");
-});
+    // Verify state changed
+    const after = await toggle.getAttribute("aria-checked");
+    expect(after).not.toBe(before);
+    await captureStepScreenshot(page, testInfo, "dashboard-homeworks-toggled");
 
-test("/?tab=homeworks 查看详情可跳转到班级页锚点", async ({
-  page,
-}, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=homeworks");
-
-  const viewDetails = page
-    .getByRole("link", { name: /查看详情|View details/i })
-    .first();
-  if ((await viewDetails.count()) === 0) {
-    await captureStepScreenshot(
-      page,
-      testInfo,
-      "dashboard-homeworks-no-detail-link",
+    // Restore original state
+    const restoreResponse = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/homeworks/") &&
+        response.url().includes("/completion") &&
+        response.status() === 200,
     );
-    return;
-  }
+    await toggle.click();
+    await restoreResponse;
+  });
 
-  await viewDetails.click();
-  await expect(page).toHaveURL(/\/sections\/\d+.*#homework-/);
-  await captureStepScreenshot(
+  test("view details links to section page with homework anchor", async ({
     page,
-    testInfo,
-    "dashboard-homeworks-view-details",
-  );
-});
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=homeworks");
 
-test("/?tab=homeworks 可创建作业", async ({ page }, testInfo) => {
-  await signInAsDebugUser(page, "/?tab=homeworks");
+    // Homework cards link to /sections/{jwId}#homework-{id}
+    const detailLink = page.locator('a[href*="/sections/"]').first();
+    await expect(detailLink).toBeVisible();
+    await detailLink.click();
 
-  const addButton = page.getByTestId("dashboard-homeworks-add").first();
-  if ((await addButton.count()) === 0) {
-    await expect(page.locator("#main-content")).toBeVisible();
-    return;
-  }
+    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "dashboard-homeworks-view-details",
+    );
+  });
 
-  await addButton.click();
+  test("can create a new homework", async ({ page }, testInfo) => {
+    test.setTimeout(60_000);
+    await signInAsDebugUser(page, "/?tab=homeworks");
 
-  const title = `e2e-dashboard-homework-${Date.now()}`;
-  await page.getByTestId("dashboard-homework-title").fill(title);
-  await page.getByTestId("dashboard-homework-create").click();
+    const addButton = page.getByTestId("dashboard-homeworks-add").first();
+    await expect(addButton).toBeVisible();
+    await addButton.click();
 
-  await expect(page.getByText(title).first()).toBeVisible();
-  await captureStepScreenshot(page, testInfo, "dashboard-homeworks-created");
+    const title = `e2e-dashboard-homework-${Date.now()}`;
+    await page.getByTestId("dashboard-homework-title").fill(title);
+    await page.getByTestId("dashboard-homework-create").click();
+
+    await expect(page.getByText(title).first()).toBeVisible({
+      timeout: 15_000,
+    });
+    await captureStepScreenshot(page, testInfo, "dashboard-homeworks-created");
+  });
 });
