@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/Life-USTC/server-nextjs/compare/v1.4.0...v1.5.0) (2026-04-04)
+
+
+### Features
+
+* **bus:** redesign bus panel UI for clarity and consistency ([a39314b](https://github.com/Life-USTC/server-nextjs/commit/a39314b94f20cc297089927395e2b43c99b1ce5a))
+
 # [1.4.0](https://github.com/Life-USTC/server-nextjs/compare/v1.3.0...v1.4.0) (2026-04-04)
 
 
