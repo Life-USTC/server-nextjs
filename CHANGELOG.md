@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/Life-USTC/server-nextjs/compare/v1.5.0...v1.5.1) (2026-04-04)
+
+
+### Bug Fixes
+
+* **bus:** two-column layout and correct origin filter ([a6de352](https://github.com/Life-USTC/server-nextjs/commit/a6de35287f37cdd8279baa9aaa07d520913f9862))
+
 # [1.5.0](https://github.com/Life-USTC/server-nextjs/compare/v1.4.0...v1.5.0) (2026-04-04)
 
 
