@@ -1,24 +1,58 @@
+/**
+ * E2E tests for PATCH /api/admin/users/[id]
+ *
+ * Admin-only endpoint to update a single user's profile.
+ *
+ * - PATCH accepts optional fields: name, username, isAdmin
+ * - Username validation enforces `^[a-z0-9-]{1,20}$`
+ * - Duplicate username (belonging to another user) returns 400
+ * - Returns the updated user object wrapped in `{ user: {...} }`
+ * - Returns 401 for unauthenticated or non-admin requests
+ * - Returns 400 for invalid body or username format
+ */
 import { expect, test } from "@playwright/test";
-import { signInAsDevAdmin } from "../../../../../../utils/auth";
+import {
+  signInAsDebugUser,
+  signInAsDevAdmin,
+} from "../../../../../../utils/auth";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
-test("/api/admin/users/[id]", async ({ request }) => {
-  await assertApiContract(request, { routePath: "/api/admin/users/[id]" });
-});
+const BASE = "/api/admin/users";
 
-test("/api/admin/users/[id] 非法 username 更新返回 400", async ({ page }) => {
-  await signInAsDevAdmin(page, "/admin");
-  const listResponse = await page.request.get("/api/admin/users?limit=1");
-  expect(listResponse.status()).toBe(200);
-  const userId = (
-    (await listResponse.json()) as {
-      data?: Array<{ id?: string }>;
-    }
-  ).data?.[0]?.id;
-  expect(userId).toBeTruthy();
-
-  const response = await page.request.patch(`/api/admin/users/${userId}`, {
-    data: { username: "INVALID_USERNAME" },
+test.describe("PATCH /api/admin/users/[id]", () => {
+  test("api contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: `${BASE}/[id]` });
   });
-  expect(response.status()).toBe(400);
+
+  test("unauthenticated PATCH returns 401", async ({ request }) => {
+    const response = await request.patch(`${BASE}/nonexistent-id`, {
+      data: { name: "test" },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("non-admin PATCH returns 401", async ({ page }) => {
+    await signInAsDebugUser(page, "/");
+    const response = await page.request.patch(`${BASE}/nonexistent-id`, {
+      data: { name: "test" },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("invalid username format returns 400", async ({ page }) => {
+    await signInAsDevAdmin(page, "/admin");
+    const listResponse = await page.request.get(`${BASE}?limit=1`);
+    expect(listResponse.status()).toBe(200);
+    const userId = (
+      (await listResponse.json()) as {
+        data?: Array<{ id?: string }>;
+      }
+    ).data?.[0]?.id;
+    expect(userId).toBeTruthy();
+
+    const response = await page.request.patch(`${BASE}/${userId}`, {
+      data: { username: "INVALID_USERNAME" },
+    });
+    expect(response.status()).toBe(400);
+  });
 });
