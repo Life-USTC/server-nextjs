@@ -1,45 +1,101 @@
+/**
+ * E2E tests for GET /api/calendar-subscriptions/current
+ *
+ * ## Endpoint
+ * - `GET /api/calendar-subscriptions/current` — Get the current user's subscribed sections
+ *
+ * ## Response
+ * - 200: `{ subscription: { userId: string, sections: { id: number }[] } }`
+ * - 200: `{ subscription: null }` when user record is missing
+ * - 401: unauthorized when not signed in
+ *
+ * ## Auth Requirements
+ * - Requires session authentication
+ *
+ * ## Edge Cases
+ * - The dev seed user already has subscribed sections from seed data
+ * - Returns subscription: null only if user row itself is missing (unlikely in normal flow)
+ */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
 
-test("/api/calendar-subscriptions/current", async ({ request }) => {
-  await assertApiContract(request, {
-    routePath: "/api/calendar-subscriptions/current",
+const BASE = "/api/calendar-subscriptions/current";
+
+test.describe("GET /api/calendar-subscriptions/current", () => {
+  test("contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: BASE });
   });
-});
 
-test("/api/calendar-subscriptions/current 登录后返回 subscription", async ({
-  page,
-}) => {
-  await signInAsDebugUser(page, "/");
-
-  const sectionMatch = await page.request.post("/api/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
+  test("returns 401 when not authenticated", async ({ request }) => {
+    const response = await request.get(BASE);
+    expect(response.status()).toBe(401);
   });
-  expect(sectionMatch.status()).toBe(200);
-  const sectionBody = (await sectionMatch.json()) as {
-    sections?: Array<{ id?: number; code?: string | null }>;
-  };
-  const seedSectionId = sectionBody.sections?.find(
-    (item) => item.code === DEV_SEED.section.code,
-  )?.id;
-  expect(seedSectionId).toBeDefined();
 
-  const response = await page.request.get(
-    "/api/calendar-subscriptions/current",
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    subscription?: {
-      userId?: string;
-      sections?: Array<{ id?: number }>;
-    } | null;
-  };
-  expect(body.subscription?.userId).toBeTruthy();
-  expect(
-    body.subscription?.sections?.some(
-      (section) => section.id === seedSectionId,
-    ),
-  ).toBe(true);
+  test("returns subscription with seed section for authenticated user", async ({
+    page,
+  }) => {
+    await signInAsDebugUser(page, "/");
+
+    // Resolve seed section ID
+    const matchRes = await page.request.post("/api/sections/match-codes", {
+      data: { codes: [DEV_SEED.section.code] },
+    });
+    expect(matchRes.status()).toBe(200);
+    const matchBody = (await matchRes.json()) as {
+      sections?: Array<{ id?: number; code?: string | null }>;
+    };
+    const seedSection = matchBody.sections?.find(
+      (s) => s.code === DEV_SEED.section.code,
+    );
+    expect(seedSection?.id).toBeDefined();
+
+    const response = await page.request.get(BASE);
+    expect(response.status()).toBe(200);
+
+    const body = (await response.json()) as {
+      subscription?: {
+        userId?: string;
+        sections?: Array<{ id?: number }>;
+      } | null;
+    };
+    expect(body.subscription).not.toBeNull();
+    expect(body.subscription?.userId).toBeTruthy();
+    expect(Array.isArray(body.subscription?.sections)).toBe(true);
+    expect(
+      body.subscription?.sections?.some((s) => s.id === seedSection?.id),
+    ).toBe(true);
+  });
+
+  test("reflects changes made via POST", async ({ page }) => {
+    await signInAsDebugUser(page, "/");
+
+    // Save original state
+    const originalRes = await page.request.get(BASE);
+    const originalBody = (await originalRes.json()) as {
+      subscription?: { sections?: Array<{ id?: number }> } | null;
+    };
+    const originalIds =
+      originalBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+    try {
+      // Clear subscriptions
+      await page.request.post("/api/calendar-subscriptions", {
+        data: { sectionIds: [] },
+      });
+
+      const emptyRes = await page.request.get(BASE);
+      expect(emptyRes.status()).toBe(200);
+      const emptyBody = (await emptyRes.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> } | null;
+      };
+      expect(emptyBody.subscription?.sections).toEqual([]);
+    } finally {
+      // Restore original subscriptions
+      await page.request.post("/api/calendar-subscriptions", {
+        data: { sectionIds: originalIds },
+      });
+    }
+  });
 });
