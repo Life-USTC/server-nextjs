@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/Life-USTC/server-nextjs/compare/v1.9.1...v1.10.0) (2026-04-05)
+
+
+### Features
+
+* **bus:** mobile compact cards, MCP tools, transit map page ([d72bf84](https://github.com/Life-USTC/server-nextjs/commit/d72bf846ce770ca61d9cfdfb5def9f0450b3acd6))
+
 ## [1.9.1](https://github.com/Life-USTC/server-nextjs/compare/v1.9.0...v1.9.1) (2026-04-05)
 
 
