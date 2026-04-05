@@ -117,9 +117,10 @@ export default async function HomePage({
   const params = await searchParams;
   const publicTab = params.tab;
 
-  // Fetch bus data for public view when bus tab is selected
+  // Fetch bus data for public view — bus is the default public tab,
+  // so load data unless the user explicitly selected the "links" tab
   let publicBusData = null;
-  if (publicTab === "bus") {
+  if (publicTab !== "links") {
     const locale = await getLocale();
     const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
     publicBusData = await queryBusSchedules({

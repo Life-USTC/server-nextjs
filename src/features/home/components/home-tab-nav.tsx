@@ -26,11 +26,11 @@ const TAB_IDS: HomeTabId[] = [
   "overview",
   "calendar",
   "bus",
+  "links",
   "homeworks",
   "todos",
   "exams",
   "subscriptions",
-  "links",
 ];
 
 export async function HomeTabNav({

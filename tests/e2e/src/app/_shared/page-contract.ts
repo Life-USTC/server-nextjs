@@ -237,13 +237,12 @@ export async function assertPageContract(
 
   if (routePath === "/") {
     await expect(page.locator("#main-content")).toBeVisible();
+    // Public home defaults to bus tab with bus+links grouped as public queries
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("searchbox", {
-        name: /搜索网站名称或描述|Search by name or description/i,
-      }),
+      page.getByRole("link", { name: /^(网站|Websites)$/i }),
     ).toBeVisible();
     await maybeCapture(page, testInfo, "home");
     return;

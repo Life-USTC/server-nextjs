@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings2 } from "lucide-react";
+import { Pin, Settings2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
@@ -20,6 +20,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { BusPreferenceForm } from "@/features/bus/components/bus-preference-form";
 import type {
   BusCampusSummary,
@@ -50,10 +58,14 @@ function formatEtaShort(minutes: number | null): string | null {
   return m > 0 ? `${h}h${m}m` : `${h}h`;
 }
 
-function stopTimeChain(trip: BusTripSummary): string {
-  return trip.stopTimes
-    .map((s) => (s.time ? `${s.time} ${s.campusName}` : `— ${s.campusName}`))
-    .join(" → ");
+/** Get the time at a specific campus from a trip's stop times */
+function getCampusTime(
+  trip: BusTripSummary,
+  campusId: number | null,
+): string | null {
+  if (campusId == null) return trip.departureTime;
+  const stopTime = trip.stopTimes.find((st) => st.campusId === campusId);
+  return stopTime?.time ?? trip.departureTime;
 }
 
 /* ------------------------------------------------------------------ */
@@ -87,7 +99,7 @@ function DayTypePills({
   );
 }
 
-/** Campus origin filter pills — uses dashboard toolbar styling */
+/** Campus filter pills — uses dashboard toolbar styling */
 function CampusFilter({
   campuses,
   selectedId,
@@ -125,67 +137,169 @@ function CampusFilter({
   );
 }
 
-/** Route list item in sidebar */
-function RouteListItem({
+/** Route card in sidebar — subtle card styling with pinned indicator */
+function RouteCard({
   match,
   isSelected,
+  isPinned,
+  campusFilterId,
   onSelect,
   t,
 }: {
   match: BusRouteMatch;
   isSelected: boolean;
+  isPinned: boolean;
+  campusFilterId: number | null;
   onSelect: () => void;
   t: (key: string, values?: Record<string, number | string>) => string;
 }) {
+  const relevantTime = match.nextTrip
+    ? getCampusTime(match.nextTrip, campusFilterId)
+    : null;
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full rounded-lg px-3 py-2.5 text-left transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+        "w-full rounded-xl border p-3 text-left transition-all",
+        "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
         isSelected
-          ? "bg-primary/10 text-foreground"
-          : "text-muted-foreground hover:bg-accent/40 hover:text-foreground",
+          ? "border-primary/30 bg-primary/8 text-foreground shadow-sm"
+          : "border-border/50 bg-card/60 text-muted-foreground hover:border-border/80 hover:bg-card/80 hover:text-foreground hover:shadow-sm",
       )}
     >
-      <p
-        className={cn(
-          "truncate text-sm",
-          isSelected ? "font-semibold" : "font-medium",
+      <div className="flex items-start gap-2">
+        {isPinned && (
+          <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
         )}
-      >
-        {match.route.descriptionPrimary}
-      </p>
-      <div className="mt-0.5 flex items-center gap-2 text-xs">
-        {match.nextTrip ? (
-          <>
-            <span className="tabular-nums">{match.nextTrip.departureTime}</span>
-            <span className="text-muted-foreground">
-              {t("route.upcomingTrips", {
-                count: match.upcomingTrips.length,
-              })}
-            </span>
-          </>
-        ) : (
-          <span>{t("noMoreBusToday")}</span>
-        )}
+        <div className="min-w-0 flex-1">
+          <p
+            className={cn(
+              "truncate text-sm",
+              isSelected ? "font-semibold" : "font-medium",
+            )}
+          >
+            {match.route.descriptionPrimary}
+          </p>
+          <div className="mt-1 flex items-center gap-2 text-xs">
+            {match.nextTrip ? (
+              <>
+                <span className="font-mono tabular-nums">{relevantTime}</span>
+                <span className="text-muted-foreground">
+                  {t("route.upcomingTrips", {
+                    count: match.upcomingTrips.length,
+                  })}
+                </span>
+              </>
+            ) : (
+              <span>{t("noMoreBusToday")}</span>
+            )}
+          </div>
+        </div>
       </div>
     </button>
   );
 }
 
-/** Detail panel: next bus hero + full trip list */
-function RouteDetail({
+/** Trip schedule table — stations as column headers, trips as rows */
+function TripScheduleTable({
   match,
+  campusFilterId,
   t,
 }: {
   match: BusRouteMatch;
+  campusFilterId: number | null;
+  t: (key: string, values?: Record<string, number | string>) => string;
+}) {
+  const stops = match.route.stops;
+  const trips = match.visibleTrips;
+
+  if (trips.length === 0) return null;
+
+  return (
+    <div className="overflow-x-auto rounded-xl border border-border/50">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {stops.map((stop) => (
+              <TableHead
+                key={stop.stopOrder}
+                className={cn(
+                  "font-medium text-xs",
+                  campusFilterId === stop.campus.id &&
+                    "font-semibold text-primary",
+                )}
+              >
+                {stop.campus.namePrimary}
+              </TableHead>
+            ))}
+            <TableHead className="text-right font-medium text-xs">
+              {t("tableStatusHeader")}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {trips.map((trip) => (
+            <TableRow
+              key={trip.id}
+              className={cn(
+                trip.status === "departed" &&
+                  "text-muted-foreground opacity-60",
+              )}
+            >
+              {stops.map((stop) => {
+                const stopTime = trip.stopTimes.find(
+                  (st) => st.stopOrder === stop.stopOrder,
+                );
+                return (
+                  <TableCell
+                    key={stop.stopOrder}
+                    className={cn(
+                      "font-mono text-sm tabular-nums",
+                      campusFilterId === stop.campus.id &&
+                        "font-semibold text-primary",
+                    )}
+                  >
+                    {stopTime?.time ?? "—"}
+                  </TableCell>
+                );
+              })}
+              <TableCell className="text-right text-sm">
+                {trip.status === "departed" ? (
+                  <span className="text-muted-foreground text-xs">
+                    {t("departed")}
+                  </span>
+                ) : (
+                  <span className="font-mono text-primary text-xs tabular-nums">
+                    {formatEtaShort(trip.minutesUntilDeparture)}
+                  </span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+/** Detail panel: next bus hero + trip schedule table */
+function RouteDetail({
+  match,
+  campusFilterId,
+  t,
+}: {
+  match: BusRouteMatch;
+  campusFilterId: number | null;
   t: (key: string, values?: Record<string, number | string>) => string;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Route header */}
-      <div className="flex items-baseline gap-2">
+      <div className="flex items-center gap-2">
+        {match.isFavoriteRoute && (
+          <Pin className="h-4 w-4 shrink-0 text-primary" />
+        )}
         <h3 className="text-balance font-semibold text-base">
           {match.route.descriptionPrimary}
         </h3>
@@ -196,65 +310,48 @@ function RouteDetail({
 
       {/* Next bus hero */}
       {match.nextTrip ? (
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-xs">{t("nextDeparture")}</p>
+        <div className="rounded-xl border border-border/50 bg-card/60 p-4">
+          <p className="mb-1 text-muted-foreground text-xs">
+            {t("nextDeparture")}
+          </p>
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-            <span className="font-semibold text-3xl tabular-nums">
-              {match.nextTrip.departureTime}
+            <span className="font-mono font-semibold text-3xl tabular-nums">
+              {getCampusTime(match.nextTrip, campusFilterId)}
             </span>
             <span className="text-primary text-sm">
               {formatEta(match.nextTrip.minutesUntilDeparture, t)}
             </span>
           </div>
-          <p className="text-muted-foreground text-xs tabular-nums">
-            {stopTimeChain(match.nextTrip)}
+          <p className="mt-1.5 font-mono text-muted-foreground text-xs tabular-nums">
+            {match.nextTrip.stopTimes
+              .map((s) => `${s.time ?? "—"} ${s.campusName}`)
+              .join(" → ")}
           </p>
         </div>
       ) : (
-        <div className="rounded-lg bg-muted/30 px-4 py-6 text-center">
+        <div className="rounded-xl border border-border/50 bg-muted/30 px-4 py-6 text-center">
           <p className="text-muted-foreground text-sm">{t("noMoreBusToday")}</p>
         </div>
       )}
 
-      {/* Full trip list — no folding */}
-      {match.allTrips.length > 0 ? (
-        <div>
-          <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
-            <span>{t("allRoutesLabel")}</span>
-            {match.upcomingTrips.length > 0 && (
-              <span>
-                {t("route.upcomingTrips", {
-                  count: match.upcomingTrips.length,
-                })}
-              </span>
-            )}
-          </div>
-          <div className="divide-y divide-border/50">
-            {match.allTrips.map((trip) => (
-              <div
-                key={trip.id}
-                className={cn(
-                  "flex items-baseline justify-between gap-3 py-2 text-sm",
-                  trip.status === "departed" && "text-muted-foreground",
-                )}
-              >
-                <span className="min-w-0 truncate text-xs tabular-nums">
-                  {stopTimeChain(trip)}
-                </span>
-                {trip.status === "departed" ? (
-                  <span className="shrink-0 text-muted-foreground text-xs">
-                    {t("departed")}
-                  </span>
-                ) : (
-                  <span className="shrink-0 text-primary text-xs tabular-nums">
-                    {formatEtaShort(trip.minutesUntilDeparture)}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
+      {/* Trip schedule table */}
+      <div>
+        <div className="mb-2 flex items-center justify-between text-muted-foreground text-xs">
+          <span>{t("allRoutesLabel")}</span>
+          {match.upcomingTrips.length > 0 && (
+            <span>
+              {t("route.upcomingTrips", {
+                count: match.upcomingTrips.length,
+              })}
+            </span>
+          )}
         </div>
-      ) : null}
+        <TripScheduleTable
+          match={match}
+          campusFilterId={campusFilterId}
+          t={t}
+        />
+      </div>
     </div>
   );
 }
@@ -287,14 +384,13 @@ export function BusPanel({
   );
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
 
-  // Filter matches: origin = first stop of route that user can board
+  // Filter matches: campus = any stop the route passes through
   const filteredMatches = useMemo(() => {
     let matches = data.matches;
     if (originFilter != null) {
-      matches = matches.filter((m) => {
-        const firstStop = m.route.stops[0];
-        return firstStop?.campus.id === originFilter;
-      });
+      matches = matches.filter((m) =>
+        m.route.stops.some((s) => s.campus.id === originFilter),
+      );
     }
     if (dayType !== data.todayType) {
       matches = matches.map((m) => ({
@@ -307,6 +403,17 @@ export function BusPanel({
     }
     return matches;
   }, [data.matches, data.todayType, originFilter, dayType]);
+
+  // Split pinned vs regular routes
+  const { pinnedMatches, regularMatches } = useMemo(() => {
+    const pinned: BusRouteMatch[] = [];
+    const regular: BusRouteMatch[] = [];
+    for (const m of filteredMatches) {
+      if (m.isFavoriteRoute) pinned.push(m);
+      else regular.push(m);
+    }
+    return { pinnedMatches: pinned, regularMatches: regular };
+  }, [filteredMatches]);
 
   // Resolve selected route
   const selectedMatch = useMemo(() => {
@@ -335,6 +442,18 @@ export function BusPanel({
     }
     window.history.replaceState(null, "", url.toString());
   }, []);
+
+  const renderRouteCard = (match: BusRouteMatch) => (
+    <RouteCard
+      key={match.route.id}
+      match={match}
+      isSelected={selectedMatch?.route.id === match.route.id}
+      isPinned={match.isFavoriteRoute}
+      campusFilterId={originFilter}
+      onSelect={() => setSelectedRouteId(match.route.id)}
+      t={t}
+    />
+  );
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -390,27 +509,39 @@ export function BusPanel({
           {t("query.empty")}
         </p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-[minmax(200px,280px)_1fr]">
-          {/* Left: route sidebar */}
+        <div className="grid gap-5 md:grid-cols-[minmax(200px,280px)_1fr]">
+          {/* Left: route sidebar with pinned/regular sections */}
           <nav
             className="space-y-1 md:border-border/50 md:border-r md:pr-4"
             aria-label={t("allRoutesLabel")}
           >
-            {filteredMatches.map((match) => (
-              <RouteListItem
-                key={match.route.id}
-                match={match}
-                isSelected={selectedMatch?.route.id === match.route.id}
-                onSelect={() => setSelectedRouteId(match.route.id)}
-                t={t}
-              />
-            ))}
+            {pinnedMatches.length > 0 && (
+              <>
+                <p className="flex items-center gap-1.5 px-1 pb-1 text-muted-foreground text-xs">
+                  <Pin className="h-3 w-3" />
+                  {t("route.favorite")}
+                </p>
+                {pinnedMatches.map(renderRouteCard)}
+                {regularMatches.length > 0 && (
+                  <div className="!mt-3 border-border/30 border-t pt-2">
+                    <p className="px-1 pb-1 text-muted-foreground text-xs">
+                      {t("allRoutesLabel")}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            {regularMatches.map(renderRouteCard)}
           </nav>
 
           {/* Right: detail panel */}
           <div className="min-w-0">
             {selectedMatch ? (
-              <RouteDetail match={selectedMatch} t={t} />
+              <RouteDetail
+                match={selectedMatch}
+                campusFilterId={originFilter}
+                t={t}
+              />
             ) : (
               <p className="py-8 text-center text-muted-foreground text-sm">
                 {t("query.empty")}

@@ -550,7 +550,7 @@
       "dayType": "时刻类型",
       "origin": "出发校区",
       "destination": "到达校区",
-      "originAny": "全部出发地",
+      "originAny": "全部校区",
       "destinationAny": "任意目的地",
       "showDepartedTrips": "显示已发车班次",
       "showDepartedTripsHint": "默认只显示还没发车的班次。",
@@ -621,6 +621,7 @@
     "noTime": "时间待定",
     "allRoutesLabel": "全部路线",
     "noMoreBusToday": "今日无后续班次",
+    "tableStatusHeader": "状态",
     "switchVersionHint": "可以切换版本或打开“显示已发车班次”查看完整时刻表。"
   },
   "publicProfile": {

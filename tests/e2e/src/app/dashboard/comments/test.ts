@@ -3,11 +3,11 @@
  *
  * ## Data Represented
  * - There is no "comments" tab in the dashboard. Valid authenticated tabs are:
- *   overview, calendar, bus, homeworks, todos, exams, subscriptions, links.
- * - Valid public tabs are: links, bus.
+ *   overview, calendar, bus, links, homeworks, todos, exams, subscriptions.
+ * - Valid public tabs are: bus, links.
  *
  * ## UI/UX Elements
- * - Public view: falls back to links tab content (search box, website links)
+ * - Public view: falls back to bus tab content (default public tab)
  * - Authenticated view: falls back to overview tab content
  *
  * ## Edge Cases
@@ -20,7 +20,7 @@ import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("dashboard invalid tab (comments)", () => {
-  test("unauthenticated ?tab=comments falls back to public links view", async ({
+  test("unauthenticated ?tab=comments falls back to public bus view", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=comments");
@@ -29,17 +29,16 @@ test.describe("dashboard invalid tab (comments)", () => {
     await expect(page).toHaveURL(/\/\?tab=comments$/);
     await expect(page.locator("#app-logo")).toBeVisible();
 
-    // Public view renders links content as default
+    // Public view renders bus content as default (bus + links grouped)
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }),
     ).toBeVisible();
+    // Bus toolbar should be visible (day type pills)
     await expect(
-      page.getByRole("searchbox", {
-        name: /搜索网站名称或描述|Search by name or description/i,
-      }),
+      page.getByText(/Weekday|Weekend|工作日|周末/).first(),
     ).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "home-comments-public");

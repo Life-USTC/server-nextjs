@@ -550,7 +550,7 @@
       "dayType": "Schedule type",
       "origin": "Origin campus",
       "destination": "Destination campus",
-      "originAny": "All origins",
+      "originAny": "All campuses",
       "destinationAny": "Any destination",
       "showDepartedTrips": "Show departed trips",
       "showDepartedTripsHint": "By default only upcoming trips are shown.",
@@ -622,6 +622,7 @@
     "upcomingCount": "{count} upcoming",
     "allRoutesLabel": "All routes",
     "noMoreBusToday": "No more trips today",
+    "tableStatusHeader": "Status",
     "switchVersionHint": "Try another timetable version or show departed trips.",
     "moreTrips": "{count} more trips"
   },

@@ -8,7 +8,7 @@ import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-p
 import { Link } from "@/i18n/routing";
 import { type HomeTabId, HomeTabNav } from "./home-tab-nav";
 
-const VALID_PUBLIC_TABS = ["links", "bus"] as const satisfies HomeTabId[];
+const VALID_PUBLIC_TABS = ["bus", "links"] as const satisfies HomeTabId[];
 
 function parsePublicTab(
   tab: string | undefined,
@@ -19,7 +19,7 @@ function parsePublicTab(
   ) {
     return tab as (typeof VALID_PUBLIC_TABS)[number];
   }
-  return "links";
+  return "bus";
 }
 
 export async function PublicHomeView({
@@ -45,7 +45,7 @@ export async function PublicHomeView({
       headerChildren={
         <HomeTabNav
           currentTab={currentTab}
-          visibleTabs={["links", "bus"]}
+          visibleTabs={["bus", "links"]}
           trailingTabIds={[]}
           trailingContent={
             <Button

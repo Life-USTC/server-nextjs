@@ -22,11 +22,11 @@ const VALID_TABS: HomeTabId[] = [
   "overview",
   "calendar",
   "bus",
+  "links",
   "homeworks",
   "todos",
   "exams",
   "subscriptions",
-  "links",
 ];
 
 function parseTab(tab: string | undefined): HomeTabId {

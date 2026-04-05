@@ -2,12 +2,13 @@
  * E2E tests for the Dashboard Home Page (`/`)
  *
  * ## Data Represented
- * - **Public (unauthenticated):** PublicHomeView with only "links" and "bus"
- *   tabs. Auth-only tabs (overview, calendar, homeworks, todos, exams,
- *   subscriptions) are not accessible. A sign-in CTA is displayed.
+ * - **Public (unauthenticated):** PublicHomeView with "bus" and "links" tabs
+ *   (grouped as public queries). Auth-only tabs (overview, calendar, homeworks,
+ *   todos, exams, subscriptions) are not accessible. A sign-in CTA is displayed.
+ *   Default public tab is "bus".
  * - **Authenticated:** Full HomeView with 8 tabs: overview (default), calendar,
- *   bus, homeworks, todos, exams, subscriptions, links. The overview tab shows
- *   a summary including seed homework titles and pending todos.
+ *   bus, links, homeworks, todos, exams, subscriptions. Bus and links are grouped
+ *   together as public queries after calendar.
  *
  * ## UI/UX Elements
  * - Tab navigation bar (`HomeTabNav`) with pill-style links
@@ -15,8 +16,8 @@
  * - User menu visible when authenticated; sign-in CTA when not
  *
  * ## Edge Cases
- * - `?tab=homeworks` for unauthenticated users falls back to public links tab
- * - Invalid `?tab=` values default to "overview" (auth) or "links" (public)
+ * - `?tab=homeworks` for unauthenticated users falls back to public bus tab
+ * - Invalid `?tab=` values default to "overview" (auth) or "bus" (public)
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
@@ -25,7 +26,7 @@ import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 
 test.describe("dashboard", () => {
-  test("unauthenticated with ?tab=homeworks shows public links view", async ({
+  test("unauthenticated with ?tab=homeworks shows public bus view", async ({
     page,
   }, testInfo) => {
     await gotoAndWaitForReady(page, "/?tab=homeworks");
@@ -33,9 +34,9 @@ test.describe("dashboard", () => {
     await expect(page).toHaveURL(/\/\?tab=homeworks$/);
     await expect(page.locator("#app-logo")).toBeVisible();
 
-    // Public view shows only links + bus tabs and sign-in CTA
+    // Public view shows bus + links tabs and sign-in CTA
     await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", { name: /^(登录|Sign in)$/i }),
