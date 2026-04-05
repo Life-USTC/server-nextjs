@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/Life-USTC/server-nextjs/compare/v1.6.0...v1.7.0) (2026-04-05)
+
+
+### Features
+
+* **bus:** drop /bus page, fix ID display, use dashboard toolbar style ([aa2a4e4](https://github.com/Life-USTC/server-nextjs/commit/aa2a4e49fe2a496d54130716af2667e1fb8d842e))
+
 # [1.6.0](https://github.com/Life-USTC/server-nextjs/compare/v1.5.1...v1.6.0) (2026-04-04)
 
 
