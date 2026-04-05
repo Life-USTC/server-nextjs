@@ -1,6 +1,6 @@
 "use client";
 
-import { Pin, Settings2 } from "lucide-react";
+import { Eye, EyeOff, Pin, Settings2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
@@ -205,14 +205,16 @@ function RouteCard({
 function TripScheduleTable({
   match,
   campusFilterId,
+  showDeparted,
   t,
 }: {
   match: BusRouteMatch;
   campusFilterId: number | null;
+  showDeparted: boolean;
   t: (key: string, values?: Record<string, number | string>) => string;
 }) {
   const stops = match.route.stops;
-  const trips = match.visibleTrips;
+  const trips = showDeparted ? match.allTrips : match.upcomingTrips;
 
   if (trips.length === 0) return null;
 
@@ -287,10 +289,12 @@ function TripScheduleTable({
 function RouteDetail({
   match,
   campusFilterId,
+  showDeparted,
   t,
 }: {
   match: BusRouteMatch;
   campusFilterId: number | null;
+  showDeparted: boolean;
   t: (key: string, values?: Record<string, number | string>) => string;
 }) {
   return (
@@ -349,6 +353,7 @@ function RouteDetail({
         <TripScheduleTable
           match={match}
           campusFilterId={campusFilterId}
+          showDeparted={showDeparted}
           t={t}
         />
       </div>
@@ -383,13 +388,16 @@ export function BusPanel({
     data.preferences?.preferredOriginCampusId ?? null,
   );
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
+  const [showDeparted, setShowDeparted] = useState(
+    data.preferences?.showDepartedTrips ?? false,
+  );
 
-  // Filter matches: campus = any stop the route passes through
+  // Filter matches: campus = any non-terminal stop the route passes through
   const filteredMatches = useMemo(() => {
     let matches = data.matches;
     if (originFilter != null) {
       matches = matches.filter((m) =>
-        m.route.stops.some((s) => s.campus.id === originFilter),
+        m.route.stops.slice(0, -1).some((s) => s.campus.id === originFilter),
       );
     }
     if (dayType !== data.todayType) {
@@ -469,38 +477,61 @@ export function BusPanel({
           />
         </div>
 
-        {showPreferences && signedIn ? (
-          <Dialog>
-            <DialogTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  aria-label={t("editPreferences")}
-                />
-              }
-            >
-              <Settings2 className="h-4 w-4" />
-            </DialogTrigger>
-            <DialogPopup>
-              <DialogHeader>
-                <DialogTitle>{t("preferences.title")}</DialogTitle>
-                <DialogDescription>
-                  {t("preferences.description")}
-                </DialogDescription>
-              </DialogHeader>
-              <DialogPanel>
-                <BusPreferenceForm
-                  campuses={data.campuses}
-                  routes={data.routes}
-                  preference={initialPreference ?? data.preferences}
-                  signedIn={signedIn}
-                  onSaved={() => router.refresh()}
-                />
-              </DialogPanel>
-            </DialogPopup>
-          </Dialog>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowDeparted((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
+              showDeparted
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            aria-pressed={showDeparted}
+            aria-label={t("query.showDepartedTrips")}
+          >
+            {showDeparted ? (
+              <Eye className="h-3.5 w-3.5" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5" />
+            )}
+            <span className="hidden sm:inline">
+              {t("query.showDepartedTrips")}
+            </span>
+          </button>
+          {showPreferences && signedIn ? (
+            <Dialog>
+              <DialogTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label={t("editPreferences")}
+                  />
+                }
+              >
+                <Settings2 className="h-4 w-4" />
+              </DialogTrigger>
+              <DialogPopup>
+                <DialogHeader>
+                  <DialogTitle>{t("preferences.title")}</DialogTitle>
+                  <DialogDescription>
+                    {t("preferences.description")}
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogPanel>
+                  <BusPreferenceForm
+                    campuses={data.campuses}
+                    routes={data.routes}
+                    preference={initialPreference ?? data.preferences}
+                    signedIn={signedIn}
+                    onSaved={() => router.refresh()}
+                  />
+                </DialogPanel>
+              </DialogPopup>
+            </Dialog>
+          ) : null}
+        </div>
       </DashboardTabToolbar>
 
       {/* Empty state */}
@@ -540,6 +571,7 @@ export function BusPanel({
               <RouteDetail
                 match={selectedMatch}
                 campusFilterId={originFilter}
+                showDeparted={showDeparted}
                 t={t}
               />
             ) : (

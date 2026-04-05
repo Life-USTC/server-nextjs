@@ -1,1 +1,2 @@
-0 */6 * * * docker compose --file /srv/docker/life-ustc/docker-compose.yml exec --user root -it app bun run tools/load-from-static.ts
+0 */6 * * * docker compose --file /srv/docker/life-ustc/docker-compose.yml exec --user root -T app bun run tools/load-from-static.ts
+5 */6 * * * docker compose --file /srv/docker/life-ustc/docker-compose.yml exec --user root -T app bun run tools/load-bus-from-static.ts

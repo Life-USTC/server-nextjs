@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import type {
   BusCampusSummary,
   BusRouteSummary,
@@ -64,9 +63,6 @@ export function BusPreferenceForm({
   const [favoriteRouteIds, setFavoriteRouteIds] = useState<number[]>(
     preference?.favoriteRouteIds ?? [],
   );
-  const [showDepartedTrips, setShowDepartedTrips] = useState(
-    preference?.showDepartedTrips ?? false,
-  );
   const [showAdvanced, setShowAdvanced] = useState(
     Boolean(
       preference?.favoriteCampusIds.length ||
@@ -105,7 +101,7 @@ export function BusPreferenceForm({
                 : null,
               favoriteCampusIds,
               favoriteRouteIds,
-              showDepartedTrips,
+              showDepartedTrips: preference?.showDepartedTrips ?? false,
             }),
           });
 
@@ -194,22 +190,6 @@ export function BusPreferenceForm({
             </SelectContent>
           </Select>
         </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-xl border border-border px-4 py-3">
-        <div className="space-y-1">
-          <p className="font-medium text-sm">
-            {t("preferences.showDepartedTrips")}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {t("preferences.showDepartedTripsHint")}
-          </p>
-        </div>
-        <Switch
-          checked={showDepartedTrips}
-          onCheckedChange={(checked) => setShowDepartedTrips(Boolean(checked))}
-          aria-label={t("preferences.showDepartedTrips")}
-        />
       </div>
 
       <div className="rounded-xl border border-border/80 bg-muted/20">
