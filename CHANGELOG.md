@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/Life-USTC/server-nextjs/compare/v1.9.0...v1.9.1) (2026-04-05)
+
+
+### Bug Fixes
+
+* **bus:** dayType toggle now refetches server data via router.push ([efaad77](https://github.com/Life-USTC/server-nextjs/commit/efaad77c09d486eafeac7ce3c768bf4280791f77))
+
 # [1.9.0](https://github.com/Life-USTC/server-nextjs/compare/v1.8.1...v1.9.0) (2026-04-05)
 
 
