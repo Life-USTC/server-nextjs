@@ -1,14 +1,9 @@
 "use client";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { Toggle, ToggleGroup } from "@/components/ui/toggle-group";
 import type {
   BusCampusSummary,
   BusUserPreferenceSummary,
@@ -22,7 +17,9 @@ type BusPreferenceInlineProps = {
   onSaved?: (nextPreference: BusUserPreferenceSummary) => void;
 };
 
-/** Inline campus preference editor — shows comma-separated names when collapsed */
+const AUTO_SAVE_DELAY = 800;
+
+/** Inline campus preference editor — toggle chips with auto-save */
 export function BusPreferenceInline({
   campuses,
   preference,
@@ -31,132 +28,136 @@ export function BusPreferenceInline({
   const t = useTranslations("bus");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [favoriteCampusIds, setFavoriteCampusIds] = useState<number[]>(
+  const [saved, setSaved] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>(
     preference?.favoriteCampusIds ?? [],
   );
-  const [dirty, setDirty] = useState(false);
-  const [open, setOpen] = useState(false);
+  const dirtyRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const selectedNames = campuses
-    .filter((c) => favoriteCampusIds.includes(c.id))
-    .map((c) => c.namePrimary);
+  const doSave = useCallback(
+    (ids: number[]) => {
+      setError(null);
+      setSaved(false);
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-  const toggleCampus = (id: number) => {
-    setFavoriteCampusIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
-    setDirty(true);
-    setError(null);
-  };
+      startTransition(async () => {
+        try {
+          const response = await fetch("/api/bus/preferences", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              preferredOriginCampusId:
+                preference?.preferredOriginCampusId ?? null,
+              preferredDestinationCampusId:
+                preference?.preferredDestinationCampusId ?? null,
+              favoriteCampusIds: ids,
+              favoriteRouteIds: preference?.favoriteRouteIds ?? [],
+              showDepartedTrips: preference?.showDepartedTrips ?? false,
+            }),
+            signal: controller.signal,
+          });
 
-  const handleSave = () => {
-    setError(null);
-    startTransition(async () => {
-      // Preserve existing preference fields to avoid wiping them
-      const response = await fetch("/api/bus/preferences", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          preferredOriginCampusId: preference?.preferredOriginCampusId ?? null,
-          preferredDestinationCampusId:
-            preference?.preferredDestinationCampusId ?? null,
-          favoriteCampusIds,
-          favoriteRouteIds: preference?.favoriteRouteIds ?? [],
-          showDepartedTrips: preference?.showDepartedTrips ?? false,
-        }),
+          if (controller.signal.aborted) return;
+
+          let body: unknown = null;
+          try {
+            body = await response.json();
+          } catch {
+            body = null;
+          }
+
+          if (!response.ok) {
+            setError(
+              extractApiErrorMessage(body) ?? t("preferences.saveFailed"),
+            );
+            return;
+          }
+
+          const nextPreference = (
+            body as { preference?: BusUserPreferenceSummary }
+          ).preference;
+          if (!nextPreference) {
+            setError(t("preferences.saveFailed"));
+            return;
+          }
+
+          setSaved(true);
+          dirtyRef.current = false;
+          onSaved?.(nextPreference);
+          setTimeout(() => setSaved(false), 1500);
+        } catch (err) {
+          if ((err as Error).name === "AbortError") return;
+          setError(t("preferences.saveFailed"));
+        }
       });
+    },
+    [preference, onSaved, t],
+  );
 
-      let body: unknown = null;
-      try {
-        body = await response.json();
-      } catch {
-        body = null;
-      }
-
-      if (!response.ok) {
-        setError(extractApiErrorMessage(body) ?? t("preferences.saveFailed"));
-        return;
-      }
-
-      const nextPreference = (body as { preference?: BusUserPreferenceSummary })
-        .preference;
-      if (!nextPreference) {
-        setError(t("preferences.saveFailed"));
-        return;
-      }
-
-      setDirty(false);
-      onSaved?.(nextPreference);
-    });
-  };
+  // Auto-save on change (debounced), skip initial mount
+  useEffect(() => {
+    if (!dirtyRef.current) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => doSave(selectedIds), AUTO_SAVE_DELAY);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [selectedIds, doSave]);
 
   return (
-    <div className="space-y-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          className={cn(
-            "flex w-full items-center justify-between rounded-md border border-border/60 bg-background px-2.5 py-1.5 text-left text-xs transition-colors",
-            "hover:border-border hover:bg-accent/30",
-            open && "border-primary/40 ring-1 ring-primary/20",
-          )}
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <ToggleGroup
+          className="flex-wrap gap-1"
+          data-testid="campus-toggle-group"
+          multiple
+          value={selectedIds.map(String)}
+          onValueChange={(vals) => {
+            dirtyRef.current = true;
+            setError(null);
+            setSaved(false);
+            setSelectedIds(vals.map(Number));
+          }}
         >
-          <span
-            className={cn(
-              "truncate",
-              selectedNames.length > 0
-                ? "text-foreground"
-                : "text-muted-foreground",
-            )}
+          {campuses.map((campus) => (
+            <Toggle
+              key={campus.id}
+              size="sm"
+              value={String(campus.id)}
+              className={cn(
+                "h-6 rounded-full px-2 text-[11px]",
+                selectedIds.includes(campus.id) && "font-semibold",
+              )}
+              aria-label={campus.namePrimary}
+            >
+              {campus.namePrimary}
+            </Toggle>
+          ))}
+        </ToggleGroup>
+        {/* Status indicator */}
+        {isPending && (
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
+        )}
+        {saved && (
+          <Check className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        )}
+      </div>
+      {error && (
+        <p className="text-destructive text-xs">
+          {error}{" "}
+          <button
+            type="button"
+            onClick={() => doSave(selectedIds)}
+            className="underline"
           >
-            {selectedNames.length > 0
-              ? selectedNames.join("、")
-              : t("preferences.favoriteCampusesHint")}
-          </span>
-          <ChevronsUpDown className="ml-1.5 h-3 w-3 shrink-0 text-muted-foreground" />
-        </PopoverTrigger>
-        <PopoverContent className="p-1" align="start">
-          {campuses.map((campus) => {
-            const selected = favoriteCampusIds.includes(campus.id);
-            return (
-              <button
-                key={campus.id}
-                type="button"
-                onClick={() => toggleCampus(campus.id)}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  selected && "font-medium",
-                )}
-              >
-                <span
-                  className={cn(
-                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border",
-                    selected
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-muted-foreground/30",
-                  )}
-                >
-                  {selected && <Check className="h-2.5 w-2.5" />}
-                </span>
-                {campus.namePrimary}
-              </button>
-            );
-          })}
-        </PopoverContent>
-      </Popover>
-      {dirty && (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={handleSave}
-          disabled={isPending}
-          className="w-full"
-        >
-          {isPending ? t("preferences.saving") : t("preferences.save")}
-        </Button>
+            {t("preferences.save")}
+          </button>
+        </p>
       )}
-      {error && <p className="text-destructive text-xs">{error}</p>}
     </div>
   );
 }

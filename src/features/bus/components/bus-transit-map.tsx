@@ -54,37 +54,40 @@ type Pos = { x: number; y: number };
 function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
   if (campuses.length === 0) return new Map();
 
-  // longitude → x, latitude → y (higher latitude = further up = lower y)
-  const xs = campuses.map((c) => c.longitude);
-  const ys = campuses.map((c) => c.latitude);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-  const rangeX = maxX - minX || 1;
-  const rangeY = maxY - minY || 1;
+  // NOTE: In the DB, latitude/longitude fields are swapped for USTC campuses:
+  //   c.latitude  ≈ 117.x  (real longitude — east/west)
+  //   c.longitude ≈ 31.x   (real latitude  — north/south)
+  // So: realLon → x (east = right), realLat → y-flipped (north = up → lower y)
+  const realLons = campuses.map((c) => c.latitude); // actually longitude
+  const realLats = campuses.map((c) => c.longitude); // actually latitude
+  const minLon = Math.min(...realLons);
+  const maxLon = Math.max(...realLons);
+  const minLat = Math.min(...realLats);
+  const maxLat = Math.max(...realLats);
+  const rangeLon = maxLon - minLon || 1;
+  const rangeLat = maxLat - minLat || 1;
 
   const usableW = SVG_W - 2 * PAD;
   const usableH = SVG_H - 2 * PAD;
 
   // Maintain aspect ratio so the map isn't stretched
-  const scaleX = usableW / rangeX;
-  const scaleY = usableH / rangeY;
+  const scaleX = usableW / rangeLon;
+  const scaleY = usableH / rangeLat;
   const scale = Math.min(scaleX, scaleY);
-  const offsetX = PAD + (usableW - rangeX * scale) / 2;
-  const offsetY = PAD + (usableH - rangeY * scale) / 2;
+  const offsetX = PAD + (usableW - rangeLon * scale) / 2;
+  const offsetY = PAD + (usableH - rangeLat * scale) / 2;
 
   const positions: { id: number; x: number; y: number }[] = campuses.map(
     (c) => ({
       id: c.id,
-      x: offsetX + (c.longitude - minX) * scale,
-      y: offsetY + (maxY - c.latitude) * scale, // flip y for screen coords
+      x: offsetX + (c.latitude - minLon) * scale, // realLon → x
+      y: offsetY + (maxLat - c.longitude) * scale, // realLat → y (flipped)
     }),
   );
 
   // Push overlapping nodes apart (iterative relaxation)
-  const MIN_GAP = NODE_R * 3.5;
-  for (let iter = 0; iter < 40; iter++) {
+  const MIN_GAP = NODE_R * 4.5;
+  for (let iter = 0; iter < 60; iter++) {
     let moved = false;
     for (let i = 0; i < positions.length; i++) {
       for (let j = i + 1; j < positions.length; j++) {
@@ -139,14 +142,13 @@ function computeOffsets(
   const result = new Map<string, Map<number, number>>();
   for (const [k, ids] of seg) {
     const m = new Map<number, number>();
-    // Compute segment length for adaptive spacing
     const [aStr, bStr] = k.split("-");
     const posA = positions.get(Number(aStr));
     const posB = positions.get(Number(bStr));
     const segLen =
       posA && posB ? Math.hypot(posB.x - posA.x, posB.y - posA.y) : 200;
-    // Use 6% of segment length, clamped between 4px and 12px
-    const spacing = Math.max(4, Math.min(12, segLen * 0.06));
+    // Use 8% of segment length, clamped between 5px and 16px
+    const spacing = Math.max(5, Math.min(16, segLen * 0.08));
     for (let i = 0; i < ids.length; i++) {
       m.set(ids[i], (i - (ids.length - 1) / 2) * spacing);
     }
@@ -302,7 +304,7 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
               </filter>
             </defs>
 
-            {/* Route lines */}
+            {/* Route lines — quadratic Bézier curves offset perpendicularly */}
             {data.routes.map((route) => {
               const color = routeColor(route.routeId, allRouteIds);
               return (
@@ -315,17 +317,23 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
                     const k = segKey(stop.campusId, nextStop.campusId);
                     const off = offsets.get(k)?.get(route.routeId) ?? 0;
                     const p = perpOffset(from, to, off);
+                    // Quadratic Bézier: control point at midpoint + 2× offset
+                    const mid = lerp(from, to, 0.5);
+                    const cx = mid.x + p.x * 2;
+                    const cy = mid.y + p.y * 2;
+                    const sx = from.x + p.x;
+                    const sy = from.y + p.y;
+                    const ex = to.x + p.x;
+                    const ey = to.y + p.y;
                     return (
-                      <line
+                      <path
                         key={`${route.routeId}-${i}`}
-                        x1={from.x + p.x}
-                        y1={from.y + p.y}
-                        x2={to.x + p.x}
-                        y2={to.y + p.y}
+                        d={`M${sx},${sy} Q${cx},${cy} ${ex},${ey}`}
                         stroke={color}
                         strokeWidth={3}
                         strokeLinecap="round"
-                        opacity={0.65}
+                        fill="none"
+                        opacity={0.7}
                       />
                     );
                   })}

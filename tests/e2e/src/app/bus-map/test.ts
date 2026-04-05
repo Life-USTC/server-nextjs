@@ -42,11 +42,11 @@ test.describe("bus transit map", () => {
     const circleCount = await circles.count();
     expect(circleCount).toBeGreaterThanOrEqual(6);
 
-    // Route lines rendered inside SVG
-    const lines = page.locator("svg >> line");
-    await expect(lines.first()).toBeVisible();
-    const lineCount = await lines.count();
-    expect(lineCount).toBeGreaterThan(0);
+    // Route curves rendered inside SVG (Bézier paths)
+    const paths = page.locator("svg >> path");
+    await expect(paths.first()).toBeVisible();
+    const pathCount = await paths.count();
+    expect(pathCount).toBeGreaterThan(0);
 
     await captureStepScreenshot(page, testInfo, "bus-map-overview");
   });

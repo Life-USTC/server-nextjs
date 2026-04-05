@@ -13,7 +13,7 @@
  * - Inline "Show departed trips" toggle button (Eye/EyeOff icon) in toolbar
  * - Route sidebar (left) with card-styled route items
  * - Signed-in: "Recommended" section (star icon) based on favorite campuses,
- *   with inline campus preference editor (popover + checkboxes)
+ *   with inline campus preference editor (toggle chips with auto-save)
  * - Route detail panel (right) with hero next departure card + trip schedule table
  *   - Table columns = station names from route stops
  *   - Table rows = trips with times at each station
@@ -261,9 +261,7 @@ test.describe("bus dashboard tab", () => {
     const campusButton = page.getByRole("button", { name: /南区/ }).first();
     await campusButton.click();
 
-    const sidebar = page.locator("nav");
-
-    // Only route 3 (东区→南区) passes through 南区 non-terminally
+    const _sidebar = page.locator("nav");
     // Route 3 has 南区 as final stop, so it should be EXCLUDED
     // Actually — 南区 is the terminal stop of route 3. So filtering by 南区
     // should exclude route 3. Let's verify.
@@ -405,83 +403,75 @@ test.describe("bus dashboard tab", () => {
     await captureStepScreenshot(page, testInfo, "bus-recommended-section");
   });
 
-  test("signed-in user sees inline campus preference editor (popover)", async ({
+  test("signed-in user sees inline campus preference editor (toggles)", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=bus");
 
-    // The preference editor is a popover trigger button showing campus names
-    // Seeded preference: favoriteCampusIds=[1] → 东区 should be shown
-    const trigger = page.locator("[data-slot='popover-trigger']").first();
-    await expect(trigger).toBeVisible();
+    // The preference editor shows toggle buttons for each campus
+    // Seeded preference: favoriteCampusIds=[1] → 东区 toggle should be pressed
+    const toggleGroup = page.locator("[data-testid='campus-toggle-group']");
+    await expect(toggleGroup).toBeVisible();
 
-    // Should show "东区" text (the seeded favorite campus)
-    await expect(trigger).toContainText("东区");
+    // 东区 toggle should be pressed (data-pressed)
+    const eastToggle = toggleGroup.getByRole("button", { name: "东区" });
+    await expect(eastToggle).toBeVisible();
+    await expect(eastToggle).toHaveAttribute("aria-pressed", "true");
 
     await captureStepScreenshot(page, testInfo, "bus-inline-preferences");
   });
 
-  test("preference popover opens and shows campus checkboxes", async ({
-    page,
-  }, testInfo) => {
+  test("preference toggles show all campuses", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=bus");
 
-    // Click the popover trigger to open campus list
-    const trigger = page.locator("[data-slot='popover-trigger']").first();
-    await trigger.click();
+    const toggleGroup = page.locator("[data-testid='campus-toggle-group']");
+    await expect(toggleGroup).toBeVisible();
 
-    // Popover should open with campus checkboxes
-    const popup = page.locator("[data-slot='popover-popup']");
-    await expect(popup).toBeVisible();
+    // Should show all 6 campus toggles
+    await expect(
+      toggleGroup.getByRole("button", { name: "东区" }),
+    ).toBeVisible();
+    await expect(
+      toggleGroup.getByRole("button", { name: "西区" }),
+    ).toBeVisible();
+    await expect(
+      toggleGroup.getByRole("button", { name: "北区" }),
+    ).toBeVisible();
+    await expect(
+      toggleGroup.getByRole("button", { name: "南区" }),
+    ).toBeVisible();
+    await expect(
+      toggleGroup.getByRole("button", { name: "先研院" }),
+    ).toBeVisible();
+    await expect(
+      toggleGroup.getByRole("button", { name: "高新" }),
+    ).toBeVisible();
 
-    // Should list all 6 campuses
-    await expect(popup.getByText("东区")).toBeVisible();
-    await expect(popup.getByText("西区")).toBeVisible();
-    await expect(popup.getByText("北区")).toBeVisible();
-    await expect(popup.getByText("南区")).toBeVisible();
-    await expect(popup.getByText("先研院")).toBeVisible();
-    await expect(popup.getByText("高新")).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "bus-preference-popover");
+    await captureStepScreenshot(page, testInfo, "bus-preference-toggles");
   });
 
-  test("preference save flow end-to-end", async ({ page }, testInfo) => {
+  test("preference auto-save flow end-to-end", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=bus");
 
-    // Open popover
-    const trigger = page.locator("[data-slot='popover-trigger']").first();
-    await trigger.click();
+    const toggleGroup = page.locator("[data-testid='campus-toggle-group']");
+    await expect(toggleGroup).toBeVisible();
 
-    const popup = page.locator("[data-slot='popover-popup']");
-    await expect(popup).toBeVisible();
+    // Click 西区 toggle to add to favorites
+    const westToggle = toggleGroup.getByRole("button", { name: "西区" });
+    await westToggle.click();
 
-    // Toggle 西区 (add to favorites)
-    await popup.getByText("西区").click();
+    // Wait for auto-save to complete (debounced ~800ms + network)
+    await page.waitForTimeout(2000);
 
-    // Close popover by clicking outside
-    await page.locator("h3").first().click();
-    await page.waitForTimeout(300);
+    // 西区 should now be pressed
+    await expect(westToggle).toHaveAttribute("aria-pressed", "true");
 
-    // Save button should appear (dirty state)
-    const saveBtn = page.getByRole("button", { name: /Save|保存/ }).first();
-    await expect(saveBtn).toBeVisible();
-    await saveBtn.click();
-
-    // Wait for save to complete
-    await expect(saveBtn).not.toBeVisible({ timeout: 5000 });
-
-    // Trigger should now show both 东区 and 西区
-    await expect(trigger).toContainText("东区");
-    await expect(trigger).toContainText("西区");
-
-    // Verify via API that preference was saved correctly
+    // Verify via API that preference was auto-saved
     const response = await page.request.get("/api/bus/preferences");
     const body = (await response.json()) as {
       preference?: {
         favoriteCampusIds?: number[];
         favoriteRouteIds?: number[];
-        preferredOriginCampusId?: number | null;
-        preferredDestinationCampusId?: number | null;
       };
     };
     expect(body.preference?.favoriteCampusIds).toContain(1); // 东区
@@ -500,6 +490,6 @@ test.describe("bus dashboard tab", () => {
       },
     });
 
-    await captureStepScreenshot(page, testInfo, "bus-preference-save");
+    await captureStepScreenshot(page, testInfo, "bus-preference-autosave");
   });
 });
