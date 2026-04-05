@@ -1,3 +1,15 @@
+# [1.8.0](https://github.com/Life-USTC/server-nextjs/compare/v1.7.0...v1.8.0) (2026-04-05)
+
+
+### Bug Fixes
+
+* **ci:** move clear-e2e-suspensions to tools/ and remove waitForTimeout ([53395cf](https://github.com/Life-USTC/server-nextjs/commit/53395cf1db335db846aa67cb5d0537aea2f022aa))
+
+
+### Features
+
+* **bus:** redesign UI with cards, tables, pinned routes, and grouped tabs ([0348fa8](https://github.com/Life-USTC/server-nextjs/commit/0348fa810b0457d9513d5218841b0368012e0717))
+
 # [1.7.0](https://github.com/Life-USTC/server-nextjs/compare/v1.6.0...v1.7.0) (2026-04-05)
 
 
