@@ -373,7 +373,6 @@ export function BusPanel({
   const t = useTranslations("bus");
   const router = useRouter();
 
-  const [dayType, setDayType] = useState<"weekday" | "weekend">(data.todayType);
   const [originFilter, setOriginFilter] = useState<number | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [showDeparted, setShowDeparted] = useState(
@@ -388,17 +387,8 @@ export function BusPanel({
         m.route.stops.slice(0, -1).some((s) => s.campus.id === originFilter),
       );
     }
-    if (dayType !== data.todayType) {
-      matches = matches.map((m) => ({
-        ...m,
-        nextTrip: null,
-        upcomingTrips: [],
-        visibleTrips: [],
-        allTrips: [],
-      }));
-    }
     return matches;
-  }, [data.matches, data.todayType, originFilter, dayType]);
+  }, [data.matches, originFilter]);
 
   // Split recommended vs regular routes
   const { recommendedMatches, regularMatches } = useMemo(() => {
@@ -420,12 +410,14 @@ export function BusPanel({
     return filteredMatches[0] ?? null;
   }, [filteredMatches, selectedRouteId]);
 
-  const handleDayTypeChange = useCallback((v: "weekday" | "weekend") => {
-    setDayType(v);
-    const url = new URL(window.location.href);
-    url.searchParams.set("dayType", v);
-    window.history.replaceState(null, "", url.toString());
-  }, []);
+  const handleDayTypeChange = useCallback(
+    (v: "weekday" | "weekend") => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("dayType", v);
+      router.push(url.toString());
+    },
+    [router],
+  );
 
   const handleOriginChange = useCallback((id: number | null) => {
     setOriginFilter(id);
@@ -456,7 +448,11 @@ export function BusPanel({
       {/* Controls bar — matches other dashboard tab toolbars */}
       <DashboardTabToolbar>
         <div className="flex flex-wrap items-center gap-2">
-          <DayTypePills value={dayType} onChange={handleDayTypeChange} t={t} />
+          <DayTypePills
+            value={data.todayType}
+            onChange={handleDayTypeChange}
+            t={t}
+          />
           <CampusFilter
             campuses={data.campuses}
             selectedId={originFilter}

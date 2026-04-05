@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 
 type HomeSearchParams = {
   tab?: string;
+  dayType?: string;
   debugDate?: string;
   debugTools?: string;
   calendarSemester?: string;
@@ -47,12 +48,20 @@ export default async function HomePage({
       debugTools: params.debugTools === "1" || params.debugTools === "true",
     };
     const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
+    const busDayType: "weekday" | "weekend" | undefined =
+      params.dayType === "weekday" || params.dayType === "weekend"
+        ? params.dayType
+        : undefined;
     const overviewOptions =
       tab === "calendar" &&
       Number.isFinite(parsedCalendarSemester) &&
       parsedCalendarSemester > 0
-        ? { ...debugOptions, calendarSemesterId: parsedCalendarSemester }
-        : debugOptions;
+        ? {
+            ...debugOptions,
+            calendarSemesterId: parsedCalendarSemester,
+            busDayType,
+          }
+        : { ...debugOptions, busDayType };
 
     const [
       navStats,
@@ -123,9 +132,14 @@ export default async function HomePage({
   if (publicTab !== "links") {
     const locale = await getLocale();
     const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
+    const dayType: "weekday" | "weekend" | undefined =
+      params.dayType === "weekday" || params.dayType === "weekend"
+        ? params.dayType
+        : undefined;
     publicBusData = await queryBusSchedules({
       locale: busLocale,
       userId: null,
+      dayType,
     });
   }
 

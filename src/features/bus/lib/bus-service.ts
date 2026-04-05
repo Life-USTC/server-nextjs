@@ -457,12 +457,13 @@ export async function queryBusSchedules(
 }
 
 export async function getBusDashboardSnapshot(
-  input: Pick<BusQueryInput, "locale" | "userId" | "now">,
+  input: Pick<BusQueryInput, "locale" | "userId" | "now" | "dayType">,
 ): Promise<BusDashboardSnapshot | null> {
   const data = await queryBusSchedules({
     locale: input.locale,
     userId: input.userId,
     now: input.now,
+    dayType: input.dayType,
   });
 
   if (!data) return null;

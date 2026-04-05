@@ -46,6 +46,8 @@ export type OverviewDataOptions = {
   debugTools?: boolean;
   /** Calendar tab: show semester/month/week grid for this semester (any known term). */
   calendarSemesterId?: number;
+  /** Bus day type override (weekday/weekend); defaults to auto-detect. */
+  busDayType?: "weekday" | "weekend";
 };
 
 export type DashboardNavStats = {
@@ -542,6 +544,7 @@ export async function getDashboardOverviewData(
       locale: busLocale,
       userId,
       now: referenceNow.toISOString(),
+      dayType: options.busDayType,
     }),
   ]);
   const clickStats: Record<string, number> = Object.fromEntries(
