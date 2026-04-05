@@ -1,6 +1,7 @@
 "use client";
 
-import { Eye, EyeOff, Star } from "lucide-react";
+import { Eye, EyeOff, Map as MapIcon, Star } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
@@ -127,7 +128,8 @@ function CampusFilter({
   );
 }
 
-/** Route card in sidebar — subtle card styling with recommended indicator */
+/** Route card in sidebar — subtle card styling with recommended indicator.
+ *  On mobile (< md) shows compact layout: route name + tiny status dot only. */
 function RouteCard({
   match,
   isSelected,
@@ -146,19 +148,20 @@ function RouteCard({
   const relevantTime = match.nextTrip
     ? getCampusTime(match.nextTrip, campusFilterId)
     : null;
+  const hasUpcoming = match.upcomingTrips.length > 0;
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full rounded-xl border p-3 text-left transition-all",
+        "w-full rounded-xl border p-2 text-left transition-all md:p-3",
         "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
         isSelected
           ? "border-primary/30 bg-primary/8 text-foreground shadow-sm"
           : "border-border/50 bg-card/60 text-muted-foreground hover:border-border/80 hover:bg-card/80 hover:text-foreground hover:shadow-sm",
       )}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-center gap-2 md:items-start">
         {isRecommended && (
           <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-primary/30 text-primary" />
         )}
@@ -171,7 +174,8 @@ function RouteCard({
           >
             {match.route.descriptionPrimary}
           </p>
-          <div className="mt-1 flex items-center gap-2 text-xs">
+          {/* Desktop: full departure info */}
+          <div className="mt-1 hidden items-center gap-2 text-xs md:flex">
             {match.nextTrip ? (
               <>
                 <span className="font-mono tabular-nums">{relevantTime}</span>
@@ -186,6 +190,13 @@ function RouteCard({
             )}
           </div>
         </div>
+        {/* Mobile: tiny status dot — green if upcoming, muted if none */}
+        <span
+          className={cn(
+            "h-2 w-2 shrink-0 rounded-full md:hidden",
+            hasUpcoming ? "bg-green-500" : "bg-muted-foreground/30",
+          )}
+        />
       </div>
     </button>
   );
@@ -462,6 +473,13 @@ export function BusPanel({
         </div>
 
         <div className="flex items-center gap-2">
+          <Link
+            href="/bus-map"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-muted-foreground text-xs transition-colors hover:text-foreground"
+          >
+            <MapIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{t("transitMap")}</span>
+          </Link>
           <button
             type="button"
             onClick={() => setShowDeparted((v) => !v)}

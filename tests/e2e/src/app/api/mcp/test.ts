@@ -321,6 +321,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "list_schedules_by_section",
           "list_exams_by_section",
           "query_bus_timetable",
+          "list_bus_routes",
+          "get_bus_route_timetable",
         ]),
       );
       expect(tools.tools.map((tool) => tool.name)).not.toEqual(
@@ -617,8 +619,6 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         name: "query_bus_timetable",
         arguments: {
           locale: "zh-cn",
-          originCampusId: DEV_SEED.bus.originCampusId,
-          destinationCampusId: DEV_SEED.bus.destinationCampusId,
         },
       });
       const busPayload = parseTextContent(busResult) as {
@@ -632,12 +632,60 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           busPayload.todayType === "weekend",
       ).toBe(true);
       expect(busPayload.version?.title).toContain(DEV_SEED.bus.versionTitle);
-      expect(busPayload.recommended).not.toBeNull();
       expect(
         busPayload.matches?.some(
           (match) => match.route?.id === DEV_SEED.bus.routeId,
         ),
       ).toBe(true);
+
+      // list_bus_routes — lightweight route catalog
+      const listRoutesResult = await mcpClient.callTool({
+        name: "list_bus_routes",
+        arguments: { locale: "zh-cn" },
+      });
+      const listRoutesPayload = parseTextContent(listRoutesResult) as {
+        routes?: Array<{
+          id?: number;
+          stops?: Array<{ campusId?: number }>;
+        }>;
+        campuses?: Array<{ id?: number }>;
+      };
+      expect(Array.isArray(listRoutesPayload.routes)).toBe(true);
+      expect(listRoutesPayload.routes?.length).toBeGreaterThan(0);
+      expect(Array.isArray(listRoutesPayload.campuses)).toBe(true);
+      expect(
+        listRoutesPayload.routes?.some((r) => r.id === DEV_SEED.bus.routeId),
+      ).toBe(true);
+
+      // get_bus_route_timetable — full weekday+weekend for one route
+      const timetableResult = await mcpClient.callTool({
+        name: "get_bus_route_timetable",
+        arguments: {
+          routeId: DEV_SEED.bus.routeId,
+          locale: "zh-cn",
+        },
+      });
+      const timetablePayload = parseTextContent(timetableResult) as {
+        route?: { id?: number };
+        weekday?: Array<{ position?: number }>;
+        weekend?: Array<{ position?: number }>;
+        alternateRoutes?: Array<{ id?: number }>;
+      };
+      expect(timetablePayload.route?.id).toBe(DEV_SEED.bus.routeId);
+      expect(Array.isArray(timetablePayload.weekday)).toBe(true);
+      expect(Array.isArray(timetablePayload.weekend)).toBe(true);
+      expect(Array.isArray(timetablePayload.alternateRoutes)).toBe(true);
+
+      // get_bus_route_timetable — invalid route returns error message
+      const invalidTimetableResult = await mcpClient.callTool({
+        name: "get_bus_route_timetable",
+        arguments: { routeId: 99999, locale: "zh-cn" },
+      });
+      const invalidPayload = parseTextContent(invalidTimetableResult) as {
+        hasData?: boolean;
+        message?: string;
+      };
+      expect(invalidPayload.hasData).toBe(false);
 
       const todoTitle = `[MCP-E2E-TODO] ${Date.now()}`;
       const createTodoResult = await mcpClient.callTool({

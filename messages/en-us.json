@@ -20,6 +20,7 @@
       "uploads": "My Uploads",
       "homeworks": "My Homework",
       "bus": "Shuttle Bus",
+      "busMap": "Transit Map",
       "apiDocs": "API Docs",
       "welcome": "Complete Your Profile",
       "privacy": "Privacy Policy",
@@ -625,7 +626,31 @@
     "noMoreBusToday": "No more trips today",
     "tableStatusHeader": "Status",
     "switchVersionHint": "Try another timetable version or show departed trips.",
-    "moreTrips": "{count} more trips"
+    "moreTrips": "{count} more trips",
+    "transitMap": "Transit map"
+  },
+  "busMap": {
+    "title": "Transit Map",
+    "subtitle": "Live shuttle bus network across USTC campuses",
+    "experimental": "Experimental",
+    "legend": {
+      "title": "Legend",
+      "enRoute": "En route",
+      "departingSoon": "Departing within 1h",
+      "campus": "Campus",
+      "route": "Route"
+    },
+    "status": {
+      "enRoute": "En route",
+      "departingSoon": "Departs in {minutes}m",
+      "noActive": "No active buses right now"
+    },
+    "tripCount": {
+      "weekday": "{count} weekday trips",
+      "weekend": "{count} weekend trips"
+    },
+    "backToBus": "Back to timetable",
+    "noData": "No schedule data available."
   },
   "publicProfile": {
     "idLabel": "User ID",

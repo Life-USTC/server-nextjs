@@ -40,6 +40,16 @@ test.describe("bus dashboard tab", () => {
     expect(response?.status()).toBe(404);
   });
 
+  test("transit map link visible in bus toolbar", async ({ page }) => {
+    await gotoAndWaitForReady(page, "/?tab=bus");
+
+    const mapLink = page.getByRole("link", {
+      name: /Transit map|线路图/,
+    });
+    await expect(mapLink).toBeVisible();
+    await expect(mapLink).toHaveAttribute("href", "/bus-map");
+  });
+
   test("public /?tab=bus shows route cards with monospace times", async ({
     page,
   }, testInfo) => {

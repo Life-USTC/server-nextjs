@@ -23,7 +23,8 @@
       "welcome": "完善个人信息",
       "privacy": "隐私政策",
       "terms": "服务条款",
-      "mobileApp": "移动应用"
+      "mobileApp": "移动应用",
+      "busMap": "线路图"
     }
   },
   "common": {
@@ -623,7 +624,8 @@
     "allRoutesLabel": "全部路线",
     "noMoreBusToday": "今日无后续班次",
     "tableStatusHeader": "状态",
-    "switchVersionHint": "可以切换版本或打开“显示已发车班次”查看完整时刻表。"
+    "switchVersionHint": "可以切换版本或打开“显示已发车班次”查看完整时刻表。",
+    "transitMap": "线路图"
   },
   "publicProfile": {
     "idLabel": "用户 ID",
@@ -1668,5 +1670,28 @@
         }
       ]
     }
+  },
+  "busMap": {
+    "title": "线路图",
+    "subtitle": "科大校区班车线路实时概览",
+    "experimental": "实验性功能",
+    "legend": {
+      "title": "图例",
+      "enRoute": "行驶中",
+      "departingSoon": "即将发车",
+      "campus": "校区",
+      "route": "线路"
+    },
+    "status": {
+      "enRoute": "行驶中",
+      "departingSoon": "{minutes}分钟后发车",
+      "noActive": "当前没有运行中的班车"
+    },
+    "tripCount": {
+      "weekday": "工作日 {count} 趟",
+      "weekend": "周末 {count} 趟"
+    },
+    "backToBus": "返回时刻表",
+    "noData": "暂无班车数据。"
   }
 }

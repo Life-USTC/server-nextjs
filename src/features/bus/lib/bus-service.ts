@@ -4,13 +4,20 @@ import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import type {
   BusCampusSummary,
   BusDashboardSnapshot,
+  BusMapActiveTrip,
+  BusMapCampusNode,
+  BusMapData,
+  BusMapRouteEdge,
   BusPreferencePayload,
   BusQueryInput,
   BusQueryResult,
   BusResolvedDayType,
+  BusRouteListing,
   BusRouteMatch,
   BusRouteStopSummary,
   BusRouteSummary,
+  BusRouteTimetable,
+  BusTripSlot,
   BusTripStopTime,
   BusTripSummary,
   BusUserPreferenceSummary,
@@ -471,5 +478,239 @@ export async function getBusDashboardSnapshot(
   return {
     data,
     highlightRoute: data.recommended ?? data.matches[0] ?? null,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Route catalog (MCP: list_bus_routes)                               */
+/* ------------------------------------------------------------------ */
+
+function toRouteListing(
+  locale: AppLocale,
+  route: RouteRecord,
+): BusRouteListing | null {
+  if (route.stops.length < 2) return null;
+  const desc = describeRoute(locale, route.stops);
+  return {
+    id: route.id,
+    nameCn: route.nameCn,
+    nameEn: route.nameEn,
+    descriptionPrimary: desc.descriptionPrimary,
+    stops: route.stops.map((s) => ({
+      stopOrder: s.stopOrder,
+      campusId: s.campus.id,
+      campusName: s.campus.namePrimary,
+    })),
+  };
+}
+
+export async function listBusRoutes(
+  locale: AppLocale,
+): Promise<{ routes: BusRouteListing[]; campuses: BusCampusSummary[] }> {
+  const [records, campuses] = await Promise.all([
+    getRouteRecords(locale),
+    getBusCampuses(locale),
+  ]);
+  const routes = records
+    .map((r) => toRouteListing(locale, r))
+    .filter((r): r is BusRouteListing => r != null);
+  return { routes, campuses };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Single-route timetable (MCP: get_bus_route_timetable)              */
+/* ------------------------------------------------------------------ */
+
+export async function getBusRouteTimetable(input: {
+  routeId: number;
+  locale: AppLocale;
+  now?: string;
+  versionKey?: string | null;
+}): Promise<BusRouteTimetable | null> {
+  const locale = input.locale;
+  const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
+  const dateKey = now.format("YYYY-MM-DD");
+  const version = await findEffectiveBusVersion(dateKey, input.versionKey);
+  if (!version) return null;
+
+  const records = await getRouteRecords(locale);
+  const record = records.find((r) => r.id === input.routeId);
+  if (!record) return null;
+  const listing = toRouteListing(locale, record);
+  if (!listing) return null;
+
+  // Fetch weekday + weekend trips
+  const [weekdayTrips, weekendTrips] = await Promise.all([
+    prisma.busTrip.findMany({
+      where: {
+        versionId: version.id,
+        dayType: "weekday",
+        routeId: input.routeId,
+      },
+      orderBy: { position: "asc" },
+    }),
+    prisma.busTrip.findMany({
+      where: {
+        versionId: version.id,
+        dayType: "weekend",
+        routeId: input.routeId,
+      },
+      orderBy: { position: "asc" },
+    }),
+  ]);
+
+  const toSlots = (trips: typeof weekdayTrips): BusTripSlot[] =>
+    trips.map((t) => ({
+      position: t.position,
+      stopTimes: (t.stopTimes as Array<string | null>).map((time, i) => ({
+        stopOrder: i,
+        time,
+      })),
+    }));
+
+  // Find alternate routes: same first→last campus pair, different route ID
+  const firstCampusId = record.stops[0]?.campus.id;
+  const lastCampusId = record.stops[record.stops.length - 1]?.campus.id;
+  const alternateRoutes = records
+    .filter((r) => {
+      if (r.id === input.routeId || r.stops.length < 2) return false;
+      const rFirst = r.stops[0]?.campus.id;
+      const rLast = r.stops[r.stops.length - 1]?.campus.id;
+      return rFirst === firstCampusId && rLast === lastCampusId;
+    })
+    .map((r) => toRouteListing(locale, r))
+    .filter((r): r is BusRouteListing => r != null);
+
+  return {
+    route: listing,
+    weekday: toSlots(weekdayTrips),
+    weekend: toSlots(weekendTrips),
+    alternateRoutes,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Transit map data                                                   */
+/* ------------------------------------------------------------------ */
+
+export async function getBusMapData(input: {
+  locale: AppLocale;
+  now?: string;
+  versionKey?: string | null;
+}): Promise<BusMapData | null> {
+  const locale = input.locale;
+  const now = input.now ? shanghaiDayjs(input.now) : shanghaiDayjs();
+  const dateKey = now.format("YYYY-MM-DD");
+  const todayType = resolveBusDayType(undefined, now);
+  const version = await findEffectiveBusVersion(dateKey, input.versionKey);
+  if (!version) return null;
+
+  const [records, campuses, allTrips] = await Promise.all([
+    getRouteRecords(locale),
+    getBusCampuses(locale),
+    prisma.busTrip.findMany({
+      where: { versionId: version.id, dayType: todayType },
+      orderBy: [{ routeId: "asc" }, { position: "asc" }],
+    }),
+  ]);
+
+  // Count trips per route per day type for edge labels
+  const weekdayCounts = await prisma.busTrip.groupBy({
+    by: ["routeId"],
+    where: { versionId: version.id, dayType: "weekday" },
+    _count: true,
+  });
+  const weekendCounts = await prisma.busTrip.groupBy({
+    by: ["routeId"],
+    where: { versionId: version.id, dayType: "weekend" },
+    _count: true,
+  });
+  const wdMap = new Map(weekdayCounts.map((c) => [c.routeId, c._count]));
+  const weMap = new Map(weekendCounts.map((c) => [c.routeId, c._count]));
+
+  const campusNodes: BusMapCampusNode[] = campuses.map((c) => ({
+    id: c.id,
+    namePrimary: c.namePrimary,
+    nameSecondary: c.nameSecondary,
+    latitude: c.latitude,
+    longitude: c.longitude,
+  }));
+
+  const routeEdges: BusMapRouteEdge[] = records
+    .filter((r) => r.stops.length >= 2)
+    .map((r) => {
+      const desc = describeRoute(locale, r.stops);
+      return {
+        routeId: r.id,
+        descriptionPrimary: desc.descriptionPrimary,
+        stops: r.stops.map((s) => ({
+          campusId: s.campus.id,
+          campusName: s.campus.namePrimary,
+        })),
+        weekdayTrips: wdMap.get(r.id) ?? 0,
+        weekendTrips: weMap.get(r.id) ?? 0,
+      };
+    });
+
+  // Determine active/upcoming trips
+  const nowMinutes = now.hour() * 60 + now.minute();
+  const activeTrips: BusMapActiveTrip[] = [];
+
+  for (const trip of allTrips) {
+    const stopTimes = trip.stopTimes as Array<string | null>;
+    const parsedTimes = stopTimes.map((t) => hhmmToMinutes(t));
+    const firstTime = parsedTimes.find((t) => t != null);
+    const lastTime = [...parsedTimes].reverse().find((t) => t != null);
+    if (firstTime == null || lastTime == null) continue;
+
+    // En-route: now is between first departure and last arrival
+    if (nowMinutes >= firstTime && nowMinutes <= lastTime) {
+      // Interpolate position between stops
+      let fromOrder: number | null = null;
+      let toOrder: number | null = null;
+      let progress: number | null = null;
+      for (let i = 0; i < parsedTimes.length - 1; i++) {
+        const a = parsedTimes[i];
+        const b = parsedTimes[i + 1];
+        if (a != null && b != null && nowMinutes >= a && nowMinutes <= b) {
+          fromOrder = i;
+          toOrder = i + 1;
+          progress = b > a ? (nowMinutes - a) / (b - a) : 0;
+          break;
+        }
+      }
+      activeTrips.push({
+        tripId: trip.id,
+        routeId: trip.routeId,
+        status: "en-route",
+        departureTime: stopTimes[0] ?? null,
+        arrivalTime: stopTimes[stopTimes.length - 1] ?? null,
+        fromStopOrder: fromOrder,
+        toStopOrder: toOrder,
+        segmentProgress:
+          progress != null ? Math.round(progress * 100) / 100 : null,
+      });
+    }
+    // Departing soon: departs within next 60 minutes
+    else if (firstTime > nowMinutes && firstTime <= nowMinutes + 60) {
+      activeTrips.push({
+        tripId: trip.id,
+        routeId: trip.routeId,
+        status: "departing-soon",
+        departureTime: stopTimes[0] ?? null,
+        arrivalTime: stopTimes[stopTimes.length - 1] ?? null,
+        fromStopOrder: null,
+        toStopOrder: null,
+        segmentProgress: null,
+      });
+    }
+  }
+
+  return {
+    campuses: campusNodes,
+    routes: routeEdges,
+    activeTrips,
+    todayType,
+    now: now.toISOString(),
   };
 }

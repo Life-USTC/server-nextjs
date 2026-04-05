@@ -123,6 +123,75 @@ export type BusDashboardSnapshot = {
   highlightRoute: BusRouteMatch | null;
 };
 
+/* ------------------------------------------------------------------ */
+/*  Route catalog & timetable types (MCP / map)                       */
+/* ------------------------------------------------------------------ */
+
+/** Lightweight route listing — no trip data */
+export type BusRouteListing = {
+  id: number;
+  nameCn: string;
+  nameEn: string | null;
+  descriptionPrimary: string;
+  stops: { stopOrder: number; campusId: number; campusName: string }[];
+};
+
+/** Full timetable for a single route (both day types) */
+export type BusRouteTimetable = {
+  route: BusRouteListing;
+  weekday: BusTripSlot[];
+  weekend: BusTripSlot[];
+  /** Other routes that share the same origin→destination campus pair */
+  alternateRoutes: BusRouteListing[];
+};
+
+/** Compact trip slot for timetable display */
+export type BusTripSlot = {
+  position: number;
+  stopTimes: { stopOrder: number; time: string | null }[];
+};
+
+/* ------------------------------------------------------------------ */
+/*  Transit map types                                                  */
+/* ------------------------------------------------------------------ */
+
+export type BusMapCampusNode = {
+  id: number;
+  namePrimary: string;
+  nameSecondary: string | null;
+  latitude: number;
+  longitude: number;
+};
+
+export type BusMapRouteEdge = {
+  routeId: number;
+  descriptionPrimary: string;
+  stops: { campusId: number; campusName: string }[];
+  weekdayTrips: number;
+  weekendTrips: number;
+};
+
+export type BusMapActiveTrip = {
+  tripId: number;
+  routeId: number;
+  status: "en-route" | "departing-soon";
+  departureTime: string | null;
+  arrivalTime: string | null;
+  /** Current segment: between stop at fromOrder and toOrder */
+  fromStopOrder: number | null;
+  toStopOrder: number | null;
+  /** Progress 0–1 within current segment (interpolated from schedule) */
+  segmentProgress: number | null;
+};
+
+export type BusMapData = {
+  campuses: BusMapCampusNode[];
+  routes: BusMapRouteEdge[];
+  activeTrips: BusMapActiveTrip[];
+  todayType: "weekday" | "weekend";
+  now: string;
+};
+
 export type BusImportResult = {
   versionId: number;
   versionKey: string;
