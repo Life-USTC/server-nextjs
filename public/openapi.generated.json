@@ -2722,13 +2722,15 @@
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true,
-            "nullable": true
+            "nullable": true,
+            "default": null
           },
           "preferredDestinationCampusId": {
             "type": "integer",
             "minimum": 0,
             "exclusiveMinimum": true,
-            "nullable": true
+            "nullable": true,
+            "default": null
           },
           "favoriteCampusIds": {
             "type": "array",

@@ -1092,9 +1092,7 @@ const busRouteMatchSchema = z.object({
   visibleTrips: z.array(busTripSummarySchema),
   allTrips: z.array(busTripSummarySchema),
   totalTrips: z.number().int().nonnegative(),
-  isFavoriteRoute: z.boolean(),
-  isFavoriteOrigin: z.boolean(),
-  isFavoriteDestination: z.boolean(),
+  isRecommended: z.boolean(),
 });
 
 export const busQueryResponseSchema = z.object({

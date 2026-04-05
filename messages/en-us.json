@@ -560,8 +560,9 @@
       "empty": "No shuttle trips are available under the current filters."
     },
     "recommended": {
-      "title": "Recommended route",
-      "description": "Sorted by your preferred origin/destination and the next departure time.",
+      "title": "Recommended",
+      "description": "Routes serving your favorite campuses.",
+      "empty": "Select your favorite campuses to get route recommendations.",
       "nextTrip": "Next bus",
       "noUpcoming": "No more upcoming trips on this route today",
       "arrive": "Arrive",

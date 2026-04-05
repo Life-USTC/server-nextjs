@@ -237,10 +237,15 @@ export const busQuerySchema = z.object({
 });
 
 export const busPreferenceRequestSchema = z.object({
-  preferredOriginCampusId: z.number().int().positive().nullable(),
-  preferredDestinationCampusId: z.number().int().positive().nullable(),
+  preferredOriginCampusId: z.number().int().positive().nullable().default(null),
+  preferredDestinationCampusId: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .default(null),
   favoriteCampusIds: z.array(z.number().int().positive()),
-  favoriteRouteIds: z.array(z.number().int().positive()),
+  favoriteRouteIds: z.array(z.number().int().positive()).default([]),
   showDepartedTrips: z.boolean(),
 });
 

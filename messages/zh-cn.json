@@ -560,8 +560,9 @@
       "empty": "当前筛选下暂无可展示的校车班次。"
     },
     "recommended": {
-      "title": "推荐路线",
-      "description": "优先按你的起点/终点偏好和下一班发车时间排序。",
+      "title": "推荐",
+      "description": "经过你常用校区的路线。",
+      "empty": "选择常用校区以获取推荐路线。",
       "nextTrip": "下一班",
       "noUpcoming": "今天这条线路没有后续班次了",
       "arrive": "到达",

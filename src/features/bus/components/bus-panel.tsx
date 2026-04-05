@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeOff, Pin, Settings2 } from "lucide-react";
+import { Eye, EyeOff, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
@@ -10,16 +10,6 @@ import {
   dashboardTabToolbarItemClass,
 } from "@/components/filters/dashboard-tab-toolbar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogDescription,
-  DialogHeader,
-  DialogPanel,
-  DialogPopup,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -28,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { BusPreferenceForm } from "@/features/bus/components/bus-preference-form";
+import { BusPreferenceInline } from "@/features/bus/components/bus-preference-form";
 import type {
   BusCampusSummary,
   BusQueryResult,
@@ -137,18 +127,18 @@ function CampusFilter({
   );
 }
 
-/** Route card in sidebar — subtle card styling with pinned indicator */
+/** Route card in sidebar — subtle card styling with recommended indicator */
 function RouteCard({
   match,
   isSelected,
-  isPinned,
+  isRecommended,
   campusFilterId,
   onSelect,
   t,
 }: {
   match: BusRouteMatch;
   isSelected: boolean;
-  isPinned: boolean;
+  isRecommended: boolean;
   campusFilterId: number | null;
   onSelect: () => void;
   t: (key: string, values?: Record<string, number | string>) => string;
@@ -169,8 +159,8 @@ function RouteCard({
       )}
     >
       <div className="flex items-start gap-2">
-        {isPinned && (
-          <Pin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+        {isRecommended && (
+          <Star className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-primary/30 text-primary" />
         )}
         <div className="min-w-0 flex-1">
           <p
@@ -301,8 +291,8 @@ function RouteDetail({
     <div className="space-y-5">
       {/* Route header */}
       <div className="flex items-center gap-2">
-        {match.isFavoriteRoute && (
-          <Pin className="h-4 w-4 shrink-0 text-primary" />
+        {match.isRecommended && (
+          <Star className="h-4 w-4 shrink-0 fill-primary/30 text-primary" />
         )}
         <h3 className="text-balance font-semibold text-base">
           {match.route.descriptionPrimary}
@@ -384,9 +374,7 @@ export function BusPanel({
   const router = useRouter();
 
   const [dayType, setDayType] = useState<"weekday" | "weekend">(data.todayType);
-  const [originFilter, setOriginFilter] = useState<number | null>(
-    data.preferences?.preferredOriginCampusId ?? null,
-  );
+  const [originFilter, setOriginFilter] = useState<number | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<number | null>(null);
   const [showDeparted, setShowDeparted] = useState(
     data.preferences?.showDepartedTrips ?? false,
@@ -412,15 +400,15 @@ export function BusPanel({
     return matches;
   }, [data.matches, data.todayType, originFilter, dayType]);
 
-  // Split pinned vs regular routes
-  const { pinnedMatches, regularMatches } = useMemo(() => {
-    const pinned: BusRouteMatch[] = [];
+  // Split recommended vs regular routes
+  const { recommendedMatches, regularMatches } = useMemo(() => {
+    const recommended: BusRouteMatch[] = [];
     const regular: BusRouteMatch[] = [];
     for (const m of filteredMatches) {
-      if (m.isFavoriteRoute) pinned.push(m);
+      if (m.isRecommended) recommended.push(m);
       else regular.push(m);
     }
-    return { pinnedMatches: pinned, regularMatches: regular };
+    return { recommendedMatches: recommended, regularMatches: regular };
   }, [filteredMatches]);
 
   // Resolve selected route
@@ -456,7 +444,7 @@ export function BusPanel({
       key={match.route.id}
       match={match}
       isSelected={selectedMatch?.route.id === match.route.id}
-      isPinned={match.isFavoriteRoute}
+      isRecommended={match.isRecommended}
       campusFilterId={originFilter}
       onSelect={() => setSelectedRouteId(match.route.id)}
       t={t}
@@ -499,38 +487,6 @@ export function BusPanel({
               {t("query.showDepartedTrips")}
             </span>
           </button>
-          {showPreferences && signedIn ? (
-            <Dialog>
-              <DialogTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    aria-label={t("editPreferences")}
-                  />
-                }
-              >
-                <Settings2 className="h-4 w-4" />
-              </DialogTrigger>
-              <DialogPopup>
-                <DialogHeader>
-                  <DialogTitle>{t("preferences.title")}</DialogTitle>
-                  <DialogDescription>
-                    {t("preferences.description")}
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogPanel>
-                  <BusPreferenceForm
-                    campuses={data.campuses}
-                    routes={data.routes}
-                    preference={initialPreference ?? data.preferences}
-                    signedIn={signedIn}
-                    onSaved={() => router.refresh()}
-                  />
-                </DialogPanel>
-              </DialogPopup>
-            </Dialog>
-          ) : null}
         </div>
       </DashboardTabToolbar>
 
@@ -541,28 +497,47 @@ export function BusPanel({
         </p>
       ) : (
         <div className="grid gap-5 md:grid-cols-[minmax(200px,280px)_1fr]">
-          {/* Left: route sidebar with pinned/regular sections */}
+          {/* Left: route sidebar with recommended/regular sections */}
           <nav
             className="space-y-1 md:border-border/50 md:border-r md:pr-4"
             aria-label={t("allRoutesLabel")}
           >
-            {pinnedMatches.length > 0 && (
+            {/* Recommended section — always shown for signed-in users */}
+            {showPreferences && signedIn ? (
               <>
-                <p className="flex items-center gap-1.5 px-1 pb-1 text-muted-foreground text-xs">
-                  <Pin className="h-3 w-3" />
-                  {t("route.favorite")}
-                </p>
-                {pinnedMatches.map(renderRouteCard)}
-                {regularMatches.length > 0 && (
-                  <div className="!mt-3 border-border/30 border-t pt-2">
-                    <p className="px-1 pb-1 text-muted-foreground text-xs">
-                      {t("allRoutesLabel")}
-                    </p>
-                  </div>
+                <div className="mb-2">
+                  <p className="flex items-center gap-1.5 px-1 pb-1 text-muted-foreground text-xs">
+                    <Star className="h-3 w-3 fill-primary/30 text-primary" />
+                    {t("recommended.title")}
+                  </p>
+                  <BusPreferenceInline
+                    campuses={data.campuses}
+                    preference={initialPreference ?? data.preferences}
+                    onSaved={() => router.refresh()}
+                  />
+                </div>
+                {recommendedMatches.length > 0 ? (
+                  <>
+                    {recommendedMatches.map(renderRouteCard)}
+                    {regularMatches.length > 0 && (
+                      <div className="!mt-3 border-border/30 border-t pt-2">
+                        <p className="px-1 pb-1 text-muted-foreground text-xs">
+                          {t("allRoutesLabel")}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="px-1 py-2 text-muted-foreground text-xs">
+                    {t("recommended.empty")}
+                  </p>
                 )}
+                {regularMatches.map(renderRouteCard)}
               </>
+            ) : (
+              /* Not signed in or no preferences — flat list */
+              filteredMatches.map(renderRouteCard)
             )}
-            {regularMatches.map(renderRouteCard)}
           </nav>
 
           {/* Right: detail panel */}

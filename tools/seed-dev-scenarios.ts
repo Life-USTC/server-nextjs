@@ -1590,18 +1590,18 @@ async function main() {
   await prisma.busUserPreference.upsert({
     where: { userId: debugUser.id },
     update: {
-      preferredOriginCampusId: 1,
-      preferredDestinationCampusId: 6,
-      favoriteCampusIds: [1, 6],
-      favoriteRouteIds: [8],
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      favoriteCampusIds: [1],
+      favoriteRouteIds: [],
       showDepartedTrips: false,
     },
     create: {
       userId: debugUser.id,
-      preferredOriginCampusId: 1,
-      preferredDestinationCampusId: 6,
-      favoriteCampusIds: [1, 6],
-      favoriteRouteIds: [8],
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      favoriteCampusIds: [1],
+      favoriteRouteIds: [],
       showDepartedTrips: false,
     },
   });

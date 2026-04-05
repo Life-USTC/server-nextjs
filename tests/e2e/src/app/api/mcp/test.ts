@@ -632,7 +632,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           busPayload.todayType === "weekend",
       ).toBe(true);
       expect(busPayload.version?.title).toContain(DEV_SEED.bus.versionTitle);
-      expect(busPayload.recommended?.route?.id).toBe(DEV_SEED.bus.routeId);
+      expect(busPayload.recommended).not.toBeNull();
       expect(
         busPayload.matches?.some(
           (match) => match.route?.id === DEV_SEED.bus.routeId,

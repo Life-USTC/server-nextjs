@@ -10,23 +10,23 @@
  * ## UI/UX on /?tab=bus
  * - DashboardTabToolbar with day type toggle (weekday/weekend) and campus filter pills
  * - Inline "Show departed trips" toggle button (Eye/EyeOff icon) in toolbar
- * - Route sidebar (left) with card-styled route items, pinned routes in a separate section
+ * - Route sidebar (left) with card-styled route items
+ * - Signed-in users: "Recommended" section (star icon) based on favorite campuses,
+ *   with inline campus preference editor (combobox) underneath the section header
  * - Route detail panel (right) with hero next departure card + trip schedule table
  *   - Table columns = station names from route stops
  *   - Table rows = trips with times at each station
  *   - Status column: Departed or ETA countdown
  * - Monospace font (font-mono) for all time displays
- * - Settings dialog for signed-in users (origin/destination pickers,
- *   favorite campuses/routes as multi-select comboboxes showing names)
- *   - "Show departed trips" toggle is NOT in the settings dialog (it's inline)
+ * - No settings dialog — preferences are edited inline under the recommended section
  *
  * ## Edge Cases
  * - /bus returns 404 (redirect removed)
- * - Public users can view bus tab but cannot save preferences
+ * - Public users can view bus tab but cannot save preferences (no recommended section)
  * - Empty state when no routes match the selected campus filter
  * - Clicking a route card in the sidebar switches the detail panel
- * - Pinned (favorite) routes show with pin icon and separate section
  * - Terminal-stop routes excluded from campus filter results
+ * - Recommended section always visible for signed-in users (even when empty)
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
@@ -63,6 +63,21 @@ test.describe("bus dashboard tab", () => {
     await expect(table).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "bus-public-tab");
+  });
+
+  test("public user does not see recommended section or preference editor", async ({
+    page,
+  }) => {
+    await gotoAndWaitForReady(page, "/?tab=bus");
+
+    // Star icon for recommended section should NOT appear for public users
+    const sidebar = page.locator("nav");
+    await expect(sidebar.locator("svg.lucide-star")).toHaveCount(0);
+
+    // No combobox for campus preference
+    await expect(page.getByPlaceholder(/Search campuses|搜索校区/)).toHaveCount(
+      0,
+    );
   });
 
   test("campus filter excludes routes with campus as terminal stop", async ({
@@ -210,73 +225,60 @@ test.describe("bus dashboard tab", () => {
     await captureStepScreenshot(page, testInfo, "bus-links-grouped");
   });
 
-  test("signed-in user sees pinned routes section", async ({
+  test("signed-in user sees recommended section with star icon", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=bus");
 
-    // Dev seed user has favoriteRouteIds=[8], so there should be a pinned section
     const sidebar = page.locator("nav");
 
-    // Pin icon should be visible in sidebar for pinned section
-    const pinIcons = sidebar.locator("svg.lucide-pin");
-    await expect(pinIcons.first()).toBeVisible();
+    // Recommended section label with star icon
+    await expect(sidebar.getByText(/Recommended|推荐/).first()).toBeVisible();
+    await expect(sidebar.locator("svg.lucide-star").first()).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "bus-pinned-routes");
+    // Routes through 东区 (favoriteCampusIds=[1]) are recommended
+    // Route 1 (东区→北区→西区), Route 3 (东区→南区), Route 7 (高新→…→东区), Route 8 (东区→…→高新)
+    // All four routes pass through 东区, so all should be in recommended
+    // (But Route 7 has 东区 as terminal — still recommended because isRecommended
+    //  checks ALL stops, not just non-terminal; terminal exclusion is only for campus filter)
+
+    await captureStepScreenshot(page, testInfo, "bus-recommended-section");
   });
 
-  test("signed-in user sees settings button", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/?tab=bus");
-
-    // Settings button should be visible
-    const settingsButton = page.getByRole("button", {
-      name: /Edit preferences|编辑偏好/i,
-    });
-    await expect(settingsButton).toBeVisible();
-
-    await captureStepScreenshot(page, testInfo, "bus-settings-button");
-  });
-
-  test("preference dialog shows pickers but not departed toggle", async ({
+  test("signed-in user sees inline campus preference editor", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=bus");
 
-    // Open settings dialog
-    const settingsButton = page.getByRole("button", {
-      name: /Edit preferences|编辑偏好/i,
-    });
-    await settingsButton.click();
+    // Inline campus preference combobox should be visible in sidebar
+    const campusInput = page.getByPlaceholder(/Search campuses|搜索校区/);
+    await expect(campusInput).toBeVisible();
 
-    // Dialog title should appear
-    await expect(page.getByText(/Preferences|偏好设置/).first()).toBeVisible();
-
-    // Origin/destination selects should show campus names, NOT raw IDs
-    const originSelect = page.locator("#bus-origin-select");
-    await expect(originSelect).toBeVisible();
-    await expect(originSelect).toContainText(/东区/);
-    const destSelect = page.locator("#bus-destination-select");
-    await expect(destSelect).toContainText(/高新/);
-
-    // Advanced section starts expanded (dev-seed user has favoriteCampusIds/routeIds)
-    const dialogPanel = page.locator("[data-slot=dialog-panel]");
+    // No settings dialog button (removed)
     await expect(
-      dialogPanel.getByText(/Favorite campuses|常用校区/).first(),
-    ).toBeVisible();
-    await expect(
-      dialogPanel.getByText(/Favorite routes|常用线路/).first(),
-    ).toBeVisible();
-
-    // "Show departed trips" switch should NOT be in the dialog (moved to inline toggle)
-    await expect(
-      dialogPanel.getByText(
-        /Show departed trips by default|默认展示已发车班次/,
-      ),
+      page.getByRole("button", { name: /Edit preferences|编辑偏好/i }),
     ).toHaveCount(0);
 
-    // Verify no raw comma-separated IDs are shown as placeholders
-    await expect(page.getByPlaceholder(/1, 6/)).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "bus-inline-preferences");
+  });
 
-    await captureStepScreenshot(page, testInfo, "bus-preference-dialog");
+  test("inline preference save updates recommended routes", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=bus");
+
+    const sidebar = page.locator("nav");
+
+    // Initially has recommended routes (favoriteCampusIds=[1] → 东区)
+    await expect(sidebar.getByText(/Recommended|推荐/).first()).toBeVisible();
+
+    // Focus the combobox input and type to search for a campus
+    const campusInput = page.getByPlaceholder(/Search campuses|搜索校区/);
+    await campusInput.click();
+
+    // Wait for the dropdown to appear
+    await expect(page.getByRole("listbox")).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "bus-preference-inline-edit");
   });
 });

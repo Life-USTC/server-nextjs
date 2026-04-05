@@ -101,9 +101,7 @@ export type BusRouteMatch = {
   visibleTrips: BusTripSummary[];
   allTrips: BusTripSummary[];
   totalTrips: number;
-  isFavoriteRoute: boolean;
-  isFavoriteOrigin: boolean;
-  isFavoriteDestination: boolean;
+  isRecommended: boolean;
 };
 
 export type BusQueryResult = {

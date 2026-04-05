@@ -98,20 +98,13 @@ function buildRouteSummary(
   };
 }
 
-function scoreMatch(
-  match: BusRouteMatch,
-  input: {
-    originCampusId: number | null;
-    destinationCampusId: number | null;
-  },
-) {
+function scoreMatch(match: BusRouteMatch, favoriteCampusIds: number[]) {
   let score = 0;
-  if (input.originCampusId === match.originStop.campus.id) score += 120;
-  if (input.destinationCampusId === match.destinationStop.campus.id)
-    score += 120;
-  if (match.isFavoriteRoute) score += 80;
-  if (match.isFavoriteOrigin) score += 40;
-  if (match.isFavoriteDestination) score += 40;
+  if (match.isRecommended) score += 100;
+  // Bonus for each favorite campus the route passes through
+  for (const stop of match.route.stops) {
+    if (favoriteCampusIds.includes(stop.campus.id)) score += 40;
+  }
   if (match.nextTrip?.minutesUntilDeparture != null) {
     score += Math.max(0, 60 - match.nextTrip.minutesUntilDeparture);
   }
@@ -374,30 +367,6 @@ export async function queryBusSchedules(
 
   const matches = routes
     .flatMap<BusRouteMatch>((route) => {
-      const originIndex =
-        effectivePreference.preferredOriginCampusId != null
-          ? route.stops.findIndex(
-              (stop) =>
-                stop.campus.id === effectivePreference.preferredOriginCampusId,
-            )
-          : 0;
-      const destinationIndex =
-        effectivePreference.preferredDestinationCampusId != null
-          ? route.stops.findIndex(
-              (stop) =>
-                stop.campus.id ===
-                effectivePreference.preferredDestinationCampusId,
-            )
-          : route.stops.length - 1;
-
-      if (
-        originIndex === -1 ||
-        destinationIndex === -1 ||
-        originIndex >= destinationIndex
-      ) {
-        return [];
-      }
-
       const allTrips = tripRows
         .filter((trip) => trip.routeId === route.id)
         .map((trip) => buildTripSummary(trip, route, nowMinutes));
@@ -408,11 +377,18 @@ export async function queryBusSchedules(
         ? allTrips
         : upcomingTrips;
 
+      // A route is recommended if any stop serves a favorite campus
+      const isRecommended =
+        effectivePreference.favoriteCampusIds.length > 0 &&
+        route.stops.some((stop) =>
+          effectivePreference.favoriteCampusIds.includes(stop.campus.id),
+        );
+
       return [
         {
           route,
-          originStop: route.stops[originIndex],
-          destinationStop: route.stops[destinationIndex],
+          originStop: route.stops[0],
+          destinationStop: route.stops[route.stops.length - 1],
           nextTrip: upcomingTrips[0] ?? null,
           upcomingTrips: input.limit
             ? upcomingTrips.slice(0, input.limit)
@@ -422,28 +398,14 @@ export async function queryBusSchedules(
             : visibleTrips,
           allTrips,
           totalTrips: allTrips.length,
-          isFavoriteRoute: effectivePreference.favoriteRouteIds.includes(
-            route.id,
-          ),
-          isFavoriteOrigin: effectivePreference.favoriteCampusIds.includes(
-            route.stops[originIndex].campus.id,
-          ),
-          isFavoriteDestination: effectivePreference.favoriteCampusIds.includes(
-            route.stops[destinationIndex].campus.id,
-          ),
+          isRecommended,
         },
       ];
     })
     .sort((left, right) => {
       const scoreDiff =
-        scoreMatch(right, {
-          originCampusId: effectivePreference.preferredOriginCampusId,
-          destinationCampusId: effectivePreference.preferredDestinationCampusId,
-        }) -
-        scoreMatch(left, {
-          originCampusId: effectivePreference.preferredOriginCampusId,
-          destinationCampusId: effectivePreference.preferredDestinationCampusId,
-        });
+        scoreMatch(right, effectivePreference.favoriteCampusIds) -
+        scoreMatch(left, effectivePreference.favoriteCampusIds);
 
       if (scoreDiff !== 0) return scoreDiff;
 
@@ -457,17 +419,7 @@ export async function queryBusSchedules(
     });
 
   const recommended =
-    matches.find(
-      (match) =>
-        (effectivePreference.preferredOriginCampusId == null ||
-          match.originStop.campus.id ===
-            effectivePreference.preferredOriginCampusId) &&
-        (effectivePreference.preferredDestinationCampusId == null ||
-          match.destinationStop.campus.id ===
-            effectivePreference.preferredDestinationCampusId),
-    ) ??
-    matches[0] ??
-    null;
+    matches.find((match) => match.isRecommended) ?? matches[0] ?? null;
 
   return {
     locale,
