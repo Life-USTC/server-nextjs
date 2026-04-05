@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/Life-USTC/server-nextjs/compare/v1.11.0...v1.12.0) (2026-04-05)
+
+
+### Features
+
+* **bus:** toggle preferences with auto-save, transit map curves ([66a7e52](https://github.com/Life-USTC/server-nextjs/commit/66a7e521700a0ee653762cd65de3c23a5c5a85be))
+
 # [1.11.0](https://github.com/Life-USTC/server-nextjs/compare/v1.10.0...v1.11.0) (2026-04-05)
 
 
