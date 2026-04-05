@@ -1,8 +1,14 @@
 "use client";
 
 import { Settings2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
+import {
+  DashboardTabToolbar,
+  DashboardTabToolbarGroup,
+  dashboardTabToolbarItemClass,
+} from "@/components/filters/dashboard-tab-toolbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,7 +60,7 @@ function stopTimeChain(trip: BusTripSummary): string {
 /*  Sub-components                                                    */
 /* ------------------------------------------------------------------ */
 
-/** Pill toggle for weekday / weekend */
+/** Pill toggle for weekday / weekend — uses dashboard toolbar styling */
 function DayTypePills({
   value,
   onChange,
@@ -65,28 +71,23 @@ function DayTypePills({
   t: (key: string) => string;
 }) {
   return (
-    <div className="inline-flex gap-1 rounded-full border border-border p-0.5">
+    <DashboardTabToolbarGroup>
       {(["weekday", "weekend"] as const).map((dt) => (
         <button
           key={dt}
           type="button"
           aria-pressed={value === dt}
           onClick={() => onChange(dt)}
-          className={cn(
-            "rounded-full px-3 py-1.5 font-medium text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
-            value === dt
-              ? "bg-foreground text-background"
-              : "text-muted-foreground hover:text-foreground",
-          )}
+          className={dashboardTabToolbarItemClass(value === dt)}
         >
           {t(`dayType.${dt}`)}
         </button>
       ))}
-    </div>
+    </DashboardTabToolbarGroup>
   );
 }
 
-/** Campus origin filter pills */
+/** Campus origin filter pills — uses dashboard toolbar styling */
 function CampusFilter({
   campuses,
   selectedId,
@@ -99,17 +100,12 @@ function CampusFilter({
   allLabel: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <DashboardTabToolbarGroup>
       <button
         type="button"
         aria-pressed={selectedId === null}
         onClick={() => onSelect(null)}
-        className={cn(
-          "rounded-full border px-3 py-1.5 font-medium text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
-          selectedId === null
-            ? "border-border/80 bg-card text-foreground"
-            : "border-transparent text-muted-foreground hover:border-border/60 hover:text-foreground",
-        )}
+        className={dashboardTabToolbarItemClass(selectedId === null)}
       >
         {allLabel}
       </button>
@@ -120,17 +116,12 @@ function CampusFilter({
           aria-pressed={selectedId === c.id}
           aria-label={`${allLabel}: ${c.namePrimary}`}
           onClick={() => onSelect(c.id === selectedId ? null : c.id)}
-          className={cn(
-            "rounded-full border px-3 py-1.5 font-medium text-xs transition-colors focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
-            selectedId === c.id
-              ? "border-border/80 bg-card text-foreground"
-              : "border-transparent text-muted-foreground hover:border-border/60 hover:text-foreground",
-          )}
+          className={dashboardTabToolbarItemClass(selectedId === c.id)}
         >
           {c.namePrimary}
         </button>
       ))}
-    </div>
+    </DashboardTabToolbarGroup>
   );
 }
 
@@ -288,6 +279,7 @@ export function BusPanel({
   className,
 }: BusPanelProps) {
   const t = useTranslations("bus");
+  const router = useRouter();
 
   const [dayType, setDayType] = useState<"weekday" | "weekend">(data.todayType);
   const [originFilter, setOriginFilter] = useState<number | null>(
@@ -346,18 +338,17 @@ export function BusPanel({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Controls bar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <DayTypePills value={dayType} onChange={handleDayTypeChange} t={t} />
-
-        <span className="hidden h-5 w-px bg-border sm:block" />
-
-        <CampusFilter
-          campuses={data.campuses}
-          selectedId={originFilter}
-          onSelect={handleOriginChange}
-          allLabel={t("query.originAny")}
-        />
+      {/* Controls bar — matches other dashboard tab toolbars */}
+      <DashboardTabToolbar>
+        <div className="flex flex-wrap items-center gap-2">
+          <DayTypePills value={dayType} onChange={handleDayTypeChange} t={t} />
+          <CampusFilter
+            campuses={data.campuses}
+            selectedId={originFilter}
+            onSelect={handleOriginChange}
+            allLabel={t("query.originAny")}
+          />
+        </div>
 
         {showPreferences && signedIn ? (
           <Dialog>
@@ -366,7 +357,6 @@ export function BusPanel({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="ml-auto"
                   aria-label={t("editPreferences")}
                 />
               }
@@ -383,14 +373,16 @@ export function BusPanel({
               <DialogPanel>
                 <BusPreferenceForm
                   campuses={data.campuses}
+                  routes={data.routes}
                   preference={initialPreference ?? data.preferences}
                   signedIn={signedIn}
+                  onSaved={() => router.refresh()}
                 />
               </DialogPanel>
             </DialogPopup>
           </Dialog>
         ) : null}
-      </div>
+      </DashboardTabToolbar>
 
       {/* Empty state */}
       {filteredMatches.length === 0 ? (

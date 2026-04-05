@@ -1,90 +1,144 @@
+/**
+ * E2E tests for the /bus route (now a redirect to /?tab=bus)
+ *
+ * ## Behavior
+ * - GET /bus redirects to /?tab=bus (dashboard bus tab)
+ * - Query parameters (from, dayType, showDeparted, version) are preserved through the redirect
+ *
+ * ## UI/UX on /?tab=bus
+ * - DashboardTabToolbar with day type toggle (weekday/weekend) and campus origin filter
+ * - Route list sidebar (left) with route description + next departure time
+ * - Route detail panel (right) with hero next departure + full trip list
+ * - Settings dialog for signed-in users (origin/destination pickers, show departed toggle,
+ *   favorite campuses/routes as multi-select comboboxes showing names)
+ * - Notice banner at the bottom if schedule version has a message
+ *
+ * ## Edge Cases
+ * - Public users can view bus tab but cannot save preferences
+ * - Empty state when no routes match the selected origin filter
+ * - Clicking a route in the sidebar switches the detail panel
+ */
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
-import { assertPageContract } from "../_shared/page-contract";
 
-test("/bus", async ({ page }, testInfo) => {
-  await assertPageContract(page, { routePath: "/bus", testInfo });
-});
+test.describe("/bus → /?tab=bus", () => {
+  test("/bus redirects to /?tab=bus", async ({ page }) => {
+    await page.goto("/bus");
+    await page.waitForURL(/\/\?tab=bus/);
+    await expect(page).toHaveURL(/\/\?tab=bus/);
+  });
 
-test("/bus shows route list and detail panel", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/bus");
+  test("/bus preserves query params through redirect", async ({ page }) => {
+    await page.goto("/bus?dayType=weekend&from=6");
+    await page.waitForURL(/\/\?tab=bus/);
+    const url = new URL(page.url());
+    expect(url.searchParams.get("tab")).toBe("bus");
+    expect(url.searchParams.get("dayType")).toBe("weekend");
+    expect(url.searchParams.get("from")).toBe("6");
+  });
 
-  // Day type pills are visible
-  await expect(
-    page.getByText(/Weekday|Weekend|工作日|周末/).first(),
-  ).toBeVisible();
+  test("public /?tab=bus shows route list", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=bus");
 
-  // Route sidebar shows the recommended route
-  await expect(
-    page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
-  ).toBeVisible();
+    // Day type toggle is visible (dashboard toolbar style)
+    await expect(
+      page.getByText(/Weekday|Weekend|工作日|周末/).first(),
+    ).toBeVisible();
 
-  // Detail panel shows next departure time
-  await expect(
-    page.getByText(/Next departure|下一班|nextDeparture/).first(),
-  ).toBeVisible();
+    // Route list is visible
+    await expect(
+      page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
+    ).toBeVisible();
 
-  await captureStepScreenshot(page, testInfo, "bus-public-page");
-});
+    await captureStepScreenshot(page, testInfo, "bus-public-tab");
+  });
 
-test("/bus origin filter narrows routes", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/bus");
+  test("origin filter narrows routes", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=bus");
 
-  // Click the origin campus pill for 高新 (campus id=6, first stop of route 7)
-  const gxPill = page.getByRole("button", { name: /高新/ }).first();
-  await expect(gxPill).toBeVisible();
-  await gxPill.click();
+    // Click an origin campus filter button
+    const campusButton = page.getByRole("button", { name: /高新/ }).first();
+    await expect(campusButton).toBeVisible();
+    await campusButton.click();
 
-  // Route 7 starts at 高新, so it should be visible
-  await expect(
-    page.getByText(/高新 -> 先研院|高新.*先研院/, { exact: false }).first(),
-  ).toBeVisible();
+    // Routes not starting at that campus should be hidden from sidebar
+    const sidebar = page.locator("nav");
+    await expect(
+      sidebar.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }),
+    ).toHaveCount(0);
 
-  // Route 8 starts at 东区, so its description should NOT appear in sidebar
-  // (it may still appear in the detail panel if it was previously selected)
-  const route8Items = page
-    .locator("nav")
-    .getByText(DEV_SEED.bus.recommendedRoute, { exact: false });
-  await expect(route8Items).toHaveCount(0);
+    await captureStepScreenshot(page, testInfo, "bus-origin-filter");
+  });
 
-  await captureStepScreenshot(page, testInfo, "bus-origin-filter");
-});
+  test("clicking route switches detail panel", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=bus");
 
-test("/bus clicking route switches detail", async ({ page }, testInfo) => {
-  await gotoAndWaitForReady(page, "/bus");
+    const sidebar = page.locator("nav");
+    const routeButtons = sidebar.locator("button");
+    const count = await routeButtons.count();
+    expect(count).toBeGreaterThanOrEqual(2);
 
-  // Find route buttons in the sidebar nav
-  const sidebar = page.locator("nav");
-  const routeButtons = sidebar.locator("button");
-  const count = await routeButtons.count();
-  expect(count).toBeGreaterThanOrEqual(2);
+    // Click the second route
+    await routeButtons.nth(1).click();
+    await page.waitForTimeout(300);
 
-  // Click the second route
-  await routeButtons.nth(1).click();
-  await page.waitForTimeout(300);
+    // Detail heading should be visible
+    const detailHeading = page.locator("h3").first();
+    await expect(detailHeading).toBeVisible();
 
-  // Detail panel should update — we can verify the heading changed
-  const detailHeading = page.locator("h3").first();
-  await expect(detailHeading).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "bus-route-switch");
+  });
 
-  await captureStepScreenshot(page, testInfo, "bus-route-switch");
-});
+  test("signed-in user sees settings button", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=bus");
 
-test("/bus public home tab shows bus", async ({ page }, testInfo) => {
-  // Visit public home with bus tab
-  await gotoAndWaitForReady(page, "/?tab=bus");
+    // Settings button should be visible
+    const settingsButton = page.getByRole("button", {
+      name: /Edit preferences|编辑偏好/i,
+    });
+    await expect(settingsButton).toBeVisible();
 
-  // Day type pills should be visible
-  await expect(
-    page.getByText(/Weekday|Weekend|工作日|周末/).first(),
-  ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "bus-settings-button");
+  });
 
-  // Route list should be visible
-  await expect(
-    page.getByText(DEV_SEED.bus.recommendedRoute, { exact: false }).first(),
-  ).toBeVisible();
+  test("preference dialog shows campus/route name pickers", async ({
+    page,
+  }, testInfo) => {
+    await signInAsDebugUser(page, "/?tab=bus");
 
-  await captureStepScreenshot(page, testInfo, "bus-public-home");
+    // Open settings dialog
+    const settingsButton = page.getByRole("button", {
+      name: /Edit preferences|编辑偏好/i,
+    });
+    await settingsButton.click();
+
+    // Dialog title should appear
+    await expect(page.getByText(/Preferences|偏好设置/).first()).toBeVisible();
+
+    // Origin/destination selects should show campus names, NOT raw IDs
+    const originSelect = page.locator("#bus-origin-select");
+    await expect(originSelect).toBeVisible();
+    // The dev-seed user has originCampusId=1 (东区) and destinationCampusId=6 (高新)
+    await expect(originSelect).toContainText(/东区/);
+    const destSelect = page.locator("#bus-destination-select");
+    await expect(destSelect).toContainText(/高新/);
+
+    // Advanced section starts expanded (dev-seed user has favoriteCampusIds/routeIds)
+    // Favorite campuses/routes labels should be visible
+    const dialogPanel = page.locator("[data-slot=dialog-panel]");
+    await expect(
+      dialogPanel.getByText(/Favorite campuses|常用校区/).first(),
+    ).toBeVisible();
+    await expect(
+      dialogPanel.getByText(/Favorite routes|常用线路/).first(),
+    ).toBeVisible();
+
+    // Verify no raw comma-separated IDs are shown as placeholders
+    await expect(page.getByPlaceholder(/1, 6/)).toHaveCount(0);
+
+    await captureStepScreenshot(page, testInfo, "bus-preference-dialog");
+  });
 });

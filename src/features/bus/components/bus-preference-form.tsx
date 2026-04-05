@@ -4,7 +4,15 @@ import { ChevronDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Combobox,
+  ComboboxChips,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxPopup,
+} from "@/components/ui/combobox";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -16,30 +24,22 @@ import {
 import { Switch } from "@/components/ui/switch";
 import type {
   BusCampusSummary,
+  BusRouteSummary,
   BusUserPreferenceSummary,
 } from "@/features/bus/lib/bus-types";
 import { extractApiErrorMessage } from "@/lib/api/client";
 
 type BusPreferenceFormProps = {
   campuses: BusCampusSummary[];
+  routes: BusRouteSummary[];
   preference: BusUserPreferenceSummary | null;
   signedIn: boolean;
   onSaved?: (nextPreference: BusUserPreferenceSummary) => void;
 };
 
-function parseIdList(value: string) {
-  return Array.from(
-    new Set(
-      value
-        .split(/[,\s]+/)
-        .map((entry) => Number.parseInt(entry, 10))
-        .filter((entry) => Number.isInteger(entry)),
-    ),
-  );
-}
-
 export function BusPreferenceForm({
   campuses,
+  routes,
   preference,
   signedIn,
   onSaved,
@@ -58,11 +58,11 @@ export function BusPreferenceForm({
       ? String(preference.preferredDestinationCampusId)
       : "",
   );
-  const [favoriteCampusIdsText, setFavoriteCampusIdsText] = useState(
-    preference?.favoriteCampusIds.join(", ") ?? "",
+  const [favoriteCampusIds, setFavoriteCampusIds] = useState<number[]>(
+    preference?.favoriteCampusIds ?? [],
   );
-  const [favoriteRouteIdsText, setFavoriteRouteIdsText] = useState(
-    preference?.favoriteRouteIds.join(", ") ?? "",
+  const [favoriteRouteIds, setFavoriteRouteIds] = useState<number[]>(
+    preference?.favoriteRouteIds ?? [],
   );
   const [showDepartedTrips, setShowDepartedTrips] = useState(
     preference?.showDepartedTrips ?? false,
@@ -103,8 +103,8 @@ export function BusPreferenceForm({
               preferredDestinationCampusId: destinationCampusId
                 ? Number.parseInt(destinationCampusId, 10)
                 : null,
-              favoriteCampusIds: parseIdList(favoriteCampusIdsText),
-              favoriteRouteIds: parseIdList(favoriteRouteIdsText),
+              favoriteCampusIds,
+              favoriteRouteIds,
               showDepartedTrips,
             }),
           });
@@ -144,7 +144,15 @@ export function BusPreferenceForm({
             onValueChange={(value) => setOriginCampusId(value ?? "")}
           >
             <SelectTrigger id="bus-origin-select">
-              <SelectValue placeholder={t("preferences.unset")} />
+              <SelectValue placeholder={t("preferences.unset")}>
+                {() => {
+                  if (!originCampusId) return t("preferences.unset");
+                  return (
+                    campuses.find((c) => String(c.id) === originCampusId)
+                      ?.namePrimary ?? t("preferences.unset")
+                  );
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">{t("preferences.unset")}</SelectItem>
@@ -166,7 +174,15 @@ export function BusPreferenceForm({
             onValueChange={(value) => setDestinationCampusId(value ?? "")}
           >
             <SelectTrigger id="bus-destination-select">
-              <SelectValue placeholder={t("preferences.unset")} />
+              <SelectValue placeholder={t("preferences.unset")}>
+                {() => {
+                  if (!destinationCampusId) return t("preferences.unset");
+                  return (
+                    campuses.find((c) => String(c.id) === destinationCampusId)
+                      ?.namePrimary ?? t("preferences.unset")
+                  );
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">{t("preferences.unset")}</SelectItem>
@@ -203,11 +219,9 @@ export function BusPreferenceForm({
           className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
         >
           <div className="space-y-1">
-            <p className="font-medium text-sm">
-              {t("preferences.favoriteRoutes")}
-            </p>
+            <p className="font-medium text-sm">{t("preferences.advanced")}</p>
             <p className="text-muted-foreground text-xs">
-              {t("preferences.idsPlaceholder")}
+              {t("preferences.advancedDescription")}
             </p>
           </div>
           <ChevronDown
@@ -217,31 +231,55 @@ export function BusPreferenceForm({
         {showAdvanced ? (
           <div className="grid gap-4 border-border/80 border-t px-4 py-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="bus-favorite-campus-ids">
-                {t("preferences.favoriteCampuses")}
-              </Label>
-              <Input
-                id="bus-favorite-campus-ids"
-                value={favoriteCampusIdsText}
-                onChange={(event) =>
-                  setFavoriteCampusIdsText(event.target.value)
-                }
-                placeholder={t("preferences.idsPlaceholder")}
-              />
+              <Label>{t("preferences.favoriteCampuses")}</Label>
+              <Combobox
+                multiple
+                value={favoriteCampusIds}
+                onValueChange={setFavoriteCampusIds}
+              >
+                <ComboboxChips>
+                  <ComboboxInput
+                    placeholder={t("preferences.favoriteCampusesPlaceholder")}
+                    size="sm"
+                  />
+                </ComboboxChips>
+                <ComboboxPopup>
+                  <ComboboxList>
+                    <ComboboxEmpty>—</ComboboxEmpty>
+                    {campuses.map((campus) => (
+                      <ComboboxItem key={campus.id} value={campus.id}>
+                        {campus.namePrimary}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxPopup>
+              </Combobox>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bus-favorite-route-ids">
-                {t("preferences.favoriteRoutes")}
-              </Label>
-              <Input
-                id="bus-favorite-route-ids"
-                value={favoriteRouteIdsText}
-                onChange={(event) =>
-                  setFavoriteRouteIdsText(event.target.value)
-                }
-                placeholder={t("preferences.idsPlaceholder")}
-              />
+              <Label>{t("preferences.favoriteRoutes")}</Label>
+              <Combobox
+                multiple
+                value={favoriteRouteIds}
+                onValueChange={setFavoriteRouteIds}
+              >
+                <ComboboxChips>
+                  <ComboboxInput
+                    placeholder={t("preferences.favoriteRoutesPlaceholder")}
+                    size="sm"
+                  />
+                </ComboboxChips>
+                <ComboboxPopup>
+                  <ComboboxList>
+                    <ComboboxEmpty>—</ComboboxEmpty>
+                    {routes.map((route) => (
+                      <ComboboxItem key={route.id} value={route.id}>
+                        {route.descriptionPrimary}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxPopup>
+              </Combobox>
             </div>
           </div>
         ) : null}

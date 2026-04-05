@@ -56,7 +56,6 @@ export async function activateBusVersion(
   ]);
 
   revalidatePath("/admin/bus");
-  revalidatePath("/bus");
   revalidatePath("/");
   return { success: true };
 }
@@ -157,7 +156,6 @@ export async function triggerBusImport(): Promise<ActionResult> {
     const result = await importBusStaticPayload(prisma, payload);
 
     revalidatePath("/admin/bus");
-    revalidatePath("/bus");
     revalidatePath("/");
     return {
       success: true,
