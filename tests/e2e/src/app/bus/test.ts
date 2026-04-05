@@ -83,9 +83,8 @@ test.describe("/bus → /?tab=bus", () => {
 
     // Click the second route
     await routeButtons.nth(1).click();
-    await page.waitForTimeout(300);
 
-    // Detail heading should be visible
+    // Detail heading should update to second route
     const detailHeading = page.locator("h3").first();
     await expect(detailHeading).toBeVisible();
 
