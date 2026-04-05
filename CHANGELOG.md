@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/Life-USTC/server-nextjs/compare/v1.8.0...v1.8.1) (2026-04-05)
+
+
+### Bug Fixes
+
+* **bus:** exclude terminal stops from filter, add inline departed toggle, add bus cron ([fd5f98e](https://github.com/Life-USTC/server-nextjs/commit/fd5f98e232b396f1fc6162e89798cc79cca0da1e))
+
 # [1.8.0](https://github.com/Life-USTC/server-nextjs/compare/v1.7.0...v1.8.0) (2026-04-05)
 
 
