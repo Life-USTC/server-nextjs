@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/Life-USTC/server-nextjs/compare/v1.8.1...v1.9.0) (2026-04-05)
+
+
+### Features
+
+* **bus:** redesign preferences as inline recommended section ([95f9f00](https://github.com/Life-USTC/server-nextjs/commit/95f9f00761077717c4484890e7163e340f439e85))
+
 ## [1.8.1](https://github.com/Life-USTC/server-nextjs/compare/v1.8.0...v1.8.1) (2026-04-05)
 
 
