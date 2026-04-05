@@ -1,22 +1,20 @@
 "use client";
 
+import { Check, ChevronsUpDown } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Combobox,
-  ComboboxChips,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-  ComboboxPopup,
-} from "@/components/ui/combobox";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import type {
   BusCampusSummary,
   BusUserPreferenceSummary,
 } from "@/features/bus/lib/bus-types";
 import { extractApiErrorMessage } from "@/lib/api/client";
+import { cn } from "@/shared/lib/utils";
 
 type BusPreferenceInlineProps = {
   campuses: BusCampusSummary[];
@@ -24,7 +22,7 @@ type BusPreferenceInlineProps = {
   onSaved?: (nextPreference: BusUserPreferenceSummary) => void;
 };
 
-/** Inline campus preference editor — shown under the recommended section */
+/** Inline campus preference editor — shows comma-separated names when collapsed */
 export function BusPreferenceInline({
   campuses,
   preference,
@@ -37,9 +35,16 @@ export function BusPreferenceInline({
     preference?.favoriteCampusIds ?? [],
   );
   const [dirty, setDirty] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  const handleChange = (ids: number[]) => {
-    setFavoriteCampusIds(ids);
+  const selectedNames = campuses
+    .filter((c) => favoriteCampusIds.includes(c.id))
+    .map((c) => c.namePrimary);
+
+  const toggleCampus = (id: number) => {
+    setFavoriteCampusIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
     setDirty(true);
     setError(null);
   };
@@ -47,11 +52,16 @@ export function BusPreferenceInline({
   const handleSave = () => {
     setError(null);
     startTransition(async () => {
+      // Preserve existing preference fields to avoid wiping them
       const response = await fetch("/api/bus/preferences", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          preferredOriginCampusId: preference?.preferredOriginCampusId ?? null,
+          preferredDestinationCampusId:
+            preference?.preferredDestinationCampusId ?? null,
           favoriteCampusIds,
+          favoriteRouteIds: preference?.favoriteRouteIds ?? [],
           showDepartedTrips: preference?.showDepartedTrips ?? false,
         }),
       });
@@ -82,24 +92,58 @@ export function BusPreferenceInline({
 
   return (
     <div className="space-y-2">
-      <Combobox multiple value={favoriteCampusIds} onValueChange={handleChange}>
-        <ComboboxChips>
-          <ComboboxInput
-            placeholder={t("preferences.favoriteCampusesPlaceholder")}
-            size="sm"
-          />
-        </ComboboxChips>
-        <ComboboxPopup>
-          <ComboboxList>
-            <ComboboxEmpty>—</ComboboxEmpty>
-            {campuses.map((campus) => (
-              <ComboboxItem key={campus.id} value={campus.id}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          className={cn(
+            "flex w-full items-center justify-between rounded-md border border-border/60 bg-background px-2.5 py-1.5 text-left text-xs transition-colors",
+            "hover:border-border hover:bg-accent/30",
+            open && "border-primary/40 ring-1 ring-primary/20",
+          )}
+        >
+          <span
+            className={cn(
+              "truncate",
+              selectedNames.length > 0
+                ? "text-foreground"
+                : "text-muted-foreground",
+            )}
+          >
+            {selectedNames.length > 0
+              ? selectedNames.join("、")
+              : t("preferences.favoriteCampusesHint")}
+          </span>
+          <ChevronsUpDown className="ml-1.5 h-3 w-3 shrink-0 text-muted-foreground" />
+        </PopoverTrigger>
+        <PopoverContent className="p-1" align="start">
+          {campuses.map((campus) => {
+            const selected = favoriteCampusIds.includes(campus.id);
+            return (
+              <button
+                key={campus.id}
+                type="button"
+                onClick={() => toggleCampus(campus.id)}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs transition-colors",
+                  "hover:bg-accent hover:text-accent-foreground",
+                  selected && "font-medium",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border",
+                    selected
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-muted-foreground/30",
+                  )}
+                >
+                  {selected && <Check className="h-2.5 w-2.5" />}
+                </span>
                 {campus.namePrimary}
-              </ComboboxItem>
-            ))}
-          </ComboboxList>
-        </ComboboxPopup>
-      </Combobox>
+              </button>
+            );
+          })}
+        </PopoverContent>
+      </Popover>
       {dirty && (
         <Button
           type="button"

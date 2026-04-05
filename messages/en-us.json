@@ -591,6 +591,7 @@
       "destination": "Default destination campus",
       "favoriteCampuses": "Favorite campuses",
       "favoriteCampusesPlaceholder": "Search campuses…",
+      "favoriteCampusesHint": "Select campuses to filter recommended routes",
       "favoriteRoutes": "Favorite routes",
       "favoriteRoutesPlaceholder": "Search routes…",
       "advanced": "Advanced options",

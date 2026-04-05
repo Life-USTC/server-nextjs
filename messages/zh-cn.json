@@ -601,7 +601,8 @@
       "save": "保存偏好",
       "saving": "保存中...",
       "saved": "偏好已保存",
-      "saveFailed": "偏好保存失败"
+      "saveFailed": "偏好保存失败",
+      "favoriteCampusesHint": "选择常用校区以筛选推荐路线"
     },
     "versionNotice": {
       "title": "时刻表说明",

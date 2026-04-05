@@ -43,28 +43,76 @@ type Pos = { x: number; y: number };
 /*  Layout helpers                                                     */
 /* ------------------------------------------------------------------ */
 
-/** Normalize campus lat/lng to SVG coordinates */
+/**
+ * Lay out campus nodes in SVG space.
+ *
+ * Steps:
+ *   1. Use longitude → x, latitude → y (geographic convention).
+ *   2. Normalize to viewport, maintaining aspect ratio.
+ *   3. Push overlapping nodes apart (minimum distance = MIN_NODE_GAP).
+ */
 function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
   if (campuses.length === 0) return new Map();
 
-  const lats = campuses.map((c) => c.latitude);
-  const lngs = campuses.map((c) => c.longitude);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const latRange = maxLat - minLat || 1;
-  const lngRange = maxLng - minLng || 1;
+  // longitude → x, latitude → y (higher latitude = further up = lower y)
+  const xs = campuses.map((c) => c.longitude);
+  const ys = campuses.map((c) => c.latitude);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const rangeX = maxX - minX || 1;
+  const rangeY = maxY - minY || 1;
+
+  const usableW = SVG_W - 2 * PAD;
+  const usableH = SVG_H - 2 * PAD;
+
+  // Maintain aspect ratio so the map isn't stretched
+  const scaleX = usableW / rangeX;
+  const scaleY = usableH / rangeY;
+  const scale = Math.min(scaleX, scaleY);
+  const offsetX = PAD + (usableW - rangeX * scale) / 2;
+  const offsetY = PAD + (usableH - rangeY * scale) / 2;
+
+  const positions: { id: number; x: number; y: number }[] = campuses.map(
+    (c) => ({
+      id: c.id,
+      x: offsetX + (c.longitude - minX) * scale,
+      y: offsetY + (maxY - c.latitude) * scale, // flip y for screen coords
+    }),
+  );
+
+  // Push overlapping nodes apart (iterative relaxation)
+  const MIN_GAP = NODE_R * 3.5;
+  for (let iter = 0; iter < 40; iter++) {
+    let moved = false;
+    for (let i = 0; i < positions.length; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const a = positions[i];
+        const b = positions[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < MIN_GAP && dist > 0) {
+          const push = ((MIN_GAP - dist) / 2 + 1) / dist;
+          a.x -= dx * push;
+          a.y -= dy * push;
+          b.x += dx * push;
+          b.y += dy * push;
+          moved = true;
+        }
+      }
+    }
+    // Clamp to viewport
+    for (const p of positions) {
+      p.x = Math.max(PAD, Math.min(SVG_W - PAD, p.x));
+      p.y = Math.max(PAD, Math.min(SVG_H - PAD, p.y));
+    }
+    if (!moved) break;
+  }
 
   const map = new Map<number, Pos>();
-  for (const c of campuses) {
-    const nx = (c.longitude - minLng) / lngRange;
-    const ny = 1 - (c.latitude - minLat) / latRange;
-    map.set(c.id, {
-      x: PAD + nx * (SVG_W - 2 * PAD),
-      y: PAD + ny * (SVG_H - 2 * PAD),
-    });
-  }
+  for (const p of positions) map.set(p.id, { x: p.x, y: p.y });
   return map;
 }
 
@@ -73,8 +121,12 @@ function segKey(a: number, b: number) {
   return a < b ? `${a}-${b}` : `${b}-${a}`;
 }
 
-/** Compute perpendicular offsets so parallel routes don't overlap */
-function computeOffsets(routes: BusMapRouteEdge[]) {
+/** Compute perpendicular offsets so parallel routes don't overlap.
+ *  Offset scales with segment length — short segments get wider spread. */
+function computeOffsets(
+  routes: BusMapRouteEdge[],
+  positions: Map<number, Pos>,
+) {
   const seg = new Map<string, number[]>();
   for (const r of routes) {
     for (let i = 0; i < r.stops.length - 1; i++) {
@@ -87,8 +139,16 @@ function computeOffsets(routes: BusMapRouteEdge[]) {
   const result = new Map<string, Map<number, number>>();
   for (const [k, ids] of seg) {
     const m = new Map<number, number>();
+    // Compute segment length for adaptive spacing
+    const [aStr, bStr] = k.split("-");
+    const posA = positions.get(Number(aStr));
+    const posB = positions.get(Number(bStr));
+    const segLen =
+      posA && posB ? Math.hypot(posB.x - posA.x, posB.y - posA.y) : 200;
+    // Use 6% of segment length, clamped between 4px and 12px
+    const spacing = Math.max(4, Math.min(12, segLen * 0.06));
     for (let i = 0; i < ids.length; i++) {
-      m.set(ids[i], (i - (ids.length - 1) / 2) * 5);
+      m.set(ids[i], (i - (ids.length - 1) / 2) * spacing);
     }
     result.set(k, m);
   }
@@ -153,8 +213,8 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
     [data],
   );
   const offsets = useMemo(
-    () => (data ? computeOffsets(data.routes) : new Map()),
-    [data],
+    () => (data ? computeOffsets(data.routes, positions) : new Map()),
+    [data, positions],
   );
 
   /* ---- Empty state ---- */
