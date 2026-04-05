@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/Life-USTC/server-nextjs/compare/v1.10.0...v1.11.0) (2026-04-05)
+
+
+### Features
+
+* **bus:** preference popover, map layout, comprehensive tests ([6729eab](https://github.com/Life-USTC/server-nextjs/commit/6729eab12a53a8ddfec882c814c0335c56f62c2e))
+
 # [1.10.0](https://github.com/Life-USTC/server-nextjs/compare/v1.9.1...v1.10.0) (2026-04-05)
 
 
