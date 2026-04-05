@@ -1,3 +1,23 @@
+/**
+ * E2E tests for GET /api/todos and POST /api/todos.
+ *
+ * ## GET /api/todos
+ * - Response: { todos: Array<{ id, title, content, priority, completed, dueAt, ... }> }
+ * - Auth required (401 if unauthenticated)
+ * - Returns all todos belonging to the current user
+ *
+ * ## POST /api/todos
+ * - Body: { title, content?, priority?, dueAt? }
+ * - Response: { id: string }
+ * - Auth required (401 if unauthenticated)
+ * - Creates a new todo for the current user
+ * - Returns 400 for missing title
+ *
+ * ## Edge cases
+ * - Unauthenticated GET/POST → 401
+ * - Seed todo appears in list with correct priority and completed status
+ * - Full create → verify in list → cleanup via DELETE
+ */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
@@ -7,7 +27,12 @@ test("/api/todos", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/todos" });
 });
 
-test("/api/todos 登录后可返回 seed 待办", async ({ page }) => {
+test("/api/todos GET 未登录返回 401", async ({ request }) => {
+  const response = await request.get("/api/todos");
+  expect(response.status()).toBe(401);
+});
+
+test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const response = await page.request.get("/api/todos");
@@ -23,7 +48,14 @@ test("/api/todos 登录后可返回 seed 待办", async ({ page }) => {
   ).toBe(true);
 });
 
-test("/api/todos 登录后可创建新待办", async ({ page }) => {
+test("/api/todos POST 未登录返回 401", async ({ request }) => {
+  const response = await request.post("/api/todos", {
+    data: { title: "should fail" },
+  });
+  expect(response.status()).toBe(401);
+});
+
+test("/api/todos POST 登录后可创建新待办并清理", async ({ page }) => {
   await signInAsDebugUser(page, "/");
 
   const title = `e2e-api-todo-${Date.now()}`;

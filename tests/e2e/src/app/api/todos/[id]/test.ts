@@ -1,3 +1,23 @@
+/**
+ * E2E tests for PATCH /api/todos/[id] and DELETE /api/todos/[id].
+ *
+ * ## PATCH /api/todos/[id]
+ * - Body: { title?, content?, priority?, completed?, dueAt? }
+ * - Response: { success: true }
+ * - Auth required (401 if unauthenticated)
+ * - Ownership check: returns 403 if todo belongs to another user
+ * - Returns 404 for non-existent todo
+ *
+ * ## DELETE /api/todos/[id]
+ * - Response: { success: true }
+ * - Auth required (401 if unauthenticated)
+ * - Ownership check: returns 403 if todo belongs to another user
+ * - Permanently deletes the todo from the database
+ *
+ * ## Edge cases
+ * - Non-owner PATCH → 403
+ * - Creates temporary todos for mutation tests (cleanup via DELETE)
+ */
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../../utils/auth";
 import { assertApiContract } from "../../../_shared/api-contract";
@@ -19,7 +39,14 @@ test("/api/todos/[id]", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/todos/[id]" });
 });
 
-test("/api/todos/[id] 登录后可更新待办", async ({ page }) => {
+test("/api/todos/[id] PATCH 未登录返回 401", async ({ request }) => {
+  const response = await request.patch("/api/todos/invalid-e2e", {
+    data: { title: "should fail" },
+  });
+  expect(response.status()).toBe(401);
+});
+
+test("/api/todos/[id] PATCH 登录后可更新待办", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const todoId = await createTodo(page, `e2e-api-todo-update-${Date.now()}`);
 
@@ -53,9 +80,11 @@ test("/api/todos/[id] 登录后可更新待办", async ({ page }) => {
   }
 });
 
-test("/api/todos/[id] 非所有者不能修改待办", async ({ browser }) => {
-  const debugPage = await browser.newPage();
-  const adminPage = await browser.newPage();
+test("/api/todos/[id] PATCH 非所有者返回 403", async ({ browser }) => {
+  const debugContext = await browser.newContext();
+  const debugPage = await debugContext.newPage();
+  const adminContext = await browser.newContext();
+  const adminPage = await adminContext.newPage();
 
   try {
     await signInAsDebugUser(debugPage, "/");
@@ -67,22 +96,23 @@ test("/api/todos/[id] 非所有者不能修改待办", async ({ browser }) => {
     await signInAsDevAdmin(adminPage, "/");
     const patchResponse = await adminPage.request.patch(
       `/api/todos/${todoId}`,
-      {
-        data: {
-          completed: true,
-        },
-      },
+      { data: { completed: true } },
     );
     expect(patchResponse.status()).toBe(403);
 
     await debugPage.request.delete(`/api/todos/${todoId}`);
   } finally {
-    await debugPage.close();
-    await adminPage.close();
+    await debugContext.close();
+    await adminContext.close();
   }
 });
 
-test("/api/todos/[id] 登录后可删除待办", async ({ page }) => {
+test("/api/todos/[id] DELETE 未登录返回 401", async ({ request }) => {
+  const response = await request.delete("/api/todos/invalid-e2e");
+  expect(response.status()).toBe(401);
+});
+
+test("/api/todos/[id] DELETE 登录后可删除待办", async ({ page }) => {
   await signInAsDebugUser(page, "/");
   const todoId = await createTodo(page, `e2e-api-todo-delete-${Date.now()}`);
 

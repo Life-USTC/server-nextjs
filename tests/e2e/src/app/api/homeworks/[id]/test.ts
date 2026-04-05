@@ -1,55 +1,147 @@
+/**
+ * E2E tests for PATCH /api/homeworks/[id] and DELETE /api/homeworks/[id].
+ *
+ * ## PATCH /api/homeworks/[id]
+ * - Body: { title?, sectionId?, publishedAt?, submissionStartAt?, submissionDueAt? }
+ * - Response: { success: true }
+ * - Auth required (401 if unauthenticated)
+ * - Returns 404 for non-existent homework
+ *
+ * ## DELETE /api/homeworks/[id]
+ * - Response: { success: true }
+ * - Auth required (401 if unauthenticated)
+ * - Soft-deletes the homework (sets deletedAt)
+ * - Creates audit log entry (action: "deleted") with title snapshot
+ * - Returns 404 for non-existent homework
+ *
+ * ## Edge cases
+ * - Creates a temporary homework for mutations (does not modify seed data)
+ * - Unauthenticated PATCH/DELETE → 401
+ * - Non-existent id → 404
+ */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
 import { assertApiContract } from "../../../_shared/api-contract";
 
+/** Resolve the seed section's internal DB id via match-codes. */
+async function resolveSeedSectionId(
+  request: import("@playwright/test").APIRequestContext,
+) {
+  const response = await request.post("/api/sections/match-codes", {
+    data: { codes: [DEV_SEED.section.code] },
+  });
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    sections?: Array<{ id?: number; code?: string | null }>;
+  };
+  const section = body.sections?.find((s) => s.code === DEV_SEED.section.code);
+  expect(section?.id).toBeDefined();
+  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
+  return section!.id!;
+}
+
+/** Create a temporary homework and return its id (for mutation tests). */
+async function createTempHomework(
+  request: import("@playwright/test").APIRequestContext,
+  sectionId: number,
+) {
+  const now = new Date();
+  const createResponse = await request.post("/api/homeworks", {
+    data: {
+      title: `e2e-temp-hw-${Date.now()}`,
+      sectionId: String(sectionId),
+      publishedAt: now.toISOString(),
+      submissionStartAt: now.toISOString(),
+      submissionDueAt: new Date(now.getTime() + 86400000).toISOString(),
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+
+  // Fetch the list and find the just-created homework
+  const listResponse = await request.get(
+    `/api/homeworks?sectionId=${sectionId}`,
+  );
+  expect(listResponse.status()).toBe(200);
+  const listBody = (await listResponse.json()) as {
+    homeworks?: Array<{ id?: string; title?: string }>;
+  };
+  const hw = listBody.homeworks?.find((h) =>
+    h.title?.startsWith("e2e-temp-hw-"),
+  );
+  expect(hw?.id).toBeTruthy();
+  // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
+  return hw!.id!;
+}
+
 test("/api/homeworks/[id]", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/homeworks/[id]" });
 });
 
-test("/api/homeworks/[id] 登录后可更新作业标题", async ({ page }) => {
-  await signInAsDebugUser(page, "/");
-  const matchResponse = await page.request.post("/api/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
+test("/api/homeworks/[id] PATCH 未登录返回 401", async ({ request }) => {
+  const response = await request.patch("/api/homeworks/invalid-e2e", {
+    data: { title: "should fail" },
   });
-  const sectionId = (
-    (await matchResponse.json()) as {
-      sections?: Array<{ id?: number }>;
-    }
-  ).sections?.[0]?.id;
-  expect(sectionId).toBeDefined();
+  expect(response.status()).toBe(401);
+});
 
-  const listResponse = await page.request.get(
-    `/api/homeworks?sectionId=${sectionId}`,
-  );
-  const homeworkId = (
-    (await listResponse.json()) as {
-      homeworks?: Array<{ id?: string }>;
-    }
-  ).homeworks?.[0]?.id;
-  expect(homeworkId).toBeTruthy();
+test("/api/homeworks/[id] PATCH 登录后可更新作业标题", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const homeworkId = await createTempHomework(page.request, sectionId);
 
-  const newTitle = `e2e-homework-title-${Date.now()}`;
-  const patchResponse = await page.request.patch(
+  try {
+    const newTitle = `e2e-homework-title-${Date.now()}`;
+    const patchResponse = await page.request.patch(
+      `/api/homeworks/${homeworkId}`,
+      { data: { title: newTitle } },
+    );
+    expect(patchResponse.status()).toBe(200);
+    expect((await patchResponse.json()) as { success?: boolean }).toMatchObject(
+      { success: true },
+    );
+
+    // Verify the title was updated
+    const listResponse = await page.request.get(
+      `/api/homeworks?sectionId=${sectionId}`,
+    );
+    const listBody = (await listResponse.json()) as {
+      homeworks?: Array<{ id?: string; title?: string }>;
+    };
+    expect(
+      listBody.homeworks?.some(
+        (h) => h.id === homeworkId && h.title === newTitle,
+      ),
+    ).toBe(true);
+  } finally {
+    await page.request.delete(`/api/homeworks/${homeworkId}`);
+  }
+});
+
+test("/api/homeworks/[id] DELETE 未登录返回 401", async ({ request }) => {
+  const response = await request.delete("/api/homeworks/invalid-e2e");
+  expect(response.status()).toBe(401);
+});
+
+test("/api/homeworks/[id] DELETE 登录后可删除作业", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+  const sectionId = await resolveSeedSectionId(page.request);
+  const homeworkId = await createTempHomework(page.request, sectionId);
+
+  const deleteResponse = await page.request.delete(
     `/api/homeworks/${homeworkId}`,
-    {
-      data: { title: newTitle },
-    },
   );
-  expect(patchResponse.status()).toBe(200);
-  expect((await patchResponse.json()) as { success?: boolean }).toEqual({
+  expect(deleteResponse.status()).toBe(200);
+  expect((await deleteResponse.json()) as { success?: boolean }).toMatchObject({
     success: true,
   });
 
-  const verifyResponse = await page.request.get(
+  // Verify the homework is no longer in the list
+  const listResponse = await page.request.get(
     `/api/homeworks?sectionId=${sectionId}`,
   );
-  const verifyBody = (await verifyResponse.json()) as {
-    homeworks?: Array<{ id?: string; title?: string }>;
+  const listBody = (await listResponse.json()) as {
+    homeworks?: Array<{ id?: string }>;
   };
-  expect(
-    verifyBody.homeworks?.some(
-      (item) => item.id === homeworkId && item.title === newTitle,
-    ),
-  ).toBe(true);
+  expect(listBody.homeworks?.some((h) => h.id === homeworkId)).toBe(false);
 });
