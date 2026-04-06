@@ -1,6 +1,5 @@
 "use client";
 
-import { Check, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Toggle, ToggleGroup } from "@/components/ui/toggle-group";
@@ -26,9 +25,8 @@ export function BusPreferenceInline({
   onSaved,
 }: BusPreferenceInlineProps) {
   const t = useTranslations("bus");
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>(
     preference?.favoriteCampusIds ?? [],
   );
@@ -39,7 +37,6 @@ export function BusPreferenceInline({
   const doSave = useCallback(
     (ids: number[]) => {
       setError(null);
-      setSaved(false);
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -85,10 +82,8 @@ export function BusPreferenceInline({
             return;
           }
 
-          setSaved(true);
           dirtyRef.current = false;
           onSaved?.(nextPreference);
-          setTimeout(() => setSaved(false), 1500);
         } catch (err) {
           if ((err as Error).name === "AbortError") return;
           setError(t("preferences.saveFailed"));
@@ -119,7 +114,6 @@ export function BusPreferenceInline({
           onValueChange={(vals) => {
             dirtyRef.current = true;
             setError(null);
-            setSaved(false);
             setSelectedIds(vals.map(Number));
           }}
         >
@@ -138,13 +132,6 @@ export function BusPreferenceInline({
             </Toggle>
           ))}
         </ToggleGroup>
-        {/* Status indicator */}
-        {isPending && (
-          <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted-foreground" />
-        )}
-        {saved && (
-          <Check className="h-3 w-3 shrink-0 text-emerald-600 dark:text-emerald-400" />
-        )}
       </div>
       {error && (
         <p className="text-destructive text-xs">

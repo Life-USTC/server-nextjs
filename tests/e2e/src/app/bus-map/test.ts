@@ -42,7 +42,7 @@ test.describe("bus transit map", () => {
     const circleCount = await circles.count();
     expect(circleCount).toBeGreaterThanOrEqual(6);
 
-    // Route curves rendered inside SVG (Bézier paths)
+    // Route polylines rendered inside SVG (metro-style parallel tracks)
     const paths = page.locator("svg >> path");
     await expect(paths.first()).toBeVisible();
     const pathCount = await paths.count();

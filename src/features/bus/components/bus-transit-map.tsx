@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import type {
+  BusMapActiveTrip,
   BusMapCampusNode,
   BusMapData,
   BusMapRouteEdge,
@@ -34,10 +35,19 @@ const SVG_W = 900;
 const SVG_H = 560;
 const PAD = 100;
 const NODE_R = 22;
-const TRIP_DOT_R = 7;
+const TRACK_SPACING = 7;
+const BUS_W = 16;
+const BUS_H = 10;
 const REFRESH_MS = 60_000;
 
 type Pos = { x: number; y: number };
+
+type TooltipData = {
+  svgX: number;
+  svgY: number;
+  lines: string[];
+  color: string;
+};
 
 /* ------------------------------------------------------------------ */
 /*  Layout helpers                                                     */
@@ -46,20 +56,16 @@ type Pos = { x: number; y: number };
 /**
  * Lay out campus nodes in SVG space.
  *
- * Steps:
- *   1. Use longitude → x, latitude → y (geographic convention).
- *   2. Normalize to viewport, maintaining aspect ratio.
- *   3. Push overlapping nodes apart (minimum distance = MIN_NODE_GAP).
+ * NOTE: In the DB, latitude/longitude fields are swapped for USTC campuses:
+ *   c.latitude  ≈ 117.x  (real longitude — east/west)
+ *   c.longitude ≈ 31.x   (real latitude  — north/south)
+ * So: realLon → x (east = right), realLat → y-flipped (north = up → lower y)
  */
 function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
   if (campuses.length === 0) return new Map();
 
-  // NOTE: In the DB, latitude/longitude fields are swapped for USTC campuses:
-  //   c.latitude  ≈ 117.x  (real longitude — east/west)
-  //   c.longitude ≈ 31.x   (real latitude  — north/south)
-  // So: realLon → x (east = right), realLat → y-flipped (north = up → lower y)
-  const realLons = campuses.map((c) => c.latitude); // actually longitude
-  const realLats = campuses.map((c) => c.longitude); // actually latitude
+  const realLons = campuses.map((c) => c.latitude);
+  const realLats = campuses.map((c) => c.longitude);
   const minLon = Math.min(...realLons);
   const maxLon = Math.max(...realLons);
   const minLat = Math.min(...realLats);
@@ -69,8 +75,6 @@ function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
 
   const usableW = SVG_W - 2 * PAD;
   const usableH = SVG_H - 2 * PAD;
-
-  // Maintain aspect ratio so the map isn't stretched
   const scaleX = usableW / rangeLon;
   const scaleY = usableH / rangeLat;
   const scale = Math.min(scaleX, scaleY);
@@ -80,12 +84,11 @@ function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
   const positions: { id: number; x: number; y: number }[] = campuses.map(
     (c) => ({
       id: c.id,
-      x: offsetX + (c.latitude - minLon) * scale, // realLon → x
-      y: offsetY + (maxLat - c.longitude) * scale, // realLat → y (flipped)
+      x: offsetX + (c.latitude - minLon) * scale,
+      y: offsetY + (maxLat - c.longitude) * scale,
     }),
   );
 
-  // Push overlapping nodes apart (iterative relaxation)
   const MIN_GAP = NODE_R * 4.5;
   for (let iter = 0; iter < 60; iter++) {
     let moved = false;
@@ -106,7 +109,6 @@ function layoutCampuses(campuses: BusMapCampusNode[]): Map<number, Pos> {
         }
       }
     }
-    // Clamp to viewport
     for (const p of positions) {
       p.x = Math.max(PAD, Math.min(SVG_W - PAD, p.x));
       p.y = Math.max(PAD, Math.min(SVG_H - PAD, p.y));
@@ -124,12 +126,11 @@ function segKey(a: number, b: number) {
   return a < b ? `${a}-${b}` : `${b}-${a}`;
 }
 
-/** Compute perpendicular offsets so parallel routes don't overlap.
- *  Offset scales with segment length — short segments get wider spread. */
-function computeOffsets(
-  routes: BusMapRouteEdge[],
-  positions: Map<number, Pos>,
-) {
+/**
+ * Compute perpendicular offsets for routes sharing segments.
+ * Uses fixed TRACK_SPACING for clean metro-style parallel lines.
+ */
+function computeOffsets(routes: BusMapRouteEdge[]) {
   const seg = new Map<string, number[]>();
   for (const r of routes) {
     for (let i = 0; i < r.stops.length - 1; i++) {
@@ -142,26 +143,101 @@ function computeOffsets(
   const result = new Map<string, Map<number, number>>();
   for (const [k, ids] of seg) {
     const m = new Map<number, number>();
-    const [aStr, bStr] = k.split("-");
-    const posA = positions.get(Number(aStr));
-    const posB = positions.get(Number(bStr));
-    const segLen =
-      posA && posB ? Math.hypot(posB.x - posA.x, posB.y - posA.y) : 200;
-    // Use 8% of segment length, clamped between 5px and 16px
-    const spacing = Math.max(5, Math.min(16, segLen * 0.08));
     for (let i = 0; i < ids.length; i++) {
-      m.set(ids[i], (i - (ids.length - 1) / 2) * spacing);
+      m.set(ids[i], (i - (ids.length - 1) / 2) * TRACK_SPACING);
     }
     result.set(k, m);
   }
   return result;
 }
 
-function perpOffset(from: Pos, to: Pos, offset: number): Pos {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
+/**
+ * Compute perpendicular offset using canonical (lower→higher ID) direction.
+ * This ensures all routes on the same segment offset consistently.
+ */
+function canonicalPerp(
+  campusA: number,
+  campusB: number,
+  routeId: number,
+  positions: Map<number, Pos>,
+  offsets: Map<string, Map<number, number>>,
+): Pos {
+  const k = segKey(campusA, campusB);
+  const off = offsets.get(k)?.get(routeId) ?? 0;
+  if (off === 0) return { x: 0, y: 0 };
+
+  const [lo, hi] = campusA < campusB ? [campusA, campusB] : [campusB, campusA];
+  const pLo = positions.get(lo);
+  const pHi = positions.get(hi);
+  if (!pLo || !pHi) return { x: 0, y: 0 };
+
+  const dx = pHi.x - pLo.x;
+  const dy = pHi.y - pLo.y;
   const len = Math.hypot(dx, dy) || 1;
-  return { x: (-dy / len) * offset, y: (dx / len) * offset };
+  return { x: (-dy / len) * off, y: (dx / len) * off };
+}
+
+/** Build offset polyline points for a route (metro-style parallel tracks) */
+function buildRoutePoints(
+  route: BusMapRouteEdge,
+  positions: Map<number, Pos>,
+  offsets: Map<string, Map<number, number>>,
+): Pos[] {
+  const pts: Pos[] = [];
+  const stops = route.stops;
+
+  for (let i = 0; i < stops.length; i++) {
+    const base = positions.get(stops[i].campusId);
+    if (!base) continue;
+
+    let off: Pos;
+    if (stops.length < 2) {
+      off = { x: 0, y: 0 };
+    } else if (i === 0) {
+      off = canonicalPerp(
+        stops[0].campusId,
+        stops[1].campusId,
+        route.routeId,
+        positions,
+        offsets,
+      );
+    } else if (i === stops.length - 1) {
+      off = canonicalPerp(
+        stops[i - 1].campusId,
+        stops[i].campusId,
+        route.routeId,
+        positions,
+        offsets,
+      );
+    } else {
+      // Intermediate: average incoming and outgoing offsets for smooth join
+      const a = canonicalPerp(
+        stops[i - 1].campusId,
+        stops[i].campusId,
+        route.routeId,
+        positions,
+        offsets,
+      );
+      const b = canonicalPerp(
+        stops[i].campusId,
+        stops[i + 1].campusId,
+        route.routeId,
+        positions,
+        offsets,
+      );
+      off = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+
+    pts.push({ x: base.x + off.x, y: base.y + off.y });
+  }
+  return pts;
+}
+
+function pointsToPath(pts: Pos[]): string {
+  if (pts.length < 2) return "";
+  return pts
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    .join(" ");
 }
 
 function lerp(a: Pos, b: Pos, t: number): Pos {
@@ -173,16 +249,92 @@ function routeColor(routeId: number, allIds: number[]): string {
   return ROUTE_PALETTE[idx >= 0 ? idx % ROUTE_PALETTE.length : 0];
 }
 
-/** Place label above or below campus node depending on position */
 function labelOffset(pos: Pos): { dy: number } {
   return pos.y < SVG_H / 2 ? { dy: NODE_R + 18 } : { dy: -(NODE_R + 8) };
 }
 
-/** Parse "HH:MM" to minutes since midnight */
 function hhmmToMin(t: string | null): number | null {
   if (!t) return null;
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
+}
+
+/** Compute bus icon position + rotation for an en-route trip */
+function computeBusTransform(
+  trip: BusMapActiveTrip,
+  route: BusMapRouteEdge,
+  positions: Map<number, Pos>,
+  offsets: Map<string, Map<number, number>>,
+): { x: number; y: number; angle: number } | null {
+  if (trip.fromStopOrder == null || trip.toStopOrder == null) return null;
+  const fromStop = route.stops[trip.fromStopOrder];
+  const toStop = route.stops[trip.toStopOrder];
+  if (!fromStop || !toStop) return null;
+
+  const from = positions.get(fromStop.campusId);
+  const to = positions.get(toStop.campusId);
+  if (!from || !to) return null;
+
+  const off = canonicalPerp(
+    fromStop.campusId,
+    toStop.campusId,
+    trip.routeId,
+    positions,
+    offsets,
+  );
+  const p1 = { x: from.x + off.x, y: from.y + off.y };
+  const p2 = { x: to.x + off.x, y: to.y + off.y };
+  // Clamp bus away from station boundaries
+  const t = Math.max(0.15, Math.min(0.85, trip.segmentProgress ?? 0.5));
+  const pos = lerp(p1, p2, t);
+  const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * (180 / Math.PI);
+
+  return { x: pos.x, y: pos.y, angle };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Bus SVG icon (inline)                                              */
+/* ------------------------------------------------------------------ */
+
+function BusIcon({ color, opacity = 1 }: { color: string; opacity?: number }) {
+  return (
+    <>
+      <rect
+        x={-BUS_W / 2}
+        y={-BUS_H / 2}
+        width={BUS_W}
+        height={BUS_H}
+        rx={2.5}
+        fill={color}
+        opacity={opacity}
+      />
+      {/* Windshield */}
+      <rect
+        x={BUS_W / 2 - 5.5}
+        y={-BUS_H / 2 + 2}
+        width={4}
+        height={BUS_H - 4}
+        rx={1}
+        fill="white"
+        opacity={0.85}
+      />
+      {/* Headlights */}
+      <circle
+        cx={BUS_W / 2 - 1}
+        cy={-BUS_H / 2 + 2}
+        r={1}
+        fill="white"
+        opacity={0.6}
+      />
+      <circle
+        cx={BUS_W / 2 - 1}
+        cy={BUS_H / 2 - 2}
+        r={1}
+        fill="white"
+        opacity={0.6}
+      />
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -194,6 +346,8 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
   const tBus = useTranslations("bus");
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  const [hoveredRoute, setHoveredRoute] = useState<number | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => router.refresh(), REFRESH_MS);
@@ -215,9 +369,23 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
     [data],
   );
   const offsets = useMemo(
-    () => (data ? computeOffsets(data.routes, positions) : new Map()),
-    [data, positions],
+    () => (data ? computeOffsets(data.routes) : new Map()),
+    [data],
   );
+  const routePaths = useMemo(() => {
+    if (!data) return new Map<number, { points: Pos[]; d: string }>();
+    const map = new Map<number, { points: Pos[]; d: string }>();
+    for (const route of data.routes) {
+      const points = buildRoutePoints(route, positions, offsets);
+      map.set(route.routeId, { points, d: pointsToPath(points) });
+    }
+    return map;
+  }, [data, positions, offsets]);
+
+  const activeRouteIds = useMemo(() => {
+    if (!data) return new Set<number>();
+    return new Set(data.activeTrips.map((tr) => tr.routeId));
+  }, [data]);
 
   /* ---- Empty state ---- */
   if (!data) {
@@ -240,12 +408,22 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
     const d = new Date(data.now);
     return d.getHours() * 60 + d.getMinutes();
   })();
-
   const totalTripsToday = data.routes.reduce(
     (s, r) =>
       s + (data.todayType === "weekday" ? r.weekdayTrips : r.weekendTrips),
     0,
   );
+
+  // Group departing-soon trips by campus for staggering
+  const depByCampus = new Map<number, typeof departingSoon>();
+  for (const trip of departingSoon) {
+    const route = data.routes.find((r) => r.routeId === trip.routeId);
+    if (!route || route.stops.length === 0) continue;
+    const cId = route.stops[0].campusId;
+    const list = depByCampus.get(cId) ?? [];
+    list.push(trip);
+    depByCampus.set(cId, list);
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:px-6">
@@ -286,142 +464,251 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
 
       {/* Map + Sidebar */}
       <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_280px]">
-        {/* SVG transit map */}
-        <div className="overflow-hidden rounded-xl border border-border/60 bg-card/80 shadow-sm">
+        {/* SVG transit map with tooltip overlay */}
+        <div className="relative overflow-hidden rounded-xl border border-border/60 bg-card/80 shadow-sm">
           <svg
             viewBox={`0 0 ${SVG_W} ${SVG_H}`}
             className="h-auto w-full"
             style={{ minHeight: 280 }}
+            onMouseLeave={() => {
+              setTooltip(null);
+              setHoveredRoute(null);
+            }}
           >
             <title>{t("title")}</title>
             <defs>
-              <filter id="trip-glow">
-                <feGaussianBlur stdDeviation="3" result="blur" />
+              <filter id="bus-glow">
+                <feGaussianBlur stdDeviation="2" result="blur" />
                 <feMerge>
                   <feMergeNode in="blur" />
                   <feMergeNode in="SourceGraphic" />
                 </feMerge>
               </filter>
+              <style>{`
+                @keyframes dash-march {
+                  to { stroke-dashoffset: -12; }
+                }
+              `}</style>
             </defs>
 
-            {/* Route lines — quadratic Bézier curves offset perpendicularly */}
+            {/* Background track-bed lines (wide, muted) */}
             {data.routes.map((route) => {
-              const color = routeColor(route.routeId, allRouteIds);
+              const pathData = routePaths.get(route.routeId);
+              if (!pathData?.d) return null;
               return (
-                <g key={route.routeId}>
-                  {route.stops.slice(0, -1).map((stop, i) => {
-                    const nextStop = route.stops[i + 1];
-                    const from = positions.get(stop.campusId);
-                    const to = positions.get(nextStop.campusId);
-                    if (!from || !to) return null;
-                    const k = segKey(stop.campusId, nextStop.campusId);
-                    const off = offsets.get(k)?.get(route.routeId) ?? 0;
-                    const p = perpOffset(from, to, off);
-                    // Quadratic Bézier: control point at midpoint + 2× offset
-                    const mid = lerp(from, to, 0.5);
-                    const cx = mid.x + p.x * 2;
-                    const cy = mid.y + p.y * 2;
-                    const sx = from.x + p.x;
-                    const sy = from.y + p.y;
-                    const ex = to.x + p.x;
-                    const ey = to.y + p.y;
-                    return (
-                      <path
-                        key={`${route.routeId}-${i}`}
-                        d={`M${sx},${sy} Q${cx},${cy} ${ex},${ey}`}
-                        stroke={color}
-                        strokeWidth={3}
-                        strokeLinecap="round"
-                        fill="none"
-                        opacity={0.7}
-                      />
-                    );
-                  })}
-                </g>
+                <path
+                  key={`bg-${route.routeId}`}
+                  d={pathData.d}
+                  stroke={routeColor(route.routeId, allRouteIds)}
+                  strokeWidth={10}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  opacity={hoveredRoute === route.routeId ? 0.2 : 0.06}
+                  style={{ transition: "opacity 0.2s" }}
+                />
               );
             })}
 
-            {/* En-route trip dots */}
+            {/* Main route polylines */}
+            {data.routes.map((route) => {
+              const pathData = routePaths.get(route.routeId);
+              if (!pathData?.d) return null;
+              const color = routeColor(route.routeId, allRouteIds);
+              const isActive = activeRouteIds.has(route.routeId);
+              const isHovered = hoveredRoute === route.routeId;
+              const trips =
+                data.todayType === "weekday"
+                  ? route.weekdayTrips
+                  : route.weekendTrips;
+
+              return (
+                // biome-ignore lint/a11y/noStaticElementInteractions: SVG path with hover interaction
+                <path
+                  key={`route-${route.routeId}`}
+                  d={pathData.d}
+                  stroke={color}
+                  strokeWidth={isHovered ? 4.5 : 3.5}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  fill="none"
+                  opacity={hoveredRoute != null && !isHovered ? 0.25 : 0.85}
+                  className="cursor-pointer"
+                  style={{
+                    transition: "opacity 0.2s, stroke-width 0.15s",
+                    ...(isActive
+                      ? {
+                          strokeDasharray: "8 4",
+                          animation: "dash-march 0.8s linear infinite",
+                        }
+                      : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    setHoveredRoute(route.routeId);
+                    const svg = (e.target as SVGElement).closest("svg");
+                    if (!svg) return;
+                    const pt = svg.createSVGPoint();
+                    pt.x = e.clientX;
+                    pt.y = e.clientY;
+                    const ctm = svg.getScreenCTM();
+                    if (!ctm) return;
+                    const svgPt = pt.matrixTransform(ctm.inverse());
+                    setTooltip({
+                      svgX: svgPt.x,
+                      svgY: svgPt.y - 14,
+                      lines: [
+                        route.descriptionPrimary,
+                        `${trips} trips (${data.todayType})`,
+                      ],
+                      color,
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredRoute(null);
+                    setTooltip(null);
+                  }}
+                />
+              );
+            })}
+
+            {/* En-route bus icons */}
             {enRoute.map((trip) => {
               const route = data.routes.find((r) => r.routeId === trip.routeId);
-              if (
-                !route ||
-                trip.fromStopOrder == null ||
-                trip.toStopOrder == null
-              )
-                return null;
-              const fromCampus = route.stops[trip.fromStopOrder];
-              const toCampus = route.stops[trip.toStopOrder];
-              if (!fromCampus || !toCampus) return null;
-              const from = positions.get(fromCampus.campusId);
-              const to = positions.get(toCampus.campusId);
-              if (!from || !to) return null;
-
-              const k = segKey(fromCampus.campusId, toCampus.campusId);
-              const off = offsets.get(k)?.get(trip.routeId) ?? 0;
-              const p = perpOffset(from, to, off);
-              const pos = lerp(
-                { x: from.x + p.x, y: from.y + p.y },
-                { x: to.x + p.x, y: to.y + p.y },
-                trip.segmentProgress ?? 0.5,
+              if (!route) return null;
+              const transform = computeBusTransform(
+                trip,
+                route,
+                positions,
+                offsets,
               );
+              if (!transform) return null;
               const color = routeColor(trip.routeId, allRouteIds);
 
               return (
-                <g key={`en-${trip.tripId}`} filter="url(#trip-glow)">
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={TRIP_DOT_R}
-                    fill={color}
-                    opacity={0.9}
-                  >
-                    <animate
-                      attributeName="r"
-                      values={`${TRIP_DOT_R};${TRIP_DOT_R + 2};${TRIP_DOT_R}`}
-                      dur="2s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                  <circle cx={pos.x} cy={pos.y} r={3} fill="white" />
+                // biome-ignore lint/a11y/noStaticElementInteractions: SVG group with hover interaction
+                <g
+                  key={`bus-${trip.tripId}`}
+                  transform={`translate(${transform.x.toFixed(1)},${transform.y.toFixed(1)}) rotate(${transform.angle.toFixed(1)})`}
+                  filter="url(#bus-glow)"
+                  className="cursor-pointer"
+                  onMouseEnter={() => {
+                    setHoveredRoute(trip.routeId);
+                    setTooltip({
+                      svgX: transform.x,
+                      svgY: transform.y - 20,
+                      lines: [
+                        route.descriptionPrimary,
+                        `${trip.departureTime} → ${trip.arrivalTime}`,
+                        t("status.enRoute"),
+                      ],
+                      color,
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredRoute(null);
+                    setTooltip(null);
+                  }}
+                >
+                  <BusIcon color={color} />
+                  <animateTransform
+                    attributeName="transform"
+                    type="translate"
+                    values="0,0; 0,-1.5; 0,0"
+                    dur="2s"
+                    repeatCount="indefinite"
+                    additive="sum"
+                  />
                 </g>
               );
             })}
 
-            {/* Departing-soon: pulsing ring at departure campus */}
+            {/* Departing-soon: bus at departure station with pulsing ring */}
             {departingSoon.map((trip) => {
               const route = data.routes.find((r) => r.routeId === trip.routeId);
               if (!route || route.stops.length === 0) return null;
-              const pos = positions.get(route.stops[0].campusId);
+              const campusId = route.stops[0].campusId;
+              const pos = positions.get(campusId);
               if (!pos) return null;
               const color = routeColor(trip.routeId, allRouteIds);
 
+              // Stagger multiple departing buses at same station
+              const siblings = depByCampus.get(campusId) ?? [];
+              const idx = siblings.indexOf(trip);
+              const total = siblings.length;
+              const spreadAngle = total > 1 ? (Math.PI * 0.6) / (total - 1) : 0;
+              const baseAngle = -Math.PI / 2 - (spreadAngle * (total - 1)) / 2;
+              const sAngle = baseAngle + idx * spreadAngle;
+              const staggerR = NODE_R + 14;
+              const bx = pos.x + Math.cos(sAngle) * staggerR;
+              const by = pos.y + Math.sin(sAngle) * staggerR;
+
+              // Point bus toward first destination
+              const nextStop = route.stops[1];
+              const nextPos = nextStop
+                ? positions.get(nextStop.campusId)
+                : null;
+              const busAngle = nextPos
+                ? Math.atan2(nextPos.y - pos.y, nextPos.x - pos.x) *
+                  (180 / Math.PI)
+                : 0;
+
+              const depMin = hhmmToMin(trip.departureTime);
+              const etaMin =
+                depMin != null ? Math.max(0, depMin - nowMin) : null;
+
               return (
-                <circle
-                  key={`dep-${trip.tripId}`}
-                  cx={pos.x}
-                  cy={pos.y}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={2}
-                >
-                  <animate
-                    attributeName="r"
-                    values={`${NODE_R + 4};${NODE_R + 14};${NODE_R + 4}`}
-                    dur="1.5s"
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    values="0.5;0.08;0.5"
-                    dur="1.5s"
-                    repeatCount="indefinite"
-                  />
-                </circle>
+                <g key={`dep-${trip.tripId}`}>
+                  <circle
+                    cx={bx}
+                    cy={by}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={1.5}
+                  >
+                    <animate
+                      attributeName="r"
+                      values={`${BUS_W / 2 + 2};${BUS_W / 2 + 12};${BUS_W / 2 + 2}`}
+                      dur="1.5s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.6;0.05;0.6"
+                      dur="1.5s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                  {/* biome-ignore lint/a11y/noStaticElementInteractions: SVG group with hover interaction */}
+                  <g
+                    transform={`translate(${bx.toFixed(1)},${by.toFixed(1)}) rotate(${busAngle.toFixed(1)})`}
+                    className="cursor-pointer"
+                    onMouseEnter={() => {
+                      setHoveredRoute(trip.routeId);
+                      setTooltip({
+                        svgX: bx,
+                        svgY: by - 20,
+                        lines: [
+                          route.descriptionPrimary,
+                          `${trip.departureTime} → ${trip.arrivalTime}`,
+                          etaMin != null
+                            ? t("status.departingSoon", { minutes: etaMin })
+                            : t("legend.departingSoon"),
+                        ],
+                        color,
+                      });
+                    }}
+                    onMouseLeave={() => {
+                      setHoveredRoute(null);
+                      setTooltip(null);
+                    }}
+                  >
+                    <BusIcon color={color} opacity={0.85} />
+                  </g>
+                </g>
               );
             })}
 
-            {/* Campus nodes */}
+            {/* Campus nodes (drawn on top of route lines) */}
             {data.campuses.map((campus) => {
               const pos = positions.get(campus.id);
               if (!pos) return null;
@@ -429,9 +716,30 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
               const routeCount = data.routes.filter((r) =>
                 r.stops.some((s) => s.campusId === campus.id),
               ).length;
+              const routeNames = data.routes
+                .filter((r) => r.stops.some((s) => s.campusId === campus.id))
+                .map((r) => r.descriptionPrimary);
 
               return (
-                <g key={campus.id}>
+                // biome-ignore lint/a11y/noStaticElementInteractions: SVG group with hover interaction
+                <g
+                  key={campus.id}
+                  className="cursor-pointer"
+                  onMouseEnter={() => {
+                    setTooltip({
+                      svgX: pos.x,
+                      svgY: pos.y - NODE_R - 8,
+                      lines: [
+                        campus.namePrimary,
+                        ...(campus.nameSecondary ? [campus.nameSecondary] : []),
+                        `${routeCount} route${routeCount !== 1 ? "s" : ""}`,
+                        ...routeNames,
+                      ],
+                      color: "currentColor",
+                    });
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                >
                   <circle
                     cx={pos.x}
                     cy={pos.y}
@@ -472,6 +780,40 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
               );
             })}
           </svg>
+
+          {/* Floating tooltip positioned over SVG */}
+          {tooltip && (
+            <div
+              className="-translate-x-1/2 -translate-y-full pointer-events-none absolute z-50 rounded-lg border bg-popover px-3 py-2 text-popover-foreground text-xs shadow-lg"
+              style={{
+                left: `${(tooltip.svgX / SVG_W) * 100}%`,
+                top: `${(tooltip.svgY / SVG_H) * 100}%`,
+              }}
+            >
+              <div className="flex items-start gap-2">
+                {tooltip.color !== "currentColor" && (
+                  <span
+                    className="mt-0.5 h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: tooltip.color }}
+                  />
+                )}
+                <div className="space-y-0.5">
+                  {tooltip.lines.map((line) => (
+                    <p
+                      key={line}
+                      className={cn(
+                        tooltip.lines.indexOf(line) === 0
+                          ? "font-medium"
+                          : "text-[10px] text-muted-foreground",
+                      )}
+                    >
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}
@@ -482,19 +824,30 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
               {t("legend.title")}
             </h3>
             <div className="space-y-1.5">
-              {data.routes.map((route) => (
-                <div key={route.routeId} className="flex items-center gap-2">
-                  <span
-                    className="h-2 w-6 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor: routeColor(route.routeId, allRouteIds),
-                    }}
-                  />
-                  <span className="truncate text-xs">
-                    {route.descriptionPrimary}
-                  </span>
-                </div>
-              ))}
+              {data.routes.map((route) => {
+                const color = routeColor(route.routeId, allRouteIds);
+                const isHovered = hoveredRoute === route.routeId;
+                return (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: legend item with hover interaction
+                  <div
+                    key={route.routeId}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-0.5 transition-colors",
+                      isHovered && "bg-accent",
+                    )}
+                    onMouseEnter={() => setHoveredRoute(route.routeId)}
+                    onMouseLeave={() => setHoveredRoute(null)}
+                  >
+                    <span
+                      className="h-2 w-6 shrink-0 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    <span className="truncate text-xs">
+                      {route.descriptionPrimary}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-4 space-y-1.5 border-border/40 border-t pt-3 text-muted-foreground text-xs">
               <div className="flex items-center gap-2">
@@ -541,9 +894,15 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
                       : t("status.enRoute");
 
                   return (
+                    // biome-ignore lint/a11y/noStaticElementInteractions: trip card with hover interaction
                     <div
                       key={trip.tripId}
-                      className="flex items-center gap-2 rounded-lg border border-border/30 bg-background/50 px-3 py-2"
+                      className={cn(
+                        "flex cursor-pointer items-center gap-2 rounded-lg border border-border/30 bg-background/50 px-3 py-2 transition-colors",
+                        hoveredRoute === trip.routeId && "bg-accent/50",
+                      )}
+                      onMouseEnter={() => setHoveredRoute(trip.routeId)}
+                      onMouseLeave={() => setHoveredRoute(null)}
                     >
                       <span
                         className="h-2 w-2 shrink-0 rounded-full"
