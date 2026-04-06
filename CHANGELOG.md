@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/Life-USTC/server-nextjs/compare/v1.13.0...v1.13.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* **docker:** bundle tools at build time for production image ([f4c9e7f](https://github.com/Life-USTC/server-nextjs/commit/f4c9e7f15fa1bf3df6dd28ed60e8d98344888f39))
+
 # [1.13.0](https://github.com/Life-USTC/server-nextjs/compare/v1.12.0...v1.13.0) (2026-04-06)
 
 
