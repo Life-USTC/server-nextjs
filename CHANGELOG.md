@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/Life-USTC/server-nextjs/compare/v1.12.0...v1.13.0) (2026-04-06)
+
+
+### Features
+
+* **bus:** metro-style transit map with bus icons, remove preference status icons ([9e9091d](https://github.com/Life-USTC/server-nextjs/commit/9e9091dd4c3a32ed2a854e90248af399714737aa))
+
 # [1.12.0](https://github.com/Life-USTC/server-nextjs/compare/v1.11.0...v1.12.0) (2026-04-05)
 
 
