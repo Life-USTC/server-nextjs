@@ -36,9 +36,8 @@
     "openapi:generate": "next-openapi-gen generate && bun run openapi:postprocess",
     "openapi:postprocess": "bun run tools/openapi-postprocess.ts",
     "openapi:types": "bunx openapi-typescript \"public/openapi.generated.json\" -o \"src/generated/openapi.ts\"",
-    "load:bus": "bun run tools/load-bus-from-static.ts",
-    "load:static": "bun run tools/load-from-static.ts",
-    "build:tools": "bun build tools/load-from-static.ts tools/load-bus-from-static.ts --target=bun --outdir=dist/tools --external '@prisma/*' --external pg",
+    "load:static": "bun dist/tools/load-from-static.js",
+    "build:tools": "bun build tools/load-from-static.ts --target=bun --outdir=dist/tools --external '@prisma/*' --external pg",
     "dev:seed-scenarios": "bun run tools/seed-dev-scenarios.ts",
     "dev:reset-scenarios": "bun run tools/reset-dev-scenarios.ts"
   },
