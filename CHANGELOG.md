@@ -1,3 +1,10 @@
+## [1.13.2](https://github.com/Life-USTC/server-nextjs/compare/v1.13.1...v1.13.2) (2026-04-09)
+
+
+### Bug Fixes
+
+* **time:** parse date-only strings as UTC midnight to prevent day-1 offset ([65cbc40](https://github.com/Life-USTC/server-nextjs/commit/65cbc401e1c7d8b797444ccffa73398420ea3c3f))
+
 ## [1.13.1](https://github.com/Life-USTC/server-nextjs/compare/v1.13.0...v1.13.1) (2026-04-06)
 
 
