@@ -18,9 +18,9 @@ describe("parseDateInput", () => {
     expect(parsed?.toISOString()).toBe("2026-03-26T04:00:00.000Z");
   });
 
-  test("interprets date-only string in Asia/Shanghai midnight", () => {
+  test("interprets date-only string as UTC midnight", () => {
     const parsed = parseDateInput("2026-03-26");
-    expect(parsed?.toISOString()).toBe("2026-03-25T16:00:00.000Z");
+    expect(parsed?.toISOString()).toBe("2026-03-26T00:00:00.000Z");
   });
 
   test("returns undefined for invalid input", () => {

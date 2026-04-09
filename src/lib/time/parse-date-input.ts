@@ -16,7 +16,9 @@ const EXPLICIT_TIMEZONE_PATTERN = /(Z|[+-]\d{2}:\d{2})$/i;
  * Parse date-like input into Date.
  * - `null`/`undefined`/empty string => `null`
  * - invalid string => `undefined`
- * - timezone-less strings are interpreted in `APP_TIME_ZONE`
+ * - date-only strings ("YYYY-MM-DD") are interpreted as UTC midnight
+ *   (preserves calendar date when stored in @db.Date columns)
+ * - timezone-less datetime strings are interpreted in `APP_TIME_ZONE`
  */
 export function parseDateInput(value: unknown): Date | null | undefined {
   if (value === null || value === undefined) return null;
@@ -31,8 +33,9 @@ export function parseDateInput(value: unknown): Date | null | undefined {
   const isDateTimeWithoutTimezone =
     !hasExplicitTimezone && DATE_TIME_WITHOUT_TZ_PATTERN.test(normalized);
 
-  const parsed =
-    isDateOnly || isDateTimeWithoutTimezone
+  const parsed = isDateOnly
+    ? dayjs.utc(normalized)
+    : isDateTimeWithoutTimezone
       ? dayjs.tz(normalized, APP_TIME_ZONE)
       : dayjs(normalized);
 
