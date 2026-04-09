@@ -2,6 +2,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return [];
+  return value as Record<string, unknown>[];
+}
+
+function compactUser(value: unknown) {
+  if (!isRecord(value)) return value;
+  return pick(value, ["id", "name", "username", "image"]);
+}
+
 function pick<T extends Record<string, unknown>, K extends keyof T>(
   value: T,
   keys: K[],
@@ -98,28 +108,13 @@ function compactHomework(value: unknown) {
   if (Object.hasOwn(value, "section"))
     out.section = compactSection(value.section);
   if (Object.hasOwn(value, "createdBy")) {
-    out.createdBy = pick(value.createdBy as Record<string, unknown>, [
-      "id",
-      "name",
-      "username",
-      "image",
-    ]);
+    out.createdBy = compactUser(value.createdBy);
   }
   if (Object.hasOwn(value, "updatedBy")) {
-    out.updatedBy = pick(value.updatedBy as Record<string, unknown>, [
-      "id",
-      "name",
-      "username",
-      "image",
-    ]);
+    out.updatedBy = compactUser(value.updatedBy);
   }
   if (Object.hasOwn(value, "deletedBy")) {
-    out.deletedBy = pick(value.deletedBy as Record<string, unknown>, [
-      "id",
-      "name",
-      "username",
-      "image",
-    ]);
+    out.deletedBy = compactUser(value.deletedBy);
   }
 
   return out;
@@ -157,10 +152,9 @@ function compactSchedule(value: unknown) {
     };
   }
   if (Object.hasOwn(value, "teachers") && Array.isArray(value.teachers)) {
-    out.teachers = (value.teachers as unknown[]).map((teacher) => {
-      if (!isRecord(teacher)) return teacher;
-      return pick(teacher, ["id", "jwId", "namePrimary", "nameSecondary"]);
-    });
+    out.teachers = asRecordArray(value.teachers).map((teacher) =>
+      pick(teacher, ["id", "jwId", "namePrimary", "nameSecondary"]),
+    );
   }
   return out;
 }
@@ -187,10 +181,9 @@ function compactExam(value: unknown) {
     ]);
   }
   if (Object.hasOwn(value, "examRooms") && Array.isArray(value.examRooms)) {
-    out.examRooms = (value.examRooms as unknown[]).map((room) => {
-      if (!isRecord(room)) return room;
-      return pick(room, ["id", "jwId", "roomName", "buildingName"]);
-    });
+    out.examRooms = asRecordArray(value.examRooms).map((room) =>
+      pick(room, ["id", "jwId", "roomName", "buildingName"]),
+    );
   }
   return out;
 }
