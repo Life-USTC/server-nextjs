@@ -12,6 +12,22 @@ const nextConfig: NextConfig = {
     webpackMemoryOptimizations: true,
     serverSourceMaps: false,
   },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     // Avoid 308 /api/mcp/ → /api/mcp (clients often drop Authorization on redirect).
     return [{ source: "/api/mcp/", destination: "/api/mcp" }];
