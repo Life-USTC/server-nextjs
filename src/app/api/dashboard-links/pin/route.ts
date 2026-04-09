@@ -125,11 +125,16 @@ export async function POST(request: Request) {
       error,
     });
 
-    const fallbackRows = await prisma.dashboardLinkPin.findMany({
-      where: { userId },
-      select: { slug: true },
-    });
-    pinnedSlugs = fallbackRows.map((row) => row.slug);
+    try {
+      const fallbackRows = await prisma.dashboardLinkPin.findMany({
+        where: { userId },
+        select: { slug: true },
+      });
+      pinnedSlugs = fallbackRows.map((row) => row.slug);
+    } catch (fallbackError) {
+      console.error("Fallback query also failed", { fallbackError });
+      pinnedSlugs = [];
+    }
   }
 
   if (wantsJson) {

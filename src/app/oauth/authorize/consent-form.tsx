@@ -38,9 +38,12 @@ export function OAuthConsentForm({
           scope: scopes.join(" "),
         }),
       });
-      const payload = (await response.json().catch(() => null)) as {
-        url?: string;
-      } | null;
+      let payload: { url?: string } | null = null;
+      try {
+        payload = await response.json();
+      } catch {
+        // Malformed JSON response — handled below via redirect
+      }
 
       const redirectUrl = payload?.url;
       if (!response.ok || !redirectUrl) {

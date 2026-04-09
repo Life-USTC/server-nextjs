@@ -463,15 +463,19 @@ const ensureDebugCredentialUser = async (providerId: string) => {
     });
   };
 
-  const user = await upsertDebugUserByIdentity().catch(async (error) => {
+  let user: { id: string };
+  try {
+    user = await upsertDebugUserByIdentity();
+  } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return upsertDebugUserByIdentity();
+      user = await upsertDebugUserByIdentity();
+    } else {
+      throw error;
     }
-    throw error;
-  });
+  }
 
   await prisma.account.upsert({
     where: {
