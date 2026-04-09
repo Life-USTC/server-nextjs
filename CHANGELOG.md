@@ -1,3 +1,17 @@
+# [1.15.0](https://github.com/Life-USTC/server-nextjs/compare/v1.14.0...v1.15.0) (2026-04-09)
+
+
+### Bug Fixes
+
+* **a11y:** add keyboard focus support to bus transit map legend ([8b0ae98](https://github.com/Life-USTC/server-nextjs/commit/8b0ae985bc2683a880f11a7bd264307e768c0460))
+* **error-handling:** improve error handling in auth, dashboard-links, and consent form ([4f73b6e](https://github.com/Life-USTC/server-nextjs/commit/4f73b6e352fb7a3fe3a532306aeae208a9dd70ff))
+
+
+### Features
+
+* **security:** add HTTP security headers, robots.txt, and sitemap.xml ([0b34b59](https://github.com/Life-USTC/server-nextjs/commit/0b34b59915ed107bc31bf89568ea4c211893e997))
+* **seo:** add Open Graph and Twitter Card meta tags ([cf32e6f](https://github.com/Life-USTC/server-nextjs/commit/cf32e6f428cc1b440cab065dc1bba341201be8b3))
+
 # [1.14.0](https://github.com/Life-USTC/server-nextjs/compare/v1.13.3...v1.14.0) (2026-04-09)
 
 
