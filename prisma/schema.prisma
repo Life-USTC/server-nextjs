@@ -580,6 +580,7 @@ model Homework {
   @@index([deletedAt])
   @@index([createdById])
   @@index([sectionId, deletedAt])
+  @@index([sectionId, submissionDueAt])
 }
 
 model HomeworkCompletion {
@@ -616,6 +617,7 @@ model HomeworkAuditLog {
   @@index([homeworkId])
   @@index([actorId])
   @@index([createdAt])
+  @@index([sectionId, createdAt])
 }
 
 model DescriptionEdit {
@@ -635,6 +637,7 @@ model DescriptionEdit {
   @@index([descriptionId])
   @@index([editorId])
   @@index([createdAt])
+  @@index([descriptionId, createdAt])
 }
 
 model SectionTeacher {
@@ -818,6 +821,7 @@ model Upload {
   commentAttachments CommentAttachment[]
 
   @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model Comment {
@@ -878,6 +882,8 @@ model Comment {
   @@index([sectionId, status])
   @@index([courseId, status])
   @@index([teacherId, status])
+  @@index([status, createdAt])
+  @@index([rootId, createdAt])
 }
 
 model CommentAttachment {
@@ -1059,6 +1065,7 @@ model Todo {
   @@index([userId])
   @@index([userId, completed])
   @@index([dueAt])
+  @@index([userId, completed, dueAt])
 }
 
 model BusCampus {
