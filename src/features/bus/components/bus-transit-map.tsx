@@ -828,15 +828,20 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
                 const color = routeColor(route.routeId, allRouteIds);
                 const isHovered = hoveredRoute === route.routeId;
                 return (
-                  // biome-ignore lint/a11y/noStaticElementInteractions: legend item with hover interaction
+                  // biome-ignore lint/a11y/useSemanticElements: informational highlight, not a semantic listitem
                   <div
                     key={route.routeId}
+                    role="listitem"
                     className={cn(
                       "flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-0.5 transition-colors",
                       isHovered && "bg-accent",
                     )}
+                    // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard focus for route highlighting
+                    tabIndex={0}
                     onMouseEnter={() => setHoveredRoute(route.routeId)}
                     onMouseLeave={() => setHoveredRoute(null)}
+                    onFocus={() => setHoveredRoute(route.routeId)}
+                    onBlur={() => setHoveredRoute(null)}
                   >
                     <span
                       className="h-2 w-6 shrink-0 rounded-full"
@@ -894,15 +899,20 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
                       : t("status.enRoute");
 
                   return (
-                    // biome-ignore lint/a11y/noStaticElementInteractions: trip card with hover interaction
+                    // biome-ignore lint/a11y/useSemanticElements: informational highlight, not a semantic listitem
                     <div
                       key={trip.tripId}
+                      role="listitem"
                       className={cn(
                         "flex cursor-pointer items-center gap-2 rounded-lg border border-border/30 bg-background/50 px-3 py-2 transition-colors",
                         hoveredRoute === trip.routeId && "bg-accent/50",
                       )}
+                      // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard focus for route highlighting
+                      tabIndex={0}
                       onMouseEnter={() => setHoveredRoute(trip.routeId)}
                       onMouseLeave={() => setHoveredRoute(null)}
+                      onFocus={() => setHoveredRoute(trip.routeId)}
+                      onBlur={() => setHoveredRoute(null)}
                     >
                       <span
                         className="h-2 w-2 shrink-0 rounded-full"
