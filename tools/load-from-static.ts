@@ -3,6 +3,7 @@ import "dotenv/config";
 import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { parseArgs } from "node:util";
 
 import { importBusStaticPayload } from "../src/features/bus/lib/bus-import";
 import type { BusStaticPayload } from "../src/features/bus/lib/bus-types";
@@ -12,6 +13,36 @@ import { loadExams } from "./load-exams";
 import { loadSchedules } from "./load-schedules";
 import { loadSections } from "./load-sections";
 import { loadSemesters } from "./load-semesters";
+
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
+
+const { values: args } = parseArgs({
+  options: {
+    "cache-dir": { type: "string", default: "./.cache/life-ustc/static" },
+    "min-semester": { type: "string", default: "401" },
+    "skip-courses": { type: "boolean", default: false },
+    "skip-bus": { type: "boolean", default: false },
+    help: { type: "boolean", short: "h", default: false },
+  },
+  strict: true,
+});
+
+if (args.help) {
+  console.log(`Usage: bun load-from-static.js [options]
+
+Options:
+  --cache-dir <path>      Git clone cache directory (default: .cache/life-ustc/static)
+  --min-semester <id>     Minimum semester jwId to import (default: 401)
+  --skip-courses          Skip course/exam/schedule import
+  --skip-bus              Skip bus data import
+  -h, --help              Show this help message`);
+  process.exit(0);
+}
+
+const cacheDir = args["cache-dir"] ?? "./.cache/life-ustc/static";
+const minSemesterJwId = Number.parseInt(args["min-semester"] ?? "401", 10);
 
 const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
 
@@ -223,17 +254,23 @@ async function loadBusData(repoDir: string) {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const cacheDir = process.argv[2] || "./.cache/life-ustc/static";
-  const minSemesterJwId = Number.parseInt(process.argv[3] || "401", 10);
-
   try {
     logger.info(`Starting data load (min semester code: ${minSemesterJwId})`);
     logger.info("Downloading static repo...");
     const repoDir = downloadStaticRepo(cacheDir);
     logger.info(`Static repo at: ${repoDir}`);
 
-    await loadCourseData(repoDir, minSemesterJwId);
-    await loadBusData(repoDir);
+    if (!args["skip-courses"]) {
+      await loadCourseData(repoDir, minSemesterJwId);
+    } else {
+      logger.info("Skipping course data (--skip-courses)");
+    }
+
+    if (!args["skip-bus"]) {
+      await loadBusData(repoDir);
+    } else {
+      logger.info("Skipping bus data (--skip-bus)");
+    }
 
     logger.info("All data load complete!");
   } catch (error: unknown) {
