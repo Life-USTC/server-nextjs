@@ -58,6 +58,9 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Run unit tests
+        run: bun run test
+
   test-e2e:
     name: E2E Test
     runs-on: ubuntu-latest
