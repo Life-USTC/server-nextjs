@@ -9,6 +9,7 @@ import {
   LogIn,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addSectionToSubscription,
@@ -40,33 +41,6 @@ interface SubscriptionCalendarButtonProps {
   sectionJwId: number;
   showCalendarButton?: boolean;
   showSubscribeButton?: boolean;
-  addToCalendarLabel: string;
-  sheetTitle: string;
-  sheetDescription: string;
-  calendarUrlLabel: string;
-  subscriptionUrlLabel: string;
-  copyLabel: string;
-  closeLabel: string;
-  learnMoreLabel: string;
-  subscribeLabel: string;
-  unsubscribeLabel: string;
-  subscriptionHintLabel: string;
-  copiedLabel: string;
-  subscribingLabel: string;
-  unsubscribingLabel: string;
-  pleaseWaitLabel: string;
-  subscribeSuccessLabel: string;
-  unsubscribeSuccessLabel: string;
-  subscribeSuccessDescriptionLabel: string;
-  unsubscribeSuccessDescriptionLabel: string;
-  operationFailedLabel: string;
-  pleaseRetryLabel: string;
-  viewAllSubscriptionsLabel: string;
-  loginRequiredLabel: string;
-  loginRequiredDescriptionLabel: string;
-  loginToSubscribeLabel: string;
-  subscriptionCalendarUrlAriaLabel: string;
-  singleSectionCalendarUrlAriaLabel: string;
 }
 
 export function SubscriptionCalendarButton({
@@ -74,34 +48,9 @@ export function SubscriptionCalendarButton({
   sectionJwId,
   showCalendarButton = true,
   showSubscribeButton = true,
-  addToCalendarLabel,
-  sheetTitle,
-  sheetDescription,
-  calendarUrlLabel,
-  subscriptionUrlLabel,
-  copyLabel,
-  closeLabel,
-  learnMoreLabel,
-  subscribeLabel,
-  unsubscribeLabel,
-  subscriptionHintLabel,
-  copiedLabel,
-  subscribingLabel,
-  unsubscribingLabel,
-  pleaseWaitLabel,
-  subscribeSuccessLabel,
-  unsubscribeSuccessLabel,
-  subscribeSuccessDescriptionLabel,
-  unsubscribeSuccessDescriptionLabel,
-  operationFailedLabel,
-  pleaseRetryLabel,
-  viewAllSubscriptionsLabel,
-  loginRequiredLabel,
-  loginRequiredDescriptionLabel,
-  loginToSubscribeLabel,
-  subscriptionCalendarUrlAriaLabel,
-  singleSectionCalendarUrlAriaLabel,
 }: SubscriptionCalendarButtonProps) {
+  const t = useTranslations("sectionDetail");
+  const tA11y = useTranslations("accessibility");
   const router = useRouter();
   const [subscriptionState, setSubscriptionState] =
     useState<SubscriptionState | null>(null);
@@ -125,7 +74,7 @@ export function SubscriptionCalendarButton({
             data: { tooltipStyle: true },
             positionerProps: { anchor: singleCopyButtonRef.current },
             timeout: toastTimeout,
-            title: copiedLabel,
+            title: t("copied"),
           });
         }
       },
@@ -140,7 +89,7 @@ export function SubscriptionCalendarButton({
             data: { tooltipStyle: true },
             positionerProps: { anchor: subscriptionCopyButtonRef.current },
             timeout: toastTimeout,
-            title: copiedLabel,
+            title: t("copied"),
           });
         }
       },
@@ -209,19 +158,19 @@ export function SubscriptionCalendarButton({
 
     toastManager.promise(promise, {
       loading: {
-        title: isSubscribed ? unsubscribingLabel : subscribingLabel,
-        description: pleaseWaitLabel,
+        title: isSubscribed ? t("unsubscribing") : t("subscribing"),
+        description: t("pleaseWait"),
       },
       success: (newState) => {
         setSubscriptionState(newState);
         setIsOperating(false);
         return {
-          title: isSubscribed ? unsubscribeSuccessLabel : subscribeSuccessLabel,
+          title: isSubscribed ? t("unsubscribeSuccess") : t("subscribeSuccess"),
           description: isSubscribed
-            ? unsubscribeSuccessDescriptionLabel
-            : subscribeSuccessDescriptionLabel,
+            ? t("unsubscribeSuccessDescription")
+            : t("subscribeSuccessDescription"),
           actionProps: {
-            children: viewAllSubscriptionsLabel,
+            children: t("viewAllSubscriptions"),
             onClick: () => {
               router.push("/?tab=subscriptions");
             },
@@ -231,9 +180,9 @@ export function SubscriptionCalendarButton({
       error: (error) => {
         setIsOperating(false);
         return {
-          title: operationFailedLabel,
+          title: t("operationFailed"),
           description:
-            error instanceof Error ? error.message : pleaseRetryLabel,
+            error instanceof Error ? error.message : t("pleaseRetry"),
         };
       },
     });
@@ -266,7 +215,9 @@ export function SubscriptionCalendarButton({
             onClick={handleSubscribeToggle}
             disabled={isOperating}
             variant={isSubscribed ? "default" : "outline"}
-            aria-label={isSubscribed ? unsubscribeLabel : subscribeLabel}
+            aria-label={
+              isSubscribed ? t("unsubscribeLabel") : t("subscribeLabel")
+            }
           >
             {isSubscribed ? (
               <BellOff className="h-5 w-5" />
@@ -277,25 +228,27 @@ export function SubscriptionCalendarButton({
         ) : (
           <Dialog>
             <DialogTrigger
-              render={<Button variant="outline" aria-label={subscribeLabel} />}
+              render={
+                <Button variant="outline" aria-label={t("subscribeLabel")} />
+              }
             >
               <Bell className="h-5 w-5" />
             </DialogTrigger>
             <DialogPopup>
               <DialogHeader>
-                <DialogTitle>{loginRequiredLabel}</DialogTitle>
+                <DialogTitle>{t("loginRequired")}</DialogTitle>
                 <DialogDescription>
-                  {loginRequiredDescriptionLabel}
+                  {t("loginRequiredDescription")}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
                 <DialogClose render={<Button variant="outline" />}>
-                  {closeLabel}
+                  {t("close")}
                 </DialogClose>
                 <Link href="/signin">
                   <Button>
                     <LogIn className="mr-2 h-4 w-4" />
-                    {loginToSubscribeLabel}
+                    {t("loginToSubscribe")}
                   </Button>
                 </Link>
               </DialogFooter>
@@ -308,23 +261,23 @@ export function SubscriptionCalendarButton({
         <Dialog>
           <DialogTrigger
             render={
-              <Button variant="outline" aria-label={addToCalendarLabel} />
+              <Button variant="outline" aria-label={t("addToCalendar")} />
             }
           >
             <Calendar className="h-5 w-5" />
           </DialogTrigger>
           <DialogPopup>
             <DialogHeader>
-              <DialogTitle>{sheetTitle}</DialogTitle>
+              <DialogTitle>{t("calendarSheetTitle")}</DialogTitle>
               <DialogDescription>
-                {sheetDescription}{" "}
+                {t("calendarSheetDescription")}{" "}
                 <a
                   href="https://en.wikipedia.org/wiki/ICalendar"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-primary hover:underline"
                 >
-                  {learnMoreLabel}
+                  {t("learnMoreAboutICalendar")}
                 </a>
               </DialogDescription>
             </DialogHeader>
@@ -338,21 +291,21 @@ export function SubscriptionCalendarButton({
                       htmlFor="subscription-url"
                       className="block font-medium text-small"
                     >
-                      {subscriptionUrlLabel}
+                      {t("subscriptionUrlLabel")}
                     </label>
                     <p className="text-muted-foreground text-small">
-                      {subscriptionHintLabel}{" "}
+                      {t("subscriptionHintLabel")}{" "}
                       <Link
                         href="/?tab=subscriptions"
                         className="text-primary hover:underline"
                       >
-                        {viewAllSubscriptionsLabel} →
+                        {t("viewAllSubscriptions")} →
                       </Link>
                     </p>
                     <div className="flex items-center gap-2">
                       <Input
                         id="subscription-url"
-                        aria-label={subscriptionCalendarUrlAriaLabel}
+                        aria-label={tA11y("subscriptionCalendarUrl")}
                         disabled
                         placeholder={fullSubscriptionUrl}
                         type="url"
@@ -361,7 +314,7 @@ export function SubscriptionCalendarButton({
                         <TooltipTrigger
                           render={
                             <Button
-                              aria-label={copyLabel}
+                              aria-label={t("copyToClipboard")}
                               disabled={
                                 isSubscriptionCopied || !canCopySubscription
                               }
@@ -379,7 +332,7 @@ export function SubscriptionCalendarButton({
                           )}
                         </TooltipTrigger>
                         <TooltipPopup>
-                          <p>{copyLabel}</p>
+                          <p>{t("copyToClipboard")}</p>
                         </TooltipPopup>
                       </Tooltip>
                     </div>
@@ -392,12 +345,12 @@ export function SubscriptionCalendarButton({
                     htmlFor="calendar-url"
                     className="block font-medium text-small"
                   >
-                    {calendarUrlLabel}
+                    {t("calendarUrlLabel")}
                   </label>
                   <div className="flex items-center gap-2">
                     <Input
                       id="calendar-url"
-                      aria-label={singleSectionCalendarUrlAriaLabel}
+                      aria-label={tA11y("singleSectionCalendarUrl")}
                       disabled
                       placeholder={singleCalendarUrl}
                       type="url"
@@ -406,7 +359,7 @@ export function SubscriptionCalendarButton({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={copyLabel}
+                            aria-label={t("copyToClipboard")}
                             disabled={isSingleCopied || !canCopySingle}
                             onClick={handleCopySingle}
                             ref={singleCopyButtonRef}
@@ -422,7 +375,7 @@ export function SubscriptionCalendarButton({
                         )}
                       </TooltipTrigger>
                       <TooltipPopup>
-                        <p>{copyLabel}</p>
+                        <p>{t("copyToClipboard")}</p>
                       </TooltipPopup>
                     </Tooltip>
                   </div>
@@ -432,7 +385,7 @@ export function SubscriptionCalendarButton({
 
             <DialogFooter>
               <DialogClose render={<Button variant="outline" />}>
-                {closeLabel}
+                {t("close")}
               </DialogClose>
             </DialogFooter>
           </DialogPopup>

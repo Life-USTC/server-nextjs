@@ -8,17 +8,8 @@ import {
   PageMeta,
   PageSection,
 } from "@/components/page-layout";
+import { PaginationNav } from "@/components/pagination-nav";
 import { Badge } from "@/components/ui/badge";
-
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import {
   Table,
   TableBody,
@@ -29,7 +20,6 @@ import {
 } from "@/components/ui/table";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import { getPaginationTokens } from "@/lib/navigation/pagination";
 import { buildSearchParams } from "@/lib/navigation/search-params";
 import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
@@ -360,12 +350,6 @@ export default async function SectionsPage({
     return query ? `/sections?${query}` : "/sections";
   };
 
-  const pageTokens = getPaginationTokens({
-    currentPage,
-    totalPages,
-    maxVisible: 5,
-  });
-
   return (
     <PageLayout
       title={t("title")}
@@ -473,38 +457,11 @@ export default async function SectionsPage({
         </DataState>
       </PageSection>
 
-      {totalPages > 1 ? (
-        <Pagination>
-          <PaginationContent>
-            {currentPage > 1 ? (
-              <PaginationItem>
-                <PaginationPrevious href={buildUrl(currentPage - 1)} />
-              </PaginationItem>
-            ) : null}
-            {pageTokens.map((pageNum, index) => (
-              <PaginationItem
-                key={pageNum === "ellipsis" ? `ellipsis-${index}` : pageNum}
-              >
-                {pageNum === "ellipsis" ? (
-                  <PaginationEllipsis />
-                ) : (
-                  <PaginationLink
-                    href={buildUrl(pageNum)}
-                    isActive={currentPage === pageNum}
-                  >
-                    {pageNum}
-                  </PaginationLink>
-                )}
-              </PaginationItem>
-            ))}
-            {currentPage < totalPages ? (
-              <PaginationItem>
-                <PaginationNext href={buildUrl(currentPage + 1)} />
-              </PaginationItem>
-            ) : null}
-          </PaginationContent>
-        </Pagination>
-      ) : null}
+      <PaginationNav
+        currentPage={currentPage}
+        totalPages={totalPages}
+        buildUrl={buildUrl}
+      />
     </PageLayout>
   );
 }

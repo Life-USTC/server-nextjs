@@ -4,9 +4,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
+import {
+  CommentsSkeleton,
+  DescriptionSkeleton,
+  HomeworkSkeleton,
+} from "@/components/skeletons";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,13 +28,12 @@ import {
   CollapsiblePanel,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Skeleton } from "@/components/ui/skeleton";
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { CommentAwareTabs } from "@/features/comments/components/comment-aware-tabs";
 import { CommentsSection } from "@/features/comments/components/comments-section";
 import { getViewerContext } from "@/features/comments/server/comment-utils";
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
-import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
+import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
 import { HomeworkPanel } from "@/features/homeworks/components/homework-panel";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
@@ -176,7 +179,6 @@ export default async function SectionPage({
     otherSections,
     t,
     tCommon,
-    tA11y,
     tComments,
     ,
     sectionTeacherIds,
@@ -197,7 +199,6 @@ export default async function SectionPage({
     fetchOtherSections(prisma, section),
     getTranslations("sectionDetail"),
     getTranslations("common"),
-    getTranslations("accessibility"),
     getTranslations("comments"),
     getViewerContext({ includeAdmin: false }),
     basePrisma.sectionTeacher.findMany({
@@ -439,8 +440,6 @@ export default async function SectionPage({
             courseNameSecondary={section.course.nameSecondary}
             sectionId={section.id}
             sectionJwId={section.jwId}
-            t={t}
-            tA11y={tA11y}
           />
 
           <CommentAwareTabs
@@ -503,43 +502,6 @@ export default async function SectionPage({
                         sectionDatabaseId={section.id}
                         sectionJwId={section.jwId}
                         showSubscribeButton={false}
-                        addToCalendarLabel={t("addToCalendar")}
-                        sheetTitle={t("calendarSheetTitle")}
-                        sheetDescription={t("calendarSheetDescription")}
-                        calendarUrlLabel={t("calendarUrlLabel")}
-                        subscriptionUrlLabel={t("subscriptionUrlLabel")}
-                        subscriptionHintLabel={t("subscriptionHintLabel")}
-                        subscribeLabel={t("subscribeLabel")}
-                        unsubscribeLabel={t("unsubscribeLabel")}
-                        copyLabel={t("copyToClipboard")}
-                        closeLabel={t("close")}
-                        learnMoreLabel={t("learnMoreAboutICalendar")}
-                        copiedLabel={t("copied")}
-                        subscribingLabel={t("subscribing")}
-                        unsubscribingLabel={t("unsubscribing")}
-                        pleaseWaitLabel={t("pleaseWait")}
-                        subscribeSuccessLabel={t("subscribeSuccess")}
-                        unsubscribeSuccessLabel={t("unsubscribeSuccess")}
-                        subscribeSuccessDescriptionLabel={t(
-                          "subscribeSuccessDescription",
-                        )}
-                        unsubscribeSuccessDescriptionLabel={t(
-                          "unsubscribeSuccessDescription",
-                        )}
-                        operationFailedLabel={t("operationFailed")}
-                        pleaseRetryLabel={t("pleaseRetry")}
-                        viewAllSubscriptionsLabel={t("viewAllSubscriptions")}
-                        loginRequiredLabel={t("loginRequired")}
-                        loginRequiredDescriptionLabel={t(
-                          "loginRequiredDescription",
-                        )}
-                        loginToSubscribeLabel={t("loginToSubscribe")}
-                        subscriptionCalendarUrlAriaLabel={tA11y(
-                          "subscriptionCalendarUrl",
-                        )}
-                        singleSectionCalendarUrlAriaLabel={tA11y(
-                          "singleSectionCalendarUrl",
-                        )}
                       />
                       <Button
                         render={
@@ -595,40 +557,6 @@ export default async function SectionPage({
         </aside>
       </div>
     </main>
-  );
-}
-
-// --- Suspense Skeleton Fallbacks ---
-
-function HomeworkSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-28 w-full" />
-      <Skeleton className="h-28 w-full" />
-      <Skeleton className="h-28 w-full" />
-    </div>
-  );
-}
-
-function CommentsSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-24 w-full" />
-      <Skeleton className="h-24 w-full" />
-    </div>
-  );
-}
-
-function DescriptionSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-6 w-2/3" />
-      </CardHeader>
-      <CardPanel>
-        <Skeleton className="h-20 w-full" />
-      </CardPanel>
-    </Card>
   );
 }
 
@@ -826,29 +754,6 @@ async function HomeworkLoader({
   );
 }
 
-async function DescriptionLoader({
-  targetType,
-  targetId,
-}: {
-  targetType: "section" | "course" | "teacher" | "homework";
-  targetId: number | string;
-}) {
-  const viewer = await getViewerContext({ includeAdmin: false });
-  const descriptionData = await getDescriptionPayload(
-    targetType,
-    targetId,
-    viewer,
-  );
-
-  return (
-    <DescriptionPanel
-      targetType={targetType}
-      targetId={targetId}
-      initialData={descriptionData}
-    />
-  );
-}
-
 // --- Presentational Sub-Components ---
 
 type SectionBreadcrumbProps = {
@@ -887,8 +792,6 @@ type SectionHeaderProps = {
   courseNameSecondary: string | null;
   sectionId: number;
   sectionJwId: number;
-  t: (key: string, params?: Record<string, string | number | Date>) => string;
-  tA11y: (key: string) => string;
 };
 
 function SectionHeader({
@@ -896,8 +799,6 @@ function SectionHeader({
   courseNameSecondary,
   sectionId,
   sectionJwId,
-  t,
-  tA11y,
 }: SectionHeaderProps) {
   return (
     <div className="mt-2">
@@ -914,35 +815,6 @@ function SectionHeader({
           sectionDatabaseId={sectionId}
           sectionJwId={sectionJwId}
           showCalendarButton={false}
-          addToCalendarLabel={t("addToCalendar")}
-          sheetTitle={t("calendarSheetTitle")}
-          sheetDescription={t("calendarSheetDescription")}
-          calendarUrlLabel={t("calendarUrlLabel")}
-          subscriptionUrlLabel={t("subscriptionUrlLabel")}
-          subscriptionHintLabel={t("subscriptionHintLabel")}
-          subscribeLabel={t("subscribeLabel")}
-          unsubscribeLabel={t("unsubscribeLabel")}
-          copyLabel={t("copyToClipboard")}
-          closeLabel={t("close")}
-          learnMoreLabel={t("learnMoreAboutICalendar")}
-          copiedLabel={t("copied")}
-          subscribingLabel={t("subscribing")}
-          unsubscribingLabel={t("unsubscribing")}
-          pleaseWaitLabel={t("pleaseWait")}
-          subscribeSuccessLabel={t("subscribeSuccess")}
-          unsubscribeSuccessLabel={t("unsubscribeSuccess")}
-          subscribeSuccessDescriptionLabel={t("subscribeSuccessDescription")}
-          unsubscribeSuccessDescriptionLabel={t(
-            "unsubscribeSuccessDescription",
-          )}
-          operationFailedLabel={t("operationFailed")}
-          pleaseRetryLabel={t("pleaseRetry")}
-          viewAllSubscriptionsLabel={t("viewAllSubscriptions")}
-          loginRequiredLabel={t("loginRequired")}
-          loginRequiredDescriptionLabel={t("loginRequiredDescription")}
-          loginToSubscribeLabel={t("loginToSubscribe")}
-          subscriptionCalendarUrlAriaLabel={tA11y("subscriptionCalendarUrl")}
-          singleSectionCalendarUrlAriaLabel={tA11y("singleSectionCalendarUrl")}
         />
       </div>
     </div>

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ClickableTableRow } from "@/components/clickable-table-row";
-import { DescriptionPanel } from "@/components/descriptions/description-panel";
+import { CommentsSkeleton, DescriptionSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
@@ -21,7 +21,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Empty, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -35,7 +34,7 @@ import { CommentAwareTabs } from "@/features/comments/components/comment-aware-t
 import { CommentsSection } from "@/features/comments/components/comments-section";
 import { getViewerContext } from "@/features/comments/server/comment-utils";
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
-import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
+import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 
 export async function generateMetadata({
@@ -316,30 +315,6 @@ export default async function CoursePage({
   );
 }
 
-// --- Suspense Skeleton Fallbacks ---
-
-function CommentsSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-24 w-full" />
-      <Skeleton className="h-24 w-full" />
-    </div>
-  );
-}
-
-function DescriptionSkeleton() {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-6 w-2/3" />
-      </CardHeader>
-      <CardPanel>
-        <Skeleton className="h-20 w-full" />
-      </CardPanel>
-    </Card>
-  );
-}
-
 // --- Async Server Component Loaders (streamed via Suspense) ---
 
 async function CourseCommentsLoader({
@@ -373,29 +348,6 @@ async function CourseCommentsLoader({
         },
       ]}
       initialData={commentsInitialData}
-    />
-  );
-}
-
-async function DescriptionLoader({
-  targetType,
-  targetId,
-}: {
-  targetType: "section" | "course" | "teacher" | "homework";
-  targetId: number | string;
-}) {
-  const viewer = await getViewerContext({ includeAdmin: false });
-  const descriptionData = await getDescriptionPayload(
-    targetType,
-    targetId,
-    viewer,
-  );
-
-  return (
-    <DescriptionPanel
-      targetType={targetType}
-      targetId={targetId}
-      initialData={descriptionData}
     />
   );
 }
