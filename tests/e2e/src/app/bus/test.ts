@@ -110,7 +110,6 @@ test.describe("bus dashboard tab", () => {
       name: /Show departed|显示已发车/i,
     });
     await departedToggle.click();
-    await page.waitForTimeout(500);
 
     // Trip schedule table should have station name headers
     const table = page.locator("table").first();
@@ -161,7 +160,6 @@ test.describe("bus dashboard tab", () => {
       name: /Show departed|显示已发车/i,
     });
     await departedToggle.click();
-    await page.waitForTimeout(500);
 
     const table = page.locator("table").first();
     await expect(table).toBeVisible();
@@ -187,7 +185,6 @@ test.describe("bus dashboard tab", () => {
       name: /Show departed|显示已发车/i,
     });
     await departedToggle.click();
-    await page.waitForTimeout(500);
 
     // Route heading and total trips badge should be visible
     const heading = page.locator("h3").first();
@@ -265,8 +262,6 @@ test.describe("bus dashboard tab", () => {
     // Route 3 has 南区 as final stop, so it should be EXCLUDED
     // Actually — 南区 is the terminal stop of route 3. So filtering by 南区
     // should exclude route 3. Let's verify.
-    // Wait for sidebar to settle
-    await page.waitForTimeout(500);
   });
 
   test("campus filter for 高新 shows only route 8", async ({ page }) => {
@@ -336,7 +331,6 @@ test.describe("bus dashboard tab", () => {
 
     // Click to enable — table should appear with all trips
     await departedToggle.click();
-    await page.waitForTimeout(500);
 
     const table = page.locator("table").first();
     await expect(table).toBeVisible();
@@ -345,7 +339,6 @@ test.describe("bus dashboard tab", () => {
 
     // Click again to toggle off — table may disappear if all trips departed
     await departedToggle.click();
-    await page.waitForTimeout(500);
 
     await captureStepScreenshot(page, testInfo, "bus-departed-toggle");
   });
@@ -362,7 +355,6 @@ test.describe("bus dashboard tab", () => {
       name: /Show departed trips|显示已发车/,
     });
     await showDepartedBtn.click();
-    await page.waitForTimeout(500);
 
     const table = page.locator("table").first();
     await expect(table).toBeVisible();
@@ -377,12 +369,10 @@ test.describe("bus dashboard tab", () => {
 
     // Click weekend to switch
     await weekendBtn.click();
-    await page.waitForTimeout(500);
     await expect(table).toBeVisible();
 
     // Click back to weekday
     await weekdayBtn.click();
-    await page.waitForTimeout(500);
     await expect(table).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "bus-daytype-toggle");
@@ -458,10 +448,17 @@ test.describe("bus dashboard tab", () => {
 
     // Click 西区 toggle to add to favorites
     const westToggle = toggleGroup.getByRole("button", { name: "西区" });
-    await westToggle.click();
 
-    // Wait for auto-save to complete (debounced ~800ms + network)
-    await page.waitForTimeout(2000);
+    // Wait for the debounced auto-save POST to complete after clicking
+    const [saveResponse] = await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/bus/preferences") &&
+          r.request().method() === "POST",
+      ),
+      westToggle.click(),
+    ]);
+    expect(saveResponse.ok()).toBe(true);
 
     // 西区 should now be pressed
     await expect(westToggle).toHaveAttribute("aria-pressed", "true");
