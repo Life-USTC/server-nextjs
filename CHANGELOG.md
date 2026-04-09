@@ -1,3 +1,10 @@
+## [1.13.3](https://github.com/Life-USTC/server-nextjs/compare/v1.13.2...v1.13.3) (2026-04-09)
+
+
+### Bug Fixes
+
+* **test:** replace waitForTimeout with proper Playwright waits in bus E2E ([d6f52b5](https://github.com/Life-USTC/server-nextjs/commit/d6f52b535f34bc5232b60645e4b8b1c36452de3d))
+
 ## [1.13.2](https://github.com/Life-USTC/server-nextjs/compare/v1.13.1...v1.13.2) (2026-04-09)
 
 
