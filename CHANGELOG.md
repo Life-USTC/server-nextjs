@@ -1,3 +1,20 @@
+# [1.14.0](https://github.com/Life-USTC/server-nextjs/compare/v1.13.3...v1.14.0) (2026-04-09)
+
+
+### Bug Fixes
+
+* **i18n:** remove orphaned keys and align en-us/zh-cn ([5aed8f5](https://github.com/Life-USTC/server-nextjs/commit/5aed8f5746ae26401bb11df8162e2a188af140ca))
+
+
+### Features
+
+* **ux:** add loading and error states for key routes ([0a5e7a0](https://github.com/Life-USTC/server-nextjs/commit/0a5e7a049e577c7020afdd0d883651d1367ab01b))
+
+
+### Performance Improvements
+
+* **db:** add composite indexes for common query patterns ([04e4571](https://github.com/Life-USTC/server-nextjs/commit/04e457120af08bea0b7f42af9a5a66513226dd2c))
+
 ## [1.13.3](https://github.com/Life-USTC/server-nextjs/compare/v1.13.2...v1.13.3) (2026-04-09)
 
 
