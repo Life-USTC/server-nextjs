@@ -245,10 +245,6 @@
         "title": "浏览教师",
         "description": "查看教师信息及其授课班级"
       },
-      "bus": {
-        "title": "校车",
-        "description": "公开查询校车时刻并按偏好推荐路线"
-      },
       "admin": {
         "title": "管理入口",
         "description": "访问后台管理与内容审核"
@@ -536,12 +532,6 @@
     "dashboardTitle": "校车出行",
     "dashboardDescription": "根据当前时间和你常用的校区，优先展示最值得看的路线。",
     "publicEntry": "公开校车查询",
-    "summary": {
-      "title": "出行摘要",
-      "matchingRoutes": "匹配路线",
-      "nextDeparture": "最近发车",
-      "currentMode": "当前模式"
-    },
     "dayType": {
       "weekday": "工作日",
       "weekend": "周末",
@@ -621,7 +611,6 @@
     "upcomingTrips": "后续班次",
     "passThrough": "经停",
     "departed": "已发车",
-    "noTime": "时间待定",
     "allRoutesLabel": "全部路线",
     "noMoreBusToday": "今日无后续班次",
     "tableStatusHeader": "状态",

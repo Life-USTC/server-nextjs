@@ -19,7 +19,6 @@
       "subscriptions": "Selected Sections",
       "uploads": "My Uploads",
       "homeworks": "My Homework",
-      "bus": "Shuttle Bus",
       "busMap": "Transit Map",
       "apiDocs": "API Docs",
       "welcome": "Complete Your Profile",
@@ -245,10 +244,6 @@
       "browseTeachers": {
         "title": "Browse Teachers",
         "description": "View teacher information and their teaching sections"
-      },
-      "busTimetable": {
-        "title": "Shuttle Bus",
-        "description": "Check the next campus shuttle and keep route preferences."
       },
       "admin": {
         "title": "Admin",
@@ -537,11 +532,6 @@
     "dashboardTitle": "Campus shuttle",
     "dashboardDescription": "Prioritize the most relevant routes based on the current time and your usual campuses.",
     "publicEntry": "Public shuttle query",
-    "stats": {
-      "matches": "{count} matching routes",
-      "upcomingTrips": "{count} upcoming trips",
-      "currentDayType": "{dayType} timetable"
-    },
     "dayType": {
       "weekday": "Weekday",
       "weekend": "Weekend",
@@ -621,13 +611,10 @@
     "upcomingTrips": "Upcoming trips",
     "passThrough": "Pass through",
     "departed": "Departed",
-    "totalTrips": "{count} total trips",
-    "upcomingCount": "{count} upcoming",
     "allRoutesLabel": "All routes",
     "noMoreBusToday": "No more trips today",
     "tableStatusHeader": "Status",
     "switchVersionHint": "Try another timetable version or show departed trips.",
-    "moreTrips": "{count} more trips",
     "transitMap": "Transit map"
   },
   "busMap": {
