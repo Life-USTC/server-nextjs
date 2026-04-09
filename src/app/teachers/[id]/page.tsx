@@ -65,6 +65,10 @@ export async function generateMetadata({
     title: t("pages.teacherDetail", {
       name: teacherName,
     }),
+    description: teacherName,
+    openGraph: {
+      title: teacherName,
+    },
   };
 }
 

@@ -39,6 +39,15 @@ export async function generateMetadata(): Promise<Metadata> {
       template: t("titleTemplate"),
     },
     description: t("description"),
+    openGraph: {
+      type: "website",
+      siteName: t("title"),
+      locale: "zh_CN",
+      alternateLocale: "en_US",
+    },
+    twitter: {
+      card: "summary",
+    },
   };
 }
 

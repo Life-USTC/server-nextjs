@@ -149,6 +149,10 @@ export async function generateMetadata({
       name: displayName,
       code: section.code,
     }),
+    description: `${displayName} (${section.code})`,
+    openGraph: {
+      title: `${displayName} — ${section.code}`,
+    },
   };
 }
 

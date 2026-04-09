@@ -71,6 +71,10 @@ export async function generateMetadata({
     title: t("pages.courseDetail", {
       name: displayName,
     }),
+    description: `${displayName} (${course.code})`,
+    openGraph: {
+      title: displayName,
+    },
   };
 }
 
