@@ -10,3 +10,14 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET}
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
