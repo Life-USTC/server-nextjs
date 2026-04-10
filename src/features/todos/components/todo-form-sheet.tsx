@@ -61,6 +61,7 @@ export function TodoFormSheet({
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState(todo?.title ?? "");
+  const [titleError, setTitleError] = useState("");
   const [content, setContent] = useState(todo?.content ?? "");
   const [priority, setPriority] = useState<"low" | "medium" | "high">(
     todo?.priority ?? "medium",
@@ -70,6 +71,7 @@ export function TodoFormSheet({
   useEffect(() => {
     if (open) {
       setTitle(todo?.title ?? "");
+      setTitleError("");
       setContent(todo?.content ?? "");
       setPriority(todo?.priority ?? "medium");
       setDueAt(toShanghaiDateTimeLocalValue(todo?.dueAt));
@@ -79,13 +81,14 @@ export function TodoFormSheet({
   const handleSave = async () => {
     const normalizedTitle = title.trim();
     if (!normalizedTitle) {
-      toast({ title: t("errorTitleRequired"), variant: "destructive" });
+      setTitleError(t("errorTitleRequired"));
       return;
     }
     if (normalizedTitle.length > 200) {
-      toast({ title: t("errorTitleTooLong"), variant: "destructive" });
+      setTitleError(t("errorTitleTooLong"));
       return;
     }
+    setTitleError("");
     const normalizedContent = content.trim();
     if (normalizedContent.length > 4000) {
       toast({ title: t("errorContentTooLong"), variant: "destructive" });
@@ -162,13 +165,26 @@ export function TodoFormSheet({
         </SheetHeader>
         <SheetPanel className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="todo-title">{t("titleLabel")}</Label>
+            <Label htmlFor="todo-title">
+              {t("titleLabel")}
+              <span className="text-destructive"> *</span>
+            </Label>
             <Input
               id="todo-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (titleError) setTitleError("");
+              }}
               placeholder={t("titlePlaceholder")}
+              aria-invalid={!!titleError}
+              aria-describedby={titleError ? "todo-title-error" : undefined}
             />
+            {titleError && (
+              <p id="todo-title-error" className="text-destructive text-xs">
+                {titleError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

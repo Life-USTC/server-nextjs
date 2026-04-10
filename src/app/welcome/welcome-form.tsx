@@ -91,12 +91,14 @@ export function WelcomeForm({ user }: WelcomeFormProps) {
                   </Avatar>
 
                   <div className="grid grid-cols-4 gap-2">
-                    {user.profilePictures.map((pic) => (
+                    {user.profilePictures.map((pic, index) => (
                       <Button
                         key={pic}
                         type="button"
                         size={"icon-lg"}
                         onClick={() => setSelectedImage(pic)}
+                        aria-label={`${a11yT("avatarOption")} ${index + 1}`}
+                        aria-pressed={selectedImage === pic}
                         className={`relative h-12 w-12 overflow-hidden rounded-full p-0 ${
                           selectedImage === pic
                             ? "border-3 border-primary ring-2 ring-primary/30"
@@ -118,7 +120,10 @@ export function WelcomeForm({ user }: WelcomeFormProps) {
             )}
 
             <Field>
-              <FieldLabel htmlFor="name">{profileT("name")}</FieldLabel>
+              <FieldLabel htmlFor="name">
+                {profileT("name")}
+                <span className="text-destructive">*</span>
+              </FieldLabel>
               <Input
                 id="name"
                 name="name"
@@ -129,7 +134,10 @@ export function WelcomeForm({ user }: WelcomeFormProps) {
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="username">{profileT("username")}</FieldLabel>
+              <FieldLabel htmlFor="username">
+                {profileT("username")}
+                <span className="text-destructive">*</span>
+              </FieldLabel>
               <Input
                 id="username"
                 name="username"
