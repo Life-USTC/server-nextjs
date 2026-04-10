@@ -32,8 +32,12 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
     await gotoAndWaitForReady(page, "/welcome");
 
     await expect(page).toHaveURL(/\/welcome(?:\?.*)?$/);
-    await page.getByLabel(/^姓名$|^Name$/i).fill(DEV_SEED.debugName);
-    await page.getByLabel(/^用户名$|^Username$/i).fill(DEV_SEED.debugUsername);
+    await page
+      .getByRole("textbox", { name: /^(姓名|Name)\b/i })
+      .fill(DEV_SEED.debugName);
+    await page
+      .getByRole("textbox", { name: /^(用户名|Username)\b/i })
+      .fill(DEV_SEED.debugUsername);
 
     await page.getByRole("button", { name: /继续|Continue/i }).click();
 
