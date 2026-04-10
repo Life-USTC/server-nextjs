@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, JetBrains_Mono, Noto_Sans_SC } from "next/font/google";
+import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
@@ -70,6 +71,18 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${ibmPlexSans.variable} ${notoSansSc.variable} ${jetBrainsMono.variable}`}
     >
+      <head>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-JNK35J2Q3R');`}
+        </Script>
+      </head>
       <body className="font-sans antialiased">
         <a
           href="#main-content"
