@@ -16,6 +16,7 @@ type ProfileUser = {
     comments: number;
     uploads: number;
     homeworksCreated: number;
+    subscribedSections: number;
   };
 };
 
@@ -43,6 +44,7 @@ export async function fetchProfileData(
           comments: true,
           uploads: true,
           homeworksCreated: true,
+          subscribedSections: true,
         },
       },
     },
@@ -52,12 +54,7 @@ export async function fetchProfileData(
     return null;
   }
 
-  const sectionSubscription = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { subscribedSections: { select: { id: true } } },
-  });
-
-  const sectionCount = sectionSubscription?.subscribedSections.length ?? 0;
+  const sectionCount = user._count.subscribedSections;
 
   const today = dayjs().startOf("day");
   const startDate = today.subtract(364, "day").startOf("day");
