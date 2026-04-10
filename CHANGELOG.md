@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/Life-USTC/server-nextjs/compare/v1.15.1...v1.16.0) (2026-04-10)
+
+
+### Features
+
+* **analytics:** add Google Analytics and update legal pages ([aefbe8f](https://github.com/Life-USTC/server-nextjs/commit/aefbe8feb73e0df28e2ce6c522a40dba7cf9aff6))
+
 ## [1.15.1](https://github.com/Life-USTC/server-nextjs/compare/v1.15.0...v1.15.1) (2026-04-10)
 
 
