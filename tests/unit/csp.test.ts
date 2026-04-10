@@ -1,0 +1,25 @@
+import { describe, expect, it } from "vitest";
+import {
+  buildContentSecurityPolicy,
+  createScriptNonce,
+} from "@/lib/security/csp";
+
+describe("csp helpers", () => {
+  it("creates a non-empty nonce", () => {
+    const nonce = createScriptNonce();
+    expect(nonce.length).toBeGreaterThan(10);
+  });
+
+  it("builds a CSP that requires a matching script nonce", () => {
+    const policy = buildContentSecurityPolicy("abc123");
+    const scriptDirective = policy
+      .split("; ")
+      .find((directive) => directive.startsWith("script-src"));
+
+    expect(policy).toContain("script-src 'self' 'nonce-abc123'");
+    expect(scriptDirective).toBeDefined();
+    expect(scriptDirective).not.toContain("'unsafe-inline'");
+    expect(scriptDirective).not.toContain("'unsafe-eval'");
+    expect(policy).toContain("object-src 'none'");
+  });
+});

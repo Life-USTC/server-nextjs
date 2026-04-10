@@ -1,0 +1,46 @@
+const ANALYTICS_SCRIPT_SOURCES = [
+  "https://www.googletagmanager.com",
+  "https://www.google-analytics.com",
+];
+
+const ANALYTICS_CONNECT_SOURCES = [
+  "https://www.google-analytics.com",
+  "https://www.googletagmanager.com",
+  "https://analytics.google.com",
+];
+
+export function createScriptNonce() {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  const value = String.fromCharCode(...bytes);
+  return btoa(value);
+}
+
+export function buildContentSecurityPolicy(
+  nonce: string,
+  options: { isDevelopment?: boolean } = {},
+) {
+  const scriptSources = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...ANALYTICS_SCRIPT_SOURCES,
+  ];
+
+  if (options.isDevelopment) {
+    scriptSources.push("'unsafe-eval'");
+  }
+
+  const directives = [
+    "default-src 'self'",
+    `script-src ${scriptSources.join(" ")}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    `connect-src 'self' ${ANALYTICS_CONNECT_SOURCES.join(" ")}`,
+    "frame-ancestors 'none'",
+    "form-action 'self'",
+    "base-uri 'self'",
+    "object-src 'none'",
+  ];
+
+  return directives.join("; ");
+}

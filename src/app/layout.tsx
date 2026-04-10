@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Sans, JetBrains_Mono, Noto_Sans_SC } from "next/font/google";
+import { headers } from "next/headers";
 import Script from "next/script";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
@@ -57,6 +58,9 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const headerStore = await headers();
+  const nonce = headerStore.get("x-csp-nonce") ?? undefined;
+
   // Get messages for the current locale (cookie / Accept-Language via src/proxy.ts)
   const [messages, a11yT, locale, session] = await Promise.all([
     getMessages(),
@@ -73,10 +77,11 @@ export default async function RootLayout({
     >
       <head>
         <Script
+          nonce={nonce}
           src="https://www.googletagmanager.com/gtag/js?id=G-JNK35J2Q3R"
           strategy="afterInteractive"
         />
-        <Script id="google-analytics" strategy="afterInteractive">
+        <Script id="google-analytics" nonce={nonce} strategy="afterInteractive">
           {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
@@ -90,7 +95,7 @@ gtag('config', 'G-JNK35J2Q3R');`}
         >
           {a11yT("skipToMainContent")}
         </a>
-        <Providers>
+        <Providers nonce={nonce}>
           <NextIntlClientProvider messages={messages}>
             <ToastProvider>
               <AnchoredToastProvider>

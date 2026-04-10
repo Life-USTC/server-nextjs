@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
+import {
+  buildContentSecurityPolicy,
+  createScriptNonce,
+} from "@/lib/security/csp";
 
 export default async function proxy(request: NextRequest) {
   const session = await auth(request.headers);
@@ -25,16 +29,24 @@ export default async function proxy(request: NextRequest) {
     request.cookies.get(LOCALE_COOKIE)?.value,
     request.headers.get("accept-language"),
   );
+  const nonce = createScriptNonce();
 
   // Set locale in request header for next-intl
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-locale", locale);
+  requestHeaders.set("x-csp-nonce", nonce);
 
   const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },
   });
+  response.headers.set(
+    "Content-Security-Policy",
+    buildContentSecurityPolicy(nonce, {
+      isDevelopment: process.env.NODE_ENV !== "production",
+    }),
+  );
 
   // Set cookie if not already set or different
   const currentCookie = request.cookies.get(LOCALE_COOKIE)?.value;
