@@ -1,8 +1,22 @@
 import type { Metadata } from "next";
+import dynamicImport from "next/dynamic";
 import { getLocale, getTranslations } from "next-intl/server";
-import { BusTransitMap } from "@/features/bus/components/bus-transit-map";
 import { getBusMapData } from "@/features/bus/lib/bus-service";
 import type { AppLocale } from "@/i18n/config";
+
+const BusTransitMap = dynamicImport(
+  () =>
+    import("@/features/bus/components/bus-transit-map").then((mod) => ({
+      default: mod.BusTransitMap,
+    })),
+  {
+    loading: () => (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+      </div>
+    ),
+  },
+);
 
 export const dynamic = "force-dynamic";
 
