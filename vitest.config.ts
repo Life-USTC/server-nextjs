@@ -15,6 +15,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "@coss/ui/base-ui": path.resolve(__dirname, "src/lib/coss-base-ui"),
     },
   },
 });

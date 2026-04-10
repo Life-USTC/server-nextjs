@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "vitest";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 describe("parseDateInput", () => {

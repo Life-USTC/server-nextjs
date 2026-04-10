@@ -1,47 +1,61 @@
 import { describe, expect, it } from "vitest";
 import { buildOAuthErrorRedirectUri } from "@/lib/oauth/redirect";
 import {
-  ACCESS_TOKEN_LIFETIME_MS,
-  CODE_LIFETIME_MS,
-  generateToken,
-  hashOAuthClientSecret,
-  verifyOAuthClientSecret,
+  hashOAuthClientSecretForDbStorage,
+  normalizeResourceIndicator,
+  resourceIndicatorsMatch,
 } from "@/lib/oauth/utils";
 
 describe("oauth/utils", () => {
-  it("generates unique URL-safe tokens", () => {
-    const a = generateToken();
-    const b = generateToken();
-    expect(a).not.toBe(b);
-    // Base64url: only [A-Za-z0-9_-]
-    expect(a).toMatch(/^[A-Za-z0-9_-]+$/);
-    expect(b).toMatch(/^[A-Za-z0-9_-]+$/);
-  });
-
-  it("generates tokens of expected length for given byte count", () => {
-    // 16 bytes -> 22 base64url chars (ceil(16 * 4 / 3))
-    const short = generateToken(16);
-    expect(short.length).toBe(22);
-
-    // 32 bytes -> 43 base64url chars
-    const long = generateToken(32);
-    expect(long.length).toBe(43);
-  });
-
-  it("exports expected lifetime constants", () => {
-    expect(CODE_LIFETIME_MS).toBe(10 * 60 * 1000);
-    expect(ACCESS_TOKEN_LIFETIME_MS).toBe(60 * 60 * 1000);
-  });
-
-  it("hashes and verifies OAuth client secrets", async () => {
+  it("hashes client secrets deterministically with SHA-256 base64url", () => {
     const secret = "super-secret-value";
-    const hash = await hashOAuthClientSecret(secret);
+    const hash = hashOAuthClientSecretForDbStorage(secret);
 
     expect(hash).not.toBe(secret);
-    await expect(verifyOAuthClientSecret(secret, hash)).resolves.toBe(true);
-    await expect(verifyOAuthClientSecret("wrong-secret", hash)).resolves.toBe(
-      false,
+    expect(hash).toMatch(/^[A-Za-z0-9_-]+$/);
+    // Same input produces the same hash
+    expect(hashOAuthClientSecretForDbStorage(secret)).toBe(hash);
+    // Different input produces a different hash
+    expect(hashOAuthClientSecretForDbStorage("other-secret")).not.toBe(hash);
+  });
+
+  it("normalizes resource indicators", () => {
+    expect(normalizeResourceIndicator("https://Example.COM/api/")).toBe(
+      "https://example.com/api/",
     );
+    expect(normalizeResourceIndicator("https://example.com:443/api")).toBe(
+      "https://example.com/api",
+    );
+    expect(normalizeResourceIndicator("http://example.com:8080/api")).toBe(
+      "http://example.com:8080/api",
+    );
+  });
+
+  it("rejects resource indicators with fragments", () => {
+    expect(() =>
+      normalizeResourceIndicator("https://example.com/api#frag"),
+    ).toThrow("must not include fragments");
+  });
+
+  it("matches equivalent resource indicators", () => {
+    expect(
+      resourceIndicatorsMatch(
+        "https://Example.COM/api",
+        "https://example.com/api",
+      ),
+    ).toBe(true);
+    expect(
+      resourceIndicatorsMatch(
+        "https://example.com:443/api",
+        "https://example.com/api",
+      ),
+    ).toBe(true);
+    expect(
+      resourceIndicatorsMatch(
+        "https://example.com/api",
+        "https://example.com/other",
+      ),
+    ).toBe(false);
   });
 
   it("builds OAuth error redirect URIs", () => {
