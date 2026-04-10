@@ -1,3 +1,20 @@
+# [1.18.0](https://github.com/Life-USTC/server-nextjs/compare/v1.17.0...v1.18.0) (2026-04-10)
+
+
+### Bug Fixes
+
+* **security:** harden content security policy ([1310edd](https://github.com/Life-USTC/server-nextjs/commit/1310edd5e1874d99662380e898a693e916f5a09e))
+
+
+### Features
+
+* **static:** import published sqlite snapshot ([a3fb095](https://github.com/Life-USTC/server-nextjs/commit/a3fb095996e61353adc816fde7893d660bf95fd2))
+
+
+### Performance Improvements
+
+* **home:** reduce dashboard data fanout ([ac7f75f](https://github.com/Life-USTC/server-nextjs/commit/ac7f75fb0d744f55c5ad6840e1cccb74ad747b0d))
+
 # [1.17.0](https://github.com/Life-USTC/server-nextjs/compare/v1.16.0...v1.17.0) (2026-04-10)
 
 
