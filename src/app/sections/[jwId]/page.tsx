@@ -3,7 +3,7 @@ import { ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
-import { Suspense } from "react";
+import { cache, Suspense } from "react";
 import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
 import {
@@ -87,12 +87,14 @@ const OTHER_SECTIONS_INCLUDE = {
 
 type LocalePrisma = ReturnType<typeof getPrisma>;
 
-async function fetchSectionDetail(prisma: LocalePrisma, jwId: number) {
+const fetchSectionDetail = cache(async (locale: string, jwId: number) => {
+  const prisma = getPrisma(locale);
+
   return prisma.section.findUnique({
     where: { jwId },
     include: SECTION_DETAIL_INCLUDE,
   });
-}
+});
 
 type SectionDetail = NonNullable<
   Awaited<ReturnType<typeof fetchSectionDetail>>
@@ -121,7 +123,6 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const t = await getTranslations("metadata");
   const locale = await getLocale();
-  const prisma = getPrisma(locale);
   const { jwId } = await params;
   const parsedId = parseInt(jwId, 10);
 
@@ -129,13 +130,7 @@ export async function generateMetadata({
     return { title: t("pages.sections") };
   }
 
-  const section = await prisma.section.findUnique({
-    where: { jwId: parsedId },
-    select: {
-      code: true,
-      course: true,
-    },
-  });
+  const section = await fetchSectionDetail(locale, parsedId);
 
   if (!section) {
     return { title: t("pages.sections") };
@@ -171,7 +166,7 @@ export default async function SectionPage({
   const locale = await getLocale();
   const prisma = getPrisma(locale);
 
-  const section = await fetchSectionDetail(prisma, parsedJwId);
+  const section = await fetchSectionDetail(locale, parsedJwId);
 
   if (!section) {
     notFound();
@@ -696,6 +691,22 @@ async function HomeworkLoader({
       take: 50,
     }),
   ]);
+  const homeworkCommentCountRows =
+    homeworkEntries.length > 0
+      ? await basePrisma.comment.groupBy({
+          by: ["homeworkId"],
+          where: {
+            homeworkId: { in: homeworkEntries.map((homework) => homework.id) },
+            status: { not: "deleted" },
+          },
+          _count: { _all: true },
+        })
+      : [];
+  const homeworkCommentCounts = new Map(
+    homeworkCommentCountRows.flatMap((row) =>
+      row.homeworkId ? [[row.homeworkId, row._count._all] as const] : [],
+    ),
+  );
 
   type HomeworkRowWithCompletions = (typeof homeworkEntries)[number] & {
     homeworkCompletions?: Array<{ completedAt: Date }>;
@@ -707,6 +718,7 @@ async function HomeworkLoader({
       return {
         ...rest,
         completion: homeworkCompletions?.[0] ?? null,
+        commentCount: homeworkCommentCounts.get(homework.id) ?? 0,
       };
     },
   );

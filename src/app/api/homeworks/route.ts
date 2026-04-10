@@ -86,12 +86,30 @@ export async function GET(request: Request) {
         take: 50,
       }),
     ]);
+    const homeworkIds = homeworks.map((homework) => homework.id);
+    const commentCountRows =
+      homeworkIds.length > 0
+        ? await prisma.comment.groupBy({
+            by: ["homeworkId"],
+            where: {
+              homeworkId: { in: homeworkIds },
+              status: { not: "deleted" },
+            },
+            _count: { _all: true },
+          })
+        : [];
+    const commentCounts = new Map(
+      commentCountRows.flatMap((row) =>
+        row.homeworkId ? [[row.homeworkId, row._count._all] as const] : [],
+      ),
+    );
 
     const responseHomeworks = homeworks.map((homework) => {
       const { homeworkCompletions, ...rest } = homework;
       return {
         ...rest,
         completion: homeworkCompletions?.[0] ?? null,
+        commentCount: commentCounts.get(homework.id) ?? 0,
       };
     });
 

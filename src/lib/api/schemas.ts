@@ -621,6 +621,7 @@ export const homeworkListItemSchema = homeworkBaseSchema.extend({
   })
     .extend({ completedAt: dateTimeSchema })
     .nullable(),
+  commentCount: z.number().int().nonnegative(),
 });
 
 const homeworkAuditLogBaseSchema = HomeworkAuditLogModelSchema.omit({

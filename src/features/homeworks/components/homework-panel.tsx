@@ -30,14 +30,12 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
-import type { CommentNode } from "@/features/comments/components/comment-types";
 import { CommentsSection } from "@/features/comments/components/comments-section";
 import { MarkdownEditor } from "@/features/comments/components/markdown-editor";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import {
-  commentsListResponseSchema,
   descriptionsResponseSchema,
   homeworkCompletionResponseSchema,
   homeworksListResponseSchema,
@@ -86,6 +84,7 @@ type HomeworkEntry = {
   updatedAt: string;
   deletedAt: string | null;
   createdById: string | null;
+  commentCount: number;
   completion: {
     completedAt: string;
   } | null;
@@ -201,10 +200,6 @@ export function HomeworkPanel({
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
-    {},
-  );
   const [completionSaving, setCompletionSaving] = useState<
     Record<string, boolean>
   >({});
@@ -278,58 +273,6 @@ export function HomeworkPanel({
     [resolveHomeworkError],
   );
 
-  const countCommentNodes = useCallback((nodes: CommentNode[]): number => {
-    return nodes.reduce(
-      (total, node) => total + 1 + countCommentNodes(node.replies ?? []),
-      0,
-    );
-  }, []);
-
-  const loadCommentCounts = useCallback(
-    async (entries: HomeworkEntry[]) => {
-      if (!entries.length) {
-        setCommentCounts({});
-        return;
-      }
-      try {
-        const responses = await Promise.all(
-          entries.map(async (homework) => {
-            const result = await apiClient.GET("/api/comments", {
-              params: {
-                query: {
-                  targetType: "homework",
-                  targetId: homework.id,
-                },
-              },
-            });
-
-            if (!result.response.ok || !result.data) {
-              const apiMessage = extractApiErrorMessage(result.error);
-              throw new Error(apiMessage ?? "Failed to load comments");
-            }
-
-            const parsed = commentsListResponseSchema.safeParse(result.data);
-            if (!parsed.success) {
-              throw new Error("Failed to load comments");
-            }
-
-            return [
-              homework.id,
-              countCommentNodes(parsed.data.comments ?? []),
-            ] as const;
-          }),
-        );
-        setCommentCounts(Object.fromEntries(responses));
-      } catch (err) {
-        logClientError("Failed to load comment counts", err, {
-          component: "HomeworkPanel",
-          sectionId,
-        });
-      }
-    },
-    [countCommentNodes, sectionId],
-  );
-
   const loadHomeworks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -347,30 +290,12 @@ export function HomeworkPanel({
 
       const parsed = homeworksListResponseSchema.safeParse(result.data);
       if (!parsed.success) {
-        const maybe = result.data as unknown as {
-          viewer?: unknown;
-          homeworks?: unknown;
-          auditLogs?: unknown;
-        };
-        if (
-          maybe &&
-          Array.isArray(maybe.homeworks) &&
-          Array.isArray(maybe.auditLogs)
-        ) {
-          setHomeworks(maybe.homeworks as HomeworkEntry[]);
-          setAuditLogs(maybe.auditLogs as AuditLogEntry[]);
-          setViewer((maybe.viewer as ViewerSummary) ?? EMPTY_VIEWER);
-          void loadCommentCounts(maybe.homeworks as HomeworkEntry[]);
-          return;
-        }
-
         throw new Error("Failed to load homeworks");
       }
 
       setHomeworks(parsed.data.homeworks ?? []);
       setAuditLogs(parsed.data.auditLogs ?? []);
       setViewer(parsed.data.viewer ?? EMPTY_VIEWER);
-      void loadCommentCounts(parsed.data.homeworks ?? []);
     } catch (err) {
       logClientError("Failed to load homeworks", err, {
         component: "HomeworkPanel",
@@ -380,17 +305,12 @@ export function HomeworkPanel({
     } finally {
       setLoading(false);
     }
-  }, [loadCommentCounts, sectionId, t]);
+  }, [sectionId, t]);
 
   useEffect(() => {
-    if (initialData) {
-      if (initialData.homeworks?.length) {
-        void loadCommentCounts(initialData.homeworks);
-      }
-      return;
-    }
+    if (initialData) return;
     void loadHomeworks();
-  }, [initialData, loadCommentCounts, loadHomeworks]);
+  }, [initialData, loadHomeworks]);
 
   const renderTagBadges = (homework: HomeworkEntry) => (
     <div className="flex flex-wrap gap-2">
@@ -568,8 +488,7 @@ export function HomeworkPanel({
                         <SheetTrigger
                           render={<Button size="sm" variant="outline" />}
                         >
-                          {t("commentsAction")} (
-                          {commentCounts[homework.id] ?? 0})
+                          {t("commentsAction")} ({homework.commentCount})
                         </SheetTrigger>
                         <SheetPopup side="right">
                           <SheetHeader>

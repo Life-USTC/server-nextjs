@@ -60,6 +60,7 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
     viewer?: { userId?: string | null };
     homeworks?: Array<{
       title?: string;
+      commentCount?: number;
       completion?: { completedAt?: string } | null;
     }>;
     auditLogs?: Array<{ action?: string; titleSnapshot?: string }>;
@@ -71,6 +72,13 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
   ).toBe(true);
   expect(
     body.homeworks?.some((item) => Object.hasOwn(item, "completion")),
+  ).toBe(true);
+  expect(
+    body.homeworks?.every(
+      (item) =>
+        typeof item.commentCount === "number" &&
+        Number.isInteger(item.commentCount),
+    ),
   ).toBe(true);
   expect(
     body.auditLogs?.some(

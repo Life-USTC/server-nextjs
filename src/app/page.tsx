@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
 import {
+  getBusTabData,
   getCalendarSubscriptionUrl,
   getDashboardNavStats,
   getDashboardOverviewData,
   getHomeworksTabData,
+  getLinksTabData,
   getPublicDashboardLinksData,
   getSubscriptionsTabData,
   getTodosTabData,
@@ -66,17 +68,19 @@ export default async function HomePage({
     const [
       navStats,
       overviewData,
+      linksData,
       homeworksData,
       subscriptionsData,
       calendarSubscriptionUrl,
       todosData,
+      busData,
     ] = await Promise.all([
       getDashboardNavStats(session.user.id, debugOptions),
-      tab === "overview" ||
-      tab === "calendar" ||
-      tab === "links" ||
-      tab === "bus"
+      tab === "overview" || tab === "calendar"
         ? getDashboardOverviewData(session.user.id, overviewOptions)
+        : Promise.resolve(null),
+      tab === "links"
+        ? getLinksTabData(session.user.id)
         : Promise.resolve(null),
       tab === "homeworks"
         ? getHomeworksTabData(session.user.id)
@@ -90,12 +94,10 @@ export default async function HomePage({
       tab === "todos" || tab === "overview"
         ? getTodosTabData(session.user.id)
         : Promise.resolve(null),
+      tab === "bus"
+        ? getBusTabData(session.user.id, overviewOptions)
+        : Promise.resolve(null),
     ]);
-
-    const busData =
-      tab === "bus" && overviewData?.busSnapshot
-        ? { snapshot: overviewData.busSnapshot }
-        : null;
 
     if (!navStats) {
       return (
@@ -110,6 +112,7 @@ export default async function HomePage({
         searchParams={searchParams}
         navStats={navStats}
         overviewData={overviewData}
+        linksData={linksData?.dashboardLinks ?? null}
         homeworksData={homeworksData}
         subscriptionsData={subscriptionsData}
         calendarSubscriptionUrl={

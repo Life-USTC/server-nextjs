@@ -194,6 +194,13 @@ export type DashboardLinkSummary = {
   clickCount: number;
 };
 
+export type DashboardLinksData = {
+  dashboardLinks: DashboardLinkSummary[];
+  recommendedLinks: DashboardLinkSummary[];
+  pinnedLinks: DashboardLinkSummary[];
+  overviewLinks: DashboardLinkSummary[];
+};
+
 export function getPublicDashboardLinksData(): {
   dashboardLinks: DashboardLinkSummary[];
   overviewLinks: DashboardLinkSummary[];
@@ -215,6 +222,49 @@ export function getPublicDashboardLinksData(): {
 
   return {
     dashboardLinks,
+    overviewLinks,
+  };
+}
+
+async function getSignedInDashboardLinksData(
+  userId: string,
+): Promise<DashboardLinksData> {
+  const [clickRows, pinRows] = await Promise.all([
+    basePrisma.dashboardLinkClick.findMany({
+      where: { userId },
+      select: { slug: true, count: true },
+    }),
+    basePrisma.dashboardLinkPin.findMany({
+      where: { userId },
+      select: { slug: true },
+      orderBy: { createdAt: "asc" },
+    }),
+  ]);
+  const clickStats: Record<string, number> = Object.fromEntries(
+    clickRows.map((row) => [row.slug, row.count]),
+  );
+  const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
+
+  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) =>
+    toDashboardLinkSummary(link, clickStats, pinnedSlugSet),
+  );
+  const dashboardLinkBySlug = new Map(
+    dashboardLinks.map((link) => [link.slug, link] as const),
+  );
+  const pinnedLinks = pinRows.flatMap((row) => {
+    const link = dashboardLinkBySlug.get(row.slug);
+    return link ? [link] : [];
+  });
+  const recommendedLinks = recommendDashboardLinks(clickStats, {
+    limit: USTC_DASHBOARD_LINKS.length,
+    excludeSlugs: Array.from(pinnedSlugSet),
+  }).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
+  const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(0, 5);
+
+  return {
+    dashboardLinks,
+    recommendedLinks,
+    pinnedLinks,
     overviewLinks,
   };
 }
@@ -287,7 +337,6 @@ export type OverviewData = {
   recommendedLinks: DashboardLinkSummary[];
   pinnedLinks: DashboardLinkSummary[];
   overviewLinks: DashboardLinkSummary[];
-  busSnapshot: Awaited<ReturnType<typeof getBusDashboardSnapshot>> | null;
 };
 
 export async function getDashboardOverviewData(
@@ -529,44 +578,8 @@ export async function getDashboardOverviewData(
   const activeCalendarSemesterId = gridSemesterRow?.id ?? null;
   const activeCalendarSemesterName = gridSemesterRow?.nameCn ?? null;
 
-  const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
-  const [clickRows, pinRows, busSnapshot] = await Promise.all([
-    basePrisma.dashboardLinkClick.findMany({
-      where: { userId },
-      select: { slug: true, count: true },
-    }),
-    basePrisma.dashboardLinkPin.findMany({
-      where: { userId },
-      select: { slug: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    getBusDashboardSnapshot({
-      locale: busLocale,
-      userId,
-      now: referenceNow.toISOString(),
-      dayType: options.busDayType,
-    }),
-  ]);
-  const clickStats: Record<string, number> = Object.fromEntries(
-    clickRows.map((row) => [row.slug, row.count]),
-  );
-  const pinnedSlugSet = new Set(pinRows.map((row) => row.slug));
-
-  const dashboardLinks = USTC_DASHBOARD_LINKS.map((link) =>
-    toDashboardLinkSummary(link, clickStats, pinnedSlugSet),
-  );
-  const dashboardLinkBySlug = new Map(
-    dashboardLinks.map((link) => [link.slug, link] as const),
-  );
-  const pinnedLinks = pinRows.flatMap((row) => {
-    const link = dashboardLinkBySlug.get(row.slug);
-    return link ? [link] : [];
-  });
-  const recommendedLinks = recommendDashboardLinks(clickStats, {
-    limit: USTC_DASHBOARD_LINKS.length,
-    excludeSlugs: Array.from(pinnedSlugSet),
-  }).map((link) => toDashboardLinkSummary(link, clickStats, pinnedSlugSet));
-  const overviewLinks = [...pinnedLinks, ...recommendedLinks].slice(0, 5);
+  const { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks } =
+    await getSignedInDashboardLinksData(userId);
 
   return {
     user: {
@@ -609,7 +622,43 @@ export async function getDashboardOverviewData(
     recommendedLinks,
     pinnedLinks,
     overviewLinks,
-    busSnapshot,
+  };
+}
+
+export async function getLinksTabData(userId: string) {
+  return getSignedInDashboardLinksData(userId);
+}
+
+export async function getBusTabData(
+  userId: string,
+  options: Pick<OverviewDataOptions, "debugDate" | "debugTools" | "busDayType">,
+): Promise<BusDashboardData> {
+  const locale = await getLocale();
+  const isDev = process.env.NODE_ENV !== "production";
+  const showDebugTools =
+    options.debugTools === true || (isDev && Boolean(options.debugDate));
+  const debugDateRaw = options.debugDate?.trim();
+  const debugDate =
+    showDebugTools && debugDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(debugDateRaw)
+      ? shanghaiDayjs(debugDateRaw)
+      : null;
+  const baseNow = shanghaiDayjs();
+  const referenceNow = debugDate?.isValid()
+    ? debugDate
+        .hour(baseNow.hour())
+        .minute(baseNow.minute())
+        .second(baseNow.second())
+        .millisecond(baseNow.millisecond())
+    : baseNow;
+  const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
+
+  return {
+    snapshot: await getBusDashboardSnapshot({
+      locale: busLocale,
+      userId,
+      now: referenceNow.toISOString(),
+      dayType: options.busDayType,
+    }),
   };
 }
 

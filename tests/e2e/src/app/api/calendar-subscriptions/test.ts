@@ -55,7 +55,10 @@ test.describe("POST /api/calendar-subscriptions", () => {
       (s) => s.code === DEV_SEED.section.code,
     );
     expect(seedSection?.id).toBeDefined();
-    const sectionId = seedSection!.id!;
+    if (seedSection?.id == null) {
+      throw new Error("Expected seed section id");
+    }
+    const sectionId = seedSection.id;
 
     // Save current subscriptions for restoration
     const currentRes = await page.request.get(
@@ -131,7 +134,11 @@ test.describe("POST /api/calendar-subscriptions", () => {
     const seedSection = matchBody.sections?.find(
       (s) => s.code === DEV_SEED.section.code,
     );
-    const validId = seedSection!.id!;
+    expect(seedSection?.id).toBeDefined();
+    if (seedSection?.id == null) {
+      throw new Error("Expected seed section id");
+    }
+    const validId = seedSection.id;
     const bogusId = 999_999_999;
 
     const currentRes = await page.request.get(

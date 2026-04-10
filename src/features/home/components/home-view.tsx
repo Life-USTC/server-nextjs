@@ -1,5 +1,6 @@
 import type {
   BusDashboardData,
+  DashboardLinkSummary,
   DashboardNavStats,
   HomeworkSummaryItem,
   OverviewData,
@@ -48,6 +49,7 @@ type HomeViewProps = {
   }>;
   navStats: DashboardNavStats;
   overviewData: OverviewData | null;
+  linksData: DashboardLinkSummary[] | null;
   homeworksData: {
     homeworkSummaries: HomeworkSummaryItem[];
     sections: SectionOption[];
@@ -62,6 +64,7 @@ export async function HomeView({
   searchParams,
   navStats,
   overviewData,
+  linksData,
   homeworksData,
   subscriptionsData,
   calendarSubscriptionUrl,
@@ -126,8 +129,8 @@ export async function HomeView({
         {currentTab === "subscriptions" && subscriptionsData && (
           <SubscriptionsPanel data={subscriptionsData} />
         )}
-        {currentTab === "links" && overviewData && (
-          <LinksTabPanel links={overviewData.dashboardLinks} />
+        {currentTab === "links" && linksData && (
+          <LinksTabPanel links={linksData ?? []} />
         )}
       </section>
     </PageLayout>

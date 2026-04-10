@@ -497,6 +497,7 @@ const homeworkListItemSchema = HomeworkModelSchema.omit({
       completedAt: dateTimeSchema,
     })
     .nullable(),
+  commentCount: z.number().int().nonnegative(),
 });
 
 const homeworkAuditLogSchema = HomeworkAuditLogModelSchema.omit({
