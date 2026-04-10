@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/Life-USTC/server-nextjs/compare/v1.15.0...v1.15.1) (2026-04-10)
+
+
+### Bug Fixes
+
+* **test:** repair 4 broken unit tests ([75b51e7](https://github.com/Life-USTC/server-nextjs/commit/75b51e79232c83f1dad4e379dac789c36af05efd))
+
 # [1.15.0](https://github.com/Life-USTC/server-nextjs/compare/v1.14.0...v1.15.0) (2026-04-09)
 
 
