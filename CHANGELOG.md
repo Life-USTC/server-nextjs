@@ -1,3 +1,23 @@
+# [1.17.0](https://github.com/Life-USTC/server-nextjs/compare/v1.16.0...v1.17.0) (2026-04-10)
+
+
+### Bug Fixes
+
+* **ux:** add required field indicators and inline form validation ([ceb24a0](https://github.com/Life-USTC/server-nextjs/commit/ceb24a037efc08e97c2a539c63f4cc7d68992c95))
+
+
+### Features
+
+* **config:** add Zod-based environment variable validation ([7759f7e](https://github.com/Life-USTC/server-nextjs/commit/7759f7eaf45b69e07fa10a36c44d766a55040d9d))
+* **error:** add error boundaries for sections, courses, oauth, and bus-map ([eaffe38](https://github.com/Life-USTC/server-nextjs/commit/eaffe38a38eb202938cad79942c431387955e884))
+* **security:** add Content-Security-Policy header ([341a5c2](https://github.com/Life-USTC/server-nextjs/commit/341a5c2711a2fbcae29da1573ca820950a110266))
+
+
+### Performance Improvements
+
+* **bus-map:** lazy-load bus transit map component ([cd07a9c](https://github.com/Life-USTC/server-nextjs/commit/cd07a9c002bdcabd34dc9b9a07d0904e87e64305))
+* **profile:** merge duplicate user queries into single DB call ([780aa10](https://github.com/Life-USTC/server-nextjs/commit/780aa10eee034099af47c9f1f8fec0b041f21a2a))
+
 # [1.16.0](https://github.com/Life-USTC/server-nextjs/compare/v1.15.1...v1.16.0) (2026-04-10)
 
 
