@@ -1,7 +1,7 @@
 - About
   - Next.js + Prisma ORM + PostgreSQL
   - Deploy: <https://life-ustc.tiankaima.dev>
-  - CI/CD: GitHub Actions builds and pushes to ghcr.io; deployment is manual
+  - CI/CD: GitHub Actions → ghcr.io; deployment is manual on server `jp-2`
 
 - Commands
   - Use bun/bunx exclusively
@@ -9,6 +9,10 @@
   - Build: `bun run build`
   - Test: `bun run test:e2e`
   - Regenerate artifacts: `bun run prebuild` (after Prisma/API changes)
+
+- Documentation
+  - [docs/product.md](./docs/product.md): user experience, business logic, Web/API/MCP
+  - [docs/engineering.md](./docs/engineering.md): engineering patterns, conventions, setup
 
 - Images
   - For UI updates, capture a screenshot first
