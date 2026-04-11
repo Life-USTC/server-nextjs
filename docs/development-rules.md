@@ -35,4 +35,7 @@
 - 只提交与当前变更直接相关的内容
 - 在提交前完成检查、构建和测试
 
-更细的本地、数据库、部署约束以 [`../AGENTS.md`](../AGENTS.md) 为准。
+## 继续阅读
+
+- [`contributing.md`](./contributing.md)：贡献流程
+- [`product-goals.md`](./product-goals.md)：产品目标

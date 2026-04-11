@@ -48,7 +48,7 @@
 - 需要横向比较：使用表格
 - 需要纵向扫描和逐条处理：使用列表或卡片
 
-## 和其他文档的关系
+## 继续阅读
 
 - [`product-goals.md`](./product-goals.md)：这些界面最终服务什么用户目标
 - [`system-design.md`](./system-design.md)：系统如何支撑这些体验
