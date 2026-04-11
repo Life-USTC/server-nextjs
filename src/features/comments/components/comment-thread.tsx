@@ -1,7 +1,13 @@
 "use client";
 
-import { DotsThree, Trash, Warning } from "@phosphor-icons/react";
-import { Link2, Pencil, Reply } from "lucide-react";
+import {
+  Ellipsis,
+  Link2,
+  Pencil,
+  Reply,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -347,7 +353,7 @@ function CommentItem({
                       className="h-6 w-6 p-0"
                       aria-label={t("moreActions")}
                     >
-                      <DotsThree className="h-4 w-4" />
+                      <Ellipsis className="h-4 w-4" />
                     </Button>
                   }
                 />
@@ -361,12 +367,12 @@ function CommentItem({
                       className="text-destructive focus:text-destructive"
                       onClick={() => setIsDeleteOpen(true)}
                     >
-                      <Trash className="mr-2 h-4 w-4" />
+                      <Trash2 className="mr-2 h-4 w-4" />
                       {t("deleteAction")}
                     </MenuItem>
                   )}
                   <MenuItem disabled>
-                    <Warning className="mr-2 h-4 w-4" />
+                    <TriangleAlert className="mr-2 h-4 w-4" />
                     {t("reportAction")}
                   </MenuItem>
                 </MenuPopup>
