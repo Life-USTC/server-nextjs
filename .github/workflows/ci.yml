@@ -135,4 +135,5 @@ jobs:
         with:
           name: playwright-report-${{ matrix.shardIndex }}-of-${{ matrix.shardTotal }}
           path: playwright-report/
+          if-no-files-found: ignore
           retention-days: 14
