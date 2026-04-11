@@ -241,7 +241,7 @@ async function loadOrCreateDepartmentByCode(
         isCollege: false,
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     const existing = await prisma.department.findUnique({
       where: { code: code },
     });

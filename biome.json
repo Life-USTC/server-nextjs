@@ -43,7 +43,7 @@
       },
       "suspicious": {
         "noUnknownAtRules": "off",
-        "noExplicitAny": "off"
+        "noExplicitAny": "error"
       }
     },
     "domains": {

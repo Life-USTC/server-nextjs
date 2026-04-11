@@ -58,6 +58,9 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Run i18n key check
+        run: bun run check:i18n
+
       - name: Run unit tests
         run: bun run test
 

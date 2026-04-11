@@ -2,6 +2,7 @@ import type {
   AdminClass,
   Building,
   Campus,
+  Prisma,
   PrismaClient,
   Room,
   RoomType,
@@ -116,7 +117,7 @@ interface LessonInterface {
   remark: string | null;
   scheduleRemark: string | null;
   adminclasses: AdminClassInterface[];
-  scheduleJsonParams: any[];
+  scheduleJsonParams: Prisma.InputJsonArray;
   selectedStdCount: number;
 }
 
