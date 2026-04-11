@@ -62,8 +62,13 @@ jobs:
         run: bun run test
 
   test-e2e:
-    name: E2E Test
+    name: E2E Test (${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2]
+        shardTotal: [2]
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_e2e
       JWT_SECRET: e2e-ci-secret
@@ -119,12 +124,12 @@ jobs:
         run: bun run typecheck
 
       - name: Run Playwright E2E tests
-        run: bun run test:e2e
+        run: bun run test:e2e -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shardIndex }}-of-${{ matrix.shardTotal }}
           path: playwright-report/
           retention-days: 14
