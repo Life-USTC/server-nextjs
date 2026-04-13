@@ -17,12 +17,15 @@ import {
 } from "@/lib/mcp/tools/_helpers";
 import { sectionCompactInclude } from "@/lib/query-helpers";
 
+const SECTION_SUBSCRIPTION_NOTE =
+  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
+
 export function registerCalendarTools(server: McpServer) {
   server.registerTool(
     "get_my_calendar_subscription",
     {
       description:
-        "Get subscribed sections and personal calendar feed path for the authenticated user.",
+        "Get the sections you follow in Life@USTC and the personal calendar feed path for the authenticated user. This does not represent official USTC course enrollment.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
         mode: mcpModeInputSchema,
@@ -58,6 +61,7 @@ export function registerCalendarTools(server: McpServer) {
             userId: user.id,
             sections: user.subscribedSections,
             calendarPath: buildUserCalendarFeedPath(user.id, token),
+            note: SECTION_SUBSCRIPTION_NOTE,
           },
         },
         { mode: resolvedMode },
@@ -69,7 +73,7 @@ export function registerCalendarTools(server: McpServer) {
     "subscribe_my_sections_by_codes",
     {
       description:
-        "Subscribe the authenticated user to matched section codes in one semester.",
+        "Subscribe the authenticated user to matched section codes in one semester for Life@USTC only. This does not represent official USTC course enrollment.",
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
@@ -151,6 +155,7 @@ export function registerCalendarTools(server: McpServer) {
           subscription: {
             userId: updatedUser.id,
             sections: updatedUser.subscribedSections,
+            note: SECTION_SUBSCRIPTION_NOTE,
           },
         },
         { mode: resolvedMode },

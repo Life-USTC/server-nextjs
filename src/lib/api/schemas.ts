@@ -287,6 +287,26 @@ export const sectionListSchema = sectionBaseSchema.extend({
   adminClasses: z.array(adminClassSchema),
 });
 
+export const courseDetailSectionSchema = sectionBaseSchema.extend({
+  semester: semesterSchema.nullable(),
+  campus: campusSchema.nullable(),
+  teachers: z.array(teacherSchema),
+});
+
+export const courseDetailSchema = courseSchema.extend({
+  sections: z.array(courseDetailSectionSchema),
+});
+
+export const teacherDetailSectionSchema = sectionBaseSchema.extend({
+  course: courseSchema,
+  semester: semesterSchema.nullable(),
+});
+
+export const teacherDetailSchema = teacherWithDepartmentTitleSchema.extend({
+  sections: z.array(teacherDetailSectionSchema),
+  _count: z.object({ sections: z.number().int() }),
+});
+
 export const scheduleBaseSchema = ScheduleModelSchema.omit({
   room: true,
   section: true,
@@ -899,6 +919,7 @@ const adminDescriptionSchema = DescriptionModelSchema.omit({
       title: z.string(),
       section: z
         .object({
+          jwId: z.number().int().nullable(),
           code: z.string().nullable(),
           course: z
             .object({

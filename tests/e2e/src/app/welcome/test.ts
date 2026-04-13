@@ -58,3 +58,38 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
     });
   }
 });
+
+test("/welcome 提供浏览班级与批量匹配入口", async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await signInAsDebugUser(page, "/");
+
+  const sessionUser = await getCurrentSessionUser(page);
+  const originalUser = getUserProfileById(sessionUser.id);
+
+  updateUserProfileById(sessionUser.id, {
+    name: null,
+    username: null,
+  });
+
+  try {
+    await gotoAndWaitForReady(page, "/welcome");
+
+    await expect(
+      page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /批量导入班级|Bulk Import Sections/i }),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "welcome-next-steps");
+  } finally {
+    updateUserProfileById(sessionUser.id, {
+      name: originalUser.name ?? DEV_SEED.debugName,
+      username: originalUser.username ?? DEV_SEED.debugUsername,
+      image: originalUser.image ?? null,
+    });
+  }
+});

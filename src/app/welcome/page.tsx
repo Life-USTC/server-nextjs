@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/db/prisma";
 import { WelcomeForm } from "./welcome-form";
 
@@ -18,16 +19,29 @@ export default async function WelcomePage() {
     redirect("/signin");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      image: true,
-      profilePictures: true,
-    },
-  });
+  const [user, semesters, currentSemester] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        image: true,
+        profilePictures: true,
+      },
+    }),
+    prisma.semester.findMany({
+      select: {
+        id: true,
+        nameCn: true,
+      },
+      orderBy: {
+        jwId: "desc",
+      },
+      take: 20,
+    }),
+    findCurrentSemester(prisma.semester, new Date()),
+  ]);
 
   if (!user) {
     redirect("/signin");
@@ -38,5 +52,11 @@ export default async function WelcomePage() {
     redirect("/");
   }
 
-  return <WelcomeForm user={user} />;
+  return (
+    <WelcomeForm
+      user={user}
+      semesters={semesters}
+      defaultSemesterId={currentSemester?.id ?? null}
+    />
+  );
 }

@@ -142,6 +142,46 @@ export function updateUserProfileById(
   `);
 }
 
+export function getUserSubscribedSectionIds(userId: string) {
+  return runDbScript<number[]>(`
+    import { prisma } from "./src/lib/db/prisma";
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: ${JSON.stringify(userId)} },
+      select: {
+        subscribedSections: {
+          select: { id: true },
+          orderBy: { id: "asc" },
+        },
+      },
+    });
+
+    console.log(JSON.stringify(user.subscribedSections.map((section) => section.id)));
+    await prisma.$disconnect();
+  `);
+}
+
+export function replaceUserSubscribedSectionIds(
+  userId: string,
+  sectionIds: number[],
+) {
+  runDbScript<{ ok: true }>(`
+    import { prisma } from "./src/lib/db/prisma";
+
+    await prisma.user.update({
+      where: { id: ${JSON.stringify(userId)} },
+      data: {
+        subscribedSections: {
+          set: ${JSON.stringify(sectionIds)}.map((id) => ({ id })),
+        },
+      },
+    });
+
+    console.log(JSON.stringify({ ok: true }));
+    await prisma.$disconnect();
+  `);
+}
+
 export async function createOAuthClientFixture(
   options: {
     name?: string;

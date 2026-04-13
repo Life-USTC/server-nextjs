@@ -1,4 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../utils/auth";
+import {
+  getCurrentSessionUser,
+  getUserSubscribedSectionIds,
+  replaceUserSubscribedSectionIds,
+} from "../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../utils/page-ready";
 import { captureStepScreenshot } from "../../utils/screenshot";
 import { assertPageContract } from "./_shared/page-contract";
@@ -48,4 +54,33 @@ test("/ 主题切换可写入 localStorage", async ({ page }, testInfo) => {
     )
     .toBe("dark");
   await captureStepScreenshot(page, testInfo, "theme-dark");
+});
+
+test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60000);
+  await signInAsDebugUser(page, "/");
+
+  const sessionUser = await getCurrentSessionUser(page);
+  const originalSectionIds = getUserSubscribedSectionIds(sessionUser.id);
+  replaceUserSubscribedSectionIds(sessionUser.id, []);
+
+  try {
+    await gotoAndWaitForReady(page, "/");
+
+    await expect(
+      page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
+  } finally {
+    replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
+  }
 });

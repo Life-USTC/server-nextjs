@@ -130,9 +130,23 @@ export async function OverviewPanel({
                 : t("termSelection.noAnySelection")}
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Button render={<Link className="no-underline" href="/courses" />}>
+          <EmptyContent className="sm:max-w-none sm:flex-row sm:justify-center">
+            <Button render={<Link className="no-underline" href="/sections" />}>
+              {t("termSelection.browseSections")}
+            </Button>
+            <Button
+              variant="outline"
+              render={<Link className="no-underline" href="/courses" />}
+            >
               {t("termSelection.browseCourses")}
+            </Button>
+            <Button
+              variant="outline"
+              render={
+                <Link className="no-underline" href="/?tab=subscriptions" />
+              }
+            >
+              {t("termSelection.matchByCode")}
             </Button>
           </EmptyContent>
         </Empty>

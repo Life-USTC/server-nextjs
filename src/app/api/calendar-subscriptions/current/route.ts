@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 /**
- * Get current user's selected sections.
+ * Get the current user's section subscriptions.
  * @response currentCalendarSubscriptionResponseSchema
  * @response 401:openApiErrorSchema
  */

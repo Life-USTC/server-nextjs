@@ -10,7 +10,7 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 /**
- * Replace current user's selected sections.
+ * Replace the current user's section subscriptions.
  * @body calendarSubscriptionCreateRequestSchema
  * @response calendarSubscriptionCreateResponseSchema
  * @response 400:openApiErrorSchema

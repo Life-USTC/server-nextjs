@@ -51,6 +51,12 @@ export async function SubscriptionsPanel({
               />
               <Button
                 variant="outline"
+                render={<Link className="no-underline" href="/sections" />}
+              >
+                {t("browseSections")}
+              </Button>
+              <Button
+                variant="outline"
                 render={<Link className="no-underline" href="/courses" />}
               >
                 {t("browseCourses")}

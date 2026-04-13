@@ -29,6 +29,10 @@ test.describe("GET /api/courses", () => {
     await assertApiContract(request, { routePath: "/api/courses" });
   });
 
+  test("detail contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: "/api/courses/[jwId]" });
+  });
+
   test("returns paginated response shape", async ({ request }) => {
     const response = await request.get("/api/courses");
     expect(response.status()).toBe(200);
@@ -100,5 +104,24 @@ test.describe("GET /api/courses", () => {
       pagination?: { page?: number };
     };
     expect(body.pagination?.page).toBe(1);
+  });
+
+  test("detail route returns seed course with sections", async ({
+    request,
+  }) => {
+    const response = await request.get(`/api/courses/${DEV_SEED.course.jwId}`);
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      jwId?: number;
+      code?: string;
+      nameCn?: string;
+      sections?: Array<{ jwId?: number; code?: string }>;
+    };
+    expect(body.jwId).toBe(DEV_SEED.course.jwId);
+    expect(body.code).toBe(DEV_SEED.course.code);
+    expect(body.nameCn).toBe(DEV_SEED.course.nameCn);
+    expect(
+      body.sections?.some((section) => section.jwId === DEV_SEED.section.jwId),
+    ).toBe(true);
   });
 });

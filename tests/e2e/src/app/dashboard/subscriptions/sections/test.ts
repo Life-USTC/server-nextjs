@@ -25,6 +25,11 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
+import {
+  getCurrentSessionUser,
+  getUserSubscribedSectionIds,
+  replaceUserSubscribedSectionIds,
+} from "../../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
 
@@ -61,6 +66,39 @@ test.describe("dashboard subscriptions", () => {
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-seed");
+  });
+
+  test("empty state offers discovery actions", async ({ page }, testInfo) => {
+    test.setTimeout(60000);
+    await signInAsDebugUser(page, "/?tab=subscriptions");
+
+    const sessionUser = await getCurrentSessionUser(page);
+    const originalSectionIds = getUserSubscribedSectionIds(sessionUser.id);
+    replaceUserSubscribedSectionIds(sessionUser.id, []);
+
+    try {
+      await gotoAndWaitForReady(page, "/?tab=subscriptions");
+
+      await expect(
+        page.getByRole("button", {
+          name: /批量导入班级|Bulk Import Sections/i,
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+      ).toBeVisible();
+
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "dashboard-subscriptions-empty-state",
+      );
+    } finally {
+      replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
+    }
   });
 
   test("can navigate to section detail from table row", async ({
@@ -225,11 +263,11 @@ test.describe("dashboard subscriptions", () => {
 
     await dialog
       .getByRole("button", {
-        name: /加入已选的 \d+ 个班级|加入已选|Add \d+ selected|Add selected|Subscribe/i,
+        name: /关注已选的 \d+ 个班级|关注已选|Follow \d+ sections|Follow/i,
       })
       .click();
 
-    await expect(page.getByText(/已加入|Added/i).first()).toBeVisible({
+    await expect(page.getByText(/已关注|Added/i).first()).toBeVisible({
       timeout: 15_000,
     });
     await page.waitForLoadState("networkidle");

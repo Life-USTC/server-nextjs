@@ -194,6 +194,7 @@ export const sectionsQuerySchema = z.object({
   campusId: integerStringSchema.optional(),
   departmentId: integerStringSchema.optional(),
   teacherId: integerStringSchema.optional(),
+  search: z.string().trim().optional(),
   ids: z.string().trim().optional(),
   page: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
@@ -219,6 +220,9 @@ export const teachersQuerySchema = z.object({
 
 export const coursesQuerySchema = z.object({
   search: z.string().trim().optional(),
+  educationLevelId: integerStringSchema.optional(),
+  categoryId: integerStringSchema.optional(),
+  classTypeId: integerStringSchema.optional(),
   page: integerStringSchema.optional(),
   limit: integerStringSchema.optional(),
 });

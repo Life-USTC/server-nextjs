@@ -85,6 +85,234 @@ export const courseInclude = {
   type: true,
 } satisfies Prisma.CourseInclude;
 
+type ParsedSectionSearchQuery = {
+  teacher?: string;
+  courseCode?: string;
+  lectureCode?: string;
+  campus?: string;
+  credits?: string;
+  department?: string;
+  semester?: string;
+  category?: string;
+  level?: string;
+  classType?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+  general?: string;
+};
+
+export function parseSectionSearchQuery(
+  search: string,
+): ParsedSectionSearchQuery {
+  const result: ParsedSectionSearchQuery = {};
+
+  const teacherMatch = search.match(/teacher:(\S+)/i);
+  const courseCodeMatch = search.match(/coursecode:(\S+)/i);
+  const lectureCodeMatch = search.match(/(?:lecturecode|sectioncode):(\S+)/i);
+  const campusMatch = search.match(/campus:(\S+)/i);
+  const creditsMatch = search.match(/credits?:(\S+)/i);
+  const departmentMatch = search.match(/(?:department|dept):(\S+)/i);
+  const semesterMatch = search.match(/semester:(\S+)/i);
+  const categoryMatch = search.match(/category:(\S+)/i);
+  const levelMatch = search.match(/(?:level|edulevel):(\S+)/i);
+  const classTypeMatch = search.match(/(?:classtype|type):(\S+)/i);
+  const sortMatch = search.match(/(?:sort|sortby):(\S+)/i);
+  const orderMatch = search.match(/order:(asc|desc)/i);
+
+  if (teacherMatch) result.teacher = teacherMatch[1];
+  if (courseCodeMatch) result.courseCode = courseCodeMatch[1];
+  if (lectureCodeMatch) result.lectureCode = lectureCodeMatch[1];
+  if (campusMatch) result.campus = campusMatch[1];
+  if (creditsMatch) result.credits = creditsMatch[1];
+  if (departmentMatch) result.department = departmentMatch[1];
+  if (semesterMatch) result.semester = semesterMatch[1];
+  if (categoryMatch) result.category = categoryMatch[1];
+  if (levelMatch) result.level = levelMatch[1];
+  if (classTypeMatch) result.classType = classTypeMatch[1];
+  if (sortMatch) result.sort = sortMatch[1];
+  if (orderMatch) result.order = orderMatch[1].toLowerCase() as "asc" | "desc";
+
+  const generalSearch = search
+    .replace(/teacher:\S+/gi, "")
+    .replace(/coursecode:\S+/gi, "")
+    .replace(/(?:lecturecode|sectioncode):\S+/gi, "")
+    .replace(/campus:\S+/gi, "")
+    .replace(/credits?:\S+/gi, "")
+    .replace(/(?:department|dept):\S+/gi, "")
+    .replace(/semester:\S+/gi, "")
+    .replace(/category:\S+/gi, "")
+    .replace(/(?:level|edulevel):\S+/gi, "")
+    .replace(/(?:classtype|type):\S+/gi, "")
+    .replace(/(?:sort|sortby):\S+/gi, "")
+    .replace(/order:(?:asc|desc)/gi, "")
+    .trim();
+
+  if (generalSearch) result.general = generalSearch;
+
+  return result;
+}
+
+export function buildSectionOrderBy(
+  sortField?: string,
+  order: "asc" | "desc" = "asc",
+): Prisma.SectionOrderByWithRelationInput | undefined {
+  if (!sortField) return undefined;
+
+  const sortMap: Record<string, Prisma.SectionOrderByWithRelationInput> = {
+    credits: { credits: order },
+    credit: { credits: order },
+    capacity: { stdCount: order },
+    semester: { semester: { jwId: order } },
+    course: { course: { nameCn: order } },
+    coursename: { course: { nameCn: order } },
+    code: { code: order },
+    sectioncode: { code: order },
+    teacher: { teachers: { _count: order } },
+    campus: { campus: { nameCn: order } },
+  };
+
+  return sortMap[sortField.toLowerCase()];
+}
+
+export function buildSectionSearchWhere(search?: string): {
+  where?: Prisma.SectionWhereInput;
+  orderBy?: Prisma.SectionOrderByWithRelationInput;
+} {
+  if (!search) {
+    return {};
+  }
+
+  const parsed = parseSectionSearchQuery(search);
+  const orderBy = buildSectionOrderBy(parsed.sort, parsed.order || "asc");
+  const conditions: Prisma.SectionWhereInput[] = [];
+
+  if (parsed.teacher) {
+    conditions.push({
+      teachers: {
+        some: {
+          nameCn: { contains: parsed.teacher, mode: "insensitive" as const },
+        },
+      },
+    });
+  }
+
+  if (parsed.courseCode) {
+    conditions.push({
+      course: {
+        code: { contains: parsed.courseCode, mode: "insensitive" as const },
+      },
+    });
+  }
+
+  if (parsed.lectureCode) {
+    conditions.push({
+      code: { contains: parsed.lectureCode, mode: "insensitive" as const },
+    });
+  }
+
+  if (parsed.campus) {
+    conditions.push({
+      campus: {
+        nameCn: { contains: parsed.campus, mode: "insensitive" as const },
+      },
+    });
+  }
+
+  if (parsed.credits) {
+    const creditsNum = parseFloat(parsed.credits);
+    if (!Number.isNaN(creditsNum)) {
+      conditions.push({
+        credits: creditsNum,
+      });
+    }
+  }
+
+  if (parsed.department) {
+    conditions.push({
+      openDepartment: {
+        nameCn: { contains: parsed.department, mode: "insensitive" as const },
+      },
+    });
+  }
+
+  if (parsed.semester) {
+    conditions.push({
+      semester: {
+        nameCn: { contains: parsed.semester, mode: "insensitive" as const },
+      },
+    });
+  }
+
+  if (parsed.category) {
+    conditions.push({
+      course: {
+        category: {
+          nameCn: { contains: parsed.category, mode: "insensitive" as const },
+        },
+      },
+    });
+  }
+
+  if (parsed.level) {
+    conditions.push({
+      course: {
+        educationLevel: {
+          nameCn: { contains: parsed.level, mode: "insensitive" as const },
+        },
+      },
+    });
+  }
+
+  if (parsed.classType) {
+    conditions.push({
+      course: {
+        classType: {
+          nameCn: {
+            contains: parsed.classType,
+            mode: "insensitive" as const,
+          },
+        },
+      },
+    });
+  }
+
+  if (parsed.general) {
+    conditions.push({
+      OR: [
+        {
+          course: {
+            nameCn: {
+              contains: parsed.general,
+              mode: "insensitive" as const,
+            },
+          },
+        },
+        {
+          course: {
+            nameEn: {
+              contains: parsed.general,
+              mode: "insensitive" as const,
+            },
+          },
+        },
+        {
+          course: {
+            code: { contains: parsed.general, mode: "insensitive" as const },
+          },
+        },
+        {
+          code: { contains: parsed.general, mode: "insensitive" as const },
+        },
+      ],
+    });
+  }
+
+  return {
+    where: conditions.length > 0 ? { AND: conditions } : undefined,
+    orderBy,
+  };
+}
+
 export function paginatedSectionQuery(
   page: number,
   where?: Prisma.SectionWhereInput,

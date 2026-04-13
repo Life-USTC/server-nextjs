@@ -30,6 +30,10 @@ test.describe("GET /api/teachers", () => {
     await assertApiContract(request, { routePath: "/api/teachers" });
   });
 
+  test("detail contract", async ({ request }) => {
+    await assertApiContract(request, { routePath: "/api/teachers/[id]" });
+  });
+
   test("returns paginated response shape", async ({ request }) => {
     const response = await request.get("/api/teachers");
     expect(response.status()).toBe(200);
@@ -100,5 +104,38 @@ test.describe("GET /api/teachers", () => {
       pagination?: { page?: number };
     };
     expect(body.pagination?.page).toBe(1);
+  });
+
+  test("detail route returns seed teacher with sections", async ({
+    request,
+  }) => {
+    const teacherListResponse = await request.get(
+      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
+    );
+    expect(teacherListResponse.status()).toBe(200);
+    const teacherListBody = (await teacherListResponse.json()) as {
+      data?: Array<{ id?: number; code?: string | null }>;
+    };
+    const teacherId = teacherListBody.data?.find(
+      (item) => item.code === DEV_SEED.teacher.code,
+    )?.id;
+    expect(teacherId).toBeDefined();
+
+    const response = await request.get(`/api/teachers/${teacherId}`);
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      id?: number;
+      code?: string | null;
+      nameCn?: string;
+      sections?: Array<{ code?: string }>;
+      _count?: { sections?: number };
+    };
+    expect(body.id).toBe(teacherId);
+    expect(body.code).toBe(DEV_SEED.teacher.code);
+    expect(body.nameCn).toBe(DEV_SEED.teacher.nameCn);
+    expect(
+      body.sections?.some((section) => section.code === DEV_SEED.section.code),
+    ).toBe(true);
+    expect((body._count?.sections ?? 0) > 0).toBe(true);
   });
 });

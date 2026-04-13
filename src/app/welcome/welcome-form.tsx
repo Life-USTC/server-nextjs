@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { updateProfile } from "@/app/actions/user";
+import { BulkImportSectionsDialog } from "@/components/bulk-import-sections-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +19,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "@/i18n/routing";
 import { useSession } from "@/lib/auth/client";
 
 interface WelcomeFormProps {
@@ -28,9 +30,19 @@ interface WelcomeFormProps {
     image: string | null;
     profilePictures: string[];
   };
+  semesters: Array<{
+    id: number;
+    nameCn: string;
+    namePrimary?: string;
+  }>;
+  defaultSemesterId: number | null;
 }
 
-export function WelcomeForm({ user }: WelcomeFormProps) {
+export function WelcomeForm({
+  user,
+  semesters,
+  defaultSemesterId,
+}: WelcomeFormProps) {
   const t = useTranslations("welcome");
   const profileT = useTranslations("profile");
   const a11yT = useTranslations("accessibility");
@@ -155,6 +167,35 @@ export function WelcomeForm({ user }: WelcomeFormProps) {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? profileT("saving") : t("continue")}
             </Button>
+
+            <div className="space-y-3 border-t pt-4">
+              <div>
+                <p className="font-medium text-sm">{t("nextStepsTitle")}</p>
+                <p className="text-muted-foreground text-sm">
+                  {t("nextStepsDescription")}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  render={<Link className="no-underline" href="/sections" />}
+                >
+                  {t("browseSections")}
+                </Button>
+                <Button
+                  variant="outline"
+                  render={<Link className="no-underline" href="/courses" />}
+                >
+                  {t("browseCourses")}
+                </Button>
+                <BulkImportSectionsDialog
+                  semesters={semesters}
+                  defaultSemesterId={defaultSemesterId}
+                  triggerVariant="outline"
+                  triggerSize="default"
+                />
+              </div>
+            </div>
           </CardPanel>
         </Form>
       </Card>

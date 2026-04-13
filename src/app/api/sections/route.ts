@@ -8,7 +8,10 @@ import {
   parseOptionalInt,
 } from "@/lib/api/helpers";
 import { sectionsQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { paginatedSectionQuery } from "@/lib/query-helpers";
+import {
+  buildSectionSearchWhere,
+  paginatedSectionQuery,
+} from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +29,7 @@ export async function GET(request: NextRequest) {
     campusId: searchParams.get("campusId") ?? undefined,
     departmentId: searchParams.get("departmentId") ?? undefined,
     teacherId: searchParams.get("teacherId") ?? undefined,
+    search: searchParams.get("search") ?? undefined,
     ids: searchParams.get("ids") ?? undefined,
     page: searchParams.get("page") ?? undefined,
     limit: searchParams.get("limit") ?? undefined,
@@ -41,6 +45,7 @@ export async function GET(request: NextRequest) {
     campusId,
     departmentId,
     teacherId,
+    search,
     ids: idsParam,
   } = parsedQuery.data;
 
@@ -70,8 +75,25 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const searchFilters = buildSectionSearchWhere(search);
+  if (searchFilters.where?.AND) {
+    const searchAnd = Array.isArray(searchFilters.where.AND)
+      ? searchFilters.where.AND
+      : [searchFilters.where.AND];
+    const existingAnd = Array.isArray(where.AND)
+      ? where.AND
+      : where.AND
+        ? [where.AND]
+        : [];
+    where.AND = [...existingAnd, ...searchAnd];
+  }
+
   try {
-    const result = await paginatedSectionQuery(pagination.page, where);
+    const result = await paginatedSectionQuery(
+      pagination.page,
+      where,
+      searchFilters.orderBy,
+    );
     return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);

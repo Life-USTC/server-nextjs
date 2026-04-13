@@ -157,6 +157,7 @@ export async function GET(request: Request) {
             title: true,
             section: {
               select: {
+                jwId: true,
                 code: true,
                 course: { select: { jwId: true, code: true, nameCn: true } },
               },

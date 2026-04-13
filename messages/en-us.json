@@ -16,7 +16,7 @@
       "meDashboard": "Dashboard",
       "settings": "Settings",
       "userProfile": "{username}'s Profile",
-      "subscriptions": "Selected Sections",
+      "subscriptions": "Section Subscriptions",
       "uploads": "My Uploads",
       "homeworks": "My Homework",
       "busMap": "Transit Map",
@@ -32,12 +32,12 @@
     "courses": "Courses",
     "sections": "Sections",
     "teachers": "Teachers",
-    "subscriptions": "Selected Sections",
+    "subscriptions": "Section Subscriptions",
     "me": "Me",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "browseCourses": "Browse Courses",
-    "sectionSubscriptions": "Selected Sections",
+    "sectionSubscriptions": "Section Subscriptions",
     "viewAll": "View All",
     "search": "Search",
     "clear": "Clear",
@@ -72,17 +72,18 @@
     "todo": "To-do"
   },
   "subscriptions": {
-    "title": "Selected Sections",
-    "description": "Manage your selected course sections",
+    "title": "Section Subscriptions",
+    "description": "Manage the sections you follow in Life@USTC",
     "summary": {
       "subscriptions": "Calendar subscriptions",
       "sections": "Total sections",
       "semesters": "Covered semesters"
     },
-    "noSubscriptions": "No selected sections",
-    "noSubscriptionsDescription": "You haven't selected any sections yet.",
+    "noSubscriptions": "No followed sections yet",
+    "noSubscriptionsDescription": "You are not following any sections in Life@USTC yet.",
+    "browseSections": "Browse Sections",
     "browseCourses": "Browse Courses",
-    "subscriptionTitle": "Selected Sections #{id}",
+    "subscriptionTitle": "Section Subscription #{id}",
     "sectionsIncluded": "{count} sections included",
     "rowActions": "Row actions",
     "iCalLink": "Copy iCal Link",
@@ -91,7 +92,7 @@
     "optOut": "Opt out",
     "optOutConfirm": "Confirm",
     "optOutSuccess": "Section removed",
-    "optOutSuccessDescription": "This section has been removed from your selected sections",
+    "optOutSuccessDescription": "This section is no longer followed in Life@USTC",
     "optOutError": "Failed to remove section",
     "optOutRetry": "Please try again",
     "courseCode": "Course Code",
@@ -112,13 +113,13 @@
       "checkFormat": "Please check the input text format",
       "fetchFailed": "Failed to fetch course information",
       "pleaseRetry": "Please try again later",
-      "confirmTitle": "Confirm selection of {count} sections",
-      "foundSections": "Found {count} matching sections. Select sections to add:",
+      "confirmTitle": "Confirm following {count} sections",
+      "foundSections": "Found {count} matching sections. Choose which ones to follow in Life@USTC:",
       "unmatchedCodes": "Unmatched codes ({count})",
       "cancel": "Cancel",
-      "subscribeSelected": "Add {count} selected sections",
+      "subscribeSelected": "Follow {count} sections",
       "success": "Added successfully",
-      "successDescription": "Successfully added {count} sections",
+      "successDescription": "Now following {count} sections in Life@USTC",
       "importFailed": "Add failed"
     }
   },
@@ -199,7 +200,7 @@
       "cards": {
         "signIn": {
           "title": "Sign in for your dashboard",
-          "description": "Unlock personal schedule, homework, selected sections, and settings."
+          "description": "Unlock your personal schedule, homework, section subscriptions, and settings."
         },
         "mobileApp": {
           "title": "See the mobile app",
@@ -234,12 +235,12 @@
         "description": "Check section schedules, instructors, and availability"
       },
       "mySubscriptions": {
-        "title": "Selected Sections",
-        "description": "Manage your selected sections and get calendar links"
+        "title": "Section Subscriptions",
+        "description": "Manage the sections you follow and get calendar links"
       },
       "myProfile": {
         "title": "Me",
-        "description": "View your profile, selected sections, and account settings"
+        "description": "View your profile, followed sections, and account settings"
       },
       "browseTeachers": {
         "title": "Browse Teachers",
@@ -346,11 +347,11 @@
   },
   "myHomeworks": {
     "title": "My Homework",
-    "description": "Track homework for your selected sections.",
-    "noSubscriptions": "No selected sections",
-    "noSubscriptionsDescription": "Select sections to see homework here.",
+    "description": "Track homework for the sections you follow.",
+    "noSubscriptions": "No followed sections",
+    "noSubscriptionsDescription": "Follow sections to see homework here.",
     "emptyTitle": "No homework yet",
-    "emptyDescription": "Your selected sections haven't published homework.",
+    "emptyDescription": "The sections you follow haven't published homework.",
     "filterEmptyDescription": "Try another filter, or open a section to check other homework.",
     "listTitle": "Homework ({count})",
     "listDescription": "Ordered by due date.",
@@ -391,7 +392,7 @@
       },
       "subscriptions": {
         "title": "Section Management",
-        "description": "Bulk import and maintain selected sections"
+        "description": "Bulk follow sections and manage your Life@USTC workspace"
       },
       "homeworks": {
         "title": "Homework",
@@ -399,8 +400,8 @@
       },
       "exams": {
         "title": "Exams",
-        "description": "View your selected section exam schedule",
-        "noSubscriptionsTitle": "No selected sections",
+        "description": "View exam schedules from the sections you follow",
+        "noSubscriptionsTitle": "No followed sections",
         "noSubscriptionsDescription": "Select sections to see exams here.",
         "empty": "No exam schedule available yet.",
         "filterEmptyDescription": "Try another filter, or check back later for exam updates.",
@@ -466,7 +467,7 @@
       "openAll": "Open all homework"
     },
     "links": {
-      "subscriptions": "Open selected sections",
+      "subscriptions": "Open section subscriptions",
       "homeworks": "Open all homework",
       "settings": "Open settings",
       "publicProfile": "Public profile",
@@ -480,10 +481,12 @@
       "empty": "No exams in the next 7 days."
     },
     "termSelection": {
-      "title": "No selected sections",
-      "noAnySelection": "Select sections to see homework here.",
-      "noCurrentTerm": "Select sections to see homework here.",
-      "browseCourses": "Browse Courses"
+      "title": "No current-term section subscriptions",
+      "noAnySelection": "Follow sections to see your current-term work here.",
+      "noCurrentTerm": "You are only following past-term sections right now. Add current-term sections to restore your dashboard.",
+      "browseSections": "Browse Sections",
+      "browseCourses": "Browse Courses",
+      "matchByCode": "Match by Code"
     },
     "devDate": {
       "title": "Dev Debug: Override \"Today\"",
@@ -845,10 +848,10 @@
     "calendarSheetTitle": "Add to Calendar",
     "calendarSheetDescription": "Copy the link below and add this calendar in your calendar app",
     "calendarUrlLabel": "Single Section Calendar URL",
-    "subscriptionUrlLabel": "Selected Sections Calendar URL",
-    "subscriptionHintLabel": "This URL includes all your selected sections and auto-syncs",
-    "subscribeLabel": "Add to selected sections",
-    "unsubscribeLabel": "Remove from selected",
+    "subscriptionUrlLabel": "Section Subscription Calendar URL",
+    "subscriptionHintLabel": "This URL includes all sections you follow in Life@USTC and auto-syncs. It does not change official USTC course enrollment.",
+    "subscribeLabel": "Subscribe to section",
+    "unsubscribeLabel": "Unsubscribe from section",
     "copyToClipboard": "Copy",
     "close": "Close",
     "learnMoreAboutICalendar": "Learn more about iCalendar format",
@@ -858,11 +861,11 @@
     "pleaseWait": "Please wait",
     "subscribeSuccess": "Added",
     "unsubscribeSuccess": "Removed",
-    "subscribeSuccessDescription": "This section has been added to your selected sections",
-    "unsubscribeSuccessDescription": "This section has been removed from your selected sections",
+    "subscribeSuccessDescription": "This section is now followed in Life@USTC only",
+    "unsubscribeSuccessDescription": "This section is no longer followed in Life@USTC",
     "operationFailed": "Operation failed",
     "pleaseRetry": "Please retry",
-    "viewAllSubscriptions": "View selected sections",
+    "viewAllSubscriptions": "View section subscriptions",
     "loginRequired": "Login Required",
     "tabs": {
       "description": "Description",
@@ -870,8 +873,9 @@
       "comments": "Comments",
       "calendar": "Calendar"
     },
-    "loginRequiredDescription": "Sign in to add selected sections and sync your calendar across devices.",
-    "loginToSubscribe": "Sign in to add",
+    "loginRequiredDescription": "Sign in to follow this section in Life@USTC and sync it to your dashboard and calendar. This does not count as official USTC course enrollment.",
+    "loginToSubscribe": "Sign in to follow",
+    "subscriptionDisclaimer": "Following a section here only affects your Life@USTC dashboard and calendar. It is not official USTC course enrollment.",
     "calendar": "Calendar ({count})",
     "calendarEmpty": "No schedule or exam events available for this section",
     "classEvent": "Class",
@@ -901,7 +905,7 @@
     "examMode": "Exam Mode",
     "examCount": "Number of Examinees",
     "viewAllSections": "View all sections for this course",
-    "viewMySubscriptions": "View my selected sections",
+    "viewMySubscriptions": "View my section subscriptions",
     "viewTeacherCourses": "View other courses taught by {teacher}",
     "weekdays": {
       "sunday": "Sunday",
@@ -939,7 +943,7 @@
   "accessibility": {
     "viewSourceOnGithub": "View source on GitHub",
     "avatarOption": "Avatar option",
-    "subscriptionCalendarUrl": "Selected sections calendar URL",
+    "subscriptionCalendarUrl": "Section subscription calendar URL",
     "singleSectionCalendarUrl": "Single section calendar URL",
     "skipToMainContent": "Skip to main content"
   },
@@ -984,7 +988,7 @@
     "deleteAccount": "Delete Account",
     "deletingAccount": "Deleting...",
     "deleteAccountConfirmTitle": "Are you absolutely sure?",
-    "deleteAccountConfirmDescription": "This action cannot be undone. This will permanently delete your account, all linked accounts, selected sections, and remove all your data from our servers.",
+    "deleteAccountConfirmDescription": "This action cannot be undone. This will permanently delete your account, all linked accounts, section subscriptions, and remove all your data from our servers.",
     "deleteAccountConfirmPrompt": "Type {phrase} to confirm:",
     "deleteAccountSuccess": "Account Deleted",
     "deleteAccountSuccessDescription": "Your account has been permanently deleted.",
@@ -1475,10 +1479,14 @@
   },
   "welcome": {
     "title": "Complete Your Profile",
-    "description": "Please set your name and username to continue.",
+    "description": "Set your name and username to continue.",
     "continue": "Continue",
     "success": "Profile completed",
-    "successDescription": "Welcome! Your profile has been set up."
+    "successDescription": "Welcome! Your profile has been set up.",
+    "nextStepsTitle": "Build your workspace",
+    "nextStepsDescription": "After saving your profile, you can browse sections, jump in from courses, or match section codes in bulk.",
+    "browseSections": "Browse Sections",
+    "browseCourses": "Browse Courses"
   },
   "oauth": {
     "authorize": "Authorize Application",

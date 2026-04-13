@@ -30,10 +30,12 @@ export function DescriptionDetailDialog({
     ? `/admin/users?search=${encodeURIComponent(description.lastEditedBy.id)}`
     : null;
   const target = description?.homework?.id
-    ? {
-        href: `/homeworks/${description.homework.id}`,
-        label: description.homework.title ?? "—",
-      }
+    ? description.homework.section?.jwId
+      ? {
+          href: `/sections/${description.homework.section.jwId}#homework-${description.homework.id}`,
+          label: description.homework.title ?? "—",
+        }
+      : { href: "/", label: description.homework.title ?? "—" }
     : description?.section?.jwId
       ? {
           href: `/sections/${description.section.jwId}`,

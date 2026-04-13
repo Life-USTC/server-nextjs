@@ -28,3 +28,18 @@ test("/api/sections 可按 teacherId 过滤到 seed 班级", async ({ request })
     true,
   );
 });
+
+test("/api/sections 可按高级 search 语法检索 seed 班级", async ({
+  request,
+}) => {
+  const response = await request.get(
+    `/api/sections?search=${encodeURIComponent(`teacher:${DEV_SEED.teacher.nameCn}`)}&limit=20`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    data?: Array<{ jwId?: number; code?: string }>;
+  };
+  expect(body.data?.some((item) => item.jwId === DEV_SEED.section.jwId)).toBe(
+    true,
+  );
+});

@@ -54,6 +54,7 @@ export type AdminDescription = {
     id: string;
     title: string;
     section: {
+      jwId: number | null;
       code: string | null;
       course: { jwId: number; code: string; nameCn: string } | null;
     } | null;

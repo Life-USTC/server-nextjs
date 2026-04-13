@@ -439,6 +439,7 @@ export default async function SectionPage({
             courseNameSecondary={section.course.nameSecondary}
             sectionId={section.id}
             sectionJwId={section.jwId}
+            subscriptionDisclaimer={t("subscriptionDisclaimer")}
           />
 
           <CommentAwareTabs
@@ -808,6 +809,7 @@ type SectionHeaderProps = {
   courseNameSecondary: string | null;
   sectionId: number;
   sectionJwId: number;
+  subscriptionDisclaimer: string;
 };
 
 function SectionHeader({
@@ -815,6 +817,7 @@ function SectionHeader({
   courseNameSecondary,
   sectionId,
   sectionJwId,
+  subscriptionDisclaimer,
 }: SectionHeaderProps) {
   return (
     <div className="mt-2">
@@ -826,6 +829,9 @@ function SectionHeader({
               {courseNameSecondary}
             </p>
           ) : null}
+          <p className="max-w-2xl text-muted-foreground text-xs">
+            {subscriptionDisclaimer}
+          </p>
         </div>
         <SubscriptionCalendarButton
           sectionDatabaseId={sectionId}

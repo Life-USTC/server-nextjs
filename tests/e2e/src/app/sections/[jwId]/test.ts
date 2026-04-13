@@ -193,7 +193,7 @@ test.describe("/sections/[jwId]", () => {
     await gotoAndWaitForReady(page, SECTION_URL);
 
     const subscribeButton = page
-      .getByRole("button", { name: /加入已选课班级|Subscribe/i })
+      .getByRole("button", { name: /关注班级|Subscribe to section/i })
       .first();
     if ((await subscribeButton.count()) === 0) {
       await expect(page.locator("#main-content")).toBeVisible();
@@ -213,7 +213,7 @@ test.describe("/sections/[jwId]", () => {
     );
 
     const loginButton = loginDialog.getByRole("button", {
-      name: /登录后订阅|Log in/i,
+      name: /登录后关注|Sign in to follow/i,
     });
     if ((await loginButton.count()) > 0) {
       await loginButton.click();
@@ -306,10 +306,10 @@ test.describe("/sections/[jwId]", () => {
     await signInAsDebugUser(page, SECTION_URL);
 
     const subscribe = page.getByRole("button", {
-      name: /加入已选课班级|Subscribe/i,
+      name: /关注班级|Subscribe to section/i,
     });
     const unsubscribe = page.getByRole("button", {
-      name: /取消已选|Unsubscribe/i,
+      name: /取消关注|Unsubscribe from section/i,
     });
 
     if ((await subscribe.count()) === 0 && (await unsubscribe.count()) === 0) {

@@ -35,10 +35,12 @@ export function DescriptionsTable({
       <TableBody>
         {descriptions.map((d) => {
           const target = d.homework?.id
-            ? {
-                href: `/homeworks/${d.homework.id}`,
-                label: d.homework.title ?? "—",
-              }
+            ? d.homework.section?.jwId
+              ? {
+                  href: `/sections/${d.homework.section.jwId}#homework-${d.homework.id}`,
+                  label: d.homework.title ?? "—",
+                }
+              : { href: "/", label: d.homework.title ?? "—" }
             : d.section?.jwId
               ? {
                   href: `/sections/${d.section.jwId}`,

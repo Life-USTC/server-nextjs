@@ -479,6 +479,7 @@ export function HomeworkPanel({
               return (
                 <HomeworkItemCard
                   key={homework.id}
+                  cardId={`homework-${homework.id}`}
                   cardClassName="group"
                   title={homework.title}
                   createdAtLabel={createdAtLabel}

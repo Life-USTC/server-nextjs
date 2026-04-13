@@ -15,6 +15,9 @@ import {
   sectionInclude,
 } from "@/lib/query-helpers";
 
+const SECTION_SUBSCRIPTION_NOTE =
+  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
+
 export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "search_courses",
@@ -92,7 +95,7 @@ export function registerCourseTools(server: McpServer) {
     "match_section_codes",
     {
       description:
-        "Match section codes in one semester and return matched/unmatched results.",
+        "Match section codes in one semester and return matched/unmatched results for Life@USTC section subscriptions. This does not represent official USTC course enrollment.",
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
@@ -138,6 +141,7 @@ export function registerCourseTools(server: McpServer) {
           ),
           sections,
           total: sections.length,
+          note: SECTION_SUBSCRIPTION_NOTE,
         },
         {
           mode: resolveMcpMode(mode),

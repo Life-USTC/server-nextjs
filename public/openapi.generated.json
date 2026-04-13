@@ -789,7 +789,7 @@
     "/api/calendar-subscriptions": {
       "post": {
         "operationId": "post-api-calendar-subscriptions",
-        "summary": "Replace current user's selected sections.",
+        "summary": "Replace the current user's section subscriptions.",
         "description": "",
         "tags": [
           "Calendar"
@@ -821,7 +821,7 @@
     "/api/calendar-subscriptions/current": {
       "get": {
         "operationId": "get-api-calendar-subscriptions-current",
-        "summary": "Get current user's selected sections.",
+        "summary": "Get the current user's section subscriptions.",
         "description": "",
         "tags": [
           "Calendar"
@@ -1128,6 +1128,24 @@
           },
           {
             "in": "query",
+            "name": "educationLevelId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "categoryId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "classTypeId",
+            "schema": {},
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "page",
             "schema": {},
             "required": false
@@ -1146,6 +1164,37 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/paginatedCourseResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/{jwId}": {
+      "get": {
+        "operationId": "get-api-courses-{jwId}",
+        "summary": "Get course detail by JW ID.",
+        "description": "",
+        "tags": [
+          "Courses"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jwId",
+            "schema": {},
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/courseDetailSchema"
                 }
               }
             }
@@ -1780,6 +1829,14 @@
           },
           {
             "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "ids",
             "schema": {
               "type": "string"
@@ -2103,6 +2160,39 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/paginatedTeacherResponseSchema"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teachers/{id}": {
+      "get": {
+        "operationId": "get-api-teachers-{id}",
+        "summary": "Get teacher detail by numeric ID.",
+        "description": "",
+        "tags": [
+          "Teachers"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "123"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/teacherDetailSchema"
                 }
               }
             }
@@ -3248,11 +3338,81 @@
           "id"
         ]
       },
+      "jwIdPathParamsSchema": {
+        "type": "object",
+        "properties": {
+          "jwId": {
+            "$ref": "#/components/schemas/integerStringSchema"
+          }
+        },
+        "required": [
+          "jwId"
+        ]
+      },
+      "courseDetailSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "object"
+          },
+          "classType": {
+            "type": "object"
+          },
+          "classify": {
+            "type": "object"
+          },
+          "educationLevel": {
+            "type": "object"
+          },
+          "gradation": {
+            "type": "object"
+          },
+          "type": {
+            "type": "object"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/courseDetailSectionSchema"
+            }
+          }
+        },
+        "required": [
+          "category",
+          "classType",
+          "classify",
+          "educationLevel",
+          "gradation",
+          "type",
+          "sections"
+        ]
+      },
       "coursesQuerySchema": {
         "type": "object",
         "properties": {
           "search": {
             "type": "string"
+          },
+          "educationLevelId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "categoryId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
+          },
+          "classTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/integerStringSchema"
+              }
+            ]
           },
           "page": {
             "allOf": [
@@ -3724,17 +3884,6 @@
           "pagination"
         ]
       },
-      "jwIdPathParamsSchema": {
-        "type": "object",
-        "properties": {
-          "jwId": {
-            "$ref": "#/components/schemas/integerStringSchema"
-          }
-        },
-        "required": [
-          "jwId"
-        ]
-      },
       "binary": {},
       "sectionDetailSchema": {
         "type": "object",
@@ -3962,6 +4111,9 @@
               }
             ]
           },
+          "search": {
+            "type": "string"
+          },
           "ids": {
             "type": "string"
           },
@@ -4057,6 +4209,48 @@
         "required": [
           "data",
           "pagination"
+        ]
+      },
+      "teacherDetailSchema": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/departmentSchema"
+              }
+            ]
+          },
+          "teacherTitle": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/teacherTitleSchema"
+              }
+            ]
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherDetailSectionSchema"
+            }
+          },
+          "_count": {
+            "type": "object",
+            "properties": {
+              "sections": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "sections"
+            ]
+          }
+        },
+        "required": [
+          "department",
+          "teacherTitle",
+          "sections",
+          "_count"
         ]
       },
       "teachersQuerySchema": {
@@ -5356,6 +5550,36 @@
           "sectionTeacher"
         ]
       },
+      "courseDetailSectionSchema": {
+        "type": "object",
+        "properties": {
+          "semester": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/semesterSchema"
+              }
+            ]
+          },
+          "campus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/campusSchema"
+              }
+            ]
+          },
+          "teachers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/teacherSchema"
+            }
+          }
+        },
+        "required": [
+          "semester",
+          "campus",
+          "teachers"
+        ]
+      },
       "buildingWithCampusSchema": {
         "type": "object",
         "properties": {
@@ -5616,6 +5840,25 @@
           "teachLanguage",
           "teachers",
           "adminClasses"
+        ]
+      },
+      "teacherDetailSectionSchema": {
+        "type": "object",
+        "properties": {
+          "course": {
+            "$ref": "#/components/schemas/courseSchema"
+          },
+          "semester": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/semesterSchema"
+              }
+            ]
+          }
+        },
+        "required": [
+          "course",
+          "semester"
         ]
       },
       "teacherListSchema": {

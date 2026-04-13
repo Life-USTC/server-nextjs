@@ -10,6 +10,7 @@ import { CommentMarkdown } from "@/features/comments/components/comment-markdown
 import { cn } from "@/lib/utils";
 
 type HomeworkItemCardProps = {
+  cardId?: string;
   cardClassName?: string;
   title: string;
   createdAtLabel: string;
@@ -28,6 +29,7 @@ type HomeworkItemCardProps = {
 };
 
 export function HomeworkItemCard({
+  cardId,
   cardClassName,
   title,
   createdAtLabel,
@@ -45,7 +47,10 @@ export function HomeworkItemCard({
   footerEnd,
 }: HomeworkItemCardProps) {
   return (
-    <Card className={cn("border-border/70 bg-card/72", cardClassName)}>
+    <Card
+      id={cardId}
+      className={cn("border-border/70 bg-card/72", cardClassName)}
+    >
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
