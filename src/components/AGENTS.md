@@ -1,18 +1,42 @@
 # src/components/
 
-可复用 UI 组件。
+- Scope
+  - Reusable UI components and shared composed UI
+  - No feature-specific data fetching
+  - No new feature-specific product mutations
+  - Existing shared mutation surfaces must use typed API clients or server actions and keep permissions server-side
 
-## 结构
+- Structure
+  - `ui/`: base component wrappers built on Base UI patterns and Tailwind classes
+  - `admin/`: shared admin tables, filters and dialogs
+  - `descriptions/`: shared description display/edit surface
+  - `filters/`: list/dashboard filter toolbars
+  - `schedules/`: schedule display helpers
+  - Root components cover layout shells, nav, calendars, profile/settings pieces and data states
 
-- `ui/`: 基础组件库（Button、Dialog、Card、Badge、Table 等），基于 coss/base-ui + Tailwind
-  - 这些组件从 Biome lint 中排除，遵循上游风格
-  - 组件文档：`docs/cossui/`
-- 其他文件：业务级复合组件（日历、分页、搜索、表单等）
+- Component rules
+  - Prefer compound components for multi-part UI
+  - Use CVA for variants and `cn()` for class merging
+  - Preserve `data-slot` patterns in UI primitives
+  - Buttons default to `type="button"` unless used as submit
+  - Keep ARIA and keyboard support intact
+  - Links navigate; buttons mutate state
+  - Use Sheet for light edits and AlertDialog for destructive confirmation
+  - Use Toast for mutation feedback when the result is not otherwise obvious
 
-## 约定
+- Layout and display
+  - Use `PageLayout` for normal pages
+  - Use `PageSection` / `Panel` for framed content blocks
+  - Use `PageBreadcrumbs` where hierarchy matters
+  - Keep `#main-content` contract intact through page composition
+  - Keep cards stable as state changes
+  - Do not let long course names, section codes or URLs overflow
+  - Personal cards should keep title, time/state and primary action stable
+  - Preserve semester, section code, teacher and location when needed for disambiguation
 
-- 使用 compound component 模式（如 Dialog → DialogContent + DialogHeader + DialogFooter）
-- 变体用 CVA（class-variance-authority）定义
-- 保持可访问性：ARIA 属性、键盘导航
-- 链接负责导航，按钮负责动作，不混用
-- 轻量编辑用 Sheet，破坏性确认用 AlertDialog
+- Accessibility
+  - Prefer semantic roles and labels
+  - Keep focus-visible states
+  - Preserve skip-to-content behavior
+  - Icon-only controls need labels
+  - Dialogs and sheets need titles

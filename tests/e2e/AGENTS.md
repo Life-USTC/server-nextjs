@@ -1,45 +1,71 @@
 # tests/e2e/
 
-Playwright 端到端测试，在真实 Next.js 应用上运行。
+- Scope
+  - Playwright tests against the real built Next.js app
+  - Test directory mirrors app routes
+  - Test files use `test.ts`, `*.test.ts`, or `*.spec.ts`
 
-## 结构
+- Web server
+  - Config builds with `bun run build`, then starts with `bunx next start`
+  - Defaults are host `127.0.0.1`, port `3000`, one worker
+  - Env knobs: `PLAYWRIGHT_HOST`, `PLAYWRIGHT_PORT`, `PLAYWRIGHT_REUSE_SERVER=1`, `PLAYWRIGHT_RETRIES`, `PLAYWRIGHT_WORKERS`
+  - E2E auth env and mock S3 are enabled by config
 
-- `src/app/**/`: 按路由镜像的测试文件（`test.ts`）
-- `src/app/_shared/`: 共享契约辅助（`page-contract.ts`、`api-contract.ts`）
-- `utils/`: 测试工具
-  - `auth.ts`: `signInAsDebugUser()`、`signInAsDevAdmin()`
-  - `page-ready.ts`: `gotoAndWaitForReady()`、`waitForUiSettled()`
-  - `e2e-db.ts`: 数据库准备和清理
-  - `dev-seed.ts`: seed 数据常量
+- Layout
+  - `tests/e2e/src/app/**/test.ts`: route-oriented tests
+  - `tests/e2e/src/app/_shared/`: page and API contract helpers
+  - `utils/`: auth, DB fixtures, seed constants, upload helpers and screenshots
 
-## 测试设计
+- Helpers
+  - `signInAsDebugUser()`: normal signed-in user
+  - `signInAsDevAdmin()`: admin user
+  - `expectRequiresSignIn()`: protected page checks
+  - `gotoAndWaitForReady()`: navigation helper
+  - `waitForUiSettled()`: post-navigation settling
+  - `e2e-db.ts`: DB setup/cleanup through Bun eval with transient Bun crash retries
+  - `DEV_SEED`: stable assertions
 
-- 先补路由契约（能访问、不 500），再补具体行为
-- 一个测试只证明一个用户故事
-- 优先短 happy path，避免大杂烩长流程
-- 测试创建的数据必须自己清理
+- Test shape
+  - Start with route contract: loads, does not 500, shows expected shell
+  - Add behavior tests for changed user journeys
+  - One test should prove one user story
+  - Prefer short happy paths
+  - Create data through API or `e2e-db.ts`
+  - Clean up data created by the test
 
-## 数据来源
+- API contracts
+  - Public list/detail routes should return useful seed-backed data
+  - Protected routes should return expected 400/401/403/404/405, not 500
+  - iCal routes should return `text/calendar` and `BEGIN:VCALENDAR`
+  - OpenAPI route should return OpenAPI `3.0.0`
 
-- `DEV_SEED`: 稳定只读断言
-- `page.request`: 通过 API 创建并验证
-- `e2e-db.ts`: 难以通过 UI 到达的准备/清理
+- Coverage priorities
+  - Section subscription must not read as official enrollment
+  - Dashboard reflects current-semester subscriptions and recoverable empty states
+  - Stale-semester subscriptions do not masquerade as current work
+  - Homework and per-user completion stay separate
+  - Todos are personal
+  - Cross-semester and same-course cases show disambiguation
+  - Anonymous, signed-in, suspended and admin permissions are distinct
+  - Comment anonymity differs for normal user vs admin context
+  - Upload/download authorization cannot be bypassed by URL access
+  - API and MCP behavior match Web rules where exposed
 
-## 选择器
+- Selectors and flake rules
+  - Prefer `getByRole`, `getByLabel`, `getByText`, then `data-testid`
+  - Avoid brittle class selectors
+  - Keep tests compatible with `en-us` and `zh-cn` where copy varies
+  - Do not use `waitForTimeout()`
+  - Prefer `waitForResponse`, `toHaveURL`, `toBeVisible` and `expect(...).toPass()`
+  - Use route aliases from auth helpers for settings redirects
 
-优先语义化：`getByRole` > `getByLabel` > `getByText` > `data-testid`
+- Screenshots
+  - Use `captureStepScreenshot()` for meaningful page contract states
+  - Screenshot artifacts should aid layout review, not replace assertions
 
-## 防 flaky
-
-- 不用 `waitForTimeout()`
-- 用 `waitForResponse`、`toHaveURL`、`toBeVisible`
-
-## 覆盖度
-
-当前状态见 `docs/e2e/COVERAGE.md`。新增功能覆盖后同步更新。
-
-## 命令
-
-- `bun run test:e2e`: 运行全部
-- `bun run test:e2e -- tests/e2e/src/app/api/todos`: 聚焦运行
-- `bun run check:e2e`: 检查约定
+- Commands
+  - All E2E: `bun run test:e2e`
+  - Focused E2E: `bun run test:e2e -- tests/e2e/src/app/api/todos`
+  - Headed: `bun run test:e2e:headed`
+  - UI: `bun run test:e2e:ui`
+  - Convention check: `bun run check:e2e`

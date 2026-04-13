@@ -1,23 +1,75 @@
 # src/lib/
 
-基础设施层，不直接面向用户。
+- Scope
+  - Infrastructure layer and shared low-level helpers
+  - No page-specific product logic
+  - Put business behavior in `src/features/`
 
-| 子目录 | 职责 |
-| --- | --- |
-| `api/` | API 路由辅助：分页、错误处理、Zod schema、OpenAPI client |
-| `auth/` | 鉴权辅助：session 获取、API 用户解析、Bearer token 验证 |
-| `db/` | Prisma 单例 + locale 扩展（namePrimary/nameSecondary） |
-| `mcp/` | MCP server 注册和工具定义 |
-| `oauth/` | OAuth/OIDC 配置、client registration、scope 管理 |
-| `storage/` | S3 抽象 + mock（`E2E_MOCK_S3=1` 启用本地文件存储） |
-| `security/` | CSP 构建、HTTP 安全头 |
-| `log/` | 结构化日志（`logAppEvent`、`logRouteFailure`） |
-| `time/` | 时间格式化（上海时区） |
-| `navigation/` | 导航辅助 |
-| `ui/` | UI 工具（skeleton keys 等） |
+- `api/`
+  - Use `jsonResponse()` to serialize dates
+  - Use `handleRouteError()` for unexpected errors
+  - Use response helpers for common status codes
+  - Use `normalizePagination()` and `buildPaginatedResponse()`
+  - Keep request schemas in `api/schemas/request-schemas.ts`
+  - Keep response/model schemas aligned with OpenAPI generation
 
-## 约定
+- `auth/`
+  - `requireSignedInUserId()` redirects page users
+  - `resolveApiUserId()` accepts OAuth Bearer token or Better Auth cookie session
+  - Do not use page redirects in route handlers
+  - Preserve final-account disconnect protection
 
-- 这里的代码不应包含业务逻辑，业务逻辑放 `src/features/`
-- 数据库查询涉及名称时必须通过 `getPrisma(locale)`
-- 新增 MCP 工具在 `mcp/tools/` 下添加文件，在 `mcp/server.ts` 中注册
+- `db/`
+  - Prisma client comes from `@/generated/prisma/client`
+  - App Prisma instances come from `src/lib/db/prisma.ts`
+  - Use `createPrismaAdapter()` with PostgreSQL adapter
+  - Use base `prisma` for writes and locale-neutral reads
+  - Use `getPrisma(locale)` for localized `namePrimary` / `nameSecondary`
+  - Do not create ad hoc Prisma clients in app code
+  - Scripts may create their own client and must disconnect
+
+- `mcp/`
+  - Server registers tool groups in `mcp/server.ts`
+  - Tool files live under `mcp/tools/`
+  - Auth requires Bearer token with MCP scope
+  - JWT and opaque OAuth tokens are both supported
+  - Tool input uses Zod schemas
+  - Tool output uses `jsonToolResult()`
+  - Modes are `summary`, `default` and `full`
+  - Default focus is personal learning workspace
+  - No admin tools by default
+  - Match Web/API business rules
+
+- `oauth/`
+  - Better Auth OAuth provider owns client/token/consent models
+  - Dynamic client registration is supported
+  - MCP uses resource indicators and `MCP_TOOLS_SCOPE`
+  - Redirect URI handling must stay strict
+  - Debug logging must not leak secrets
+
+- `storage/`
+  - S3/R2 config uses env vars
+  - `E2E_MOCK_S3=1` or `.e2e-mock-s3` enables mock storage
+  - Mock storage persists under `.e2e-mock-s3-store`
+  - Upload keys are scoped under `uploads/{userId}/...`
+  - Signed URLs are transport only; app permissions still matter
+
+- `security/`
+  - CSP nonce is created in `src/proxy.ts`
+  - Layout reads nonce from `x-csp-nonce`
+  - Keep analytics scripts nonce-bound
+  - Proxy excludes API and static paths
+
+- `time/`
+  - `src/lib/time/parse-date-input.ts` parses API/MCP date values
+  - `src/lib/time/serialize-date-output.ts` prepares JSON-safe dates
+  - Shanghai helpers drive display and dashboard day windows
+  - Do not hand-roll timezone conversion in features
+
+- Other rules
+  - Use structured app/route logging helpers
+  - Use shared pagination/search-param helpers
+  - Use localized navigation wrappers from `i18n/routing`
+  - Keep auth and permission checks explicit
+  - Do not bypass upload authorization through raw R2/S3 URLs
+  - Keep API/MCP date serialization consistent

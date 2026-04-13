@@ -1,19 +1,40 @@
 # tools/
 
-开发脚本，不打包进生产镜像（`load-from-static.ts` 除外）。
+- Scope
+  - Development scripts, import scripts, generated-artifact helpers and convention checks
+  - Not request-time app code
 
-| 脚本 | 用途 |
-| --- | --- |
-| `seed-dev-scenarios.ts` | 注入本地开发场景数据（用户、课程、作业等） |
-| `reset-dev-scenarios.ts` | 清除场景数据 |
-| `load-from-static.ts` | 从 JSON 导入教务课程数据（生产 cron 也用） |
-| `load-sections.ts` / `load-schedules.ts` / `load-exams.ts` | 解析教务数据 |
-| `load-semesters.ts` | 导入学期数据 |
-| `openapi-postprocess.ts` | 修正生成的 OpenAPI JSON |
-| `check-e2e-conventions.ts` | 检查 E2E 测试文件约定 |
-| `check-i18n-keys.ts` | 审计缺失的翻译 key |
+- Runtime
+  - Use `bun` / `bunx` only
+  - Load env with `dotenv/config` when needed
+  - Scripts that instantiate Prisma should use `PrismaClient`, use `createPrismaAdapter()` and disconnect when complete
 
-## 约定
+- Seed scripts
+  - `seed-dev-scenarios.ts` creates stable debug users and current-semester course/section/schedule/exam scenarios
+  - Seed scenarios should include homework, completion, todo, comment, upload and suspension cases when relevant
+  - `reset-dev-scenarios.ts` removes scenario data
+  - Seed IDs use high JW ranges to avoid real imported data collisions
+  - Seed text should remain stable for E2E assertions
 
-- 新增模型或特殊逻辑时，必须更新 `seed-dev-scenarios.ts`
-- seed 数据应覆盖 E2E 测试需要的场景
+- Import scripts
+  - `load-from-static.ts` imports SQLite snapshot data and supports cache, snapshot URL override, minimum semester filter and skipped course/bus import
+  - Course import should preserve JW/import facts
+  - Synthetic IDs must remain stable
+  - China-local date conversion should stay centralized in script helpers
+  - Bus import should go through `src/features/bus/lib/bus-import.ts`
+  - Bus version/checksum should make repeated imports safe
+
+- OpenAPI and checks
+  - `openapi-postprocess.ts` runs after `next-openapi-gen`
+  - `bun run prebuild` runs Prisma generate, OpenAPI generate and OpenAPI type generation
+  - `check-e2e-conventions.ts` rejects `waitForTimeout()`, committed skipped E2E tests and direct Prisma imports in Playwright tests
+  - `check-i18n-keys.ts` checks translation key availability across `src` and `messages`
+
+- Data rules
+  - Seed current-semester dashboard cases
+  - Seed no-subscription or stale-semester edge cases when changed
+  - Seed cross-semester disambiguation cases when relevant
+  - Seed section subscription separately from JW facts
+  - Seed homework separately from per-user completion
+  - Seed personal todos separately from section homework
+  - Cover admin, moderation, upload, OAuth and MCP edge cases when changed

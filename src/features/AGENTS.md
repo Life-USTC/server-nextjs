@@ -1,26 +1,79 @@
 # src/features/
 
-按用户任务组织的业务域。每个 feature 通常包含：
+- Scope
+  - User-task business domains
+  - Keep domain logic here, not in route handlers
+  - Typical feature layout: `components/`, `server/`, `lib/`
+  - Server Component data functions belong in `server/`
+  - Client hooks stay under feature `hooks/` when scoped to one domain
 
-- `components/`: UI 组件
-- `server/`: 服务端数据获取函数
-- `lib/`: 共享逻辑
+- `home/`
+  - Own dashboard panels and cards
+  - Dashboard aggregation currently lives in `src/app/dashboard/dashboard-data.ts`
+  - Move reusable dashboard behavior into `src/features/home/` only as an intentional refactor
+  - Overview should answer what the user should do next
+  - Prioritize current-semester work
+  - Do not make stale semesters look current
+  - Calendar week starts Sunday
+  - Calendar events should link back to source objects
 
-## 各 feature
+- `homeworks/`
+  - Homework belongs to a section
+  - Creation does not require subscribing to that section
+  - Signed-in, unsuspended users can create/update active homework
+  - Delete is creator/admin scoped
+  - Completion belongs to the viewer, not the homework
+  - Due-less homework stays visible but out of urgent due ordering
+  - Description may be created/updated with homework
+  - Preserve audit log writes for create/delete paths
 
-| Feature | 职责 |
-| --- | --- |
-| `home/` | 首页 dashboard 各 tab 的数据聚合和展示 |
-| `homeworks/` | 作业 CRUD、完成状态追踪、面板展示 |
-| `todos/` | 个人待办 CRUD |
-| `comments/` | 评论 CRUD、回复、表情回应、审核 |
-| `uploads/` | 文件上传（presigned URL 流程）、配额管理 |
-| `descriptions/` | 对象描述（Markdown）读写与历史 |
-| `dashboard-links/` | 首页链接书签的固定和访问追踪 |
-| `bus/` | 校车时刻表查询、路线偏好、地图 |
+- `todos/`
+  - Todo belongs to one user
+  - Users can create/edit/complete/delete only their own todos
+  - Todo may have title, content, priority and due date
+  - Incomplete due todos can appear on personal calendar
+  - Completed todos should not remain urgent dashboard work
 
-## 约定
+- `comments/`
+  - Comments are object-scoped to section, course, teacher, section-teacher or homework
+  - Support Markdown, math, emoji, tables, replies and reactions
+  - Visibility supports public, logged-in only and anonymous
+  - Anonymous hides identity from normal users; admin moderation can see enough context for safety work
+  - Suspended users cannot create new comments
+  - Authors can edit/delete their own comments
+  - Admin can moderate/hide/delete
 
-- 新增 feature 时在此目录创建子目录，不要把业务逻辑散落在 `src/app` 或 `src/lib`
-- 服务端数据函数放 `server/`，用于 Server Component 直接调用
-- 涉及新模型时需同步更新 seed 数据（`tools/seed-dev-scenarios.ts`）
+- `uploads/`
+  - Uploads are comment attachments
+  - Use pending-upload flow before attaching to comments
+  - Enforce max file size and total quota
+  - E2E can use mock S3
+  - Download must check access to the owning comment/target context
+  - Rename/delete only the owner upload unless admin flow explicitly exists
+
+- `descriptions/`
+  - Markdown supplement for section, course, teacher and homework
+  - Platform-maintained info, distinct from comments
+  - Track last editor and edit history
+  - Description takes precedence over conflicting comment opinion
+
+- `dashboard-links/`
+  - Static link catalog plus user state
+  - Search supports Chinese and pinyin
+  - Public users can browse
+  - Signed-in users can pin and record visits
+  - Links navigate; buttons mutate pin/visit state
+
+- `bus/`
+  - Public timetable lookup
+  - Signed-in preference save
+  - Routes are ordered campus stop lists
+  - Trips differ by weekday/weekend
+  - Default day type should follow current date
+  - Static import should be idempotent by schedule version/checksum
+
+- Change rules
+  - Add seed data for new models or special logic
+  - Add or update E2E for changed user journeys
+  - Preserve semester and section number in search, matching, cross-semester and admin views
+  - Compact personal cards may prefer course name, time, place, teacher, state and next action

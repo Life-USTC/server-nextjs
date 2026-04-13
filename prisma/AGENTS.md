@@ -1,17 +1,43 @@
 # prisma/
 
-## Schema
+- Scope
+  - Prisma schema, migrations and data model boundaries
+  - `schema.prisma` is the source of truth for model details
+  - Generated Prisma client output is `src/generated/prisma`
+  - Import generated client from `@/generated/prisma/client`
 
-`schema.prisma` 包含所有数据模型。主要分组：
+- Datasource and generator
+  - PostgreSQL connection comes from env
+  - App code uses `@prisma/adapter-pg`
+  - Prisma generator provider is `prisma-client`
 
-- **教务数据**（从 USTC 教务系统导入）：Course、Section、Schedule、Teacher、Exam、Campus、Building、Room、Semester、Department
-- **用户内容**：Homework、HomeworkCompletion、Todo、Comment、CommentReaction、Upload、Description
-- **鉴权**（Better Auth）：User、Account、Session、Jwks、OAuthClient、OAuthAccessToken 等
-- **其他**：Bus*（校车）、UserSuspension、DashboardLink*
+- Model boundaries
+  - JW/import facts include semester, course, section, teacher, schedule, exam and lookup data
+  - User state includes section subscriptions, homework completions, todos, dashboard pins/clicks and bus preferences
+  - Collaborative content includes homework, descriptions, comments, reactions and uploads
+  - Auth/OAuth models are owned by Better Auth and the OAuth provider
+  - Bus tables represent campuses, routes, ordered stops, schedule versions and trips
 
-## 约定
+- Mutation constraints
+  - Normal users do not edit JW/import facts
+  - Subscription writes update only the current user relation
+  - Homework completion writes must not mutate homework
+  - Todo writes must stay scoped to owner
+  - Comment, description and upload writes need target context
+  - Admin/risky writes should preserve actor and time fields where the schema supports them
+  - Soft-delete fields such as `deletedAt` must keep read paths and uniqueness assumptions in mind
 
-- 修改 schema 后运行 `bun run prisma:migrate` 创建 migration
-- 然后运行 `bun run prebuild` 重新生成 Prisma client 和 OpenAPI types
-- 新模型需要在 `tools/seed-dev-scenarios.ts` 中补充 seed 数据
-- 命名：`id`（自增主键）、`jwId`（教务系统外键）、`nameCn`/`nameEn`（双语名称）、`createdAt`/`updatedAt`
+- Schema change rules
+  - Run `bun run prisma:migrate`
+  - Run `bun run prebuild`
+  - Add or update seed scenarios for new models or special logic
+  - Update E2E tests when behavior changes
+  - Check migrations for accidental destructive changes
+
+- Naming
+  - `id`: internal primary key
+  - `jwId`: JW external key
+  - `code`: imported or product code
+  - `nameCn` / `nameEn`: bilingual names
+  - `createdAt` / `updatedAt`: timestamps
+  - `deletedAt`: soft delete marker

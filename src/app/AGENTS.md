@@ -1,29 +1,52 @@
 # src/app/
 
-Next.js App Router 页面和 API 路由。
+- Scope
+  - Next.js App Router pages and route handlers
+  - Keep files thin
+  - Put reusable business logic in `src/features/`
+  - Put infrastructure helpers in `src/lib/`
 
-## 页面
+- App Router notes
+  - `searchParams` may be a Promise
+  - `params` may be a Promise
+  - Use `generateMetadata()` with translations
+  - Use `export const dynamic = "force-dynamic"` for dynamic pages/routes
+  - Use `export const runtime = "nodejs"` when Node APIs or MCP transport need it
 
-- `page.tsx`: 首页，登录后显示 tabbed dashboard，未登录显示公开页
-- `sections/`: 班级列表和详情页（核心工作单元）
-- `courses/`: 课程浏览和详情
-- `teachers/`: 教师浏览和详情
-- `settings/`: 用户设置（profile/accounts/content/danger）
-- `admin/`: 管理后台（moderation/users/oauth），需要 isAdmin
-- `welcome/`: 新用户资料完善
-- `signin/`: 登录页
-- `oauth/authorize`: 第三方 OAuth 同意页
+- Page rules
+  - `/` is the signed-in dashboard and anonymous public bus/links entry
+  - Course, section and teacher pages are public browsing surfaces
+  - Section pages must not imply official course enrollment
+  - `/welcome` is required when a signed-in user lacks name or username
+  - `/signin` may expose dev debug providers only in dev/E2E mode
+  - `/settings` is personal account/content/upload/danger management
+  - `/oauth/authorize` must show app, scopes, approve and deny actions
+  - `/admin/*` is admin only and needs clear feedback for high-risk actions
+  - `/comments/[id]` redirects to the target object anchor
+  - Keep `#main-content` visible for page contracts
 
-## API
+- API route rules
+  - Use `jsonResponse()` for JSON
+  - Use `handleRouteError()` for unexpected failures
+  - Use typed helpers such as `badRequest`, `unauthorized`, `forbidden`, `notFound` and `payloadTooLarge`
+  - Validate request bodies and query params with schemas from `src/lib/api/schemas`
+  - Use `parseInteger` / `parseOptionalInt` for integer params after schema parsing
+  - Use `buildPaginatedResponse()` for paginated lists
+  - Keep auth checks before mutation
+  - Use `resolveApiUserId()` when Bearer token and cookie sessions are both valid inputs
+  - MCP route is Bearer-token only
 
-- `api/`: REST Route Handlers（详见 /api-docs）
-- 每个路由文件必须 `export const dynamic = "force-dynamic"`
-- 输入验证用 Zod schema，错误处理用 `handleRouteError()`
-- 分页用 `buildPaginatedResponse()`
+- OpenAPI route annotations
+  - Keep annotations above handlers: `@params`, `@pathParams`, `@body`, `@response`
+  - Use schema names from API schema files
+  - After API changes run `bun run prebuild`
 
-## 约定
+- iCal routes
+  - Return valid calendar content even for empty event sets
+  - Preserve section and personal feed semantics
+  - Calendar feed token belongs to user
 
-- 页面用 `generateMetadata()` 设置标题（通过 i18n）
-- 数据并行获取用 `Promise.all()`
-- 鉴权检查放在页面最前面
-- 新增页面必须检查 i18n 覆盖
+- Page composition
+  - Use shared page layout components where possible
+  - Load anonymous home bus data unless links tab is explicitly selected
+  - Use route aliases consistently with E2E helpers

@@ -1,13 +1,41 @@
 # src/
 
-- `app/`: 页面路由和 Route Handlers，按 Next.js App Router 组织
-- `features/`: 按用户任务划分的业务域（首页、作业、待办、评论等）
-- `components/`: 可复用 UI 组件
-- `lib/`: 基础设施（鉴权、数据库、MCP、日志、存储等）
-- `i18n/`: 国际化配置，使用 next-intl
-- `shared/`: 跨 feature 共享的纯工具函数
-- `hooks/`: React hooks
-- `types/`: 全局类型定义
-- `generated/`: 自动生成的代码（Prisma client、OpenAPI types），不要手动编辑
+- Ownership
+  - `app/`: App Router routes, layouts, route handlers, auth redirects and page composition
+  - `features/`: user-task domains such as dashboard, homework, todo, comments, uploads, descriptions, links and bus
+  - `components/`: reusable UI primitives and composed UI
+  - `lib/`: infrastructure for API, auth, db, MCP, OAuth, storage, security, logging and time
+  - `i18n/`: locale config and next-intl routing helpers
+  - `shared/`: pure cross-feature utilities
+  - `hooks/`: React hooks
+  - `styles/`: global styles
+  - `types/`: global TypeScript types
+  - `generated/`: Prisma and OpenAPI generated code; do not edit manually
 
-所有组件默认是 Server Component，只在需要交互（hooks、事件）时加 `"use client"`。
+- Imports
+  - Use `@/` aliases for app source imports
+  - Import Prisma types from `@/generated/prisma/client`
+  - Import app Prisma instances from `@/lib/db/prisma`
+  - Import localized navigation from `@/i18n/routing`
+  - Keep local relative imports for same-folder helpers when clearer
+
+- React defaults
+  - Server Components by default
+  - Add `"use client"` only for hooks, browser APIs, event handlers or local client state
+  - Fetch independent server data with `Promise.all()`
+  - Keep client components small and interaction-focused
+
+- Locale rules
+  - Supported locales are `zh-cn` and `en-us`; default locale is `zh-cn`
+  - URLs do not carry locale prefixes
+  - Locale is negotiated by cookie and `Accept-Language`
+  - User-facing text must be backed by both message files
+
+- Time and security
+  - Use Shanghai helpers for display and day boundaries
+  - Use date serialization helpers before returning JSON
+  - API/MCP datetime input should include offsets where schemas require it
+  - Auth redirects for pages live close to page entry
+  - API routes return status responses, not page redirects
+  - Permission checks happen before mutation
+  - Upload access cannot rely on object URL secrecy
