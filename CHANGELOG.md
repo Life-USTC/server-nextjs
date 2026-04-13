@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/Life-USTC/server-nextjs/compare/v1.18.0...v1.18.1) (2026-04-13)
+
+
+### Bug Fixes
+
+* align feature implementation with product model ([c16a4e1](https://github.com/Life-USTC/server-nextjs/commit/c16a4e171aa069b2dee8755c0da35248aa9bf4a2))
+
 # [1.18.0](https://github.com/Life-USTC/server-nextjs/compare/v1.17.0...v1.18.0) (2026-04-10)
 
 
