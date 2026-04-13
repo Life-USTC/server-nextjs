@@ -7,6 +7,12 @@ import { genericOAuth, jwt } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
+import {
+  fallbackEmail,
+  mapOidcProfileToUser,
+  profileImage,
+  profileName,
+} from "@/lib/auth/oauth-profile";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
@@ -72,15 +78,6 @@ const AUTH_BASE_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 /** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
 const AUTH_PUBLIC_ORIGIN = new URL(`${AUTH_BASE_URL.replace(/\/$/, "")}/`)
   .origin;
-
-const profileImage = (value: unknown): string | undefined =>
-  typeof value === "string" && value.length > 0 ? value : undefined;
-
-const profileName = (value: unknown): string =>
-  typeof value === "string" && value.trim().length > 0 ? value.trim() : "";
-
-const fallbackEmail = (provider: string, accountId: unknown): string =>
-  `${provider}-${String(accountId)}@users.local`;
 
 const authInstance = betterAuth({
   baseURL: AUTH_BASE_URL,
@@ -269,21 +266,7 @@ const authInstance = betterAuth({
           clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET || "",
           scopes: ["openid"],
           pkce: true,
-          mapProfileToUser: async (profile) => {
-            const hasEmail =
-              typeof profile.email === "string" && profile.email.length > 0;
-            return {
-              email: hasEmail
-                ? profile.email
-                : fallbackEmail("oidc", profile.sub ?? profile.id ?? "unknown"),
-              name: profileName(profile.name),
-              image: profileImage(profile.picture),
-              emailVerified:
-                hasEmail && typeof profile.email_verified === "boolean"
-                  ? profile.email_verified
-                  : false,
-            };
-          },
+          mapProfileToUser: mapOidcProfileToUser,
         },
       ],
     }),

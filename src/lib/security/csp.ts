@@ -9,6 +9,14 @@ const ANALYTICS_CONNECT_SOURCES = [
   "https://analytics.google.com",
 ];
 
+const EXTERNAL_IMAGE_SOURCES = [
+  "https://www.google-analytics.com",
+  "https://www.googletagmanager.com",
+  "https://avatars.githubusercontent.com",
+  "https://*.googleusercontent.com",
+  "https://api.dicebear.com",
+];
+
 export function createScriptNonce() {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   const value = String.fromCharCode(...bytes);
@@ -33,7 +41,7 @@ export function buildContentSecurityPolicy(
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com",
+    `img-src 'self' data: blob: ${EXTERNAL_IMAGE_SOURCES.join(" ")}`,
     "font-src 'self' https://fonts.gstatic.com",
     `connect-src 'self' ${ANALYTICS_CONNECT_SOURCES.join(" ")}`,
     "frame-ancestors 'none'",

@@ -22,4 +22,16 @@ describe("csp helpers", () => {
     expect(scriptDirective).not.toContain("'unsafe-eval'");
     expect(policy).toContain("object-src 'none'");
   });
+
+  it("allows configured external avatar image sources", () => {
+    const policy = buildContentSecurityPolicy("abc123");
+    const imageDirective = policy
+      .split("; ")
+      .find((directive) => directive.startsWith("img-src"));
+
+    expect(imageDirective).toBeDefined();
+    expect(imageDirective).toContain("https://avatars.githubusercontent.com");
+    expect(imageDirective).toContain("https://*.googleusercontent.com");
+    expect(imageDirective).toContain("https://api.dicebear.com");
+  });
 });
