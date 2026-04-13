@@ -1,3 +1,10 @@
+## [1.18.2](https://github.com/Life-USTC/server-nextjs/compare/v1.18.1...v1.18.2) (2026-04-13)
+
+
+### Bug Fixes
+
+* handle sparse oidc profiles ([167f9f4](https://github.com/Life-USTC/server-nextjs/commit/167f9f468db222ed6b6f5a55d8b3825e632ba50d))
+
 ## [1.18.1](https://github.com/Life-USTC/server-nextjs/compare/v1.18.0...v1.18.1) (2026-04-13)
 
 
