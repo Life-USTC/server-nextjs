@@ -1,3 +1,10 @@
+## [1.18.4](https://github.com/Life-USTC/server-nextjs/compare/v1.18.3...v1.18.4) (2026-04-15)
+
+
+### Bug Fixes
+
+* **ui:** remove card hover lift and use completion buttons ([c562a2a](https://github.com/Life-USTC/server-nextjs/commit/c562a2aca52fc7845c8fc7f70be2ea4b7b82c5cb))
+
 ## [1.18.3](https://github.com/Life-USTC/server-nextjs/compare/v1.18.2...v1.18.3) (2026-04-15)
 
 
