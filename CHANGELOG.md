@@ -1,3 +1,10 @@
+## [1.18.3](https://github.com/Life-USTC/server-nextjs/compare/v1.18.2...v1.18.3) (2026-04-15)
+
+
+### Bug Fixes
+
+* use link flow for account connections ([9ce6dff](https://github.com/Life-USTC/server-nextjs/commit/9ce6dffde851663ada7cc87be02278f7c4ed7b8c))
+
 ## [1.18.2](https://github.com/Life-USTC/server-nextjs/compare/v1.18.1...v1.18.2) (2026-04-13)
 
 
