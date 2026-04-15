@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { unlinkAccount } from "@/app/actions/user";
-import { signIn } from "@/lib/auth/client";
+import { linkAccount } from "@/lib/auth/client";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -46,7 +46,7 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
   const canDisconnect = connectedProviders.length > 1;
 
   const handleLink = (providerId: string) => {
-    signIn(providerId, { callbackUrl: "/settings?tab=accounts" });
+    linkAccount(providerId, { callbackUrl: "/settings?tab=accounts" });
   };
 
   const handleUnlink = async (providerId: string) => {

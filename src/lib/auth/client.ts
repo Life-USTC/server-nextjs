@@ -144,6 +144,36 @@ export async function signIn(
   return result;
 }
 
+export async function linkAccount(
+  providerId: string,
+  options: ClientSignInOptions = {},
+) {
+  const callbackURL = getCallbackUrl(options);
+
+  if (providerId === "oidc") {
+    const result = await authClient.oauth2.link({
+      providerId: "oidc",
+      callbackURL,
+    });
+    const redirectUrl = result.data?.url;
+    if (options.redirect !== false && redirectUrl) {
+      window.location.href = redirectUrl;
+    }
+    return result;
+  }
+
+  const result = await authClient.linkSocial({
+    provider: providerId,
+    callbackURL,
+    disableRedirect: true,
+  });
+  const redirectUrl = result.data?.url;
+  if (options.redirect !== false && redirectUrl) {
+    window.location.href = redirectUrl;
+  }
+  return result;
+}
+
 export async function signOut(options: ClientSignOutOptions = {}) {
   const result = await authClient.signOut();
   const callbackURL = getCallbackUrl(options);

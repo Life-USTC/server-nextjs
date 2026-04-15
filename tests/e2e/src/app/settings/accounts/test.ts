@@ -11,7 +11,7 @@
  * ## UI/UX Elements
  * - Card with title "Linked Accounts" / "关联账号"
  * - Per-provider row: provider name, connected badge, action button
- * - Connect button → starts OAuth sign-in flow (redirects to `/api/auth/...`)
+ * - Connect button → starts OAuth account-linking flow (redirects to `/api/auth/...`)
  * - Disconnect button → opens confirmation dialog with Cancel + Disconnect
  * - When only 1 account linked: Disconnect is disabled + warning text
  * - Toast notifications for link/unlink success/error
@@ -55,13 +55,22 @@ test.describe("/settings/accounts", () => {
     await captureStepScreenshot(page, testInfo, "settings-accounts-platforms");
   });
 
-  test("connect button initiates OAuth flow", async ({ page }, testInfo) => {
+  test("connect button initiates account-linking OAuth flow", async ({
+    page,
+  }, testInfo) => {
     await signInAsDebugUser(page, "/settings/accounts");
 
-    const connectButton = page
-      .getByRole("button", { name: /连接|Connect/i })
+    const providerCard = page
+      .locator("#main-content .rounded-lg.border")
+      .filter({ has: page.getByText("USTC", { exact: true }) })
       .first();
-    if ((await connectButton.count()) === 0) {
+    const connectButton = providerCard.getByRole("button", {
+      name: /连接|Connect/i,
+    });
+    if (
+      (await providerCard.count()) === 0 ||
+      (await connectButton.count()) === 0
+    ) {
       await expect(page.locator("#main-content")).toBeVisible();
       return;
     }
@@ -71,8 +80,7 @@ test.describe("/settings/accounts", () => {
       (request) => {
         const url = new URL(request.url());
         if (url.origin !== currentOrigin) return false;
-        if (!url.pathname.startsWith("/api/auth/")) return false;
-        return url.pathname !== "/api/auth/session";
+        return url.pathname === "/api/auth/oauth2/link";
       },
       { timeout: 5_000 },
     );

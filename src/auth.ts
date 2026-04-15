@@ -163,6 +163,12 @@ const authInstance = betterAuth({
     },
   },
   account: {
+    accountLinking: {
+      enabled: true,
+      // User-initiated linking must support providers like USTC OIDC that do
+      // not expose the user's email and therefore use a local fallback email.
+      allowDifferentEmails: true,
+    },
     fields: {
       providerId: "provider",
       accountId: "providerAccountId",
