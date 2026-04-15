@@ -7,7 +7,7 @@ import {
   parseInteger,
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { prisma } from "@/lib/db/prisma";
+import { getPrisma } from "@/lib/db/prisma";
 import { courseDetailInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function GET(
       return invalidParamResponse("course ID");
     }
 
-    const course = await prisma.course.findUnique({
+    const course = await getPrisma("zh-cn").course.findUnique({
       where: { jwId: parsedJwId },
       include: courseDetailInclude,
     });

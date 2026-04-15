@@ -7,7 +7,7 @@ import {
   parseInteger,
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { prisma } from "@/lib/db/prisma";
+import { getPrisma } from "@/lib/db/prisma";
 import { sectionInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export async function GET(
       return invalidParamResponse("section ID");
     }
 
-    const section = await prisma.section.findUnique({
+    const section = await getPrisma("zh-cn").section.findUnique({
       where: { jwId: parsedJwId },
       include: {
         ...sectionInclude,

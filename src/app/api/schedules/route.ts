@@ -8,7 +8,7 @@ import {
   parseOptionalInt,
 } from "@/lib/api/helpers";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { prisma } from "@/lib/db/prisma";
+import { getPrisma, prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
 
@@ -85,8 +85,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    const localizedPrisma = getPrisma("zh-cn");
     const [schedules, total] = await Promise.all([
-      prisma.schedule.findMany({
+      localizedPrisma.schedule.findMany({
         where: whereClause,
         skip: pagination.skip,
         take: pagination.pageSize,

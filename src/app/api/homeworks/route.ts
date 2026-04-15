@@ -16,7 +16,7 @@ import {
   homeworksQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
-import { prisma } from "@/lib/db/prisma";
+import { getPrisma, prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
 
@@ -50,6 +50,12 @@ export async function GET(request: Request) {
       userId: viewerUserId,
     });
     const homeworkInclude = {
+      section: {
+        include: {
+          course: true,
+          semester: true,
+        },
+      },
       description: true,
       createdBy: {
         select: { id: true, name: true, username: true, image: true },
@@ -71,7 +77,7 @@ export async function GET(request: Request) {
     } satisfies Prisma.HomeworkInclude;
 
     const [homeworks, auditLogs] = await Promise.all([
-      prisma.homework.findMany({
+      getPrisma("zh-cn").homework.findMany({
         where: {
           sectionId,
           ...(includeDeleted ? {} : { deletedAt: null }),

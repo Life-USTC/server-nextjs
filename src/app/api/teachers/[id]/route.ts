@@ -7,7 +7,7 @@ import {
   parseInteger,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { prisma } from "@/lib/db/prisma";
+import { getPrisma } from "@/lib/db/prisma";
 import { teacherDetailInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function GET(
       return invalidParamResponse("teacher ID");
     }
 
-    const teacher = await prisma.teacher.findUnique({
+    const teacher = await getPrisma("zh-cn").teacher.findUnique({
       where: { id: parsedId },
       include: teacherDetailInclude,
     });
