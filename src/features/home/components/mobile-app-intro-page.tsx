@@ -30,7 +30,7 @@ export async function MobileAppIntroPage() {
                 href="https://apps.apple.com/us/app/life-ustc/id1660437438"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:-translate-y-0.5 inline-flex rounded-xl no-underline transition-transform"
+                className="inline-flex rounded-xl no-underline transition-transform"
               >
                 <Image
                   src="/images/appstore.svg"

@@ -49,7 +49,7 @@ export function HomeworkItemCard({
   return (
     <Card
       id={cardId}
-      className={cn("border-border/70 bg-card/72", cardClassName)}
+      className={cn("group border-border/70 bg-card/72", cardClassName)}
     >
       <CardHeader className="gap-3">
         <div className="flex items-start justify-between gap-3">

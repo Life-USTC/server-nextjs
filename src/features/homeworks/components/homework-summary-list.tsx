@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { CheckCircle2, Plus, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
@@ -23,8 +23,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
@@ -275,7 +273,7 @@ export function HomeworkSummaryList({
           return (
             <Card
               key={homework.id}
-              className="flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72"
+              className="group flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72"
             >
               <CardPanel className="flex min-h-0 flex-1 flex-col gap-3">
                 <div className="space-y-1">
@@ -307,23 +305,33 @@ export function HomeworkSummaryList({
                     <div className="flex flex-wrap items-center gap-1.5">
                       {renderTags(homework)}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={`homework-completed-summary-${homework.id}`}
-                        checked={Boolean(homework.completion)}
-                        onCheckedChange={(checked) =>
-                          void handleCompletionToggle(homework.id, checked)
+                    <div className="min-h-7">
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        className="pointer-events-none pointer-coarse:pointer-events-auto opacity-0 pointer-coarse:opacity-100 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+                        onClick={() =>
+                          void handleCompletionToggle(
+                            homework.id,
+                            !homework.completion,
+                          )
                         }
                         disabled={completionSaving[homework.id]}
-                      />
-                      <Label
-                        htmlFor={`homework-completed-summary-${homework.id}`}
-                        className="sr-only"
+                        aria-label={
+                          homework.completion
+                            ? t("markIncomplete")
+                            : t("markComplete")
+                        }
                       >
+                        {homework.completion ? (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        ) : (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        )}
                         {homework.completion
-                          ? t("completedLabel")
-                          : t("filterIncomplete")}
-                      </Label>
+                          ? t("markIncomplete")
+                          : t("markComplete")}
+                      </Button>
                     </div>
                   </div>
                 </div>

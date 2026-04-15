@@ -1,6 +1,13 @@
 "use client";
 
-import { AlertCircle, Circle, Clock, Plus } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useOptimistic, useState, useTransition } from "react";
@@ -18,8 +25,6 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 import { cn } from "@/lib/utils";
 import { formatSmartDateTime } from "@/shared/lib/time-utils";
@@ -202,7 +207,7 @@ export function TodoList({ todos }: TodoListProps) {
             <Card
               key={todo.id}
               className={cn(
-                "flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72",
+                "group flex h-full min-h-0 flex-col rounded-xl border-border/70 bg-card/72",
                 todo.completed && "opacity-60",
               )}
             >
@@ -252,22 +257,27 @@ export function TodoList({ todos }: TodoListProps) {
                         {t(`priority.${todo.priority}`)}
                       </Badge>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id={`todo-completed-${todo.id}`}
-                        checked={todo.completed}
-                        onCheckedChange={(checked) =>
-                          void handleToggle(todo, checked)
+                    <div className="min-h-7">
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        className="pointer-events-none pointer-coarse:pointer-events-auto opacity-0 pointer-coarse:opacity-100 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+                        onClick={() => void handleToggle(todo)}
+                        aria-label={
+                          todo.completed
+                            ? t("markIncomplete")
+                            : t("markComplete")
                         }
-                      />
-                      <Label
-                        htmlFor={`todo-completed-${todo.id}`}
-                        className="sr-only"
                       >
+                        {todo.completed ? (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        ) : (
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        )}
                         {todo.completed
                           ? t("markIncomplete")
                           : t("markComplete")}
-                      </Label>
+                      </Button>
                     </div>
                   </div>
                 </div>

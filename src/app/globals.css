@@ -208,7 +208,7 @@
     @apply transition-[transform,box-shadow] duration-200;
   }
   [data-slot="card"]:hover {
-    @apply shadow-lg -translate-y-0.5;
+    @apply shadow-lg;
   }
 
   @media (prefers-reduced-motion: reduce) {

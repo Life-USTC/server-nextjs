@@ -1162,6 +1162,8 @@
     "tagTeam": "Team required",
     "tagDefault": "Standard",
     "completedLabel": "Completed",
+    "markComplete": "Mark as complete",
+    "markIncomplete": "Mark as incomplete",
     "cancel": "Cancel",
     "saving": "Saving...",
     "createAction": "Create homework",

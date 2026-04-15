@@ -4,12 +4,12 @@
  * ## Data Represented
  * - Seed todos: "[DEV-SCENARIO] 今天截止待办" (due today, incomplete) and
  *   "[DEV-SCENARIO] 已完成待办" (completed)
- * - Each todo card shows: title, priority badge, due date, completion switch,
+ * - Each todo card shows: title, priority badge, due date, hover completion button,
  *   and optional markdown content
  *
  * ## UI/UX Elements
  * - Filter toolbar: incomplete (default) / completed / all
- * - Completion toggle switch per todo card
+ * - Completion button appears when hovering or focusing a todo card
  * - Add button opens a sheet form (title, priority, due date, content)
  * - Clicking a todo title opens an edit sheet with a delete button
  * - Todo cards display priority icons (high/medium/low)
@@ -51,6 +51,19 @@ test.describe("dashboard todos", () => {
     await expect(
       page.getByText(DEV_SEED.todos.dueTodayTitle).first(),
     ).toBeVisible();
+    await expect(page.getByRole("switch")).toHaveCount(0);
+
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.todos.dueTodayTitle })
+      .first();
+    await expect(card).toBeVisible();
+    const completionButton = card
+      .getByRole("button", { name: /标记为完成|Mark as complete/i })
+      .first();
+    await expect(completionButton).toHaveCSS("opacity", "0");
+    await card.hover();
+    await expect(completionButton).toHaveCSS("opacity", "1");
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-seed");
   });

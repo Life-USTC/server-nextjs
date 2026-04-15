@@ -1139,6 +1139,8 @@
     "tagTeam": "需要组队",
     "tagDefault": "常规作业",
     "completedLabel": "已完成",
+    "markComplete": "标记为完成",
+    "markIncomplete": "取消完成",
     "cancel": "取消",
     "saving": "保存中...",
     "createAction": "创建作业",

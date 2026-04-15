@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2, RotateCcw } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataState } from "@/components/data-state";
@@ -543,18 +544,33 @@ export function HomeworkPanel({
                   footerStart={renderTagBadges(homework)}
                   footerEnd={
                     viewer.isAuthenticated ? (
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          id={`homework-completed-${homework.id}`}
-                          checked={Boolean(homework.completion)}
-                          onCheckedChange={(checked: boolean) =>
-                            void handleCompletionToggle(homework.id, checked)
+                      <div className="min-h-7">
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          className="pointer-events-none pointer-coarse:pointer-events-auto opacity-0 pointer-coarse:opacity-100 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+                          onClick={() =>
+                            void handleCompletionToggle(
+                              homework.id,
+                              !homework.completion,
+                            )
                           }
                           disabled={Boolean(completionSaving[homework.id])}
-                        />
-                        <Label htmlFor={`homework-completed-${homework.id}`}>
-                          {t("completedLabel")}
-                        </Label>
+                          aria-label={
+                            homework.completion
+                              ? t("markIncomplete")
+                              : t("markComplete")
+                          }
+                        >
+                          {homework.completion ? (
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          ) : (
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          )}
+                          {homework.completion
+                            ? t("markIncomplete")
+                            : t("markComplete")}
+                        </Button>
                       </div>
                     ) : null
                   }

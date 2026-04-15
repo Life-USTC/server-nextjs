@@ -3,18 +3,18 @@
  *
  * ## Data Represented
  * - Seed homework: title "迭代二系统设计评审" with section DEV-CS201.01
- * - Homework cards show: title, course name, due date, completion switch,
+ * - Homework cards show: title, course name, due date, hover completion button,
  *   tags (major/team/default), and a link to `/sections/{jwId}#homework-{id}`
  *
  * ## UI/UX Elements
  * - Filter toolbar: incomplete (default) / completed / all
- * - Completion toggle switch per homework card
+ * - Completion button appears when hovering or focusing a homework card
  * - "View details" link on each card → section page with homework anchor
  * - Create homework button (+ sheet with title, section, due date fields)
  *
  * ## Edge Cases
  * - Unauthenticated users see public links view (homeworks tab is auth-only)
- * - Completion toggle calls PUT /api/homeworks/{id}/completion
+ * - Completion button calls PUT /api/homeworks/{id}/completion
  * - Empty state shown when filter yields no results
  */
 import { expect, test } from "@playwright/test";
@@ -94,11 +94,23 @@ test.describe("dashboard homeworks", () => {
       .first()
       .click();
 
-    // Find a homework switch
-    const toggle = page.getByRole("switch").first();
-    await expect(toggle).toBeVisible();
+    await expect(page.getByRole("switch")).toHaveCount(0);
 
-    const before = await toggle.getAttribute("aria-checked");
+    const card = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first();
+    await expect(card).toBeVisible();
+    await card.hover();
+
+    const completionButton = card
+      .getByRole("button", {
+        name: /标记为完成|取消完成|Mark as complete|Mark as incomplete/i,
+      })
+      .first();
+    await expect(completionButton).toHaveCSS("opacity", "1");
+
+    const before = await completionButton.textContent();
 
     // Toggle completion
     const completionResponse = page.waitForResponse(
@@ -107,12 +119,12 @@ test.describe("dashboard homeworks", () => {
         response.url().includes("/completion") &&
         response.status() === 200,
     );
-    await toggle.click();
+    await completionButton.click();
     await completionResponse;
     await page.waitForLoadState("networkidle");
 
     // Verify state changed
-    const after = await toggle.getAttribute("aria-checked");
+    const after = await completionButton.textContent();
     expect(after).not.toBe(before);
     await captureStepScreenshot(page, testInfo, "dashboard-homeworks-toggled");
 
@@ -123,7 +135,7 @@ test.describe("dashboard homeworks", () => {
         response.url().includes("/completion") &&
         response.status() === 200,
     );
-    await toggle.click();
+    await completionButton.click();
     await restoreResponse;
   });
 
