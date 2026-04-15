@@ -127,7 +127,16 @@ test.describe("GET /api/teachers", () => {
       id?: number;
       code?: string | null;
       nameCn?: string;
-      sections?: Array<{ code?: string }>;
+      nameEn?: unknown;
+      telephone?: unknown;
+      mobile?: unknown;
+      address?: unknown;
+      sections?: Array<{
+        code?: string;
+        course?: { nameCn?: unknown };
+        semester?: unknown;
+        credits?: unknown;
+      }>;
       _count?: { sections?: number };
     };
     expect(body.id).toBe(teacherId);
@@ -137,5 +146,46 @@ test.describe("GET /api/teachers", () => {
       body.sections?.some((section) => section.code === DEV_SEED.section.code),
     ).toBe(true);
     expect((body._count?.sections ?? 0) > 0).toBe(true);
+    expect(Object.hasOwn(body, "nameEn")).toBe(true);
+    expect(Object.hasOwn(body, "telephone")).toBe(true);
+    expect(Object.hasOwn(body, "mobile")).toBe(true);
+    expect(Object.hasOwn(body, "address")).toBe(true);
+    const seedSection = body.sections?.find(
+      (s) => s.code === DEV_SEED.section.code,
+    );
+    expect(seedSection).toBeDefined();
+    expect(typeof seedSection?.course?.nameCn).toBe("string");
+    expect(Object.hasOwn(seedSection as object, "semester")).toBe(true);
+    expect(Object.hasOwn(seedSection as object, "credits")).toBe(true);
+  });
+
+  test("teacher list items have all required TeacherSummary fields", async ({
+    request,
+  }) => {
+    const response = await request.get(
+      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.code)}&limit=5`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      data?: Array<{
+        id?: unknown;
+        nameCn?: unknown;
+        code?: unknown;
+        _count?: { sections?: unknown };
+        department?: unknown;
+        teacherTitle?: unknown;
+      }>;
+    };
+    const teacher = body.data?.find(
+      (item) => (item.code as string | null) === DEV_SEED.teacher.code,
+    );
+    expect(teacher).toBeDefined();
+    expect(typeof teacher?.id).toBe("number");
+    expect(typeof teacher?.nameCn).toBe("string");
+    expect(Object.hasOwn(teacher as object, "code")).toBe(true);
+    expect(typeof teacher?._count?.sections).toBe("number");
+    expect((teacher?._count?.sections as number) >= 0).toBe(true);
+    expect(Object.hasOwn(teacher as object, "department")).toBe(true);
+    expect(Object.hasOwn(teacher as object, "teacherTitle")).toBe(true);
   });
 });

@@ -1,10 +1,10 @@
-import { auth } from "@/auth";
 import {
   handleRouteError,
   jsonResponse,
   unauthorized,
 } from "@/lib/api/helpers";
 import { todoCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
@@ -13,9 +13,8 @@ export const dynamic = "force-dynamic";
  * List todos for the current user.
  * @response todosListResponseSchema
  */
-export async function GET() {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+export async function GET(request: Request) {
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }
@@ -39,8 +38,7 @@ export async function GET() {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }

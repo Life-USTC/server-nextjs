@@ -85,6 +85,18 @@ export const courseInclude = {
   type: true,
 } satisfies Prisma.CourseInclude;
 
+export const courseDetailInclude = {
+  ...courseInclude,
+  sections: {
+    include: {
+      semester: true,
+      campus: true,
+      teachers: true,
+    },
+    orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+  },
+} satisfies Prisma.CourseInclude;
+
 type ParsedSectionSearchQuery = {
   teacher?: string;
   courseCode?: string;
@@ -380,14 +392,15 @@ export const teacherDetailInclude = {
   teacherTitle: true,
   sections: {
     include: {
-      course: true,
+      course: {
+        include: courseInclude,
+      },
       semester: true,
     },
-    orderBy: {
-      semester: {
-        jwId: "desc" as const,
-      },
-    },
+    orderBy: [
+      { semester: { jwId: "desc" as const } },
+      { course: { nameCn: "asc" as const } },
+    ],
   },
   _count: {
     select: {

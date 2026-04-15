@@ -48,6 +48,32 @@ test("/api/todos GET 登录后返回 seed 待办", async ({ page }) => {
   ).toBe(true);
 });
 
+test("todos have all required TodoItem fields", async ({ page }) => {
+  await signInAsDebugUser(page, "/");
+
+  const response = await page.request.get("/api/todos");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    todos?: Array<Record<string, unknown>>;
+  };
+
+  const todo = body.todos?.find(
+    (t) => t.title === DEV_SEED.todos.dueTodayTitle,
+  );
+  expect(todo).toBeDefined();
+  if (!todo) return;
+
+  expect(typeof todo.id).toBe("string");
+  expect(todo.id).toBeTruthy();
+  expect(typeof todo.title).toBe("string");
+  expect(Object.hasOwn(todo, "content")).toBe(true);
+  expect(typeof todo.completed).toBe("boolean");
+  expect(typeof todo.priority).toBe("string");
+  expect(Object.hasOwn(todo, "dueAt")).toBe(true);
+  expect(typeof todo.createdAt).toBe("string");
+  expect(typeof todo.updatedAt).toBe("string");
+});
+
 test("/api/todos POST 未登录返回 401", async ({ request }) => {
   const response = await request.post("/api/todos", {
     data: { title: "should fail" },

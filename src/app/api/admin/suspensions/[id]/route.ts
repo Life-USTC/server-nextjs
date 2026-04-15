@@ -7,6 +7,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,14 @@ export async function PATCH(
         liftedById: admin.userId,
       },
     });
+
+    writeAuditLog({
+      action: "admin_user_unsuspend",
+      userId: admin.userId,
+      targetId: suspension.userId,
+      targetType: "user",
+      metadata: { suspensionId: id },
+    }).catch(() => {});
 
     return jsonResponse({ suspension });
   } catch (error) {

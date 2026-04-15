@@ -1,6 +1,5 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   badRequest,
   handleRouteError,
@@ -12,6 +11,8 @@ import {
   resourceIdPathParamsSchema,
   uploadRenameRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { s3Bucket, sendS3 } from "@/lib/storage/s3";
 
@@ -46,8 +47,8 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await resolveApiUserId(request);
+  if (!userId) {
     return unauthorized();
   }
 
@@ -77,7 +78,7 @@ export async function PATCH(
 
   try {
     const upload = await prisma.upload.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId },
       select: { id: true },
     });
 
@@ -119,11 +120,11 @@ export async function PATCH(
  * @response 404:openApiErrorSchema
  */
 export async function DELETE(
-  _: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await resolveApiUserId(request);
+  if (!userId) {
     return unauthorized();
   }
 
@@ -135,7 +136,7 @@ export async function DELETE(
 
   try {
     const upload = await prisma.upload.findFirst({
-      where: { id, userId: session.user.id },
+      where: { id, userId },
       select: { id: true, key: true, size: true },
     });
 
@@ -148,6 +149,19 @@ export async function DELETE(
     );
 
     await prisma.upload.delete({ where: { id: upload.id } });
+
+    writeAuditLog({
+      action: "upload_delete",
+      userId,
+      targetId: upload.id,
+      targetType: "upload",
+      metadata: { key: upload.key, size: upload.size },
+      ipAddress:
+        request.headers.get("x-forwarded-for") ??
+        request.headers.get("x-real-ip") ??
+        undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+    }).catch(() => {});
 
     return jsonResponse({
       deletedId: upload.id,

@@ -215,7 +215,10 @@ const authInstance = betterAuth({
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
       scopes: ["openid", "profile", "email", "offline_access", MCP_TOOLS_SCOPE],
-      validAudiences: [`${AUTH_BASE_URL.replace(/\/$/, "")}/api/mcp`],
+      validAudiences: [
+        AUTH_BASE_URL.replace(/\/$/, ""),
+        `${AUTH_BASE_URL.replace(/\/$/, "")}/api/mcp`,
+      ],
       silenceWarnings: {
         oauthAuthServerConfig: true,
         openidConfig: true,

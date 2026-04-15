@@ -46,10 +46,29 @@ const getViewerData = cache(async () => {
   return { user, suspension };
 });
 
+async function getViewerDataForUserId(userId: string) {
+  const [user, suspension] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, image: true, isAdmin: true },
+    }),
+    findActiveSuspension(userId),
+  ]);
+
+  if (!user) {
+    return null;
+  }
+
+  return { user, suspension };
+}
+
 export async function getViewerContext(
-  options: { includeAdmin?: boolean } = {},
+  options: { includeAdmin?: boolean; userId?: string | null } = {},
 ): Promise<ViewerContext> {
-  const data = await getViewerData();
+  const data =
+    typeof options.userId === "string"
+      ? await getViewerDataForUserId(options.userId)
+      : await getViewerData();
 
   if (!data) {
     return {

@@ -1,6 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
@@ -10,15 +12,77 @@ import {
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
 import {
+  buildSectionSearchWhere,
+  courseDetailInclude,
   courseInclude,
   sectionCompactInclude,
   sectionInclude,
+  teacherDetailInclude,
+  teacherListInclude,
 } from "@/lib/query-helpers";
 
 const SECTION_SUBSCRIPTION_NOTE =
   "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
 
 export function registerCourseTools(server: McpServer) {
+  server.registerTool(
+    "list_semesters",
+    {
+      description: "List semesters with pagination.",
+      inputSchema: {
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(20),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ page, limit, mode }) => {
+      const pagination = normalizePagination({ page, pageSize: limit });
+      const [semesters, total] = await Promise.all([
+        prisma.semester.findMany({
+          skip: pagination.skip,
+          take: pagination.pageSize,
+          orderBy: { startDate: "desc" },
+        }),
+        prisma.semester.count(),
+      ]);
+
+      return jsonToolResult(
+        buildPaginatedResponse(
+          semesters,
+          pagination.page,
+          pagination.pageSize,
+          total,
+        ),
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_current_semester",
+    {
+      description: "Get the current semester.",
+      inputSchema: {
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ mode }) => {
+      const semester = await findCurrentSemester(prisma.semester, new Date());
+
+      return jsonToolResult(
+        {
+          found: Boolean(semester),
+          semester,
+        },
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
+
   server.registerTool(
     "search_courses",
     {
@@ -56,6 +120,35 @@ export function registerCourseTools(server: McpServer) {
   );
 
   server.registerTool(
+    "get_course_by_jw_id",
+    {
+      description: "Fetch a detailed course record by its USTC JW course ID.",
+      inputSchema: {
+        jwId: z.number().int().positive(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ jwId, locale, mode }) => {
+      const localizedPrisma = getPrisma(locale);
+      const course = await localizedPrisma.course.findUnique({
+        where: { jwId },
+        include: courseDetailInclude,
+      });
+
+      return jsonToolResult(
+        {
+          found: Boolean(course),
+          course,
+        },
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
+
+  server.registerTool(
     "get_section_by_jw_id",
     {
       description: "Fetch a detailed section record by its USTC JW section ID.",
@@ -83,6 +176,176 @@ export function registerCourseTools(server: McpServer) {
         {
           found: true,
           section,
+        },
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
+
+  server.registerTool(
+    "search_sections",
+    {
+      description: "Search sections with optional filters and pagination.",
+      inputSchema: {
+        courseId: z.number().int().positive().optional(),
+        semesterId: z.number().int().positive().optional(),
+        campusId: z.number().int().positive().optional(),
+        departmentId: z.number().int().positive().optional(),
+        teacherId: z.number().int().positive().optional(),
+        ids: z.array(z.number().int().positive()).optional(),
+        search: z.string().trim().optional(),
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(20),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({
+      courseId,
+      semesterId,
+      campusId,
+      departmentId,
+      teacherId,
+      ids,
+      search,
+      page,
+      limit,
+      locale,
+      mode,
+    }) => {
+      const localizedPrisma = getPrisma(locale);
+      const pagination = normalizePagination({ page, pageSize: limit });
+      const where: Prisma.SectionWhereInput = {
+        ...(courseId ? { courseId } : {}),
+        ...(semesterId ? { semesterId } : {}),
+        ...(campusId ? { campusId } : {}),
+        ...(departmentId ? { openDepartmentId: departmentId } : {}),
+        ...(teacherId
+          ? {
+              teachers: {
+                some: {
+                  id: teacherId,
+                },
+              },
+            }
+          : {}),
+        ...(ids?.length ? { id: { in: ids } } : {}),
+      };
+      const searchFilters = buildSectionSearchWhere(search);
+      if (searchFilters.where?.AND) {
+        const searchAnd = Array.isArray(searchFilters.where.AND)
+          ? searchFilters.where.AND
+          : [searchFilters.where.AND];
+        const existingAnd = Array.isArray(where.AND)
+          ? where.AND
+          : where.AND
+            ? [where.AND]
+            : [];
+        where.AND = [...existingAnd, ...searchAnd];
+      }
+
+      const [sections, total] = await Promise.all([
+        localizedPrisma.section.findMany({
+          where,
+          skip: pagination.skip,
+          take: pagination.pageSize,
+          include: sectionInclude,
+          orderBy: searchFilters.orderBy,
+        }),
+        localizedPrisma.section.count({ where }),
+      ]);
+
+      return jsonToolResult(
+        buildPaginatedResponse(
+          sections,
+          pagination.page,
+          pagination.pageSize,
+          total,
+        ),
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
+
+  server.registerTool(
+    "search_teachers",
+    {
+      description: "Search teachers with optional filters and pagination.",
+      inputSchema: {
+        departmentId: z.number().int().positive().optional(),
+        search: z.string().trim().optional(),
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(20),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ departmentId, search, page, limit, locale, mode }) => {
+      const localizedPrisma = getPrisma(locale);
+      const pagination = normalizePagination({ page, pageSize: limit });
+      const where = {
+        ...(departmentId ? { departmentId } : {}),
+        ...(search
+          ? {
+              OR: [
+                { nameCn: { contains: search, mode: "insensitive" as const } },
+                { nameEn: { contains: search, mode: "insensitive" as const } },
+                { code: { contains: search, mode: "insensitive" as const } },
+              ],
+            }
+          : {}),
+      };
+
+      const [teachers, total] = await Promise.all([
+        localizedPrisma.teacher.findMany({
+          where,
+          skip: pagination.skip,
+          take: pagination.pageSize,
+          include: teacherListInclude,
+          orderBy: { nameCn: "asc" },
+        }),
+        localizedPrisma.teacher.count({ where }),
+      ]);
+
+      return jsonToolResult(
+        buildPaginatedResponse(
+          teachers,
+          pagination.page,
+          pagination.pageSize,
+          total,
+        ),
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_teacher_by_id",
+    {
+      description: "Fetch a detailed teacher record by numeric teacher ID.",
+      inputSchema: {
+        id: z.number().int().positive(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ id, locale, mode }) => {
+      const localizedPrisma = getPrisma(locale);
+      const teacher = await localizedPrisma.teacher.findUnique({
+        where: { id },
+        include: teacherDetailInclude,
+      });
+
+      return jsonToolResult(
+        {
+          found: Boolean(teacher),
+          teacher,
         },
         {
           mode: resolveMcpMode(mode),

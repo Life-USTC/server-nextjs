@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import {
   findActiveSuspension,
   getViewerContext,
@@ -16,6 +15,7 @@ import {
   homeworkCreateRequestSchema,
   homeworksQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
@@ -44,7 +44,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const viewer = await getViewerContext({ includeAdmin: true });
+    const viewerUserId = await resolveApiUserId(request);
+    const viewer = await getViewerContext({
+      includeAdmin: true,
+      userId: viewerUserId,
+    });
     const homeworkInclude = {
       description: true,
       createdBy: {
@@ -174,8 +178,7 @@ export async function POST(request: Request) {
     return badRequest("Submission start must be before due");
   }
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }

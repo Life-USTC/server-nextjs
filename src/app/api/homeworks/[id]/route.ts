@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   findActiveSuspension,
   getViewerContext,
@@ -16,6 +15,7 @@ import {
   homeworkUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
@@ -99,8 +99,7 @@ export async function PATCH(
     return badRequest("Submission start must be before due");
   }
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }
@@ -167,7 +166,7 @@ export async function PATCH(
  * @response 404:openApiErrorSchema
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseHomeworkId(params);
@@ -175,8 +174,7 @@ export async function DELETE(
     return parsed;
   }
   const id = parsed;
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
 
   if (!userId) {
     return unauthorized();
@@ -191,7 +189,10 @@ export async function DELETE(
   }
 
   try {
-    const viewer = await getViewerContext({ includeAdmin: true });
+    const viewer = await getViewerContext({
+      includeAdmin: true,
+      userId,
+    });
     const homework = await prisma.homework.findUnique({
       where: { id },
       select: { id: true, title: true, createdById: true, sectionId: true },

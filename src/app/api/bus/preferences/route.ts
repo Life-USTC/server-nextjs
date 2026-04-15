@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import {
   getBusPreference,
   saveBusPreference,
@@ -9,6 +8,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { busPreferenceRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +19,8 @@ export const dynamic = "force-dynamic";
  * @response 401:openApiErrorSchema
  * @response 400:openApiErrorSchema
  */
-export async function GET() {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+export async function GET(request: Request) {
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }
@@ -35,8 +34,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }

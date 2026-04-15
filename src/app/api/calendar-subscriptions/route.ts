@@ -1,11 +1,11 @@
-import { auth } from "@/auth";
+import { replaceUserSectionSubscriptions } from "@/features/home/server/subscriptions";
 import {
   handleRouteError,
   jsonResponse,
   unauthorized,
 } from "@/lib/api/helpers";
 import { calendarSubscriptionCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { prisma } from "@/lib/db/prisma";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +17,8 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
+    const userId = await resolveApiUserId(request);
+    if (!userId) {
       return unauthorized();
     }
 
@@ -34,34 +33,13 @@ export async function POST(request: Request) {
     }
 
     const sectionIds = parsedBody.data.sectionIds ?? [];
-
-    const existingSections = await prisma.section.findMany({
-      where: { id: { in: sectionIds } },
-      select: { id: true },
-    });
-
-    const validSectionIds = existingSections.map((section) => section.id);
-
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        subscribedSections: {
-          set: validSectionIds.map((id) => ({ id })),
-        },
-      },
-      select: {
-        id: true,
-        subscribedSections: {
-          select: { id: true },
-        },
-      },
-    });
+    const subscription = await replaceUserSectionSubscriptions(
+      userId,
+      sectionIds,
+    );
 
     return jsonResponse({
-      subscription: {
-        userId: updatedUser.id,
-        sections: updatedUser.subscribedSections,
-      },
+      subscription,
     });
   } catch (error) {
     return handleRouteError("Failed to update calendar subscription", error);

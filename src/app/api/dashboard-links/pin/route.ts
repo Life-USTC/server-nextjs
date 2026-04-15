@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
 import { dashboardLinkPinRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -60,8 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL(returnTo, request.url), 303);
   }
 
-  const session = await auth();
-  const userId = session?.user?.id;
+  const userId = await resolveApiUserId(request);
 
   if (!userId) {
     if (wantsJson) {
@@ -118,12 +118,17 @@ export async function POST(request: Request) {
       pinnedSlugs = finalRows.map((row) => row.slug);
     }
   } catch (error) {
-    console.error("Failed to update dashboard link pin state", {
-      userId,
-      slug,
-      action,
+    logAppEvent(
+      "error",
+      "Failed to update dashboard link pin state",
+      {
+        source: "route-handler",
+        userId,
+        slug,
+        action,
+      },
       error,
-    });
+    );
 
     try {
       const fallbackRows = await prisma.dashboardLinkPin.findMany({
@@ -132,7 +137,16 @@ export async function POST(request: Request) {
       });
       pinnedSlugs = fallbackRows.map((row) => row.slug);
     } catch (fallbackError) {
-      console.error("Fallback query also failed", { fallbackError });
+      logAppEvent(
+        "error",
+        "Fallback dashboard link pin query failed",
+        {
+          source: "route-handler",
+          userId,
+          slug,
+        },
+        fallbackError,
+      );
       pinnedSlugs = [];
     }
   }

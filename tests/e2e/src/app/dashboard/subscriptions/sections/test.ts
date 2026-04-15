@@ -63,6 +63,7 @@ test.describe("dashboard subscriptions", () => {
 
     await expect(page).toHaveURL(/\/(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
+    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
 
     await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-seed");

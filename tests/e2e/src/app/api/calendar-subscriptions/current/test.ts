@@ -57,7 +57,10 @@ test.describe("GET /api/calendar-subscriptions/current", () => {
     const body = (await response.json()) as {
       subscription?: {
         userId?: string;
+        note?: string | null;
         sections?: Array<{ id?: number }>;
+        calendarPath?: string;
+        calendarUrl?: string;
       } | null;
     };
     expect(body.subscription).not.toBeNull();
@@ -66,6 +69,14 @@ test.describe("GET /api/calendar-subscriptions/current", () => {
     expect(
       body.subscription?.sections?.some((s) => s.id === seedSection?.id),
     ).toBe(true);
+
+    // Verify CalendarSubscription fields
+    const sub = body.subscription as Record<string, unknown>;
+    expect(Object.hasOwn(sub, "note")).toBe(true);
+    expect(typeof sub.calendarPath).toBe("string");
+    expect((sub.calendarPath as string).startsWith("/")).toBe(true);
+    expect(typeof sub.calendarUrl).toBe("string");
+    expect((sub.calendarUrl as string).startsWith("http")).toBe(true);
   });
 
   test("reflects changes made via POST", async ({ page }) => {

@@ -11,6 +11,7 @@ import {
   adminModerateCommentRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -78,6 +79,14 @@ export async function PATCH(
         deletedAt: status === "deleted" ? new Date() : null,
       },
     });
+
+    writeAuditLog({
+      action: "admin_comment_moderate",
+      userId: admin.userId,
+      targetId: id,
+      targetType: "comment",
+      metadata: { status, moderationNote: moderationNote ?? null },
+    }).catch(() => {});
 
     return jsonResponse({ comment: updated });
   } catch (error) {

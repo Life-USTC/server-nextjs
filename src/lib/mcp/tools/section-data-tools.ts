@@ -2,11 +2,13 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
+import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
+import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   getUserId,
   jsonToolResult,
   mcpModeInputSchema,
+  parseRequiredDateInput,
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
@@ -391,6 +393,109 @@ export function registerSectionDataTools(server: McpServer) {
       });
 
       return jsonToolResult({ success: true }, { mode: resolvedMode });
+    },
+  );
+
+  server.registerTool(
+    "query_schedules",
+    {
+      description:
+        "Query public schedules with optional section, teacher, room, date range, and weekday filters.",
+      inputSchema: {
+        sectionId: z.number().int().positive().optional(),
+        teacherId: z.number().int().positive().optional(),
+        roomId: z.number().int().positive().optional(),
+        weekday: z.number().int().min(1).max(7).optional(),
+        dateFrom: z.string().datetime({ offset: true }).optional(),
+        dateTo: z.string().datetime({ offset: true }).optional(),
+        page: z.number().int().min(1).default(1),
+        limit: z.number().int().min(1).max(100).default(20),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({
+      sectionId,
+      teacherId,
+      roomId,
+      weekday,
+      dateFrom,
+      dateTo,
+      page,
+      limit,
+      locale,
+      mode,
+    }) => {
+      const localizedPrisma = getPrisma(locale);
+      const pagination = normalizePagination({ page, pageSize: limit });
+      const where = {
+        ...(sectionId ? { sectionId } : {}),
+        ...(teacherId
+          ? {
+              teachers: {
+                some: {
+                  id: teacherId,
+                },
+              },
+            }
+          : {}),
+        ...(roomId ? { roomId } : {}),
+        ...(weekday ? { weekday } : {}),
+        ...(dateFrom || dateTo
+          ? {
+              date: {
+                ...(dateFrom ? { gte: parseRequiredDateInput(dateFrom) } : {}),
+                ...(dateTo ? { lte: parseRequiredDateInput(dateTo) } : {}),
+              },
+            }
+          : {}),
+      };
+
+      const [schedules, total] = await Promise.all([
+        localizedPrisma.schedule.findMany({
+          where,
+          skip: pagination.skip,
+          take: pagination.pageSize,
+          include: {
+            room: {
+              include: {
+                building: {
+                  include: {
+                    campus: true,
+                  },
+                },
+                roomType: true,
+              },
+            },
+            teachers: {
+              include: {
+                department: true,
+              },
+            },
+            section: {
+              include: {
+                course: true,
+                semester: true,
+              },
+            },
+            scheduleGroup: true,
+          },
+          orderBy: [{ date: "asc" }, { startTime: "asc" }],
+        }),
+        localizedPrisma.schedule.count({ where }),
+      ]);
+
+      return jsonToolResult(
+        buildPaginatedResponse(
+          schedules,
+          pagination.page,
+          pagination.pageSize,
+          total,
+        ),
+        {
+          mode: resolveMcpMode(mode),
+        },
+      );
     },
   );
 

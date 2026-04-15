@@ -34,8 +34,23 @@ export async function assertApiContract(
   if (routePath === "/api/sections") {
     const response = await request.get("/api/sections?limit=20");
     expect(response.status()).toBe(200);
-    const body = (await response.json()) as { data?: unknown[] };
+    const body = (await response.json()) as {
+      data?: Array<{
+        id?: number;
+        jwId?: number;
+        code?: string;
+        course?: { nameCn?: string };
+      }>;
+    };
     expect((body.data?.length ?? 0) > 0).toBe(true);
+    const first = body.data?.[0];
+    if (first) {
+      expect(typeof first.id).toBe("number");
+      expect(typeof first.jwId).toBe("number");
+      expect(typeof first.code).toBe("string");
+      expect(first.course).toBeDefined();
+      expect(typeof first.course?.nameCn).toBe("string");
+    }
     const seedSection = await findSectionByJwId(request);
     expect(seedSection.code).toBe(DEV_SEED.section.code);
     return;
@@ -115,13 +130,14 @@ export async function assertApiContract(
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      data?: Array<{ nameCn?: string }>;
+      data?: Array<{ nameCn?: string; _count?: { sections?: number } }>;
     };
-    expect(
-      body.data?.some((entry) =>
-        entry.nameCn?.includes(DEV_SEED.teacher.nameCn),
-      ),
-    ).toBe(true);
+    const teacher = body.data?.find((entry) =>
+      entry.nameCn?.includes(DEV_SEED.teacher.nameCn),
+    );
+    expect(teacher).toBeDefined();
+    expect(typeof teacher?.nameCn).toBe("string");
+    expect(teacher?._count).toBeDefined();
     return;
   }
 
@@ -131,7 +147,12 @@ export async function assertApiContract(
     );
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      data?: Array<{ jwId?: number | null; nameCn?: string }>;
+      data?: Array<{
+        id?: number;
+        jwId?: number | null;
+        code?: string;
+        nameCn?: string;
+      }>;
     };
     expect(
       body.data?.some(
@@ -140,6 +161,13 @@ export async function assertApiContract(
           entry.nameCn === DEV_SEED.course.nameCn,
       ),
     ).toBe(true);
+    const first = body.data?.[0];
+    if (first) {
+      expect(typeof first.id).toBe("number");
+      expect(typeof first.jwId).toBe("number");
+      expect(typeof first.code).toBe("string");
+      expect(typeof first.nameCn).toBe("string");
+    }
     return;
   }
 
@@ -167,11 +195,13 @@ export async function assertApiContract(
     const response = await request.get("/api/semesters?limit=20");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      data?: Array<{ jwId?: number }>;
+      data?: Array<{ jwId?: number; nameCn?: string }>;
     };
-    expect(
-      body.data?.some((entry) => entry.jwId === DEV_SEED.semesterJwId),
-    ).toBe(true);
+    const semester = body.data?.find(
+      (entry) => entry.jwId === DEV_SEED.semesterJwId,
+    );
+    expect(semester).toBeDefined();
+    expect(typeof semester?.nameCn).toBe("string");
     return;
   }
 

@@ -26,9 +26,9 @@ export async function uploadFileFromDashboard(
   );
   const putResponsePromise = page.waitForResponse(
     (response) =>
-      response.url().includes("/api/mock-s3") &&
       response.request().method() === "PUT" &&
-      response.status() === 200,
+      response.status() === 200 &&
+      response.url().startsWith("http"),
   );
 
   await page.locator("input#upload-file").setInputFiles({
@@ -39,7 +39,7 @@ export async function uploadFileFromDashboard(
 
   const createResponse = await createResponsePromise;
   const createBody = (await createResponse.json()) as { url?: string };
-  expect(createBody.url).toContain("/api/mock-s3");
+  expect(createBody.url).toMatch(/^https?:\/\//);
 
   await putResponsePromise;
 
@@ -93,7 +93,7 @@ export async function createUploadedFileViaApi(
     url?: string;
     maxFileSizeBytes?: number;
   };
-  expect(presignBody.url).toContain("/api/mock-s3");
+  expect(presignBody.url).toMatch(/^https?:\/\//);
   expect(typeof presignBody.key).toBe("string");
 
   const putResponse = await request.put(presignBody.url as string, {

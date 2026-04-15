@@ -97,6 +97,37 @@ test.describe("GET /api/courses", () => {
     expect(body.pagination?.totalPages).toBe(1);
   });
 
+  test("course list items have all required fields", async ({ request }) => {
+    const response = await request.get(
+      `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      data?: Array<{
+        id?: unknown;
+        jwId?: unknown;
+        code?: unknown;
+        nameCn?: unknown;
+        nameEn?: unknown;
+        educationLevel?: unknown;
+        category?: unknown;
+        classType?: unknown;
+      }>;
+    };
+    const course = body.data?.find(
+      (item) => item.jwId === DEV_SEED.course.jwId,
+    );
+    expect(course).toBeDefined();
+    expect(typeof course?.id).toBe("number");
+    expect(typeof course?.jwId).toBe("number");
+    expect(typeof course?.code).toBe("string");
+    expect(typeof course?.nameCn).toBe("string");
+    expect(typeof course?.nameEn).toBe("string");
+    expect(Object.hasOwn(course as object, "educationLevel")).toBe(true);
+    expect(Object.hasOwn(course as object, "category")).toBe(true);
+    expect(Object.hasOwn(course as object, "classType")).toBe(true);
+  });
+
   test("page param navigates results", async ({ request }) => {
     const response = await request.get("/api/courses?page=1");
     expect(response.status()).toBe(200);
@@ -115,7 +146,15 @@ test.describe("GET /api/courses", () => {
       jwId?: number;
       code?: string;
       nameCn?: string;
-      sections?: Array<{ jwId?: number; code?: string }>;
+      sections?: Array<{
+        jwId?: number;
+        code?: string;
+        semester?: { nameCn?: string } | null;
+        campus?: { nameCn?: string } | null;
+        teachers?: unknown[];
+        stdCount?: unknown;
+        limitCount?: unknown;
+      }>;
     };
     expect(body.jwId).toBe(DEV_SEED.course.jwId);
     expect(body.code).toBe(DEV_SEED.course.code);
@@ -123,5 +162,14 @@ test.describe("GET /api/courses", () => {
     expect(
       body.sections?.some((section) => section.jwId === DEV_SEED.section.jwId),
     ).toBe(true);
+    const seedSection = body.sections?.find(
+      (s) => s.jwId === DEV_SEED.section.jwId,
+    );
+    expect(seedSection).toBeDefined();
+    expect(Object.hasOwn(seedSection as object, "semester")).toBe(true);
+    expect(Object.hasOwn(seedSection as object, "campus")).toBe(true);
+    expect(Array.isArray(seedSection?.teachers)).toBe(true);
+    expect(typeof seedSection?.stdCount).toBe("number");
+    expect(typeof seedSection?.limitCount).toBe("number");
   });
 });

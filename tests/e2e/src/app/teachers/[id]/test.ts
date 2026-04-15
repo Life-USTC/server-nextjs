@@ -57,6 +57,24 @@ test.describe("/teachers/[id]", () => {
     await captureStepScreenshot(page, testInfo, "teachers-id-sections");
   });
 
+  test("教师详情页面的班级列表显示课程名称", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(
+      page,
+      `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+    );
+    await page.locator("tbody a[href^='/teachers/']").first().click();
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.course.nameCn).first()).toBeVisible();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "teachers-id-sections-course-name",
+    );
+  });
+
   test("breadcrumb navigates back to list", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(
       page,

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   handleRouteError,
   jsonResponse,
@@ -10,6 +9,7 @@ import {
   resourceIdPathParamsSchema,
   todoUpdateRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
@@ -43,8 +43,7 @@ export async function PATCH(
   }
   const id = parsed;
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }
@@ -112,7 +111,7 @@ export async function PATCH(
  * @response 404:openApiErrorSchema
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseTodoId(params);
@@ -121,8 +120,7 @@ export async function DELETE(
   }
   const id = parsed;
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }

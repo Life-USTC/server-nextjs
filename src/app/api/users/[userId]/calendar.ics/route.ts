@@ -1,5 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   forbidden,
   handleRouteError,
@@ -8,6 +7,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { userCalendarPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { createUserCalendar } from "@/lib/ical";
 
@@ -66,13 +66,12 @@ export async function GET(
         return forbidden("Invalid or unauthorized token");
       }
     } else {
-      const session = await auth();
-
-      if (!session?.user?.id) {
+      const viewerUserId = await resolveApiUserId(request);
+      if (!viewerUserId) {
         return unauthorized();
       }
 
-      if (session.user.id !== userId) {
+      if (viewerUserId !== userId) {
         return forbidden("You can only access your own calendar");
       }
 

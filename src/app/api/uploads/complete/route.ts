@@ -1,5 +1,4 @@
 import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
-import { auth } from "@/auth";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
 import type { Prisma } from "@/generated/prisma/client";
 import {
@@ -11,6 +10,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { uploadCompleteRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { s3Bucket, sendS3 } from "@/lib/storage/s3";
 
@@ -68,12 +68,10 @@ function normalizeContentType(value: unknown) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await resolveApiUserId(request);
+  if (!userId) {
     return unauthorized();
   }
-
-  const userId = session.user.id;
 
   let body: unknown = {};
 

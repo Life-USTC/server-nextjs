@@ -1,6 +1,5 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   badRequest,
   handleRouteError,
@@ -8,6 +7,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { getS3SignedUrl, s3Bucket } from "@/lib/storage/s3";
 
@@ -56,11 +56,10 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await resolveApiUserId(request);
+  if (!userId) {
     return unauthorized();
   }
-  const userId = session.user.id;
 
   const parsed = await parseUploadId(context.params);
   if (parsed instanceof NextResponse) {

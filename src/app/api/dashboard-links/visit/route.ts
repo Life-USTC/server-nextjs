@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
 import {
   dashboardLinkVisitQuerySchema,
   dashboardLinkVisitRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
+import { logAppEvent } from "@/lib/log/app-logger";
 
 export const dynamic = "force-dynamic";
 
@@ -56,8 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL("/", request.url), 303);
   }
 
-  const session = await auth();
-  const userId = session?.user?.id;
+  const userId = await resolveApiUserId(request);
 
   if (userId) {
     try {
@@ -80,11 +80,16 @@ export async function POST(request: Request) {
         },
       });
     } catch (error) {
-      console.error("Failed to record dashboard link click", {
-        userId,
-        slug: target.slug,
+      logAppEvent(
+        "warn",
+        "Failed to record dashboard link click",
+        {
+          source: "route-handler",
+          userId,
+          slug: target.slug,
+        },
         error,
-      });
+      );
     }
   }
 

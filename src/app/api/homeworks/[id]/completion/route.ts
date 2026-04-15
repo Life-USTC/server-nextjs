@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   badRequest,
   handleRouteError,
@@ -11,6 +10,7 @@ import {
   homeworkCompletionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -60,8 +60,7 @@ export async function PUT(
     );
   }
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }

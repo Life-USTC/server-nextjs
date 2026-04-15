@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import type { CommentReactionType } from "@/generated/prisma/client";
 import {
@@ -13,6 +12,7 @@ import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -39,8 +39,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await resolveApiUserId(request);
+  if (!userId) {
     return unauthorized();
   }
 
@@ -63,7 +63,7 @@ export async function POST(
   }
   const type = parsedBody.data.type;
 
-  const suspension = await findActiveSuspension(session.user.id);
+  const suspension = await findActiveSuspension(userId);
   if (suspension) {
     return jsonResponse(
       {
@@ -88,14 +88,14 @@ export async function POST(
       where: {
         commentId_userId_type: {
           commentId: id,
-          userId: session.user.id,
+          userId,
           type: type as CommentReactionType,
         },
       },
       update: {},
       create: {
         commentId: id,
-        userId: session.user.id,
+        userId,
         type: type as CommentReactionType,
       },
     });
@@ -116,8 +116,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const userId = await resolveApiUserId(request);
+  if (!userId) {
     return unauthorized();
   }
 
@@ -139,7 +139,7 @@ export async function DELETE(
     await prisma.commentReaction.deleteMany({
       where: {
         commentId: id,
-        userId: session.user.id,
+        userId,
         type: type as CommentReactionType,
       },
     });

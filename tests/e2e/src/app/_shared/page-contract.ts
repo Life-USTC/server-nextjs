@@ -85,6 +85,7 @@ export async function assertPageContract(
     }
     await expect(page.locator("#main-content")).toBeVisible();
     await expect(page.getByText(DEV_SEED.course.nameCn).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
     await maybeCapture(page, testInfo, "courses-jwId");
     return;

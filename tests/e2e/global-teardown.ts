@@ -1,9 +1,5 @@
-import { unlinkSync } from "node:fs";
+import { stopS3Server } from "./utils/s3-server";
 
 export default async function globalTeardown() {
-  try {
-    unlinkSync(".e2e-mock-s3");
-  } catch {
-    return;
-  }
+  await stopS3Server();
 }

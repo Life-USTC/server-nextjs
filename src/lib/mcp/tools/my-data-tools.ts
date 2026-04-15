@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
@@ -12,7 +13,6 @@ import {
   mcpModeInputSchema,
   parseRequiredDateInput,
   resolveMcpMode,
-  toDateTimeFromHHmm,
 } from "@/lib/mcp/tools/_helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
@@ -417,123 +417,14 @@ export function registerMyDataTools(server: McpServer) {
     async ({ locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const sectionIds = await getSubscribedSectionIds(userId);
       const { todayStart } = getTodayBounds();
       const windowEnd = new Date(todayStart);
       windowEnd.setDate(windowEnd.getDate() + 7);
-      const localizedPrisma = getPrisma(locale);
-
-      const schedules =
-        sectionIds.length > 0
-          ? await localizedPrisma.schedule.findMany({
-              where: {
-                sectionId: { in: sectionIds },
-                date: { gte: todayStart, lt: windowEnd },
-              },
-              include: {
-                section: {
-                  include: {
-                    course: true,
-                  },
-                },
-                room: {
-                  include: {
-                    building: {
-                      include: {
-                        campus: true,
-                      },
-                    },
-                  },
-                },
-                teachers: true,
-              },
-              orderBy: [{ date: "asc" }, { startTime: "asc" }],
-            })
-          : [];
-      const homeworks =
-        sectionIds.length > 0
-          ? await localizedPrisma.homework.findMany({
-              where: {
-                deletedAt: null,
-                sectionId: { in: sectionIds },
-                submissionDueAt: { gte: todayStart, lt: windowEnd },
-                homeworkCompletions: { none: { userId } },
-              },
-              include: {
-                section: {
-                  include: {
-                    course: true,
-                  },
-                },
-              },
-              orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-            })
-          : [];
-      const exams =
-        sectionIds.length > 0
-          ? await localizedPrisma.exam.findMany({
-              where: {
-                sectionId: { in: sectionIds },
-                examDate: { gte: todayStart, lt: windowEnd },
-              },
-              include: {
-                section: {
-                  include: {
-                    course: true,
-                  },
-                },
-                examBatch: true,
-                examRooms: true,
-              },
-              orderBy: [{ examDate: "asc" }, { startTime: "asc" }],
-            })
-          : [];
-      const todos = await prisma.todo.findMany({
-        where: {
-          userId,
-          completed: false,
-          dueAt: { gte: todayStart, lt: windowEnd },
-        },
-        orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
+      const events = await listUserCalendarEvents(userId, {
+        locale,
+        dateFrom: todayStart,
+        dateTo: windowEnd,
       });
-
-      const events = [
-        ...schedules.map((schedule) => {
-          const at = toDateTimeFromHHmm(schedule.date, schedule.startTime);
-          return {
-            type: "schedule" as const,
-            at: at ? toShanghaiIsoString(at) : null,
-            sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
-            payload: schedule,
-          };
-        }),
-        ...homeworks.map((homework) => ({
-          type: "homework_due" as const,
-          at: homework.submissionDueAt
-            ? toShanghaiIsoString(homework.submissionDueAt)
-            : null,
-          sortKey:
-            homework.submissionDueAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
-          payload: homework,
-        })),
-        ...exams.map((exam) => {
-          const at = toDateTimeFromHHmm(exam.examDate, exam.startTime);
-          return {
-            type: "exam" as const,
-            at: at ? toShanghaiIsoString(at) : null,
-            sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
-            payload: exam,
-          };
-        }),
-        ...todos.map((todo) => ({
-          type: "todo_due" as const,
-          at: todo.dueAt ? toShanghaiIsoString(todo.dueAt) : null,
-          sortKey: todo.dueAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
-          payload: todo,
-        })),
-      ]
-        .sort((left, right) => left.sortKey - right.sortKey)
-        .map(({ sortKey: _sortKey, ...event }) => event);
 
       return jsonToolResult(
         {

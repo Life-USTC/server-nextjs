@@ -6,6 +6,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
@@ -91,6 +92,14 @@ export async function POST(request: Request) {
         expiresAt: parseDate(parsedBody.data.expiresAt ?? null),
       },
     });
+
+    writeAuditLog({
+      action: "admin_user_suspend",
+      userId: admin.userId,
+      targetId: userId,
+      targetType: "user",
+      metadata: { reason: parsedBody.data.reason ?? null },
+    }).catch(() => {});
 
     return jsonResponse({ suspension });
   } catch (error) {

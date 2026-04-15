@@ -8,6 +8,7 @@ import {
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { teacherDetailInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -35,34 +36,7 @@ export async function GET(
 
     const teacher = await prisma.teacher.findUnique({
       where: { id: parsedId },
-      include: {
-        department: true,
-        teacherTitle: true,
-        sections: {
-          include: {
-            course: {
-              include: {
-                educationLevel: true,
-                category: true,
-                classify: true,
-                classType: true,
-                gradation: true,
-                type: true,
-              },
-            },
-            semester: true,
-          },
-          orderBy: [
-            { semester: { jwId: "desc" } },
-            { course: { nameCn: "asc" } },
-          ],
-        },
-        _count: {
-          select: {
-            sections: true,
-          },
-        },
-      },
+      include: teacherDetailInclude,
     });
 
     if (!teacher) {

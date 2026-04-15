@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import {
@@ -13,6 +12,8 @@ import {
   descriptionsQuerySchema,
   descriptionUpsertRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -144,8 +145,7 @@ export async function POST(request: Request) {
 
   const content = parsedBody.data.content.trim();
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }
@@ -206,6 +206,21 @@ export async function POST(request: Request) {
 
       return { id: description.id, updated: true };
     });
+
+    if (result.updated) {
+      writeAuditLog({
+        action: "description_edit",
+        userId,
+        targetId: result.id,
+        targetType: "description",
+        metadata: { targetType, content: content.slice(0, 200) },
+        ipAddress:
+          request.headers.get("x-forwarded-for") ??
+          request.headers.get("x-real-ip") ??
+          undefined,
+        userAgent: request.headers.get("user-agent") ?? undefined,
+      }).catch(() => {});
+    }
 
     return jsonResponse({ id: result.id, updated: result.updated });
   } catch (error) {

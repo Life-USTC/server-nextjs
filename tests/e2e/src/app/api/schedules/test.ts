@@ -96,21 +96,57 @@ test.describe("GET /api/schedules", () => {
       `/api/schedules?sectionId=${sectionId}&limit=5`,
     );
     expect(response.status()).toBe(200);
+
+    interface ScheduleEntry {
+      id: unknown;
+      date: unknown;
+      weekday: unknown;
+      startTime: unknown;
+      endTime: unknown;
+      section:
+        | {
+            jwId?: unknown;
+            code?: unknown;
+            course?: { nameCn?: unknown };
+            semester?: unknown;
+          }
+        | null
+        | undefined;
+      teachers: unknown[] | undefined;
+      room: { name?: unknown; building?: unknown } | null | undefined;
+      scheduleGroup: unknown;
+    }
+
     const body = (await response.json()) as {
-      data?: Array<{
-        section?: { course?: Record<string, unknown> } | null;
-        teachers?: unknown[];
-        room?: Record<string, unknown> | null;
-        scheduleGroup?: Record<string, unknown> | null;
-      }>;
+      data?: ScheduleEntry[];
     };
     const first = body.data?.[0];
     expect(first).toBeDefined();
-    expect(first?.section).toBeDefined();
-    expect(Array.isArray(first?.teachers)).toBe(true);
+    if (!first) return;
+
+    // Scalar fields
+    expect(typeof first.id).toBe("number");
+    expect(typeof first.date).toBe("string");
+    expect(/^\d{4}-\d{2}-\d{2}/.test(first.date as string)).toBe(true);
+    expect(typeof first.weekday).toBe("number");
+    expect(
+      (first.weekday as number) >= 0 && (first.weekday as number) <= 6,
+    ).toBe(true);
+    expect(typeof first.startTime).toBe("string");
+    expect(typeof first.endTime).toBe("string");
+
+    // Section nested relations
+    expect(first.section).toBeDefined();
+    expect(typeof first.section?.code).toBe("string");
+    expect(typeof first.section?.course?.nameCn).toBe("string");
+    expect(Object.hasOwn(first.section as object, "semester")).toBe(true);
+
+    // Teachers array
+    expect(Array.isArray(first.teachers)).toBe(true);
+
     // room is nullable — only assert shape if present
-    if (first?.room) {
-      expect(first.room).toHaveProperty("building");
+    if (first.room) {
+      expect(Object.hasOwn(first.room, "name")).toBe(true);
     }
   });
 

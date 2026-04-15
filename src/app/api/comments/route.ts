@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { buildCommentNodes } from "@/features/comments/server/comment-serialization";
 import {
   findActiveSuspension,
@@ -17,6 +16,8 @@ import {
   commentCreateRequestSchema,
   commentsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -89,8 +90,9 @@ export async function GET(request: Request) {
       return badRequest("Invalid target");
     }
 
+    const viewerUserId = await resolveApiUserId(request);
     const [viewer, comments] = await Promise.all([
-      getViewerContext({ includeAdmin: false }),
+      getViewerContext({ includeAdmin: false, userId: viewerUserId }),
       prisma.comment.findMany({
         where: whereTarget,
         include: {
@@ -175,9 +177,7 @@ export async function POST(request: Request) {
   const visibility: Visibility = parsedBody.data.visibility ?? "public";
   const isAnonymous = parsedBody.data.isAnonymous === true;
 
-  const session = await auth();
-  const userId = session?.user?.id ?? null;
-
+  const userId = await resolveApiUserId(request);
   if (!userId) {
     return unauthorized();
   }
@@ -295,6 +295,22 @@ export async function POST(request: Request) {
         skipDuplicates: true,
       });
     }
+
+    const ipAddress =
+      request.headers.get("x-forwarded-for") ??
+      request.headers.get("x-real-ip") ??
+      undefined;
+    const userAgent = request.headers.get("user-agent") ?? undefined;
+
+    writeAuditLog({
+      action: "comment_create",
+      userId,
+      targetId: comment.id,
+      targetType: "comment",
+      metadata: { body: content.slice(0, 200) },
+      ipAddress,
+      userAgent,
+    }).catch(() => {});
 
     return jsonResponse({ id: comment.id });
   } catch (error) {

@@ -56,6 +56,20 @@ test.describe("/courses/[jwId]", () => {
     }
   });
 
+  test("课程编号显示在面包屑和基本信息中", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, `/courses/${DEV_SEED.course.jwId}`);
+    await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "courses-jwId-code-and-en");
+  });
+
+  test("班级列表显示教师名称", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, `/courses/${DEV_SEED.course.jwId}`);
+    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "courses-jwId-sections-table");
+  });
+
   test("breadcrumb navigates back", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, `/courses/${DEV_SEED.course.jwId}`);
     const breadcrumb = page.locator('a[href="/courses"]').first();

@@ -1,6 +1,6 @@
-import { auth } from "@/auth";
+import { getUserCalendarSubscription } from "@/features/home/server/subscriptions";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
-import { prisma } from "@/lib/db/prisma";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -9,36 +9,20 @@ export const dynamic = "force-dynamic";
  * @response currentCalendarSubscriptionResponseSchema
  * @response 401:openApiErrorSchema
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const session = await auth();
-
-    if (!session?.user?.id) {
+    const userId = await resolveApiUserId(request);
+    if (!userId) {
       return handleRouteError("Unauthorized", new Error("Unauthorized"), 401);
     }
 
-    const user = await prisma.user.findUnique({
-      where: {
-        id: session.user.id,
-      },
-      select: {
-        id: true,
-        subscribedSections: {
-          select: { id: true },
-        },
-      },
-    });
+    const subscription = await getUserCalendarSubscription(userId);
 
-    if (!user) {
+    if (!subscription) {
       return jsonResponse({ subscription: null });
     }
 
-    return jsonResponse({
-      subscription: {
-        userId: user.id,
-        sections: user.subscribedSections,
-      },
-    });
+    return jsonResponse({ subscription });
   } catch (error) {
     return handleRouteError("Failed to fetch calendar subscription", error);
   }

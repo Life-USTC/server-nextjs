@@ -6,6 +6,7 @@ export const DEV_SEED = {
     jwId: 9_901_001,
     code: "DEV-CS201",
     nameCn: "软件工程实践",
+    nameEn: "Software Engineering Practice",
   },
   section: {
     jwId: 9_902_001,

@@ -8,6 +8,7 @@ import {
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { courseDetailInclude } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -35,22 +36,7 @@ export async function GET(
 
     const course = await prisma.course.findUnique({
       where: { jwId: parsedJwId },
-      include: {
-        educationLevel: true,
-        category: true,
-        classify: true,
-        classType: true,
-        gradation: true,
-        type: true,
-        sections: {
-          include: {
-            semester: true,
-            campus: true,
-            teachers: true,
-          },
-          orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-        },
-      },
+      include: courseDetailInclude,
     });
 
     if (!course) {

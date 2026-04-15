@@ -24,7 +24,7 @@
  * - Calendar link copy requires clipboard permissions
  * - Homework creation via sheet, edit inline, completion toggle via PUT
  * - Comment CRUD: post → react → edit → reply → delete (with API waits)
- * - Attachment upload: POST /api/uploads → PUT /api/mock-s3 → POST /api/uploads/complete
+ * - Attachment upload: POST /api/uploads → PUT s3rver → POST /api/uploads/complete
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
@@ -74,6 +74,40 @@ test.describe("/sections/[jwId]", () => {
     await breadcrumb.click();
     await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
     await captureStepScreenshot(page, testInfo, "sections-jwId-breadcrumb");
+  });
+
+  test("shows course name as primary section heading", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, SECTION_URL);
+
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: DEV_SEED.course.nameEn,
+      }),
+    ).toBeVisible();
+    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "sections-jwId-heading");
+  });
+
+  test("基本信息卡片显示班级字段", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+    await expect(
+      page.getByText(DEV_SEED.metadata.campusNameCn).first(),
+    ).toBeVisible();
+    await expect(page.getByText(DEV_SEED.course.nameCn).first()).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "sections-jwId-basic-info");
+  });
+
+  test("非正式选课免责声明可见", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, SECTION_URL);
+    await expect(
+      page.getByText(/非官方|非正式|not.*official|not.*enrollment/i).first(),
+    ).toBeVisible();
+    await captureStepScreenshot(page, testInfo, "sections-jwId-disclaimer");
   });
 
   test("signed-in user can post, react, edit, reply, and delete comment", async ({
@@ -584,9 +618,9 @@ test.describe("/sections/[jwId]", () => {
     );
     const uploadPut = page.waitForResponse(
       (response) =>
-        response.url().includes("/api/mock-s3") &&
         response.request().method() === "PUT" &&
-        response.status() === 200,
+        response.status() === 200 &&
+        response.url().startsWith("http"),
     );
     const uploadComplete = page.waitForResponse(
       (response) =>
@@ -639,7 +673,7 @@ test.describe("/sections/[jwId]", () => {
       .click();
     const popup = await popupPromise;
     await popup.waitForLoadState("domcontentloaded");
-    await expect(popup).toHaveURL(/\/api\/(uploads\/.*\/download|mock-s3)/);
+    await expect(popup).toHaveURL(/\/api\/uploads\/.*\/download/);
     await popup.close();
 
     // Cleanup: delete comment

@@ -1,10 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
+import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import {
-  buildUserCalendarFeedPath,
-  ensureUserCalendarFeedToken,
-} from "@/lib/calendar-feed-token";
+  getUserCalendarSubscription,
+  SECTION_SUBSCRIPTION_NOTE,
+  subscribeUserToSectionByJwId,
+  unsubscribeUserFromSectionByJwId,
+} from "@/features/home/server/subscriptions";
+import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
@@ -12,13 +15,12 @@ import {
   getUserId,
   jsonToolResult,
   mcpModeInputSchema,
+  parseRequiredDateInput,
   resolveMcpMode,
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
+import { getBetterAuthBaseUrl } from "@/lib/mcp/urls";
 import { sectionCompactInclude } from "@/lib/query-helpers";
-
-const SECTION_SUBSCRIPTION_NOTE =
-  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
 
 export function registerCalendarTools(server: McpServer) {
   server.registerTool(
@@ -34,20 +36,8 @@ export function registerCalendarTools(server: McpServer) {
     async ({ locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const localizedPrisma = getPrisma(locale);
-      const token = await ensureUserCalendarFeedToken(userId);
-      const user = await localizedPrisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          subscribedSections: {
-            include: sectionCompactInclude,
-            orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-          },
-        },
-      });
-
-      if (!user) {
+      const subscription = await getUserCalendarSubscription(userId, locale);
+      if (!subscription) {
         return jsonToolResult({
           success: false,
           message: "User not found",
@@ -57,14 +47,122 @@ export function registerCalendarTools(server: McpServer) {
       return jsonToolResult(
         {
           success: true,
-          subscription: {
-            userId: user.id,
-            sections: user.subscribedSections,
-            calendarPath: buildUserCalendarFeedPath(user.id, token),
-            note: SECTION_SUBSCRIPTION_NOTE,
-          },
+          subscription,
         },
         { mode: resolvedMode },
+      );
+    },
+  );
+
+  server.registerTool(
+    "list_my_subscribed_sections",
+    {
+      description:
+        "List sections currently followed by the authenticated user for dashboard and calendar personalization only.",
+      inputSchema: {
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ locale, mode }, extra) => {
+      const subscription = await getUserCalendarSubscription(
+        getUserId(extra.authInfo),
+        locale,
+      );
+
+      return jsonToolResult(
+        {
+          success: Boolean(subscription),
+          sections: subscription?.sections ?? [],
+          note: SECTION_SUBSCRIPTION_NOTE,
+        },
+        { mode: resolveMcpMode(mode) },
+      );
+    },
+  );
+
+  server.registerTool(
+    "subscribe_section_by_jw_id",
+    {
+      description:
+        "Follow one section by JW ID for Life@USTC dashboard and calendar personalization. This does not represent official USTC course enrollment.",
+      inputSchema: {
+        jwId: z.number().int().positive(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ jwId, locale, mode }, extra) => {
+      const subscription = await subscribeUserToSectionByJwId(
+        getUserId(extra.authInfo),
+        jwId,
+        locale,
+      );
+
+      return jsonToolResult(
+        {
+          success: Boolean(subscription),
+          subscription,
+        },
+        { mode: resolveMcpMode(mode) },
+      );
+    },
+  );
+
+  server.registerTool(
+    "unsubscribe_section_by_jw_id",
+    {
+      description:
+        "Unfollow one section by JW ID for Life@USTC dashboard and calendar personalization.",
+      inputSchema: {
+        jwId: z.number().int().positive(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ jwId, locale, mode }, extra) => {
+      const subscription = await unsubscribeUserFromSectionByJwId(
+        getUserId(extra.authInfo),
+        jwId,
+        locale,
+      );
+
+      return jsonToolResult(
+        {
+          success: Boolean(subscription),
+          subscription,
+        },
+        { mode: resolveMcpMode(mode) },
+      );
+    },
+  );
+
+  server.registerTool(
+    "get_section_calendar_subscription",
+    {
+      description:
+        "Get the single-section iCal feed link for a section by JW ID.",
+      inputSchema: {
+        jwId: z.number().int().positive(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ jwId, locale, mode }) => {
+      const localizedPrisma = getPrisma(locale);
+      const section = await localizedPrisma.section.findUnique({
+        where: { jwId },
+        include: sectionCompactInclude,
+      });
+
+      return jsonToolResult(
+        {
+          found: Boolean(section),
+          section,
+          calendarPath: `/api/sections/${jwId}/calendar.ics`,
+          calendarUrl: `${getBetterAuthBaseUrl()}/api/sections/${jwId}/calendar.ics`,
+        },
+        { mode: resolveMcpMode(mode) },
       );
     },
   );
@@ -159,6 +257,34 @@ export function registerCalendarTools(server: McpServer) {
           },
         },
         { mode: resolvedMode },
+      );
+    },
+  );
+
+  server.registerTool(
+    "list_my_calendar_events",
+    {
+      description:
+        "List unified calendar events for the authenticated user across schedules, homework deadlines, exams, and todos.",
+      inputSchema: {
+        dateFrom: z.string().datetime({ offset: true }).optional(),
+        dateTo: z.string().datetime({ offset: true }).optional(),
+        locale: localeSchema.default(DEFAULT_LOCALE),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ dateFrom, dateTo, locale, mode }, extra) => {
+      const events = await listUserCalendarEvents(getUserId(extra.authInfo), {
+        locale,
+        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
+        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+      });
+
+      return jsonToolResult(
+        {
+          events,
+        },
+        { mode: resolveMcpMode(mode) },
       );
     },
   );

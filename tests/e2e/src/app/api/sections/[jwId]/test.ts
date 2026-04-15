@@ -20,3 +20,29 @@ test("/api/sections/[jwId] 返回 teacherAssignments 与 exams", async ({
   expect((body.teacherAssignments?.length ?? 0) > 0).toBe(true);
   expect((body.exams?.length ?? 0) > 0).toBe(true);
 });
+
+test("section detail has all SectionDetail fields", async ({ request }) => {
+  const response = await request.get(`/api/sections/${DEV_SEED.section.jwId}`);
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    code?: unknown;
+    teachers?: Array<{ id?: unknown; nameCn?: unknown }>;
+    schedules?: unknown[];
+    scheduleGroups?: unknown[];
+    exams?: unknown[];
+    examMode?: unknown;
+    teachLanguage?: unknown;
+  };
+  expect(typeof body.code).toBe("string");
+  expect(Array.isArray(body.teachers)).toBe(true);
+  const firstTeacher = body.teachers?.[0];
+  if (firstTeacher) {
+    expect(typeof firstTeacher.id).toBe("number");
+    expect(typeof firstTeacher.nameCn).toBe("string");
+  }
+  expect(Array.isArray(body.schedules)).toBe(true);
+  expect(Array.isArray(body.scheduleGroups)).toBe(true);
+  expect(Array.isArray(body.exams)).toBe(true);
+  expect(Object.hasOwn(body, "examMode")).toBe(true);
+  expect(Object.hasOwn(body, "teachLanguage")).toBe(true);
+});

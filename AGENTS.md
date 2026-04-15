@@ -50,6 +50,8 @@
 
 - Product model
   - Use `docs/features.md` as the canonical feature model
+  - For every new feature request, bug fix, or behavior change: update `docs/features.md` first to record the intended product/API/MCP behavior, implement the change in code, then update `docs/features.md` again so the final document matches shipped behavior rather than planned behavior
+  - If implementation scope changes during the work, sync `docs/features.md` before finishing the task
   - Treat Life@USTC as:
     - Student learning workspace first
     - Public campus info browser second

@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import {
   buildCommentNodes,
   type CommentNode,
@@ -18,6 +17,8 @@ import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
+import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ async function parseCommentId(
  * @response 404:openApiErrorSchema
  */
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseCommentId(params);
@@ -112,7 +113,11 @@ export async function GET(
       return notFound();
     }
 
-    const viewer = await getViewerContext({ includeAdmin: false });
+    const viewerUserId = await resolveApiUserId(request);
+    const viewer = await getViewerContext({
+      includeAdmin: false,
+      userId: viewerUserId,
+    });
     const threadKey = comment.rootId ?? comment.id;
 
     const threadComments = await prisma.comment.findMany({
@@ -243,12 +248,12 @@ export async function PATCH(
     : [];
 
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await resolveApiUserId(request);
+    if (!userId) {
       return unauthorized();
     }
 
-    const viewer = await getViewerContext();
+    const viewer = await getViewerContext({ userId });
     const comment = await prisma.comment.findUnique({
       where: { id },
       select: { id: true, status: true, userId: true },
@@ -270,7 +275,7 @@ export async function PATCH(
       const uploads = await prisma.upload.findMany({
         where: {
           id: { in: attachmentIds },
-          userId: session.user.id,
+          userId,
         },
         select: { id: true },
       });
@@ -358,6 +363,19 @@ export async function PATCH(
 
     const { roots } = buildCommentNodes([updatedComment], viewer);
 
+    writeAuditLog({
+      action: "comment_edit",
+      userId,
+      targetId: id,
+      targetType: "comment",
+      metadata: { body: content?.slice(0, 200) },
+      ipAddress:
+        request.headers.get("x-forwarded-for") ??
+        request.headers.get("x-real-ip") ??
+        undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+    }).catch(() => {});
+
     return jsonResponse({ success: true, comment: roots[0] });
   } catch (error) {
     return handleRouteError("Failed to update comment", error);
@@ -371,7 +389,7 @@ export async function PATCH(
  * @response 404:openApiErrorSchema
  */
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseCommentId(params);
@@ -381,8 +399,8 @@ export async function DELETE(
   const id = parsed;
 
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const userId = await resolveApiUserId(request);
+    if (!userId) {
       return unauthorized();
     }
 
@@ -395,7 +413,7 @@ export async function DELETE(
       return notFound();
     }
 
-    if (comment.userId !== session.user.id) {
+    if (comment.userId !== userId) {
       return forbidden();
     }
 
@@ -406,6 +424,18 @@ export async function DELETE(
         deletedAt: new Date(),
       },
     });
+
+    writeAuditLog({
+      action: "comment_delete",
+      userId,
+      targetId: id,
+      targetType: "comment",
+      ipAddress:
+        request.headers.get("x-forwarded-for") ??
+        request.headers.get("x-real-ip") ??
+        undefined,
+      userAgent: request.headers.get("user-agent") ?? undefined,
+    }).catch(() => {});
 
     return jsonResponse({ success: true });
   } catch (error) {

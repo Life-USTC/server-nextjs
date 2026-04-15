@@ -72,6 +72,31 @@ test.describe("GET /api/semesters", () => {
     expect(body.pagination?.pageSize).toBe(1);
   });
 
+  test("semester items have all required fields", async ({ request }) => {
+    const response = await request.get("/api/semesters?limit=20");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      data?: Array<{
+        id?: unknown;
+        jwId?: unknown;
+        code?: unknown;
+        nameCn?: unknown;
+        startDate?: unknown;
+        endDate?: unknown;
+      }>;
+    };
+    const semester = body.data?.find(
+      (item) => item.jwId === DEV_SEED.semesterJwId,
+    );
+    expect(semester).toBeDefined();
+    expect(typeof semester?.id).toBe("number");
+    expect(typeof semester?.jwId).toBe("number");
+    expect(typeof semester?.code).toBe("string");
+    expect(typeof semester?.nameCn).toBe("string");
+    expect(typeof semester?.startDate).toBe("string");
+    expect(typeof semester?.endDate).toBe("string");
+  });
+
   test("page param navigates results", async ({ request }) => {
     const response = await request.get("/api/semesters?page=1");
     expect(response.status()).toBe(200);

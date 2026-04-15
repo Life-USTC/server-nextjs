@@ -6,6 +6,55 @@ test("/api/sections", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/sections" });
 });
 
+test("section list items have all required SectionSummary fields", async ({
+  request,
+}) => {
+  const response = await request.get(
+    `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    data?: Array<{
+      id?: unknown;
+      jwId?: unknown;
+      code?: unknown;
+      course?: { nameCn?: unknown; nameEn?: unknown };
+      semester?: { nameCn?: string } | null;
+      credits?: unknown;
+      stdCount?: unknown;
+      limitCount?: unknown;
+    }>;
+  };
+  const section = body.data?.find(
+    (item) => item.jwId === DEV_SEED.section.jwId,
+  );
+  expect(section).toBeDefined();
+  expect(typeof section?.id).toBe("number");
+  expect(typeof section?.jwId).toBe("number");
+  expect(typeof section?.code).toBe("string");
+  expect(typeof section?.course?.nameCn).toBe("string");
+  expect(Object.hasOwn(section?.course as object, "nameEn")).toBe(true);
+  expect(Object.hasOwn(section as object, "semester")).toBe(true);
+  expect(Object.hasOwn(section as object, "credits")).toBe(true);
+  expect(typeof section?.stdCount).toBe("number");
+  expect(typeof section?.limitCount).toBe("number");
+});
+
+test("section list item has teachers array", async ({ request }) => {
+  const response = await request.get(
+    `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=20`,
+  );
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    data?: Array<{ jwId?: number; teachers?: unknown[] }>;
+  };
+  const section = body.data?.find(
+    (item) => item.jwId === DEV_SEED.section.jwId,
+  );
+  expect(section).toBeDefined();
+  expect(Array.isArray(section?.teachers)).toBe(true);
+});
+
 test("/api/sections 可按 teacherId 过滤到 seed 班级", async ({ request }) => {
   const teacherResponse = await request.get(
     `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=5`,

@@ -241,7 +241,7 @@ const scheduleGroupSchema = ScheduleGroupModelSchema.omit({
   schedules: true,
 });
 
-const scheduleWithRoomTeachersSchema = scheduleBaseSchema.extend({
+const _scheduleWithRoomTeachersSchema = scheduleBaseSchema.extend({
   room: roomWithBuildingSchema.nullable(),
   teachers: z.array(teacherSchema),
 });
@@ -707,32 +707,23 @@ export const adminUserResponseSchema = z.object({
   user: adminUserListItemSchema,
 });
 
-export const calendarSubscriptionSummarySchema = z.object({
-  userId: z.string(),
-  sections: z.array(z.object({ id: z.number().int() })),
-});
-
 export const calendarSubscriptionSchema = z.object({
   userId: z.string(),
-  sections: z.array(
-    sectionBaseSchema.extend({
-      course: courseBaseSchema,
-      semester: semesterSchema.nullable(),
-      campus: campusSchema.nullable(),
-      schedules: z.array(scheduleWithRoomTeachersSchema),
-    }),
-  ),
+  sections: z.array(sectionCompactSchema),
+  calendarPath: z.string(),
+  calendarUrl: z.string(),
+  note: z.string(),
 });
 
 export const currentCalendarSubscriptionResponseSchema = z.union([
   z.object({ subscription: z.null() }),
   z.object({
-    subscription: calendarSubscriptionSummarySchema,
+    subscription: calendarSubscriptionSchema,
   }),
 ]);
 
 export const calendarSubscriptionCreateResponseSchema = z.object({
-  subscription: calendarSubscriptionSummarySchema,
+  subscription: calendarSubscriptionSchema.nullable(),
 });
 
 export const matchSectionCodesResponseSchema = z.object({

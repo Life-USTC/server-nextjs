@@ -1658,60 +1658,6 @@
         }
       }
     },
-    "/api/mock-s3": {
-      "get": {
-        "operationId": "get-api-mock-s3",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "put-api-mock-s3",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "delete-api-mock-s3",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
     "/api/schedules": {
       "get": {
         "operationId": "get-api-schedules",
@@ -2930,7 +2876,7 @@
             "type": "object",
             "properties": {
               "subscription": {
-                "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
+                "$ref": "#/components/schemas/calendarSubscriptionSchema"
               }
             },
             "required": [
@@ -2956,7 +2902,11 @@
         "type": "object",
         "properties": {
           "subscription": {
-            "$ref": "#/components/schemas/calendarSubscriptionSummarySchema"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/calendarSubscriptionSchema"
+              }
+            ]
           }
         },
         "required": [
@@ -4743,32 +4693,6 @@
           "suspensionExpiresAt"
         ]
       },
-      "calendarSubscriptionSummarySchema": {
-        "type": "object",
-        "properties": {
-          "userId": {
-            "type": "string"
-          },
-          "sections": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "id"
-              ]
-            }
-          }
-        },
-        "required": [
-          "userId",
-          "sections"
-        ]
-      },
       "calendarSubscriptionSchema": {
         "type": "object",
         "properties": {
@@ -4778,40 +4702,25 @@
           "sections": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "course": {
-                  "$ref": "#/components/schemas/courseBaseSchema"
-                },
-                "semester": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/semesterSchema"
-                    }
-                  ]
-                },
-                "campus": {
-                  "type": "object"
-                },
-                "schedules": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/scheduleWithRoomTeachersSchema"
-                  }
-                }
-              },
-              "required": [
-                "course",
-                "semester",
-                "campus",
-                "schedules"
-              ]
+              "$ref": "#/components/schemas/sectionCompactSchema"
             }
+          },
+          "calendarPath": {
+            "type": "string"
+          },
+          "calendarUrl": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
           }
         },
         "required": [
           "userId",
-          "sections"
+          "sections",
+          "calendarPath",
+          "calendarUrl",
+          "note"
         ]
       },
       "openApiDocumentResponseSchema": {
@@ -4918,7 +4827,11 @@
             "$ref": "#/components/schemas/courseSchema"
           },
           "semester": {
-            "type": "object"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/semesterSchema"
+              }
+            ]
           },
           "campus": {
             "type": "object"
@@ -4942,76 +4855,6 @@
           "semester",
           "campus",
           "openDepartment",
-          "teachers"
-        ]
-      },
-      "scheduleBaseSchema": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dateTimeSchema"
-              }
-            ]
-          }
-        },
-        "required": [
-          "date"
-        ]
-      },
-      "roomSchema": {
-        "type": "object"
-      },
-      "roomTypeSchema": {
-        "type": "object"
-      },
-      "roomWithBuildingSchema": {
-        "type": "object",
-        "properties": {
-          "building": {
-            "type": "object"
-          },
-          "roomType": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/roomTypeSchema"
-              }
-            ]
-          }
-        },
-        "required": [
-          "building",
-          "roomType"
-        ]
-      },
-      "scheduleWithRoomTeachersSchema": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/dateTimeSchema"
-              }
-            ]
-          },
-          "room": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/roomWithBuildingSchema"
-              }
-            ]
-          },
-          "teachers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/teacherSchema"
-            }
-          }
-        },
-        "required": [
-          "date",
-          "room",
           "teachers"
         ]
       },
@@ -5580,6 +5423,24 @@
           "teachers"
         ]
       },
+      "scheduleBaseSchema": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/dateTimeSchema"
+              }
+            ]
+          }
+        },
+        "required": [
+          "date"
+        ]
+      },
+      "roomSchema": {
+        "type": "object"
+      },
       "buildingWithCampusSchema": {
         "type": "object",
         "properties": {
@@ -5594,6 +5455,9 @@
         "required": [
           "campus"
         ]
+      },
+      "roomTypeSchema": {
+        "type": "object"
       },
       "roomWithBuildingCampusSchema": {
         "type": "object",

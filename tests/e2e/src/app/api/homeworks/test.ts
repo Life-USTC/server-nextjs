@@ -58,11 +58,7 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
   expect(response.status()).toBe(200);
   const body = (await response.json()) as {
     viewer?: { userId?: string | null };
-    homeworks?: Array<{
-      title?: string;
-      commentCount?: number;
-      completion?: { completedAt?: string } | null;
-    }>;
+    homeworks?: Array<Record<string, unknown>>;
     auditLogs?: Array<{ action?: string; titleSnapshot?: string }>;
   };
 
@@ -77,7 +73,7 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
     body.homeworks?.every(
       (item) =>
         typeof item.commentCount === "number" &&
-        Number.isInteger(item.commentCount),
+        Number.isInteger(item.commentCount as number),
     ),
   ).toBe(true);
   expect(
@@ -88,6 +84,32 @@ test("/api/homeworks GET 返回 seed 作业、completion 与审计日志", async
         item.titleSnapshot.length > 0,
     ),
   ).toBe(true);
+
+  // Verify HomeworkItem fields on the seed homework
+  const seedHomework = body.homeworks?.find(
+    (item) => item.title === DEV_SEED.homeworks.title,
+  );
+  expect(seedHomework).toBeDefined();
+  if (!seedHomework) return;
+
+  expect(typeof seedHomework.id).toBe("string");
+  expect(seedHomework.id).toBeTruthy();
+  expect(typeof seedHomework.title).toBe("string");
+  expect(Object.hasOwn(seedHomework, "publishedAt")).toBe(true);
+  expect(Object.hasOwn(seedHomework, "submissionStartAt")).toBe(true);
+  expect(Object.hasOwn(seedHomework, "submissionDueAt")).toBe(true);
+  expect(typeof seedHomework.createdAt).toBe("string");
+  expect(Object.hasOwn(seedHomework, "updatedAt")).toBe(true);
+  expect(typeof seedHomework.sectionId).toBe("number");
+
+  const section = seedHomework.section as
+    | { code?: unknown; course?: { nameCn?: unknown } }
+    | undefined;
+  expect(typeof section?.code).toBe("string");
+  expect(typeof section?.course?.nameCn).toBe("string");
+
+  expect(Object.hasOwn(seedHomework, "createdBy")).toBe(true);
+  expect(Object.hasOwn(seedHomework, "updatedBy")).toBe(true);
 });
 
 test("/api/homeworks POST 未登录返回 401", async ({ request }) => {

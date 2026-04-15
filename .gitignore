@@ -14,8 +14,8 @@
 /coverage
 /playwright-report
 /test-results
-.e2e-mock-s3
 .e2e-mock-s3-store/
+.e2e-s3rver/
 
 # next.js
 /.next/

@@ -1,8 +1,17 @@
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
-type AppLogLevel = "info" | "warn" | "error";
+const LOG_LEVEL_ORDER = ["debug", "info", "warn", "error"] as const;
+type AppLogLevel = (typeof LOG_LEVEL_ORDER)[number];
 
 type AppLogContext = Record<string, unknown>;
+
+export function shouldLog(level: AppLogLevel): boolean {
+  const configured = (process.env.LOG_LEVEL ?? "info") as AppLogLevel;
+  const configuredIdx = LOG_LEVEL_ORDER.indexOf(configured);
+  const levelIdx = LOG_LEVEL_ORDER.indexOf(level);
+  const effectiveConfigIdx = configuredIdx >= 0 ? configuredIdx : 1;
+  return levelIdx >= effectiveConfigIdx;
+}
 
 function serializeError(error: unknown) {
   if (!error) return undefined;
@@ -23,7 +32,34 @@ function serializeError(error: unknown) {
 function getLogMethod(level: AppLogLevel) {
   if (level === "error") return console.error;
   if (level === "warn") return console.warn;
+  if (level === "debug") return console.debug;
   return console.info;
+}
+
+function emitLog(
+  prefix: string,
+  level: AppLogLevel,
+  payload: Record<string, unknown>,
+  error?: unknown,
+) {
+  const method = getLogMethod(level);
+  const serializedError = serializeError(error);
+
+  if (process.env.NODE_ENV === "production") {
+    const logObj = {
+      prefix,
+      ...payload,
+      ...(serializedError ? { error: serializedError } : {}),
+    };
+    method(JSON.stringify(logObj));
+    return;
+  }
+
+  if (serializedError) {
+    method(prefix, payload, serializedError);
+  } else {
+    method(prefix, payload);
+  }
 }
 
 export function logAppEvent(
@@ -32,6 +68,8 @@ export function logAppEvent(
   context: AppLogContext = {},
   error?: unknown,
 ) {
+  if (!shouldLog(level)) return;
+
   const payload = {
     timestamp: formatShanghaiTimestamp(new Date()),
     environment: process.env.NODE_ENV ?? "development",
@@ -39,15 +77,50 @@ export function logAppEvent(
     message,
     ...context,
   };
-  const serializedError = serializeError(error);
-  const method = getLogMethod(level);
 
-  if (serializedError) {
-    method("[app]", payload, serializedError);
-    return;
-  }
+  emitLog("[app]", level, payload, error);
+}
 
-  method("[app]", payload);
+export function logApiRequest(
+  method: string,
+  path: string,
+  status: number,
+  durationMs: number,
+  context: AppLogContext = {},
+) {
+  if (!shouldLog("info")) return;
+
+  const payload = {
+    timestamp: formatShanghaiTimestamp(new Date()),
+    environment: process.env.NODE_ENV ?? "development",
+    method,
+    path,
+    status,
+    durationMs,
+    ...context,
+  };
+
+  emitLog("[api]", "info", payload);
+}
+
+export function logAuditEvent(
+  action: string,
+  userId: string | null,
+  targetId: string | null,
+  metadata: AppLogContext = {},
+) {
+  if (!shouldLog("info")) return;
+
+  const payload = {
+    timestamp: formatShanghaiTimestamp(new Date()),
+    environment: process.env.NODE_ENV ?? "development",
+    action,
+    userId,
+    targetId,
+    ...metadata,
+  };
+
+  emitLog("[audit]", "info", payload);
 }
 
 export function logRouteFailure(

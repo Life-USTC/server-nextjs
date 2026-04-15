@@ -34,7 +34,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: `node -e "require('fs').writeFileSync('.e2e-mock-s3','1')" && bun run build && NO_PROXY="${playwrightNoProxy}" no_proxy="${playwrightNoProxy}" AUTH_TRUST_HOST=true AUTH_URL="${playwrightBaseUrl}" BETTER_AUTH_URL="${playwrightBaseUrl}" NEXTAUTH_URL="${playwrightBaseUrl}" E2E_DEBUG_AUTH=1 E2E_MOCK_S3=1 DEV_DEBUG_PASSWORD=e2e-debug-local-only DEV_ADMIN_PASSWORD=e2e-admin-local-only bunx next start --hostname ${playwrightHost} --port ${playwrightPort}`,
+    command: `bun run build && NO_PROXY="${playwrightNoProxy}" no_proxy="${playwrightNoProxy}" AUTH_TRUST_HOST=true AUTH_URL="${playwrightBaseUrl}" BETTER_AUTH_URL="${playwrightBaseUrl}" NEXTAUTH_URL="${playwrightBaseUrl}" E2E_DEBUG_AUTH=1 DEV_DEBUG_PASSWORD=e2e-debug-local-only DEV_ADMIN_PASSWORD=e2e-admin-local-only S3_ENDPOINT=http://127.0.0.1:4569 S3_BUCKET=e2e-test-bucket S3_ACCESS_KEY_ID=S3RVER S3_SECRET_ACCESS_KEY=S3RVER S3_REGION=us-east-1 S3_FORCE_PATH_STYLE=true R2_ACCESS_URL=http://127.0.0.1:4569/e2e-test-bucket bunx next start --hostname ${playwrightHost} --port ${playwrightPort}`,
     url: playwrightBaseUrl,
     reuseExistingServer,
     stdout: "ignore",

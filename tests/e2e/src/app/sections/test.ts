@@ -79,6 +79,7 @@ test.describe("/sections", () => {
     await expect(page).toHaveURL(
       new RegExp(`search=${encodeURIComponent(DEV_SEED.section.code)}`),
     );
+    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "sections-search-results");
 
@@ -106,6 +107,7 @@ test.describe("/sections", () => {
       .click();
 
     await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));
+    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "sections-filter-semester");
   });

@@ -26,11 +26,14 @@ const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
+  LOG_LEVEL: z
+    .enum(["debug", "info", "warn", "error"])
+    .default("info")
+    .optional(),
   WEBHOOK_SECRET: z.string().optional(),
   UPLOAD_TOTAL_QUOTA_MB: z.string().optional(),
   OAUTH_DEBUG_LOGGING: z.string().optional(),
   E2E_DEBUG_AUTH: z.string().optional(),
-  E2E_MOCK_S3: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
