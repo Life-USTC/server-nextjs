@@ -64,12 +64,12 @@ export async function resolveApiUserId(
           accessToken?.userId &&
           accessToken.expiresAt.getTime() > Date.now()
         ) {
-          // Reject tokens minted exclusively for MCP; they must not be
-          // accepted as general REST API credentials.
+          // Reject tokens that carry the MCP scope; they were minted for the
+          // MCP server and must not be accepted as general REST API credentials.
+          // MCP tokens always include openid+profile alongside mcp:tools, so
+          // checking every() would be a no-op — includes() is the correct guard.
           const scopes = accessToken.scopes;
-          const isMcpOnly =
-            scopes.length > 0 && scopes.every((s) => s === MCP_TOOLS_SCOPE);
-          if (isMcpOnly) {
+          if (scopes.includes(MCP_TOOLS_SCOPE)) {
             return null;
           }
 
