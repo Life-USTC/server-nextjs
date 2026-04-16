@@ -209,10 +209,8 @@ export async function POST(request: Request) {
       Key: key,
       ContentType: contentType,
     });
-    const origin = new URL(request.url).origin;
     const url = await getS3SignedUrl(command, {
       expiresIn: MAX_UPLOAD_EXPIRES_SECONDS,
-      origin,
     });
 
     return jsonResponse({

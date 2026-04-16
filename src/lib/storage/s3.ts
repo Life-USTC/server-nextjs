@@ -42,41 +42,16 @@ export async function sendS3(command: unknown) {
 
 export function getS3SignedUrl(
   command: PutObjectCommand | GetObjectCommand,
-  options: { expiresIn: number; origin?: string },
+  options: { expiresIn: number },
 ): Promise<string>;
 export async function getS3SignedUrl(
   command: unknown,
-  options: { expiresIn: number; origin?: string },
+  options: { expiresIn: number },
 ) {
-  const commandName = (command as { constructor?: { name?: string } })
-    ?.constructor?.name;
-
-  if (commandName === "GetObjectCommand") {
-    const r2AccessUrl = process.env.R2_ACCESS_URL;
-    if (r2AccessUrl) {
-      const input =
-        (command as { input?: Record<string, unknown> })?.input ?? {};
-      const key = typeof input.Key === "string" ? input.Key : undefined;
-      if (key) {
-        const base = new URL(`${r2AccessUrl}/${key}`);
-        const responseContentDisposition =
-          typeof input.ResponseContentDisposition === "string"
-            ? input.ResponseContentDisposition
-            : undefined;
-        if (responseContentDisposition) {
-          const match = /filename="([^"]+)"/.exec(responseContentDisposition);
-          if (match?.[1]) {
-            base.searchParams.set(
-              "response-content-disposition",
-              responseContentDisposition,
-            );
-          }
-        }
-        return base.toString();
-      }
-    }
-  }
-
+  // Always use short-lived presigned URLs so download links expire and cannot
+  // be shared outside the authenticated download flow.  Stable public R2 URLs
+  // must never be returned here; callers that need public CDN URLs should
+  // construct them directly from R2_ACCESS_URL at the call site.
   return getSignedUrl(s3Client, command as never, {
     expiresIn: options.expiresIn,
   });

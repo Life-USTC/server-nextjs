@@ -2,7 +2,10 @@ import { verifyAccessToken } from "better-auth/oauth2";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
-import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
+import {
+  hashOAuthClientSecretForDbStorage,
+  MCP_TOOLS_SCOPE,
+} from "@/lib/oauth/utils";
 
 export async function requireSignedInUserId() {
   const session = await auth();
@@ -53,6 +56,7 @@ export async function resolveApiUserId(
           select: {
             userId: true,
             expiresAt: true,
+            scopes: true,
           },
         });
 
@@ -60,6 +64,15 @@ export async function resolveApiUserId(
           accessToken?.userId &&
           accessToken.expiresAt.getTime() > Date.now()
         ) {
+          // Reject tokens minted exclusively for MCP; they must not be
+          // accepted as general REST API credentials.
+          const scopes = accessToken.scopes;
+          const isMcpOnly =
+            scopes.length > 0 && scopes.every((s) => s === MCP_TOOLS_SCOPE);
+          if (isMcpOnly) {
+            return null;
+          }
+
           return accessToken.userId;
         }
       }
