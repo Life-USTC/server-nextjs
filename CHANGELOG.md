@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/Life-USTC/server-nextjs/compare/v1.20.0...v1.21.0) (2026-04-17)
+
+
+### Features
+
+* **tools:** add seed-debug-users script for E2E testing ([b7f3f83](https://github.com/Life-USTC/server-nextjs/commit/b7f3f83b4be4f44c399df50c7fdb87ad87e95b8f))
+
 # [1.20.0](https://github.com/Life-USTC/server-nextjs/compare/v1.19.0...v1.20.0) (2026-04-17)
 
 
