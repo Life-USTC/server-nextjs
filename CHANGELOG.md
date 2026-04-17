@@ -1,3 +1,13 @@
+## [1.18.5](https://github.com/Life-USTC/server-nextjs/compare/v1.18.4...v1.18.5) (2026-04-17)
+
+
+### Bug Fixes
+
+* **api:** align detail routes with MCP tools using localized Prisma client ([5043b7d](https://github.com/Life-USTC/server-nextjs/commit/5043b7d23edddf2e151041404eb76ac5e68b78f3))
+* **api:** restore build and contracts ([1d9565c](https://github.com/Life-USTC/server-nextjs/commit/1d9565cff40d3f2ae3a6056166a3d0ea2f22a385))
+* **security:** address P1/P2 review issues in storage, auth, and openapi ([33dd232](https://github.com/Life-USTC/server-nextjs/commit/33dd23296761252da520737706792253b2f34ee5))
+* **security:** reject any token carrying mcp:tools scope from REST API auth ([4353f3c](https://github.com/Life-USTC/server-nextjs/commit/4353f3cb5664372baaed12c5c3e0f86d648f9f1d))
+
 ## [1.18.4](https://github.com/Life-USTC/server-nextjs/compare/v1.18.3...v1.18.4) (2026-04-15)
 
 
