@@ -70,6 +70,7 @@ function createS3Client() {
   const endpoint = getS3Endpoint();
   return new S3Client({
     region: getS3Region(),
+    ...(endpoint ? { forcePathStyle: true } : {}),
     ...(endpoint ? { endpoint } : {}),
   });
 }
