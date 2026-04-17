@@ -1,3 +1,18 @@
+## [1.18.6](https://github.com/Life-USTC/server-nextjs/compare/v1.18.5...v1.18.6) (2026-04-17)
+
+
+### Bug Fixes
+
+* **ci:** create the e2e bucket with aws cli ([6c45290](https://github.com/Life-USTC/server-nextjs/commit/6c45290acb32809fdf590d801c0da9906875009a))
+* **ci:** harden minio e2e setup ([1bd7834](https://github.com/Life-USTC/server-nextjs/commit/1bd78341904a47c4b8fd468e16e7ae4bfb8a7bcb))
+* **ci:** provision storage for upload e2e ([c9ef0ee](https://github.com/Life-USTC/server-nextjs/commit/c9ef0eec51d59b47fa25501f998792ee49e13f42))
+* **ci:** remove duplicate proxy env ([9dc4c24](https://github.com/Life-USTC/server-nextjs/commit/9dc4c24295930e990da78221589af13cfa17144a))
+* **ci:** use a valid minio image tag ([37bfa6a](https://github.com/Life-USTC/server-nextjs/commit/37bfa6a6e9a98dd5aeb98950b589238a52db2c34))
+* **e2e:** pass storage env to playwright web server ([faa1fc6](https://github.com/Life-USTC/server-nextjs/commit/faa1fc6e72a32c8e05c5e092e24d24b90c4e693d))
+* **storage:** force path-style urls for custom endpoints ([37533b4](https://github.com/Life-USTC/server-nextjs/commit/37533b4987f28be5ee592a8aba297ef822d27a8c))
+* **storage:** handle endpoint resolution ([ac7cf38](https://github.com/Life-USTC/server-nextjs/commit/ac7cf38249ae95e49aad13c8ad5a8a9ee6c8725d))
+* **storage:** use lazy bucket resolution in upload routes ([4041684](https://github.com/Life-USTC/server-nextjs/commit/4041684af890c95bf74b8b0f9ae7df5419960db3))
+
 ## [1.18.5](https://github.com/Life-USTC/server-nextjs/compare/v1.18.4...v1.18.5) (2026-04-17)
 
 
