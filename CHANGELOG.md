@@ -1,3 +1,10 @@
+## [1.18.7](https://github.com/Life-USTC/server-nextjs/compare/v1.18.6...v1.18.7) (2026-04-17)
+
+
+### Bug Fixes
+
+* **build:** keep dev seed in docker context ([7a21480](https://github.com/Life-USTC/server-nextjs/commit/7a2148092002a2e15f4e77555c3b2ff9579a35bb))
+
 ## [1.18.6](https://github.com/Life-USTC/server-nextjs/compare/v1.18.5...v1.18.6) (2026-04-17)
 
 
