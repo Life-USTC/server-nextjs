@@ -1,3 +1,10 @@
+## [1.18.8](https://github.com/Life-USTC/server-nextjs/compare/v1.18.7...v1.18.8) (2026-04-17)
+
+
+### Bug Fixes
+
+* **storage:** align docker and s3 runtime setup ([3157833](https://github.com/Life-USTC/server-nextjs/commit/3157833031b29e320c908d87cde28e8f1e5adf9d))
+
 ## [1.18.7](https://github.com/Life-USTC/server-nextjs/compare/v1.18.6...v1.18.7) (2026-04-17)
 
 
