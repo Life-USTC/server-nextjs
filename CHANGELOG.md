@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/Life-USTC/server-nextjs/compare/v1.18.8...v1.19.0) (2026-04-17)
+
+
+### Features
+
+* **tools:** add iOS OAuth2 client registration script ([f0f9199](https://github.com/Life-USTC/server-nextjs/commit/f0f9199a46d973150e29162e46d77537cd5b0390))
+
 ## [1.18.8](https://github.com/Life-USTC/server-nextjs/compare/v1.18.7...v1.18.8) (2026-04-17)
 
 
