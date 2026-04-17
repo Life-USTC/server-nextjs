@@ -9,7 +9,7 @@
   - Config builds with `bun run build`, then starts with `bunx next start`
   - Defaults are host `127.0.0.1`, port `3000`, one worker
   - Env knobs: `PLAYWRIGHT_HOST`, `PLAYWRIGHT_PORT`, `PLAYWRIGHT_REUSE_SERVER=1`, `PLAYWRIGHT_RETRIES`, `PLAYWRIGHT_WORKERS`
-  - E2E auth env and mock S3 are enabled by config
+  - E2E auth env is enabled by config
 
 - Layout
   - `tests/e2e/src/app/**/test.ts`: route-oriented tests

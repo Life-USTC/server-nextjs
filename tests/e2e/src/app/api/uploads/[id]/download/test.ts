@@ -33,6 +33,7 @@ test("/api/uploads/[id]/download GET 未登录返回 401", async ({ request }) =
 });
 
 test("/api/uploads/[id]/download GET 可下载自己的文件", async ({ page }) => {
+  test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -56,6 +57,7 @@ test("/api/uploads/[id]/download GET 可下载自己的文件", async ({ page })
 });
 
 test("/api/uploads/[id]/download GET 非本人返回 404", async ({ browser }) => {
+  test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
   const userContext = await browser.newContext();
   const userPage = await userContext.newPage();
 

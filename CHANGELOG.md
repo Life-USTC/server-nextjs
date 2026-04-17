@@ -586,7 +586,6 @@ Made-with: Cursor
 ### Bug Fixes
 
 * **e2e:** avoid commit waitUntil in waitForLoadState ([abd4684](https://github.com/Life-USTC/server-nextjs/commit/abd4684ad66220116849d5fdb2e91b063c0ef5f6))
-* **mock-s3:** return Blob body in GET ([50d9422](https://github.com/Life-USTC/server-nextjs/commit/50d94222cf3384004e6f54fabd61d73fe6fec12d))
 * **openapi:** keep postprocess typesafe for build ([025c401](https://github.com/Life-USTC/server-nextjs/commit/025c401d02c2a6bc3a769a42cfd863691f906eb2))
 * **storage:** narrow mock send types for build ([fe3e8a3](https://github.com/Life-USTC/server-nextjs/commit/fe3e8a3e7f4710b1ece01d592b7a431aac84fba8))
 
@@ -596,7 +595,6 @@ Made-with: Cursor
 ### Bug Fixes
 
 * **e2e:** avoid commit waitUntil in waitForLoadState ([abd4684](https://github.com/Life-USTC/server-nextjs/commit/abd4684ad66220116849d5fdb2e91b063c0ef5f6))
-* **mock-s3:** return Blob body in GET ([50d9422](https://github.com/Life-USTC/server-nextjs/commit/50d94222cf3384004e6f54fabd61d73fe6fec12d))
 * **openapi:** keep postprocess typesafe for build ([025c401](https://github.com/Life-USTC/server-nextjs/commit/025c401d02c2a6bc3a769a42cfd863691f906eb2))
 * **storage:** narrow mock send types for build ([fe3e8a3](https://github.com/Life-USTC/server-nextjs/commit/fe3e8a3e7f4710b1ece01d592b7a431aac84fba8))
 
@@ -614,7 +612,6 @@ Made-with: Cursor
 
 * **admin:** add cancel action to moderation dialog ([6f9f48e](https://github.com/Life-USTC/server-nextjs/commit/6f9f48e102d752bfbfbe2b99b41074341ef4d409))
 * **profile:** allow hyphens in usernames ([864b233](https://github.com/Life-USTC/server-nextjs/commit/864b23394c6428cf21e64242d36a37019a839810))
-* **storage:** add mock S3 mode for local e2e ([76a12e0](https://github.com/Life-USTC/server-nextjs/commit/76a12e0b20fd16e26c37ccce1bd8f62ae293133f))
 
 ## [0.36.1](https://github.com/Life-USTC/server-nextjs/compare/v0.36.0...v0.36.1) (2026-02-23)
 

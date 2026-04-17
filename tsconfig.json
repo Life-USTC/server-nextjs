@@ -32,5 +32,11 @@
     "**/*.mts",
     "postcss.config.mjs"
   ],
-  "exclude": ["node_modules", "scripts"]
+  "exclude": [
+    "node_modules",
+    "scripts",
+    "tests",
+    "tools",
+    "playwright.config.ts"
+  ]
 }

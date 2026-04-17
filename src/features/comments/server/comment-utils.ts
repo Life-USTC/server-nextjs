@@ -100,14 +100,6 @@ export async function getViewerContext(
   };
 }
 
-export function buildUploadUrl(key: string | null | undefined) {
-  if (!key) return "";
-  const accessUrl = process.env.R2_ACCESS_URL ?? "";
-  if (!accessUrl) return "";
-  const base = accessUrl.endsWith("/") ? accessUrl.slice(0, -1) : accessUrl;
-  return `${base}/${key}`;
-}
-
 export async function findActiveSuspension(userId: string) {
   const now = new Date();
   return prisma.userSuspension.findFirst({

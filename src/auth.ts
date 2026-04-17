@@ -78,9 +78,29 @@ const AUTH_BASE_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
 /** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
 const AUTH_PUBLIC_ORIGIN = new URL(`${AUTH_BASE_URL.replace(/\/$/, "")}/`)
   .origin;
+const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
+
+function getBetterAuthSecret() {
+  const secret =
+    process.env.AUTH_SECRET?.trim() || process.env.BETTER_AUTH_SECRET?.trim();
+  if (secret) {
+    return secret;
+  }
+
+  if (process.env.NEXT_PHASE === NEXT_PRODUCTION_BUILD_PHASE) {
+    return "life-ustc-next-build-placeholder-not-for-production";
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("AUTH_SECRET or BETTER_AUTH_SECRET is required");
+  }
+
+  return undefined;
+}
 
 const authInstance = betterAuth({
   baseURL: AUTH_BASE_URL,
+  secret: getBetterAuthSecret(),
   database: prismaAdapter(
     prisma as unknown as Parameters<typeof prismaAdapter>[0],
     {

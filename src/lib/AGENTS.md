@@ -48,9 +48,8 @@
   - Debug logging must not leak secrets
 
 - `storage/`
-  - S3/R2 config uses env vars
-  - `E2E_MOCK_S3=1` or `.e2e-mock-s3` enables mock storage
-  - Mock storage persists under `.e2e-mock-s3-store`
+  - S3 uses the official AWS SDK and its default runtime configuration chain
+  - `S3_BUCKET` names the upload bucket
   - Upload keys are scoped under `uploads/{userId}/...`
   - Signed URLs are transport only; app permissions still matter
 
@@ -71,5 +70,5 @@
   - Use shared pagination/search-param helpers
   - Use localized navigation wrappers from `i18n/routing`
   - Keep auth and permission checks explicit
-  - Do not bypass upload authorization through raw R2/S3 URLs
+  - Do not bypass upload authorization through raw S3 URLs
   - Keep API/MCP date serialization consistent

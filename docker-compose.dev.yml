@@ -27,7 +27,6 @@ services:
       JWT_SECRET: dev-jwt-secret
       WEBHOOK_SECRET: dev-webhook-secret
       AUTH_SECRET: dev-auth-secret
-      E2E_MOCK_S3: "1"
       CHOKIDAR_USEPOLLING: "1"
     ports:
       - "3000:3000"

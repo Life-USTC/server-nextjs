@@ -15,27 +15,29 @@ FROM base AS builder
 COPY --from=install /temp/dev/node_modules node_modules
 COPY . .
 
-# Build-time placeholders for build only.
-ENV DATABASE_URL="postgresql://user:password@localhost:5432/dummy"
-ENV AUTH_SECRET="docker-build-placeholder-not-for-production"
-ENV S3_ENDPOINT="http://localhost:9000"
-ENV S3_BUCKET="dummy-bucket"
-ENV S3_ACCESS_KEY_ID="dummy-access-key"
-ENV S3_SECRET_ACCESS_KEY="dummy-secret-key"
 ENV NODE_ENV=production
 
-RUN bun run build
-RUN bun run build:tools
+RUN export DATABASE_URL="postgresql://user:password@localhost:5432/dummy" \
+ && bun run build \
+ && bun run build:tools
+
+# Collect all runtime files into a single staging directory
+RUN mkdir -p /output/.next /output/dist \
+ && cp -a .next/standalone/. /output/ \
+ && cp -a .next/static /output/.next/static \
+ && cp -a public /output/public \
+ && cp package.json /output/package.json \
+ && cp -a dist/tools /output/dist/tools \
+ && cp -a prisma /output/prisma
 
 # Final runtime image using Next.js standalone output
 FROM base AS release
 WORKDIR /usr/src/app
 
-RUN apt-get update \
- && apt-get install -y git \
- && rm -rf /var/lib/apt/lists/* \
- && mkdir -p /usr/src/app/.cache \
- && chown -R bun:bun /usr/src/app
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN mkdir -p /usr/src/app/.cache \
+ && chown -R bun:bun /usr/src/app/.cache \
+ && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Use non-root user provided by Bun image
 USER bun
@@ -43,17 +45,9 @@ USER bun
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 
-# Copy Next.js standalone output (includes server.js and minimal node_modules)
-COPY --chown=bun:bun --from=builder /usr/src/app/.next/standalone ./
-# Copy static assets (excluded from standalone, served separately or by CDN)
-COPY --chown=bun:bun --from=builder /usr/src/app/.next/static .next/static
-# Copy public assets
-COPY --chown=bun:bun --from=builder /usr/src/app/public public
-# Copy package.json for bun scripts (health check, cron tools)
-COPY --chown=bun:bun --from=builder /usr/src/app/package.json package.json
-# Copy tools and prisma for cron usage
-COPY --chown=bun:bun --from=builder /usr/src/app/dist/tools dist/tools
-COPY --chown=bun:bun --from=builder /usr/src/app/prisma prisma
+# Copy all build output in one layer, then overlay full node_modules
+COPY --chown=bun:bun --from=builder /output ./
+COPY --chown=bun:bun --from=install /temp/dev/node_modules node_modules
 
 # Expose default Next.js port
 EXPOSE 3000/tcp
@@ -62,5 +56,6 @@ EXPOSE 3000/tcp
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD bun run health || exit 1
 
+ENTRYPOINT ["docker-entrypoint.sh"]
 # Use node server.js (node → bun symlink in oven/bun image)
 CMD ["node", "server.js"]

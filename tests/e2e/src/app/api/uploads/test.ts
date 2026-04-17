@@ -57,6 +57,7 @@ test("/api/uploads POST 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) => {
+  test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 

@@ -24,7 +24,7 @@
  * - Calendar link copy requires clipboard permissions
  * - Homework creation via sheet, edit inline, completion toggle via PUT
  * - Comment CRUD: post → react → edit → reply → delete (with API waits)
- * - Attachment upload: POST /api/uploads → PUT s3rver → POST /api/uploads/complete
+ * - Attachment upload: POST /api/uploads → PUT S3 signed URL → POST /api/uploads/complete
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
@@ -583,6 +583,7 @@ test.describe("/sections/[jwId]", () => {
   test("comment can upload attachment and open it", async ({
     page,
   }, testInfo) => {
+    test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
     test.setTimeout(60000);
     await signInAsDebugUser(page, SECTION_URL);
 

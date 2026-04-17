@@ -3,7 +3,7 @@
   - PostgreSQL via `@prisma/adapter-pg`
   - Better Auth with OAuth provider
   - MCP over `/api/mcp`
-  - S3/R2 uploads with local mock for E2E
+  - AWS S3 uploads through the official AWS SDK
   - Node `>=22 <23`
   - Package manager: `bun@1.3.7`
   - Deploy: <https://life-ustc.tiankaima.dev>
@@ -11,13 +11,13 @@
   - Server deploy is manual on `jp-2`
 
 - Commands
-  - Use `bun` / `bunx` only
+  - Use `bun` / `bunx` for JavaScript package commands; use `docker` for image builds
   - Install deps: `bun install --frozen-lockfile`
   - Dev: `bun run dev`
   - Check: `bun run check --write`
   - Typecheck: `bun run typecheck`
   - Unit test: `bun run test`
-  - Build: `bun run build`
+  - Build: `docker build .`
   - E2E: `bun run test:e2e`
   - E2E conventions: `bun run check:e2e`
   - i18n check: `bun run check:i18n`
@@ -26,7 +26,7 @@
 - Local setup
   - Copy `.env.example` to `.env`; never copy local secret values into docs, code, commits or external tools
   - Required local env: `DATABASE_URL`, `JWT_SECRET`, `AUTH_SECRET`, `BETTER_AUTH_URL`
-  - Storage env is required unless `E2E_MOCK_S3=1`: `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `R2_ACCESS_URL`
+  - Storage env for upload flows: `S3_BUCKET`, plus AWS SDK runtime configuration such as `AWS_REGION`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
   - OAuth provider env is optional for local flows; see `.env.example` for GitHub, Google and OIDC keys
 
 - Generated artifacts
@@ -124,7 +124,7 @@
   - New model or special logic: add/update seed data and run the relevant seed/check path
   - Changed user journey: add/update E2E coverage and run focused `bun run test:e2e -- <path>` when possible
   - User-facing copy: check `messages/en-us.json` and `messages/zh-cn.json`
-  - Before commit: `bun run check --write`; also run `bun run build` and `bun run test:e2e` unless the change is docs-only and you are confident it cannot affect runtime behavior
+  - Before commit: `bun run check --write`; also run `docker build .` and `bun run test:e2e` unless the change is docs-only and you are confident it cannot affect runtime behavior
 
 - Commit rules
   - Respect `.githooks/pre-commit` and `.githooks/commit-msg`
