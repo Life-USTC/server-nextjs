@@ -78,6 +78,7 @@ jobs:
       WEBHOOK_SECRET: e2e-ci-secret
       S3_BUCKET: life-ustc-e2e
       AWS_REGION: us-east-1
+      AWS_DEFAULT_REGION: us-east-1
       AWS_ENDPOINT_URL_S3: http://127.0.0.1:9000
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
@@ -131,10 +132,7 @@ jobs:
           exit 1
 
       - name: Create E2E bucket
-        run: |
-          docker run --rm --network host minio/mc sh -c \
-            "mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && \
-             mc mb --ignore-existing local/life-ustc-e2e"
+        run: aws --endpoint-url "$AWS_ENDPOINT_URL_S3" s3 mb "s3://$S3_BUCKET"
 
       - name: Apply Prisma migrations
         run: bun run prisma:deploy
