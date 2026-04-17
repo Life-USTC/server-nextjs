@@ -15,12 +15,14 @@ const envSchema = z.object({
   AUTH_OIDC_CLIENT_ID: z.string().optional(),
   AUTH_OIDC_CLIENT_SECRET: z.string().optional(),
 
-  // S3/R2 storage (optional)
-  S3_ENDPOINT: z.string().optional(),
+  // S3 storage (optional outside upload flows)
   S3_BUCKET: z.string().optional(),
-  S3_ACCESS_KEY_ID: z.string().optional(),
-  S3_SECRET_ACCESS_KEY: z.string().optional(),
-  R2_ACCESS_URL: z.string().optional(),
+  AWS_REGION: z.string().optional(),
+  AWS_ENDPOINT_URL: z.string().optional(),
+  AWS_ENDPOINT_URL_S3: z.string().optional(),
+  AWS_ACCESS_KEY_ID: z.string().optional(),
+  AWS_SECRET_ACCESS_KEY: z.string().optional(),
+  AWS_SESSION_TOKEN: z.string().optional(),
 
   // Runtime
   NODE_ENV: z

@@ -11,24 +11,75 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 function requireEnv(name: string) {
-  const value = process.env[name];
+  const value = getOptionalEnv(name);
   if (!value) {
     throw new Error(`Missing required env var: ${name}`);
   }
   return value;
 }
 
-export const s3Bucket = requireEnv("S3_BUCKET");
+function getOptionalEnv(name: string) {
+  const value = process.env[name]?.trim();
+  return value ? value : undefined;
+}
 
-export const s3Client = new S3Client({
-  credentials: {
-    accessKeyId: requireEnv("S3_ACCESS_KEY_ID"),
-    secretAccessKey: requireEnv("S3_SECRET_ACCESS_KEY"),
-  },
-  endpoint: requireEnv("S3_ENDPOINT"),
-  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
-  region: process.env.S3_REGION ?? "auto",
-});
+export function getS3Bucket() {
+  return requireEnv("S3_BUCKET");
+}
+
+export function getS3Region() {
+  return getOptionalEnv("AWS_REGION") ?? "us-east-1";
+}
+
+export function getS3Endpoint() {
+  return (
+    getOptionalEnv("AWS_ENDPOINT_URL_S3") ?? getOptionalEnv("AWS_ENDPOINT_URL")
+  );
+}
+
+function toOrigin(value: string | undefined) {
+  if (!value) return null;
+  try {
+    const origin = new URL(value).origin;
+    return origin === "null" ? null : origin;
+  } catch {
+    return null;
+  }
+}
+
+export function getS3ConnectSources() {
+  const endpoint = getS3Endpoint();
+  const endpointOrigin = toOrigin(endpoint);
+  if (endpointOrigin) {
+    return [endpointOrigin];
+  }
+
+  const bucket = getOptionalEnv("S3_BUCKET");
+  if (!bucket) {
+    return [];
+  }
+
+  const region = getS3Region();
+  return [
+    `https://${bucket}.s3.${region}.amazonaws.com`,
+    `https://s3.${region}.amazonaws.com`,
+  ];
+}
+
+function createS3Client() {
+  const endpoint = getS3Endpoint();
+  return new S3Client({
+    region: getS3Region(),
+    ...(endpoint ? { endpoint } : {}),
+  });
+}
+
+let s3Client: S3Client | null = null;
+
+function getS3Client() {
+  s3Client ??= createS3Client();
+  return s3Client;
+}
 
 export function sendS3(
   command: HeadObjectCommand,
@@ -37,7 +88,7 @@ export function sendS3(
   command: DeleteObjectCommand,
 ): Promise<DeleteObjectCommandOutput>;
 export async function sendS3(command: unknown) {
-  return s3Client.send(command as never);
+  return getS3Client().send(command as never);
 }
 
 export function getS3SignedUrl(
@@ -49,10 +100,8 @@ export async function getS3SignedUrl(
   options: { expiresIn: number },
 ) {
   // Always use short-lived presigned URLs so download links expire and cannot
-  // be shared outside the authenticated download flow.  Stable public R2 URLs
-  // must never be returned here; callers that need public CDN URLs should
-  // construct them directly from R2_ACCESS_URL at the call site.
-  return getSignedUrl(s3Client, command as never, {
+  // be shared outside the authenticated download flow.
+  return getSignedUrl(getS3Client(), command as never, {
     expiresIn: options.expiresIn,
   });
 }
