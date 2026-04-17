@@ -84,7 +84,6 @@ jobs:
       AWS_SECRET_ACCESS_KEY: minioadmin
       AUTH_SECRET: e2e-ci-secret
       NO_PROXY: 127.0.0.1,localhost,::1
-      no_proxy: 127.0.0.1,localhost,::1
 
     services:
       postgres:
