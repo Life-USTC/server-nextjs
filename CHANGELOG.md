@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/Life-USTC/server-nextjs/compare/v1.19.0...v1.20.0) (2026-04-17)
+
+
+### Features
+
+* **api:** add /api/me endpoint for bearer-token user profile ([5e4f363](https://github.com/Life-USTC/server-nextjs/commit/5e4f363500636438157fb1b82f4977e2ee14565d))
+
 # [1.19.0](https://github.com/Life-USTC/server-nextjs/compare/v1.18.8...v1.19.0) (2026-04-17)
 
 
