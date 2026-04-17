@@ -12,7 +12,7 @@ import {
 import { uploadCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
-import { buildUploadKey, getS3SignedUrl, s3Bucket } from "@/lib/storage/s3";
+import { buildUploadKey, getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
 
@@ -205,7 +205,7 @@ export async function POST(request: Request) {
     });
 
     const command = new PutObjectCommand({
-      Bucket: s3Bucket,
+      Bucket: getS3Bucket(),
       Key: key,
       ContentType: contentType,
     });

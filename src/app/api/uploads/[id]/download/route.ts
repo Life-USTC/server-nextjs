@@ -9,7 +9,7 @@ import {
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
-import { getS3SignedUrl, s3Bucket } from "@/lib/storage/s3";
+import { getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +62,7 @@ export async function GET(
     }
 
     const command = new GetObjectCommand({
-      Bucket: s3Bucket,
+      Bucket: getS3Bucket(),
       Key: upload.key,
       ResponseContentDisposition: buildContentDisposition(upload.filename),
       ResponseContentType: upload.contentType ?? undefined,

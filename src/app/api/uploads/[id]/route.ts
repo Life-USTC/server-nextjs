@@ -14,7 +14,7 @@ import {
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
-import { s3Bucket, sendS3 } from "@/lib/storage/s3";
+import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
 
@@ -145,7 +145,7 @@ export async function DELETE(
     }
 
     await sendS3(
-      new DeleteObjectCommand({ Bucket: s3Bucket, Key: upload.key }),
+      new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: upload.key }),
     );
 
     await prisma.upload.delete({ where: { id: upload.id } });
