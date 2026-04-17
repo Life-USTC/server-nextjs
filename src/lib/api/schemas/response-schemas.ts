@@ -59,6 +59,11 @@ const createCollectionSchema = <T extends z.ZodTypeAny>(
     [key]: z.array(itemSchema),
   });
 
+const localizedNameFields = {
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+};
+
 const campusSchema = CampusModelSchema.omit({
   buildings: true,
   sections: true,
@@ -94,10 +99,6 @@ const teacherSchema = TeacherModelSchema.omit({
   schedules: true,
   comments: true,
   description: true,
-});
-
-const teacherWithDepartmentSchema = teacherSchema.extend({
-  department: departmentSchema.nullable(),
 });
 
 const teacherWithDepartmentTitleSchema = teacherSchema.extend({
@@ -213,20 +214,6 @@ export const teacherDetailSchema = teacherWithDepartmentTitleSchema.extend({
   _count: z.object({ sections: z.number().int() }),
 });
 
-const buildingWithCampusSchema = buildingSchema.extend({
-  campus: campusSchema.nullable(),
-});
-
-const roomWithBuildingSchema = roomSchema.extend({
-  building: buildingSchema.nullable(),
-  roomType: roomTypeSchema.nullable(),
-});
-
-const roomWithBuildingCampusSchema = roomSchema.extend({
-  building: buildingWithCampusSchema.nullable(),
-  roomType: roomTypeSchema.nullable(),
-});
-
 const scheduleBaseSchema = ScheduleModelSchema.omit({
   room: true,
   section: true,
@@ -241,16 +228,41 @@ const scheduleGroupSchema = ScheduleGroupModelSchema.omit({
   schedules: true,
 });
 
+const localizedCampusSchema = campusSchema.extend(localizedNameFields);
+
+const localizedBuildingWithCampusSchema = buildingSchema.extend({
+  ...localizedNameFields,
+  campus: localizedCampusSchema.nullable(),
+});
+
+const localizedRoomTypeSchema = roomTypeSchema.extend(localizedNameFields);
+
+const localizedRoomWithBuildingCampusSchema = roomSchema.extend({
+  ...localizedNameFields,
+  building: localizedBuildingWithCampusSchema.nullable(),
+  roomType: localizedRoomTypeSchema.nullable(),
+});
+
+const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
+
+const localizedTeacherWithDepartmentSchema = teacherSchema.extend({
+  ...localizedNameFields,
+  department: localizedDepartmentSchema.nullable(),
+});
+
+const localizedCourseBaseSchema = courseBaseSchema.extend(localizedNameFields);
+
 const _scheduleWithRoomTeachersSchema = scheduleBaseSchema.extend({
-  room: roomWithBuildingSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  room: localizedRoomWithBuildingCampusSchema.nullable(),
+  teachers: z.array(localizedTeacherWithDepartmentSchema),
 });
 
 const scheduleWithRelationsSchema = scheduleBaseSchema.extend({
-  room: roomWithBuildingCampusSchema.nullable(),
-  teachers: z.array(teacherWithDepartmentSchema),
+  room: localizedRoomWithBuildingCampusSchema.nullable(),
+  teachers: z.array(localizedTeacherWithDepartmentSchema),
   section: sectionBaseSchema.extend({
-    course: courseBaseSchema,
+    course: localizedCourseBaseSchema,
+    semester: semesterSchema.nullable(),
   }),
   scheduleGroup: scheduleGroupSchema,
 });
@@ -508,6 +520,10 @@ const homeworkListItemSchema = HomeworkModelSchema.omit({
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
   deletedAt: dateTimeSchema.nullable(),
+  section: sectionBaseSchema.extend({
+    course: localizedCourseBaseSchema,
+    semester: semesterSchema.nullable(),
+  }),
   description: homeworkDescriptionSchema.nullable(),
   createdBy: homeworkUserSummarySchema.nullable(),
   updatedBy: homeworkUserSummarySchema.nullable(),

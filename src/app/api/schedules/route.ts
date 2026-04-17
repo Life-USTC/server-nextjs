@@ -10,6 +10,7 @@ import {
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+import { formatTime } from "@/shared/lib/time-utils";
 export const dynamic = "force-dynamic";
 
 /**
@@ -110,6 +111,7 @@ export async function GET(request: NextRequest) {
           section: {
             include: {
               course: true,
+              semester: true,
             },
           },
           scheduleGroup: true,
@@ -121,7 +123,11 @@ export async function GET(request: NextRequest) {
 
     return jsonResponse(
       buildPaginatedResponse(
-        schedules,
+        schedules.map((s) => ({
+          ...s,
+          startTime: formatTime(s.startTime),
+          endTime: formatTime(s.endTime),
+        })),
         pagination.page,
         pagination.pageSize,
         total,

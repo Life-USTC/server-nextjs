@@ -49,6 +49,35 @@ test.describe("GET /api/openapi", () => {
     expect(body.paths?.["/api/descriptions"]).toBeTruthy();
   });
 
+  test("redirect-only endpoints keep redirect response codes in the spec", async ({
+    request,
+  }) => {
+    const response = await request.get("/api/openapi");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      paths?: Record<
+        string,
+        {
+          get?: { responses?: Record<string, unknown> };
+          post?: { responses?: Record<string, unknown> };
+        }
+      >;
+    };
+
+    expect(
+      body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["302"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/uploads/{id}/download"]?.get?.responses?.["200"],
+    ).toBeUndefined();
+    expect(
+      body.paths?.["/api/dashboard-links/visit"]?.get?.responses?.["307"],
+    ).toBeTruthy();
+    expect(
+      body.paths?.["/api/dashboard-links/visit"]?.post?.responses?.["303"],
+    ).toBeTruthy();
+  });
+
   test("static openapi.generated.json is accessible", async ({ request }) => {
     const response = await request.get("/openapi.generated.json");
     expect(response.status()).toBe(200);

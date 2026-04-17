@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   buildUserCalendarFeedPath,
   ensureUserCalendarFeedToken,
@@ -15,7 +16,15 @@ export interface SubscriptionState {
   isAuthenticated: boolean;
 }
 
-async function getAuthenticatedUserWithSections() {
+type AuthenticatedUserWithSections = Prisma.UserGetPayload<{
+  select: {
+    id: true;
+    calendarFeedToken: true;
+    subscribedSections: { select: { id: true } };
+  };
+}>;
+
+async function getAuthenticatedUserWithSections(): Promise<AuthenticatedUserWithSections | null> {
   const session = await auth();
 
   if (!session?.user?.id) {

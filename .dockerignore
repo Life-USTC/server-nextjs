@@ -30,10 +30,17 @@ build
 .coverage
 .nyc_output
 coverage
+tests
+test-results
+playwright-report
+.e2e-mock-s3
+.e2e-s3rver
 
 # Documentation
-README.md
+*.md
+!README.md
 docs
+examples
 
 # CI/CD
 .github
@@ -41,6 +48,5 @@ docs
 .circleci
 
 # Miscellaneous
-*.md
 .eslintignore
 .prettierignore

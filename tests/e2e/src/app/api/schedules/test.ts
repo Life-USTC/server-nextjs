@@ -113,7 +113,7 @@ test.describe("GET /api/schedules", () => {
         | null
         | undefined;
       teachers: unknown[] | undefined;
-      room: { name?: unknown; building?: unknown } | null | undefined;
+      room: { namePrimary?: unknown; building?: unknown } | null | undefined;
       scheduleGroup: unknown;
     }
 
@@ -146,7 +146,7 @@ test.describe("GET /api/schedules", () => {
 
     // room is nullable — only assert shape if present
     if (first.room) {
-      expect(Object.hasOwn(first.room, "name")).toBe(true);
+      expect(Object.hasOwn(first.room, "namePrimary")).toBe(true);
     }
   });
 

@@ -197,7 +197,14 @@ export default async function TeacherPage({
                               </Badge>
                             ) : null}
                           </TableCell>
-                          <TableCell>{section.course.namePrimary}</TableCell>
+                          <TableCell>
+                            {section.course.namePrimary}
+                            {section.course.nameSecondary ? (
+                              <span className="ml-1 text-muted-foreground text-xs">
+                                ({section.course.nameSecondary})
+                              </span>
+                            ) : null}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="font-mono">
                               {section.code}

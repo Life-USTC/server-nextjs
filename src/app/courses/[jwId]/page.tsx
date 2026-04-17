@@ -216,14 +216,22 @@ export default async function CoursePage({
                             title={
                               section.teachers && section.teachers.length > 0
                                 ? section.teachers
-                                    .map((teacher) => teacher.namePrimary)
+                                    .map((teacher) =>
+                                      teacher.nameSecondary
+                                        ? `${teacher.namePrimary} (${teacher.nameSecondary})`
+                                        : teacher.namePrimary,
+                                    )
                                     .join(", ")
                                 : undefined
                             }
                           >
                             {section.teachers && section.teachers.length > 0
                               ? section.teachers
-                                  .map((teacher) => teacher.namePrimary)
+                                  .map((teacher) =>
+                                    teacher.nameSecondary
+                                      ? `${teacher.namePrimary} (${teacher.nameSecondary})`
+                                      : teacher.namePrimary,
+                                  )
                                   .join(", ")
                               : "—"}
                           </div>

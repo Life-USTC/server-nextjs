@@ -137,6 +137,13 @@ export async function POST(request: Request) {
       });
     }
 
+    const pendingCheck = await prisma.uploadPending.findUnique({
+      where: { key },
+    });
+    if (!pendingCheck || pendingCheck.userId !== userId) {
+      return badRequest("Upload session expired");
+    }
+
     const head = await sendS3(
       new HeadObjectCommand({ Bucket: s3Bucket, Key: key }),
     );

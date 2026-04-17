@@ -64,7 +64,7 @@ export async function uploadFileWithPresign<TUpload>({
     data: presignData,
     error: presignError,
     response: presignResponse,
-  } = await apiClient.POST("/api/uploads", {
+  } = await apiClient.POST<UploadPresignResponse>("/api/uploads", {
     body: {
       filename: file.name,
       contentType: file.type || "application/octet-stream",
@@ -93,13 +93,16 @@ export async function uploadFileWithPresign<TUpload>({
     data: completeData,
     error: completeError,
     response: completeResponse,
-  } = await apiClient.POST("/api/uploads/complete", {
-    body: {
-      key: presignData.key,
-      filename: file.name,
-      contentType: file.type || "application/octet-stream",
+  } = await apiClient.POST<UploadCompleteResponse<TUpload>>(
+    "/api/uploads/complete",
+    {
+      body: {
+        key: presignData.key,
+        filename: file.name,
+        contentType: file.type || "application/octet-stream",
+      },
     },
-  });
+  );
 
   if (!completeResponse.ok || !completeData) {
     const errorCode = extractUploadErrorCode(completeError);

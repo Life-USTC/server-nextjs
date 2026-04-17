@@ -981,6 +981,11 @@ function BasicInfoCard({
                   <span className="text-muted-foreground">{t("campus")}</span>
                   <span className="font-medium text-foreground">
                     {section.campus.namePrimary}
+                    {section.campus.nameSecondary ? (
+                      <span className="ml-1 font-normal text-muted-foreground text-sm">
+                        ({section.campus.nameSecondary})
+                      </span>
+                    ) : null}
                   </span>
                 </div>
               ) : null}

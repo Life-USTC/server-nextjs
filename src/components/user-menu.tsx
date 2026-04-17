@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { Link } from "@/i18n/routing";
-import { signOut, useSession } from "@/lib/auth/client";
+import { signOut } from "@/lib/auth/client";
 import { cn } from "@/lib/utils";
 
 type UserMenuProps = {
@@ -23,8 +23,7 @@ export function UserMenu({ className, initialUser = null }: UserMenuProps) {
   const tProfile = useTranslations("profile");
   const tSettings = useTranslations("settings");
   const tCommon = useTranslations("common");
-  const { data: session } = useSession();
-  const user = session?.user ?? initialUser;
+  const user = initialUser;
 
   if (!user) {
     return null;

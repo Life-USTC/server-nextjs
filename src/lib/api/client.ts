@@ -90,7 +90,9 @@ async function apiRequest<T>(
   const url = buildUrl(path, options);
 
   const headers = mergeHeaders(
-    options?.body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    options?.body !== undefined
+      ? { "Content-Type": "application/json" }
+      : undefined,
     options?.headers,
   );
 

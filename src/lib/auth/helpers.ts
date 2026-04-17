@@ -2,10 +2,6 @@ import { verifyAccessToken } from "better-auth/oauth2";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
-import {
-  hashOAuthClientSecretForDbStorage,
-  MCP_TOOLS_SCOPE,
-} from "@/lib/oauth/utils";
 
 export async function requireSignedInUserId() {
   const session = await auth();
@@ -42,7 +38,10 @@ export async function resolveApiUserId(
       try {
         const jwt = await verifyAccessToken(token, {
           jwksUrl: `${issuer}/api/auth/jwks`,
-          verifyOptions: { issuer, audience: [issuer, `${issuer}/api/mcp`] },
+          // General protected REST endpoints only accept issuer-bound JWT access
+          // tokens. Opaque/no-resource tokens are reserved for the MCP transport,
+          // where resource and scope checks happen in src/lib/mcp/auth.ts.
+          verifyOptions: { issuer, audience: [issuer] },
         });
 
         const sub = (jwt as { sub?: unknown }).sub;
@@ -50,31 +49,8 @@ export async function resolveApiUserId(
           return sub;
         }
       } catch {
-        const hashedToken = hashOAuthClientSecretForDbStorage(token);
-        const accessToken = await prisma.oAuthAccessToken.findUnique({
-          where: { token: hashedToken },
-          select: {
-            userId: true,
-            expiresAt: true,
-            scopes: true,
-          },
-        });
-
-        if (
-          accessToken?.userId &&
-          accessToken.expiresAt.getTime() > Date.now()
-        ) {
-          // Reject tokens that carry the MCP scope; they were minted for the
-          // MCP server and must not be accepted as general REST API credentials.
-          // MCP tokens always include openid+profile alongside mcp:tools, so
-          // checking every() would be a no-op — includes() is the correct guard.
-          const scopes = accessToken.scopes;
-          if (scopes.includes(MCP_TOOLS_SCOPE)) {
-            return null;
-          }
-
-          return accessToken.userId;
-        }
+        // Ignore invalid or opaque bearer tokens here and continue to the
+        // session-cookie fallback below.
       }
     }
   }

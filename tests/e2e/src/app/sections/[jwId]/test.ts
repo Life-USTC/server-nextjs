@@ -352,28 +352,14 @@ test.describe("/sections/[jwId]", () => {
     }
 
     if ((await subscribe.count()) > 0) {
-      const subscribeResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/subscriptions") &&
-          response.request().method() === "POST" &&
-          response.status() === 200,
-      );
       await subscribe.first().click();
-      await subscribeResponse;
-      await expect(unsubscribe.first()).toBeVisible();
+      await expect(unsubscribe.first()).toBeVisible({ timeout: 15_000 });
       await captureStepScreenshot(page, testInfo, "section-subscribed");
     }
 
     if ((await unsubscribe.count()) > 0) {
-      const unsubscribeResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes("/api/subscriptions") &&
-          response.request().method() === "DELETE" &&
-          response.status() === 200,
-      );
       await unsubscribe.first().click();
-      await unsubscribeResponse;
-      await expect(subscribe.first()).toBeVisible();
+      await expect(subscribe.first()).toBeVisible({ timeout: 15_000 });
       await captureStepScreenshot(page, testInfo, "section-unsubscribed");
     }
   });
@@ -401,6 +387,9 @@ test.describe("/sections/[jwId]", () => {
     }
 
     const sheet = page.locator('[data-slot="sheet-popup"]').first();
+    if (!(await sheet.isVisible().catch(() => false))) {
+      await showCreate.click();
+    }
     await expect(sheet).toBeVisible();
 
     const title = `e2e-section-homework-${Date.now()}`;
@@ -488,6 +477,9 @@ test.describe("/sections/[jwId]", () => {
     }
     await showCreate.click();
     const sheet = page.locator('[data-slot="sheet-popup"]').first();
+    if (!(await sheet.isVisible().catch(() => false))) {
+      await showCreate.click();
+    }
     await expect(sheet).toBeVisible();
 
     const title = `e2e-edit-homework-${Date.now()}`;

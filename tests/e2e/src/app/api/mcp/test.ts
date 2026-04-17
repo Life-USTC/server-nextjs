@@ -265,6 +265,31 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     }
   });
 
+  test("opaque MCP access token is rejected by protected REST routes", async ({
+    page,
+    request,
+  }) => {
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    await signInAsDebugUser(page, "/");
+
+    const { accessToken } = await issueAccessToken(page, request, {
+      scope: "openid profile mcp:tools",
+      clientScopes: ["openid", "profile", "mcp:tools"],
+      resource,
+      includeResourceInTokenExchange: false,
+    });
+
+    expect(accessToken.split(".").length).toBeLessThan(3);
+
+    const response = await request.get("/api/todos", {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    expect(response.status()).toBe(401);
+  });
+
   test("OAuth PKCE token can connect to /api/mcp and call all seeded tools", async ({
     page,
     request,

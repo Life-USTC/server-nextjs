@@ -66,6 +66,11 @@ const scheduleJsonParamsSchema = z
 
 const teacherAssignmentWeekIndicesSchema = z.array(z.number().int()).nullable();
 
+const localizedNameFields = {
+  namePrimary: z.string(),
+  nameSecondary: z.string().nullable(),
+};
+
 export const campusSchema = CampusModelSchema.omit({
   buildings: true,
   sections: true,
@@ -321,24 +326,49 @@ export const scheduleGroupSchema = ScheduleGroupModelSchema.omit({
   schedules: true,
 });
 
+const localizedCampusSchema = campusSchema.extend(localizedNameFields);
+
+const localizedBuildingWithCampusSchema = buildingSchema.extend({
+  ...localizedNameFields,
+  campus: localizedCampusSchema.nullable(),
+});
+
+const localizedRoomTypeSchema = roomTypeSchema.extend(localizedNameFields);
+
+const localizedRoomWithBuildingCampusSchema = roomSchema.extend({
+  ...localizedNameFields,
+  building: localizedBuildingWithCampusSchema.nullable(),
+  roomType: localizedRoomTypeSchema.nullable(),
+});
+
+const localizedDepartmentSchema = departmentSchema.extend(localizedNameFields);
+
+const localizedTeacherWithDepartmentSchema = teacherSchema.extend({
+  ...localizedNameFields,
+  department: localizedDepartmentSchema.nullable(),
+});
+
+const localizedCourseBaseSchema = courseBaseSchema.extend(localizedNameFields);
+
 export const scheduleWithRelationsSchema = scheduleBaseSchema.extend({
-  room: roomWithBuildingCampusSchema.nullable(),
-  teachers: z.array(teacherWithDepartmentSchema),
+  room: localizedRoomWithBuildingCampusSchema.nullable(),
+  teachers: z.array(localizedTeacherWithDepartmentSchema),
   section: sectionBaseSchema.extend({
-    course: courseBaseSchema,
+    course: localizedCourseBaseSchema,
+    semester: semesterSchema.nullable(),
   }),
   scheduleGroup: scheduleGroupSchema,
 });
 
 export const scheduleWithGroupSchema = scheduleBaseSchema.extend({
-  room: roomWithBuildingCampusSchema.nullable(),
-  teachers: z.array(teacherWithDepartmentSchema),
+  room: localizedRoomWithBuildingCampusSchema.nullable(),
+  teachers: z.array(localizedTeacherWithDepartmentSchema),
   scheduleGroup: scheduleGroupSchema,
 });
 
 export const scheduleWithRoomTeachersSchema = scheduleBaseSchema.extend({
-  room: roomWithBuildingSchema.nullable(),
-  teachers: z.array(teacherSchema),
+  room: localizedRoomWithBuildingCampusSchema.nullable(),
+  teachers: z.array(localizedTeacherWithDepartmentSchema),
 });
 
 export const examRoomSchema = ExamRoomModelSchema.omit({
@@ -632,6 +662,10 @@ const homeworkBaseSchema = HomeworkModelSchema.omit({
 });
 
 export const homeworkListItemSchema = homeworkBaseSchema.extend({
+  section: sectionBaseSchema.extend({
+    course: localizedCourseBaseSchema,
+    semester: semesterSchema.nullable(),
+  }),
   description: homeworkDescriptionSchema.nullable(),
   createdBy: homeworkUserSummarySchema.nullable(),
   updatedBy: homeworkUserSummarySchema.nullable(),

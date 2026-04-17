@@ -258,8 +258,8 @@ function buildResponses(
     };
   }
 
-  // Default 200 if no 200 response was specified
-  if (!responses["200"]) {
+  // Default 200 only when the handler had no explicit @response annotations.
+  if (Object.keys(responses).length === 0) {
     responses["200"] = {
       description: "Successful response",
       content: { "application/json": { schema: {} } },
