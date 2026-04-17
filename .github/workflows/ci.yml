@@ -83,6 +83,8 @@ jobs:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       AUTH_SECRET: e2e-ci-secret
+      NO_PROXY: 127.0.0.1,localhost,::1
+      no_proxy: 127.0.0.1,localhost,::1
 
     services:
       postgres:
@@ -117,6 +119,7 @@ jobs:
             -p 9000:9000 \
             -e MINIO_ROOT_USER=minioadmin \
             -e MINIO_ROOT_PASSWORD=minioadmin \
+            -e MINIO_API_CORS_ALLOW_ORIGIN=http://127.0.0.1:3000 \
             minio/minio:latest \
             server /data --console-address ":9001"
 
@@ -131,8 +134,58 @@ jobs:
           docker logs minio >&2 || true
           exit 1
 
-      - name: Create E2E bucket
-        run: aws --endpoint-url "$AWS_ENDPOINT_URL_S3" s3 mb "s3://$S3_BUCKET"
+      - name: Provision E2E bucket
+        run: |
+          bun -e '
+            import {
+              CreateBucketCommand,
+              HeadBucketCommand,
+              PutObjectCommand,
+              S3Client,
+            } from "@aws-sdk/client-s3";
+            import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+
+            const bucket = process.env.S3_BUCKET;
+            const endpoint = process.env.AWS_ENDPOINT_URL_S3;
+            const region = process.env.AWS_REGION ?? "us-east-1";
+
+            if (!bucket || !endpoint) {
+              throw new Error("Missing MinIO bucket provisioning env");
+            }
+
+            const client = new S3Client({
+              region,
+              endpoint,
+              forcePathStyle: true,
+            });
+
+            try {
+              await client.send(new HeadBucketCommand({ Bucket: bucket }));
+            } catch {
+              await client.send(new CreateBucketCommand({ Bucket: bucket }));
+            }
+
+            const smokeKey = `ci-smoke/${Date.now()}.txt`;
+            const url = await getSignedUrl(
+              client,
+              new PutObjectCommand({
+                Bucket: bucket,
+                Key: smokeKey,
+                ContentType: "text/plain",
+              }),
+              { expiresIn: 60 },
+            );
+            const response = await fetch(url, {
+              method: "PUT",
+              headers: { "Content-Type": "text/plain" },
+              body: "ok",
+            });
+            if (!response.ok) {
+              throw new Error(
+                `MinIO smoke upload failed with ${response.status}: ${await response.text()}`,
+              );
+            }
+          '
 
       - name: Apply Prisma migrations
         run: bun run prisma:deploy
