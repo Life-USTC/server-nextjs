@@ -1,3 +1,10 @@
+## [1.22.1](https://github.com/Life-USTC/server-nextjs/compare/v1.22.0...v1.22.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* **oauth:** harden validAudiences with URL-normalized origin ([1b66f42](https://github.com/Life-USTC/server-nextjs/commit/1b66f42f062539c5018e6c27f4b80a9fcdc44133))
+
 # [1.22.0](https://github.com/Life-USTC/server-nextjs/compare/v1.21.1...v1.22.0) (2026-04-18)
 
 
