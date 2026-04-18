@@ -1,19 +1,16 @@
-import "dotenv/config";
-
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { parseArgs } from "node:util";
 
-import { importBusStaticPayload } from "../src/features/bus/lib/bus-import";
+import { importBusStaticPayload } from "../../../src/features/bus/lib/bus-import";
 import type {
   BusStaticCampus,
   BusStaticPayload,
   BusStaticRoute,
   BusStaticRouteSchedule,
-} from "../src/features/bus/lib/bus-types";
-import { PrismaClient } from "../src/generated/prisma/client";
-import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
+} from "../../../src/features/bus/lib/bus-types";
+import { createToolPrisma } from "../../shared/tool-prisma";
 
 const { values: args } = parseArgs({
   options: {
@@ -28,7 +25,7 @@ const { values: args } = parseArgs({
 });
 
 if (args.help) {
-  console.log(`Usage: bun load-from-static.js [options]
+  console.log(`Usage: bun run production:load:static -- [options]
 
 Options:
   --cache-dir <path>      Snapshot download cache directory (default: .cache/life-ustc/static)
@@ -44,7 +41,7 @@ const cacheDir = args["cache-dir"] ?? "./.cache/life-ustc/static";
 const minSemesterJwId = Number.parseInt(args["min-semester"] ?? "401", 10);
 const snapshotUrl = args["snapshot-url"]?.trim();
 
-const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
+const prisma = createToolPrisma();
 
 type SqliteStatement = {
   get: (...params: unknown[]) => unknown;

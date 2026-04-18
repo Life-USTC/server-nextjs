@@ -2,16 +2,13 @@
  * Register the first-party iOS OAuth2 client (Life@USTC).
  *
  * Usage:
- *   bun run tools/register-ios-client.ts
+ *   bun run tools/production/util/register-ios-client.ts
  *
  * This is idempotent — it upserts by clientId so it's safe to re-run.
  */
-import "dotenv/config";
+import { createToolPrisma } from "../../shared/tool-prisma";
 
-import { PrismaClient } from "../src/generated/prisma/client";
-import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
-
-const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
+const prisma = createToolPrisma();
 
 const IOS_CLIENT = {
   clientId: "life-ustc-ios",

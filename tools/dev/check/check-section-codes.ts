@@ -1,5 +1,7 @@
 import { findCurrentSemester } from "@/lib/current-semester";
-import { prisma } from "@/lib/db/prisma";
+import { createToolPrisma } from "../../shared/tool-prisma";
+
+const prisma = createToolPrisma();
 
 /**
  * Debug script to check if section codes exist in the database

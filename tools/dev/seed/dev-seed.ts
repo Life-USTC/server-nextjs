@@ -51,3 +51,35 @@ export const DEV_SEED = {
     reasonKeyword: "temporary suspension for seed",
   },
 } as const;
+
+export const DEV_SCENARIO_MARKER = "[DEV-SCENARIO]";
+export const DEV_SCENARIO_KEY_PREFIX = "dev-scenario/";
+
+export const DEV_SCENARIO_IDS = {
+  semesterJwId: DEV_SEED.semesterJwId,
+  courseJwIds: [9_901_001, 9_901_002, 9_901_003],
+  sectionJwIds: [9_902_001, 9_902_002, 9_902_003],
+  scheduleGroupJwIds: [
+    9_903_001, 9_903_002, 9_903_003, 9_903_004, 9_903_005, 9_903_006,
+  ],
+  examJwIds: [9_904_001, 9_904_002, 9_904_003],
+  teacherCodes: ["DEV-T-001", "DEV-T-002", "DEV-T-003"],
+  campusJwId: 9_910_001,
+  roomTypeJwId: 9_910_011,
+  buildingJwId: 9_910_021,
+  roomJwId: 9_910_031,
+  teacherTitleJwId: 9_910_041,
+  teacherLessonTypeJwId: 9_910_051,
+} as const;
+
+export function getDevScenarioRuntimeConfig() {
+  const debugUsername =
+    process.env.DEV_DEBUG_USERNAME?.trim().toLowerCase() ||
+    DEV_SEED.debugUsername;
+  return {
+    debugUsername,
+    debugName: process.env.DEV_DEBUG_NAME?.trim() || DEV_SEED.debugName,
+    adminUsername:
+      process.env.DEV_ADMIN_USERNAME?.trim().toLowerCase() || "dev-admin",
+  };
+}

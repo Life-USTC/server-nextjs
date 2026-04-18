@@ -2,7 +2,9 @@
  * Clears active suspensions for the dev debug user so E2E runs stay idempotent.
  * Run after seed (global setup) and safe to run multiple times.
  */
-import { prisma } from "@/lib/db/prisma";
+import { createToolPrisma } from "../../shared/tool-prisma";
+
+const prisma = createToolPrisma();
 
 async function main() {
   const admin = await prisma.user.findFirst({

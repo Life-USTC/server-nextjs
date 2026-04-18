@@ -2,7 +2,7 @@
  * Seed debug users for E2E / iOS integration testing.
  *
  * Usage:
- *   bun run tools/seed-debug-users.ts
+ *   bun run tools/dev/seed/seed-debug-users.ts
  *
  * Creates or updates the dev-user and dev-admin accounts with credential
  * (email+password) authentication, matching what the signIn() server action
@@ -10,14 +10,10 @@
  *
  * Idempotent — safe to re-run.
  */
-import "dotenv/config";
-
 import { hashPassword } from "better-auth/crypto";
+import { createToolPrisma } from "../../shared/tool-prisma";
 
-import { PrismaClient } from "../src/generated/prisma/client";
-import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
-
-const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
+const prisma = createToolPrisma();
 
 const USERS = [
   {

@@ -3,16 +3,16 @@
  *
  * Reads route files, extracts JSDoc annotations, and generates
  * public/openapi.generated.json in OpenAPI 3.0 format.
- * Then runs openapi-postprocess.ts to finalize the output.
+ * Then runs postprocess-spec.ts to finalize the output.
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { z } from "zod";
-import * as requestSchemas from "../src/lib/api/schemas/request-schemas";
-import * as responseSchemas from "../src/lib/api/schemas/response-schemas";
+import * as requestSchemas from "../../../src/lib/api/schemas/request-schemas";
+import * as responseSchemas from "../../../src/lib/api/schemas/response-schemas";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+const ROOT = new URL("../../..", import.meta.url).pathname;
 
 type JsonSchema = Record<string, unknown>;
 

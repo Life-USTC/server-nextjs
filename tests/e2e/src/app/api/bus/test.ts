@@ -15,7 +15,7 @@
  * - POST: saves preference (Zod-validated), returns updated preference
  * - 401 for unauthenticated, 400 for invalid body
  *
- * ## Seed data (tools/seed-dev-scenarios.ts)
+ * ## Seed data (tools/dev/seed/seed-dev-scenarios.ts)
  * - 6 campuses: 东区(1), 西区(2), 北区(3), 南区(4), 先研院(5), 高新(6)
  * - 4 routes: 1(东→北→西), 3(东→南), 7(高→先→西→东), 8(东→西→先→高)
  * - Weekday: 4 trips on R1, 3 on R3, 3 on R7, 3 on R8 = 13 total

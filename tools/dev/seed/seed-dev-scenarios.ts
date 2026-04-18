@@ -1,44 +1,46 @@
-import "dotenv/config";
-
-import { importBusStaticPayload } from "../src/features/bus/lib/bus-import";
-import type { BusStaticPayload } from "../src/features/bus/lib/bus-types";
+import { importBusStaticPayload } from "../../../src/features/bus/lib/bus-import";
+import type { BusStaticPayload } from "../../../src/features/bus/lib/bus-types";
 import {
   CommentReactionType,
   CommentStatus,
   CommentVisibility,
   HomeworkAuditAction,
   type Prisma,
-  PrismaClient,
-} from "../src/generated/prisma/client";
-import { createPrismaAdapter } from "../src/lib/db/prisma-adapter";
+} from "../../../src/generated/prisma/client";
+import {
+  createToolPrisma,
+  disconnectToolPrisma,
+} from "../../shared/tool-prisma";
+import { cleanupDevScenarioData } from "./dev-scenario-cleanup";
+import {
+  DEV_SCENARIO_IDS,
+  DEV_SCENARIO_KEY_PREFIX,
+  DEV_SCENARIO_MARKER,
+  DEV_SEED,
+  getDevScenarioRuntimeConfig,
+} from "./dev-seed";
 
-const prisma = new PrismaClient({ adapter: createPrismaAdapter() });
+const prisma = createToolPrisma();
 
-const LEGACY_SCENARIO_MARKER = "[DEV-SCENARIO]";
-const DEV_KEY_PREFIX = "dev-scenario/";
+const LEGACY_SCENARIO_MARKER = DEV_SCENARIO_MARKER;
+const DEV_KEY_PREFIX = DEV_SCENARIO_KEY_PREFIX;
 
-const debugUsername =
-  process.env.DEV_DEBUG_USERNAME?.trim().toLowerCase() || "dev-user";
-const debugName = process.env.DEV_DEBUG_NAME?.trim() || "Dev Debug User";
+const { debugUsername, debugName, adminUsername } =
+  getDevScenarioRuntimeConfig();
 
-const adminUsername =
-  process.env.DEV_ADMIN_USERNAME?.trim().toLowerCase() || "dev-admin";
-
-const SEMESTER_JW_ID = 9_900_001;
-const COURSE_JW_IDS = [9_901_001, 9_901_002, 9_901_003] as const;
-const SECTION_JW_IDS = [9_902_001, 9_902_002, 9_902_003] as const;
-const SCHEDULE_GROUP_JW_IDS = [
-  9_903_001, 9_903_002, 9_903_003, 9_903_004, 9_903_005, 9_903_006,
-] as const;
-const EXAM_JW_IDS = [9_904_001, 9_904_002, 9_904_003] as const;
-const TEACHER_CODES = ["DEV-T-001", "DEV-T-002", "DEV-T-003"] as const;
-const DEV_CAMPUS_JW_ID = 9_910_001;
-const DEV_ROOM_TYPE_JW_ID = 9_910_011;
-const DEV_BUILDING_JW_ID = 9_910_021;
-const DEV_ROOM_JW_ID = 9_910_031;
-const DEV_TEACHER_TITLE_JW_ID = 9_910_041;
-const DEV_TEACHER_LESSON_TYPE_JW_ID = 9_910_051;
-const DEV_BUS_VERSION_KEY = "dev-scenario-bus";
+const SEMESTER_JW_ID = DEV_SCENARIO_IDS.semesterJwId;
+const COURSE_JW_IDS = DEV_SCENARIO_IDS.courseJwIds;
+const SECTION_JW_IDS = DEV_SCENARIO_IDS.sectionJwIds;
+const SCHEDULE_GROUP_JW_IDS = DEV_SCENARIO_IDS.scheduleGroupJwIds;
+const EXAM_JW_IDS = DEV_SCENARIO_IDS.examJwIds;
+const TEACHER_CODES = DEV_SCENARIO_IDS.teacherCodes;
+const DEV_CAMPUS_JW_ID = DEV_SCENARIO_IDS.campusJwId;
+const DEV_ROOM_TYPE_JW_ID = DEV_SCENARIO_IDS.roomTypeJwId;
+const DEV_BUILDING_JW_ID = DEV_SCENARIO_IDS.buildingJwId;
+const DEV_ROOM_JW_ID = DEV_SCENARIO_IDS.roomJwId;
+const DEV_TEACHER_TITLE_JW_ID = DEV_SCENARIO_IDS.teacherTitleJwId;
+const DEV_TEACHER_LESSON_TYPE_JW_ID = DEV_SCENARIO_IDS.teacherLessonTypeJwId;
+const DEV_BUS_VERSION_KEY = DEV_SEED.bus.versionKey;
 
 const _DEV_BUS_PAYLOAD: BusStaticPayload = {
   campuses: [
@@ -246,166 +248,6 @@ function pick<T>(items: T[], index: number): T | undefined {
   return items[index % items.length];
 }
 
-async function cleanupScenarioData(userIds: string[]) {
-  await prisma.session.deleteMany({
-    where: { sessionToken: { startsWith: `${DEV_KEY_PREFIX}session-` } },
-  });
-  await prisma.account.deleteMany({
-    where: { provider: { startsWith: "dev-scenario-" } },
-  });
-  await prisma.authenticator.deleteMany({
-    where: { credentialID: { startsWith: `${DEV_KEY_PREFIX}credential-` } },
-  });
-  await prisma.verificationToken.deleteMany({
-    where: { identifier: { startsWith: DEV_KEY_PREFIX } },
-  });
-  await prisma.verifiedEmail.deleteMany({
-    where: { provider: "dev-scenario" },
-  });
-  await prisma.uploadPending.deleteMany({
-    where: { key: { startsWith: DEV_KEY_PREFIX } },
-  });
-  await prisma.userSuspension.deleteMany({
-    // 清理调试/管理用户的所有封禁记录，避免上一次 e2e/管理测试残留导致后续用例出现 403。
-    where: { userId: { in: userIds } },
-  });
-
-  await Promise.all(
-    userIds.map((userId) =>
-      prisma.user.update({
-        where: { id: userId },
-        data: { subscribedSections: { set: [] } },
-      }),
-    ),
-  );
-
-  await prisma.comment.deleteMany({
-    where: {
-      OR: [
-        { body: { contains: LEGACY_SCENARIO_MARKER } },
-        {
-          userId: { in: userIds },
-          body: { contains: LEGACY_SCENARIO_MARKER },
-        },
-        { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-      ],
-    },
-  });
-
-  await prisma.upload.deleteMany({
-    where: {
-      OR: [
-        { key: { startsWith: DEV_KEY_PREFIX } },
-        { userId: { in: userIds }, key: { startsWith: DEV_KEY_PREFIX } },
-      ],
-    },
-  });
-
-  const homeworks = await prisma.homework.findMany({
-    where: {
-      OR: [
-        { title: { contains: LEGACY_SCENARIO_MARKER } },
-        { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-      ],
-    },
-    select: { id: true },
-  });
-
-  if (homeworks.length > 0) {
-    const homeworkIds = homeworks.map((item) => item.id);
-    await prisma.homeworkCompletion.deleteMany({
-      where: { homeworkId: { in: homeworkIds } },
-    });
-    await prisma.homework.deleteMany({ where: { id: { in: homeworkIds } } });
-  }
-
-  await prisma.descriptionEdit.deleteMany({
-    where: {
-      OR: [
-        { nextContent: { contains: LEGACY_SCENARIO_MARKER } },
-        { description: { section: { jwId: { in: [...SECTION_JW_IDS] } } } },
-        { description: { course: { jwId: { in: [...COURSE_JW_IDS] } } } },
-        { description: { teacher: { code: { in: [...TEACHER_CODES] } } } },
-      ],
-    },
-  });
-  await prisma.description.deleteMany({
-    where: {
-      OR: [
-        { content: { contains: LEGACY_SCENARIO_MARKER } },
-        { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-        { course: { jwId: { in: [...COURSE_JW_IDS] } } },
-        { teacher: { code: { in: [...TEACHER_CODES] } } },
-      ],
-    },
-  });
-
-  await prisma.schedule.deleteMany({
-    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-  });
-  await prisma.examRoom.deleteMany({
-    where: { exam: { section: { jwId: { in: [...SECTION_JW_IDS] } } } },
-  });
-  await prisma.exam.deleteMany({
-    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-  });
-  await prisma.teacherAssignment.deleteMany({
-    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-  });
-  await prisma.sectionTeacher.deleteMany({
-    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-  });
-  await prisma.homeworkAuditLog.deleteMany({
-    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-  });
-  await prisma.scheduleGroup.deleteMany({
-    where: { section: { jwId: { in: [...SECTION_JW_IDS] } } },
-  });
-  await prisma.section.deleteMany({
-    where: { jwId: { in: [...SECTION_JW_IDS] } },
-  });
-
-  await prisma.teacher.deleteMany({
-    where: { code: { in: [...TEACHER_CODES] } },
-  });
-  await prisma.course.deleteMany({
-    where: { jwId: { in: [...COURSE_JW_IDS] } },
-  });
-  await prisma.examBatch.deleteMany({
-    where: { nameCn: "DEV 测试考试批次" },
-  });
-  await prisma.adminClass.deleteMany({
-    where: { nameCn: "DEV 测试班级" },
-  });
-  await prisma.semester.deleteMany({ where: { jwId: SEMESTER_JW_ID } });
-
-  await prisma.todo.deleteMany({
-    where: {
-      userId: { in: userIds },
-      title: { contains: LEGACY_SCENARIO_MARKER },
-    },
-  });
-  await prisma.dashboardLinkClick.deleteMany({
-    where: { userId: { in: userIds } },
-  });
-  await prisma.dashboardLinkPin.deleteMany({
-    where: { userId: { in: userIds } },
-  });
-  await prisma.busUserPreference.deleteMany({
-    where: { userId: { in: userIds } },
-  });
-  await prisma.busTrip.deleteMany({
-    where: {
-      version: {
-        key: DEV_BUS_VERSION_KEY,
-      },
-    },
-  });
-  await prisma.busScheduleVersion.deleteMany({
-    where: { key: DEV_BUS_VERSION_KEY },
-  });
-}
-
 async function main() {
   const debugUser = await prisma.user.upsert({
     where: { username: debugUsername },
@@ -444,7 +286,9 @@ async function main() {
     select: { id: true, username: true },
   });
 
-  await cleanupScenarioData([debugUser.id, adminUser.id]);
+  await cleanupDevScenarioData(prisma, [debugUser.id, adminUser.id], {
+    userSuspensions: "byUser",
+  });
 
   const [
     seedCampus,
@@ -1622,5 +1466,5 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await disconnectToolPrisma(prisma);
   });

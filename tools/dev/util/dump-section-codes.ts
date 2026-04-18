@@ -1,5 +1,7 @@
 import { writeFile } from "node:fs/promises";
-import { prisma } from "@/lib/db/prisma";
+import { createToolPrisma } from "../../shared/tool-prisma";
+
+const prisma = createToolPrisma();
 
 /**
  * Dumps all section codes from the database to a text file

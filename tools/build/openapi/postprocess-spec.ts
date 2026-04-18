@@ -252,7 +252,10 @@ function patchRedirectOperations(paths: NonNullable<OpenApiDocument["paths"]>) {
 }
 
 async function main() {
-  const filePath = new URL("../public/openapi.generated.json", import.meta.url);
+  const filePath = new URL(
+    "../../../public/openapi.generated.json",
+    import.meta.url,
+  );
   const raw = await readFile(filePath, "utf8");
   const doc = JSON.parse(raw) as OpenApiDocument;
 

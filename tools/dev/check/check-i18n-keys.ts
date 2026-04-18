@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { walkFiles } from "../../shared/file-utils";
 
 type Locale = "en-us" | "zh-cn";
 
@@ -13,16 +14,6 @@ type BindingOccurrence = Binding & { pos: number };
 const repoRoot = process.cwd();
 const srcRoot = join(repoRoot, "src");
 const messagesRoot = join(repoRoot, "messages");
-
-function walk(dir: string): string[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
-  return entries.flatMap((entry) => {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) return walk(fullPath);
-    if (entry.isFile()) return [fullPath];
-    return [];
-  });
-}
 
 function readJson(filePath: string): unknown {
   return JSON.parse(readFileSync(filePath, "utf8")) as unknown;
@@ -265,7 +256,7 @@ function extractKeysFromFile(filePath: string): Set<string> {
   return keys;
 }
 
-const files = walk(srcRoot).filter((p) => /\.(ts|tsx)$/.test(p));
+const files = walkFiles(srcRoot).filter((p) => /\.(ts|tsx)$/.test(p));
 const usedKeys = new Set<string>();
 
 for (const file of files) {

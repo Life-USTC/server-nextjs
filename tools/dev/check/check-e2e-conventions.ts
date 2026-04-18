@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { walkFiles } from "../../shared/file-utils";
 
 type Violation = {
   file: string;
@@ -11,20 +12,6 @@ const repoRoot = process.cwd();
 const e2eRoot = join(repoRoot, "tests/e2e");
 const violations: Violation[] = [];
 
-function walk(dir: string): string[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
-  return entries.flatMap((entry) => {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      return walk(fullPath);
-    }
-    if (entry.isFile()) {
-      return [fullPath];
-    }
-    return [];
-  });
-}
-
 function addViolation(file: string, rule: string, line: number) {
   violations.push({
     file: file.replace(`${repoRoot}/`, ""),
@@ -33,7 +20,7 @@ function addViolation(file: string, rule: string, line: number) {
   });
 }
 
-for (const file of walk(e2eRoot)) {
+for (const file of walkFiles(e2eRoot)) {
   if (!/\.(ts|tsx)$/.test(file)) {
     continue;
   }

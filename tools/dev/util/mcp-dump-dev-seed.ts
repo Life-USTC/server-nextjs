@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { chromium } from "@playwright/test";
-import { DEV_SEED } from "./dev-seed";
+import { DEV_SEED } from "../seed/dev-seed";
 
 function generateCodeChallenge(codeVerifier: string) {
   return createHash("sha256").update(codeVerifier).digest("base64url");
