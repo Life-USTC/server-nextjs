@@ -1,3 +1,10 @@
+## [1.22.2](https://github.com/Life-USTC/server-nextjs/compare/v1.22.1...v1.22.2) (2026-04-18)
+
+
+### Bug Fixes
+
+* **auth:** resolve JWKS double-path and audience mismatch in JWT verification ([631529b](https://github.com/Life-USTC/server-nextjs/commit/631529ba8201146b95ba98a29171d5dead0f5da9))
+
 ## [1.22.1](https://github.com/Life-USTC/server-nextjs/compare/v1.22.0...v1.22.1) (2026-04-18)
 
 
