@@ -1,3 +1,10 @@
+## [1.21.1](https://github.com/Life-USTC/server-nextjs/compare/v1.21.0...v1.21.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* **deploy:** set BETTER_AUTH_URL in production docker-compose ([ca3e2e6](https://github.com/Life-USTC/server-nextjs/commit/ca3e2e64da8bd1b459c0a6332faa72bd879db497))
+
 # [1.21.0](https://github.com/Life-USTC/server-nextjs/compare/v1.20.0...v1.21.0) (2026-04-17)
 
 
