@@ -80,6 +80,22 @@ const AUTH_PUBLIC_ORIGIN = new URL(`${AUTH_BASE_URL.replace(/\/$/, "")}/`)
   .origin;
 const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
 
+// One-shot startup diagnostic for OAuth audience debugging.
+// Safe to remove once the token-exchange issue is resolved.
+console.log(
+  JSON.stringify({
+    _tag: "auth.init",
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "(unset)",
+    AUTH_BASE_URL,
+    AUTH_PUBLIC_ORIGIN,
+    AUTH_BASE_URL_codepoints: [...AUTH_BASE_URL].map((c) => c.codePointAt(0)),
+    AUTH_PUBLIC_ORIGIN_codepoints: [...AUTH_PUBLIC_ORIGIN].map((c) =>
+      c.codePointAt(0),
+    ),
+    match: AUTH_BASE_URL.replace(/\/$/, "") === AUTH_PUBLIC_ORIGIN,
+  }),
+);
+
 function getBetterAuthSecret() {
   const secret =
     process.env.AUTH_SECRET?.trim() || process.env.BETTER_AUTH_SECRET?.trim();
@@ -236,6 +252,10 @@ const authInstance = betterAuth({
       allowUnauthenticatedClientRegistration: true,
       scopes: ["openid", "profile", "email", "offline_access", MCP_TOOLS_SCOPE],
       validAudiences: [
+        // Use URL-normalized origin (strips invisible chars / trailing slashes
+        // that raw env values may carry).  Keep the raw value too for safety.
+        AUTH_PUBLIC_ORIGIN,
+        `${AUTH_PUBLIC_ORIGIN}/api/mcp`,
         AUTH_BASE_URL.replace(/\/$/, ""),
         `${AUTH_BASE_URL.replace(/\/$/, "")}/api/mcp`,
       ],

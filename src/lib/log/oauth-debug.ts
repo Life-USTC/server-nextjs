@@ -152,6 +152,7 @@ export async function withBetterAuthOAuthDebug(
         origin: request.headers.get("origin") ?? null,
         contentType: request.headers.get("content-type") ?? null,
         hasResource: fd.has("resource"),
+        resource: fd.get("resource") ?? null,
         hasCodeVerifier: fd.has("code_verifier"),
         grantType: fd.get("grant_type") ?? null,
         debugNonce: request.headers.get("x-debug-nonce") ?? null,
