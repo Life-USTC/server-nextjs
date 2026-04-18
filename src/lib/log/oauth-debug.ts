@@ -140,11 +140,35 @@ export async function withBetterAuthOAuthDebug(
   const authorizeSummary =
     method === "GET" ? summarizeOAuthAuthorizeUrl(url) : null;
 
+  // For token endpoint POSTs, capture request fingerprint to distinguish sources
+  let tokenRequestFingerprint: Record<string, unknown> | undefined;
+  if (method === "POST" && path.endsWith("/oauth2/token")) {
+    try {
+      const cloned = request.clone();
+      const fd = await cloned.formData();
+      tokenRequestFingerprint = {
+        bodyParams: [...fd.keys()].sort(),
+        userAgent: request.headers.get("user-agent")?.slice(0, 80) ?? null,
+        origin: request.headers.get("origin") ?? null,
+        contentType: request.headers.get("content-type") ?? null,
+        hasResource: fd.has("resource"),
+        hasCodeVerifier: fd.has("code_verifier"),
+        grantType: fd.get("grant_type") ?? null,
+        debugNonce: request.headers.get("x-debug-nonce") ?? null,
+        forwarded: request.headers.get("x-forwarded-for") ?? null,
+        via: request.headers.get("via") ?? null,
+      };
+    } catch {
+      // body not form-urlencoded or already consumed
+    }
+  }
+
   logOAuthDebug("better-auth.request", request, {
     method,
     path,
     queryKeys: [...url.searchParams.keys()],
     ...(authorizeSummary ? { authorizeSummary } : {}),
+    ...(tokenRequestFingerprint ? { tokenRequestFingerprint } : {}),
   });
 
   try {
@@ -155,6 +179,21 @@ export async function withBetterAuthOAuthDebug(
         ? sanitizeOAuthRedirectLocation(location ?? undefined, request.url)
         : null;
 
+    // For 4xx/5xx on token endpoint, capture the error body for debugging
+    let errorBody: Record<string, unknown> | undefined;
+    if (res.status >= 400 && path.endsWith("/oauth2/token")) {
+      try {
+        const cloned = res.clone();
+        const json = await cloned.json();
+        errorBody = {
+          error: json.error,
+          error_description: json.error_description,
+        };
+      } catch {
+        // body not JSON or already consumed
+      }
+    }
+
     logOAuthDebug("better-auth.response", undefined, {
       correlationId,
       method,
@@ -163,6 +202,7 @@ export async function withBetterAuthOAuthDebug(
       ms: Date.now() - start,
       ...(redirectTo ? { redirectTo } : {}),
       ...(location && !redirectTo ? { locationPresent: true } : {}),
+      ...(errorBody ? { errorBody } : {}),
     });
     return res;
   } catch (err) {

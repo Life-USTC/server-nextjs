@@ -1474,6 +1474,7 @@
     "scope_openid": "验证您的身份",
     "scope_profile": "查看您的个人资料",
     "scope_email": "查看您的邮箱地址",
+    "scope_offline_access": "保持登录状态并自动刷新访问权限",
     "scope_mcp:tools": "代表您调用 MCP 工具",
     "allow": "允许",
     "deny": "拒绝",

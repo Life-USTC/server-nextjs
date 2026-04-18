@@ -1497,6 +1497,7 @@
     "scope_openid": "Verify your identity",
     "scope_profile": "View your profile information",
     "scope_email": "View your email address",
+    "scope_offline_access": "Stay signed in and refresh access automatically",
     "scope_mcp:tools": "Call MCP tools on your behalf",
     "allow": "Allow",
     "deny": "Deny",
