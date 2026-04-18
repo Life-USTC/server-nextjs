@@ -2,6 +2,10 @@ import { verifyAccessToken } from "better-auth/oauth2";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db/prisma";
+import {
+  getJwksUrlForOAuthVerification,
+  getOAuthIssuerUrl,
+} from "@/lib/mcp/urls";
 
 export async function requireSignedInUserId() {
   const session = await auth();
@@ -31,17 +35,19 @@ export async function resolveApiUserId(
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     if (token) {
-      const issuer = (
-        process.env.BETTER_AUTH_URL || "http://localhost:3000"
-      ).replace(/\/$/, "");
+      const issuer = getOAuthIssuerUrl().toString();
+      const siteOrigin = new URL(
+        `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/`,
+      ).origin;
 
       try {
         const jwt = await verifyAccessToken(token, {
-          jwksUrl: `${issuer}/api/auth/jwks`,
+          jwksUrl: getJwksUrlForOAuthVerification(),
           // General protected REST endpoints only accept issuer-bound JWT access
           // tokens. Opaque/no-resource tokens are reserved for the MCP transport,
           // where resource and scope checks happen in src/lib/mcp/auth.ts.
-          verifyOptions: { issuer, audience: [issuer] },
+          // Accept both the bare origin (CLI resource) and the issuer path as audiences.
+          verifyOptions: { issuer, audience: [siteOrigin, issuer] },
         });
 
         const sub = (jwt as { sub?: unknown }).sub;
