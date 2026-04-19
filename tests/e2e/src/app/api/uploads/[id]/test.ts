@@ -19,7 +19,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
-import { createUploadedFileViaApi } from "../../../../../utils/uploads";
+import {
+  createUploadedFileViaApi,
+  hasUsableS3UploadConfig,
+} from "../../../../../utils/uploads";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 test("/api/uploads/[id]", async ({ request }) => {
@@ -34,7 +37,7 @@ test("/api/uploads/[id] PATCH 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads/[id] PATCH 可重命名上传文件", async ({ page }) => {
-  test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
+  test.fixme(!hasUsableS3UploadConfig(), "Requires usable S3 configuration");
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 
@@ -76,7 +79,7 @@ test("/api/uploads/[id] DELETE 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads/[id] DELETE 可删除上传文件并返回大小", async ({ page }) => {
-  test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
+  test.fixme(!hasUsableS3UploadConfig(), "Requires usable S3 configuration");
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 

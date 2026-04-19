@@ -37,6 +37,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test --reporter=list",
+    "test:e2e:benchmark": "bun run tools/dev/benchmark/e2e-workers.ts",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:install": "playwright install chromium",
     "test:e2e:report": "playwright show-report",

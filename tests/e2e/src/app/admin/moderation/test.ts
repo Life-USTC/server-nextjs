@@ -5,6 +5,10 @@ import {
   signInAsDevAdmin,
 } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import {
+  createTempUsersFixture,
+  deleteUsersByPrefix,
+} from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
@@ -186,26 +190,28 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
 });
 
 test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo) => {
+  const prefix = `e2e-moderation-sus-${Date.now()}`;
+  const { usernames } = createTempUsersFixture({ prefix, count: 1 });
   await signInAsDevAdmin(page, "/admin/moderation");
 
   const usersResponse = await page.request.get(
-    `/api/admin/users?search=${encodeURIComponent(DEV_SEED.debugUsername)}`,
+    `/api/admin/users?search=${encodeURIComponent(usernames[0] ?? prefix)}`,
   );
   expect(usersResponse.status()).toBe(200);
   const usersBody = (await usersResponse.json()) as {
     data?: Array<{ id?: string; username?: string | null }>;
   };
-  const debugUser = usersBody.data?.find(
-    (item) => item.username === DEV_SEED.debugUsername,
+  const targetUser = usersBody.data?.find(
+    (item) => item.username === usernames[0],
   );
-  expect(debugUser?.id).toBeTruthy();
+  expect(targetUser?.id).toBeTruthy();
 
   const reason = `e2e-moderation-suspension-${Date.now()}`;
   const createSuspensionResponse = await page.request.post(
     "/api/admin/suspensions",
     {
       data: {
-        userId: debugUser?.id,
+        userId: targetUser?.id,
         reason,
       },
     },
@@ -226,6 +232,7 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
       `/api/admin/suspensions/${suspensionId}`,
     );
     expect(lift.status()).toBe(200);
+    deleteUsersByPrefix(prefix);
   }
 });
 

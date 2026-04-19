@@ -7,8 +7,9 @@
 
 - Web server
   - Config builds with `bun run build`, then starts with `bunx next start`
-  - Defaults are host `127.0.0.1`, port `3000`, one worker
+  - Defaults are host `127.0.0.1`, port `3000`, two local workers for the shared-state full suite and conservative CI workers for scoped jobs
   - Env knobs: `PLAYWRIGHT_HOST`, `PLAYWRIGHT_PORT`, `PLAYWRIGHT_REUSE_SERVER=1`, `PLAYWRIGHT_RETRIES`, `PLAYWRIGHT_WORKERS`
+  - Benchmark workers with `bun run test:e2e:benchmark`; use focused paths for parallel-safe scopes when measuring CI-style slices
   - E2E auth env is enabled by config
 
 - Layout
@@ -31,7 +32,10 @@
   - One test should prove one user story
   - Prefer short happy paths
   - Create data through API or `e2e-db.ts`
-  - Clean up data created by the test
+  - Tests must be idempotent across repeated full-suite runs against the same database
+  - Clean up data created by the test when practical, but never rely on global cleanup scripts to hide pollution
+  - Shared seed users and seed JW/import facts may be read freely; tests that mutate user state must use isolated fixture users or stay inside a clearly serial stateful group
+  - Prefer combining genuinely conflicting stateful checks into one linear test over blocking the whole suite
 
 - API contracts
   - Public list/detail routes should return useful seed-backed data
@@ -60,11 +64,13 @@
   - Use route aliases from auth helpers for settings redirects
 
 - Screenshots
-  - Use `captureStepScreenshot()` for meaningful page contract states
+  - `captureStepScreenshot()` is opt-in with `E2E_CAPTURE_STEPS=1`
   - Screenshot artifacts should aid layout review, not replace assertions
+  - Failure screenshots and first-retry traces remain enabled by Playwright config
 
 - Commands
   - All E2E: `bun run test:e2e`
+  - Worker benchmark: `bun run test:e2e:benchmark`
   - Focused E2E: `bun run test:e2e -- tests/e2e/src/app/api/todos`
   - Headed: `bun run test:e2e:headed`
   - UI: `bun run test:e2e:ui`

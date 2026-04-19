@@ -5,6 +5,13 @@ const DEV_DEBUG_LOGIN_BUTTON = /Debug User \(Dev\)|调试用户（开发）/i;
 const DEV_ADMIN_LOGIN_BUTTON = /Admin User \(Dev\)|调试管理员（开发）/i;
 const SESSION_RETRY_ATTEMPTS = 5;
 
+type AuthRole = "debug" | "admin";
+type AuthStorageState = Awaited<
+  ReturnType<ReturnType<Page["context"]>["storageState"]>
+>;
+
+const authStorageStateCache = new Map<AuthRole, AuthStorageState>();
+
 const ROUTE_ALIASES = new Map<string, string>([
   ["/settings/accounts", "/settings?tab=accounts"],
   ["/settings/content", "/settings?tab=content"],
@@ -67,6 +74,55 @@ async function expectAuthenticatedSession(
   });
 }
 
+async function applyCachedSession(
+  page: Page,
+  role: AuthRole,
+  expectedPath: string,
+) {
+  const storageState = authStorageStateCache.get(role);
+  if (!storageState) {
+    return false;
+  }
+
+  try {
+    await page.context().addCookies(storageState.cookies);
+    await gotoAndWaitForReady(page, expectedPath);
+    await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
+    return true;
+  } catch {
+    authStorageStateCache.delete(role);
+    return false;
+  }
+}
+
+async function signInWithDevButton(
+  page: Page,
+  role: AuthRole,
+  callbackPath: string,
+  expectedPath: string,
+) {
+  await gotoAndWaitForReady(
+    page,
+    `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
+  );
+
+  const buttonName =
+    role === "admin" ? DEV_ADMIN_LOGIN_BUTTON : DEV_DEBUG_LOGIN_BUTTON;
+  const button = page.getByRole("button", { name: buttonName }).first();
+  await expect(button).toBeVisible();
+  await button.click();
+
+  await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
+    timeout: 15_000,
+  });
+  await expectPagePath(page, expectedPath);
+  await waitForUiSettled(page);
+  await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
+  await expect(page.locator("#main-content")).toBeVisible();
+
+  authStorageStateCache.set(role, await page.context().storageState());
+}
+
 export async function expectRequiresSignIn(
   page: Page,
   path: string,
@@ -90,46 +146,24 @@ export async function signInAsDebugUser(
   page: Page,
   callbackPath = "/",
   expectedPath = callbackPath,
+  options: { ui?: boolean } = {},
 ) {
-  await gotoAndWaitForReady(
-    page,
-    `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
-  );
-  const debugButton = page
-    .getByRole("button", { name: DEV_DEBUG_LOGIN_BUTTON })
-    .first();
-  await expect(debugButton).toBeVisible();
-  await debugButton.click();
+  if (!options.ui && (await applyCachedSession(page, "debug", expectedPath))) {
+    return;
+  }
 
-  await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
-    timeout: 15_000,
-  });
-  await expectPagePath(page, expectedPath);
-  await waitForUiSettled(page);
-  await expectAuthenticatedSession(page);
-  await expect(page.locator("#main-content")).toBeVisible();
+  await signInWithDevButton(page, "debug", callbackPath, expectedPath);
 }
 
 export async function signInAsDevAdmin(
   page: Page,
   callbackPath = "/",
   expectedPath = callbackPath,
+  options: { ui?: boolean } = {},
 ) {
-  await gotoAndWaitForReady(
-    page,
-    `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
-  );
-  const adminButton = page
-    .getByRole("button", { name: DEV_ADMIN_LOGIN_BUTTON })
-    .first();
-  await expect(adminButton).toBeVisible();
-  await adminButton.click();
+  if (!options.ui && (await applyCachedSession(page, "admin", expectedPath))) {
+    return;
+  }
 
-  await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
-    timeout: 15_000,
-  });
-  await expectPagePath(page, expectedPath);
-  await waitForUiSettled(page);
-  await expectAuthenticatedSession(page, { isAdmin: true });
-  await expect(page.locator("#main-content")).toBeVisible();
+  await signInWithDevButton(page, "admin", callbackPath, expectedPath);
 }

@@ -6,6 +6,7 @@
   - `shared/`: helper code used by tool scripts
   - `build/openapi/`: build-time OpenAPI generation, postprocessing and type shim scripts
   - `dev/check/`: local convention and diagnostic checks
+  - `dev/benchmark/`: local benchmark scripts
   - `dev/util/`: local development utilities
   - `dev/seed/`: development seed data, reset and E2E scenario scripts
   - `production/load/`: production import/load scripts
@@ -36,6 +37,7 @@
   - `bun run prebuild` runs Prisma generate, OpenAPI generate and OpenAPI type generation
   - `dev/check/check-e2e-conventions.ts` rejects `waitForTimeout()`, committed skipped E2E tests and direct Prisma imports in Playwright tests
   - `dev/check/check-i18n-keys.ts` checks translation key availability across `src` and `messages`
+  - `dev/benchmark/e2e-workers.ts` benchmarks Playwright worker counts against one built app/server
 
 - Data rules
   - Seed current-semester dashboard cases

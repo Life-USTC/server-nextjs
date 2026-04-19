@@ -20,7 +20,7 @@ export async function waitForUiSettled(
     waitUntil?: LoadStateWaitUntil;
   } = {},
 ) {
-  await page.waitForLoadState(options.waitUntil ?? "networkidle");
+  await page.waitForLoadState(options.waitUntil ?? "domcontentloaded");
   await expect(page.locator('[data-slot="skeleton"]:visible')).toHaveCount(0, {
     timeout: 10_000,
   });
@@ -33,7 +33,7 @@ export async function gotoAndWaitForReady(
 ) {
   const loadStateWaitUntil = resolveLoadState(options.waitUntil);
   const response = await page.goto(url, {
-    waitUntil: options.waitUntil ?? "networkidle",
+    waitUntil: options.waitUntil ?? "domcontentloaded",
   });
 
   await waitForUiSettled(page, { waitUntil: loadStateWaitUntil });

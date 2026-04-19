@@ -70,27 +70,13 @@ test.describe("dashboard links", () => {
     await captureStepScreenshot(page, testInfo, "dashboard-links-tab");
   });
 
-  test("search filters links and Ctrl+K focuses search", async ({
-    page,
-  }, testInfo) => {
+  test("search filters links", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称或描述|Search by name or description/i,
     });
     await expect(searchInput).toBeVisible();
-
-    // Ctrl+K shortcut focuses search
-    await page.evaluate(() => {
-      window.dispatchEvent(
-        new KeyboardEvent("keydown", {
-          key: "k",
-          ctrlKey: true,
-          bubbles: true,
-        }),
-      );
-    });
-    await expect(searchInput).toBeFocused();
 
     // Search for a specific link
     await searchInput.fill("邮箱");

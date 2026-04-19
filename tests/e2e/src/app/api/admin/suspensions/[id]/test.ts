@@ -14,7 +14,10 @@ import {
   signInAsDebugUser,
   signInAsDevAdmin,
 } from "../../../../../../utils/auth";
-import { DEV_SEED } from "../../../../../../utils/dev-seed";
+import {
+  createTempUsersFixture,
+  deleteUsersByPrefix,
+} from "../../../../../../utils/e2e-db";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
 const BASE = "/api/admin/suspensions";
@@ -37,30 +40,50 @@ test.describe("PATCH /api/admin/suspensions/[id]", () => {
     expect(response.status()).toBe(401);
   });
 
-  test("admin can lift seed suspension", async ({ page }) => {
+  test("admin can lift a temporary suspension", async ({ page }) => {
+    const prefix = `e2e-lift-sus-${Date.now()}`;
+    const { usernames } = createTempUsersFixture({ prefix, count: 1 });
     await signInAsDevAdmin(page, "/admin");
 
-    const listResponse = await page.request.get(BASE);
-    expect(listResponse.status()).toBe(200);
-    const listBody = (await listResponse.json()) as {
-      suspensions?: Array<{ id?: string; reason?: string | null }>;
-    };
-    const suspension = listBody.suspensions?.find((item) =>
-      item.reason?.includes(DEV_SEED.suspensions.reasonKeyword),
-    );
-    expect(suspension?.id).toBeTruthy();
+    try {
+      const userResponse = await page.request.get(
+        `/api/admin/users?search=${usernames[0]}`,
+      );
+      expect(userResponse.status()).toBe(200);
+      const userId = (
+        (await userResponse.json()) as {
+          data?: Array<{ id?: string; username?: string | null }>;
+        }
+      ).data?.find((user) => user.username === usernames[0])?.id;
+      expect(userId).toBeTruthy();
 
-    const patchResponse = await page.request.patch(`${BASE}/${suspension?.id}`);
-    expect(patchResponse.status()).toBe(200);
-    const patchBody = (await patchResponse.json()) as {
-      suspension?: {
-        id?: string;
-        liftedAt?: string | null;
-        liftedById?: string | null;
+      const createResponse = await page.request.post(BASE, {
+        data: {
+          userId,
+          reason: `e2e-lift-suspension-${Date.now()}`,
+        },
+      });
+      expect(createResponse.status()).toBe(200);
+      const createBody = (await createResponse.json()) as {
+        suspension?: { id?: string };
       };
-    };
-    expect(patchBody.suspension?.id).toBe(suspension?.id);
-    expect(patchBody.suspension?.liftedAt).toBeTruthy();
-    expect(patchBody.suspension?.liftedById).toBeTruthy();
+      const suspensionId = createBody.suspension?.id;
+      expect(suspensionId).toBeTruthy();
+
+      const patchResponse = await page.request.patch(`${BASE}/${suspensionId}`);
+      expect(patchResponse.status()).toBe(200);
+      const patchBody = (await patchResponse.json()) as {
+        suspension?: {
+          id?: string;
+          liftedAt?: string | null;
+          liftedById?: string | null;
+        };
+      };
+      expect(patchBody.suspension?.id).toBe(suspensionId);
+      expect(patchBody.suspension?.liftedAt).toBeTruthy();
+      expect(patchBody.suspension?.liftedById).toBeTruthy();
+    } finally {
+      deleteUsersByPrefix(prefix);
+    }
   });
 });

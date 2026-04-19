@@ -65,13 +65,24 @@ jobs:
         run: bun run test
 
   test-e2e:
-    name: E2E Test (${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+    name: E2E Test (${{ matrix.scope }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shardIndex: [1, 2]
-        shardTotal: [2]
+        include:
+          - scope: api-mcp
+            workers: 4
+            paths: tests/e2e/src/app/api
+          - scope: public-web
+            workers: 4
+            paths: tests/e2e/src/app/api-docs tests/e2e/src/app/bus tests/e2e/src/app/bus-map tests/e2e/src/app/courses tests/e2e/src/app/guides tests/e2e/src/app/mobile-app tests/e2e/src/app/privacy tests/e2e/src/app/terms tests/e2e/src/app/u
+          - scope: signed-in-web
+            workers: 2
+            paths: tests/e2e/src/app/test.ts tests/e2e/src/app/dashboard tests/e2e/src/app/oauth tests/e2e/src/app/sections tests/e2e/src/app/settings tests/e2e/src/app/signin tests/e2e/src/app/teachers tests/e2e/src/app/welcome
+          - scope: admin-stateful
+            workers: 1
+            paths: tests/e2e/src/app/admin tests/e2e/src/app/comments
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_e2e
       JWT_SECRET: e2e-ci-secret
@@ -84,6 +95,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: minioadmin
       AUTH_SECRET: e2e-ci-secret
       NO_PROXY: 127.0.0.1,localhost,::1
+      PLAYWRIGHT_WORKERS: ${{ matrix.workers }}
 
     services:
       postgres:
@@ -202,13 +214,13 @@ jobs:
         run: bun run typecheck
 
       - name: Run Playwright E2E tests
-        run: bun run test:e2e -- --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+        run: bun run test:e2e -- ${{ matrix.paths }}
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report-${{ matrix.shardIndex }}-of-${{ matrix.shardTotal }}
+          name: playwright-report-${{ matrix.scope }}
           path: playwright-report/
           if-no-files-found: ignore
           retention-days: 14

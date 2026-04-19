@@ -7,7 +7,7 @@
  * ## Request
  * - Query: `sectionId` (optional, int), `teacherId` (optional, int),
  *          `roomId` (optional, int), `dateFrom` (optional, date string),
- *          `dateTo` (optional, date string), `weekday` (optional, int 0-6),
+ *          `dateTo` (optional, date string), `weekday` (optional, int 1-7),
  *          `page` (optional), `limit` (optional)
  *
  * ## Response
@@ -130,7 +130,7 @@ test.describe("GET /api/schedules", () => {
     expect(/^\d{4}-\d{2}-\d{2}/.test(first.date as string)).toBe(true);
     expect(typeof first.weekday).toBe("number");
     expect(
-      (first.weekday as number) >= 0 && (first.weekday as number) <= 6,
+      (first.weekday as number) >= 1 && (first.weekday as number) <= 7,
     ).toBe(true);
     expect(typeof first.startTime).toBe("string");
     expect(typeof first.endTime).toBe("string");

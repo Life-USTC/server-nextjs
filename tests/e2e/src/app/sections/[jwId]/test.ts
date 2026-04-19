@@ -31,6 +31,7 @@ import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { hasUsableS3UploadConfig } from "../../../../utils/uploads";
 import { assertPageContract } from "../../_shared/page-contract";
 
 const SECTION_URL = `/sections/${DEV_SEED.section.jwId}`;
@@ -68,8 +69,11 @@ test.describe("/sections/[jwId]", () => {
   });
 
   test("breadcrumb navigates back", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, SECTION_URL);
-    const breadcrumb = page.locator('a[href="/sections"]').first();
+    await gotoAndWaitForReady(page, SECTION_URL, { waitUntil: "networkidle" });
+    const breadcrumb = page
+      .getByRole("navigation", { name: "breadcrumb" })
+      .getByRole("link", { name: /^(班级|Sections)$/i })
+      .first();
     await expect(breadcrumb).toBeVisible();
     await breadcrumb.click();
     await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
@@ -583,7 +587,7 @@ test.describe("/sections/[jwId]", () => {
   test("comment can upload attachment and open it", async ({
     page,
   }, testInfo) => {
-    test.fixme(!process.env.S3_BUCKET, "Requires S3 configuration");
+    test.fixme(!hasUsableS3UploadConfig(), "Requires usable S3 configuration");
     test.setTimeout(60000);
     await signInAsDebugUser(page, SECTION_URL);
 

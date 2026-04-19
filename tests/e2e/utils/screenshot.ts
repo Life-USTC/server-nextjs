@@ -5,6 +5,10 @@ export async function captureStepScreenshot(
   testInfo: TestInfo,
   name: string,
 ) {
+  if (process.env.E2E_CAPTURE_STEPS !== "1") {
+    return;
+  }
+
   const fileName = `${name.replace(/[^a-zA-Z0-9-_]/g, "-")}.png`;
   const path = testInfo.outputPath(fileName);
 

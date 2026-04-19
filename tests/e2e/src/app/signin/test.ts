@@ -13,7 +13,7 @@ test("/signin 调试用户按钮可登录", async ({ page }, testInfo) => {
 
   await captureStepScreenshot(page, testInfo, "signin-initial");
 
-  await signInAsDebugUser(page, "/");
+  await signInAsDebugUser(page, "/", "/", { ui: true });
   await expect(page).toHaveURL(/\/(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await expect(page.locator("#app-logo")).toBeVisible();
