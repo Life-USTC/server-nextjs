@@ -1,3 +1,10 @@
+## [1.23.1](https://github.com/Life-USTC/server-nextjs/compare/v1.23.0...v1.23.1) (2026-04-19)
+
+
+### Bug Fixes
+
+* **auth:** correct device_authorization_endpoint URL in discovery metadata ([c302d49](https://github.com/Life-USTC/server-nextjs/commit/c302d494754e488740f0a47ce9c0cd2f7b84e603))
+
 # [1.23.0](https://github.com/Life-USTC/server-nextjs/compare/v1.22.2...v1.23.0) (2026-04-19)
 
 
