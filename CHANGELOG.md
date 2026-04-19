@@ -1,3 +1,10 @@
+# [1.24.0](https://github.com/Life-USTC/server-nextjs/compare/v1.23.5...v1.24.0) (2026-04-19)
+
+
+### Features
+
+* **api:** support multi-section homework query via sectionIds param ([8e546a6](https://github.com/Life-USTC/server-nextjs/commit/8e546a64e8f3984c3eee6ee335d29659ea89a926))
+
 ## [1.23.5](https://github.com/Life-USTC/server-nextjs/compare/v1.23.4...v1.23.5) (2026-04-19)
 
 
