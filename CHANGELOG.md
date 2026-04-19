@@ -1,3 +1,10 @@
+## [1.23.5](https://github.com/Life-USTC/server-nextjs/compare/v1.23.4...v1.23.5) (2026-04-19)
+
+
+### Bug Fixes
+
+* **auth:** use site origin for device verification URIs ([1ad1198](https://github.com/Life-USTC/server-nextjs/commit/1ad1198e457c1a31a1739cf74b1352a4b5cd9384))
+
 ## [1.23.4](https://github.com/Life-USTC/server-nextjs/compare/v1.23.3...v1.23.4) (2026-04-19)
 
 
