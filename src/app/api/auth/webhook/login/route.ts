@@ -37,12 +37,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Look up user by email or userId
+    // Look up user by email, userId, or name
     const user = await prisma.user.findFirst({
       where: {
         OR: [
           ...(email ? [{ email }] : []),
-          ...(userId ? [{ id: userId }] : []),
+          ...(userId ? [{ id: userId }, { name: userId }] : []),
         ],
       },
     });
