@@ -30,18 +30,34 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsedQuery = homeworksQuerySchema.safeParse({
     sectionId: searchParams.get("sectionId") ?? undefined,
+    sectionIds: searchParams.get("sectionIds") ?? undefined,
     includeDeleted: searchParams.get("includeDeleted") ?? undefined,
   });
   if (!parsedQuery.success) {
     return handleRouteError("Invalid homework query", parsedQuery.error, 400);
   }
 
-  const sectionId = parseOptionalInt(parsedQuery.data.sectionId);
-  const includeDeleted = parsedQuery.data.includeDeleted === "true";
-
-  if (!sectionId) {
-    return badRequest("Invalid section");
+  // Support single sectionId or comma-separated sectionIds
+  const sectionIdList: number[] = [];
+  if (parsedQuery.data.sectionIds) {
+    for (const s of parsedQuery.data.sectionIds.split(",")) {
+      const id = parseOptionalInt(s.trim());
+      if (id) sectionIdList.push(id);
+    }
+  } else if (parsedQuery.data.sectionId) {
+    const id = parseOptionalInt(parsedQuery.data.sectionId);
+    if (id) sectionIdList.push(id);
   }
+
+  if (sectionIdList.length === 0) {
+    return badRequest("Invalid section — provide sectionId or sectionIds");
+  }
+
+  const includeDeleted = parsedQuery.data.includeDeleted === "true";
+  const sectionFilter =
+    sectionIdList.length === 1
+      ? { sectionId: sectionIdList[0] }
+      : { sectionId: { in: sectionIdList } };
 
   try {
     const viewerUserId = await resolveApiUserId(request);
@@ -79,14 +95,16 @@ export async function GET(request: Request) {
     const [homeworks, auditLogs] = await Promise.all([
       getPrisma("zh-cn").homework.findMany({
         where: {
-          sectionId,
+          ...sectionFilter,
           ...(includeDeleted ? {} : { deletedAt: null }),
         },
         include: homeworkInclude,
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       }),
       prisma.homeworkAuditLog.findMany({
-        where: { sectionId },
+        where: sectionIdList.length === 1
+          ? { sectionId: sectionIdList[0] }
+          : { sectionId: { in: sectionIdList } },
         include: {
           actor: {
             select: { id: true, name: true, username: true, image: true },

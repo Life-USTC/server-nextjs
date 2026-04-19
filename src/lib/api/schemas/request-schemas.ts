@@ -292,7 +292,8 @@ export const descriptionsQuerySchema = z.object({
 });
 
 export const homeworksQuerySchema = z.object({
-  sectionId: integerStringSchema,
+  sectionId: integerStringSchema.optional(),
+  sectionIds: z.string().trim().min(1).optional(),
   includeDeleted: z.enum(["true", "false"]).optional(),
 });
 
