@@ -1,9 +1,17 @@
 export const dynamic = "force-dynamic";
 
 import { randomBytes } from "node:crypto";
+import { makeSignature } from "better-auth/crypto";
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+
+function getAuthSecret(): string {
+  const secret =
+    process.env.AUTH_SECRET?.trim() || process.env.BETTER_AUTH_SECRET?.trim();
+  if (!secret) throw new Error("AUTH_SECRET or BETTER_AUTH_SECRET is required");
+  return secret;
+}
 
 export async function POST(request: Request) {
   try {
@@ -72,9 +80,19 @@ export async function POST(request: Request) {
       },
     });
 
+    // Sign the cookie value the same way Better Auth does (HMAC-SHA256)
+    const authSecret = getAuthSecret();
+    const signature = await makeSignature(sessionToken, authSecret);
+    const signedToken = `${sessionToken}.${signature}`;
+
     logOAuthDebug("webhook-login.success", request, {
       userId: user.id,
     });
+
+    const isSecure = (process.env.BETTER_AUTH_URL || "").startsWith("https");
+    const cookieName = isSecure
+      ? "__Secure-better-auth.session_token"
+      : "better-auth.session_token";
 
     // Create response with session info
     const response = jsonResponse({
@@ -85,11 +103,9 @@ export async function POST(request: Request) {
       expires: expires.toISOString(),
     });
 
-    // Set session cookie
-    const isSecure = (process.env.BETTER_AUTH_URL || "").startsWith("https");
     response.headers.set(
       "Set-Cookie",
-      `better-auth.session_token=${sessionToken}; Path=/; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}; Expires=${expires.toUTCString()}`,
+      `${cookieName}=${signedToken}; Path=/; HttpOnly; SameSite=Lax${isSecure ? "; Secure" : ""}; Expires=${expires.toUTCString()}`,
     );
 
     return response;
