@@ -772,6 +772,37 @@ export const openApiDocumentResponseSchema = z.object({
   paths: z.record(z.string(), z.unknown()),
 });
 
+export const meResponseSchema = z.object({
+  id: z.string(),
+  email: z.string().nullable(),
+  name: z.string().nullable(),
+  image: z.string().nullable(),
+  username: z.string().nullable(),
+  isAdmin: z.boolean(),
+});
+
+export const todoItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  content: z.string().nullable(),
+  priority: z.enum(["low", "medium", "high"]),
+  completed: z.boolean(),
+  dueAt: dateTimeSchema.nullable(),
+  createdAt: dateTimeSchema,
+  updatedAt: dateTimeSchema,
+});
+
+export const todosListResponseSchema = z.object({
+  todos: z.array(todoItemSchema),
+});
+
+export const subscribedHomeworksResponseSchema = z.object({
+  viewer: viewerContextSchema,
+  homeworks: z.array(homeworkListItemSchema),
+  auditLogs: z.array(homeworkAuditLogSchema),
+  sectionIds: z.array(z.number().int()),
+});
+
 export const openApiErrorSchema = z.object({
   error: z.string(),
 });

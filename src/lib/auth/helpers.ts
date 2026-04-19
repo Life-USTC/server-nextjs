@@ -35,7 +35,11 @@ export async function resolveApiUserId(
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     if (token) {
-      const issuer = getOAuthIssuerUrl().toString();
+      // Better Auth's jwt plugin sets `iss` to AUTH_BASE_URL (the bare origin,
+      // e.g. "http://localhost:3000"), while getOAuthIssuerUrl() adds the
+      // "/api/auth" path suffix. Accept both so tokens issued by either path
+      // verify correctly.
+      const issuerPath = getOAuthIssuerUrl().toString();
       const siteOrigin = new URL(
         `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/`,
       ).origin;
@@ -47,7 +51,10 @@ export async function resolveApiUserId(
           // tokens. Opaque/no-resource tokens are reserved for the MCP transport,
           // where resource and scope checks happen in src/lib/mcp/auth.ts.
           // Accept both the bare origin (CLI resource) and the issuer path as audiences.
-          verifyOptions: { issuer, audience: [siteOrigin, issuer] },
+          verifyOptions: {
+            issuer: [siteOrigin, issuerPath],
+            audience: [siteOrigin, issuerPath],
+          },
         });
 
         const sub = (jwt as { sub?: unknown }).sub;

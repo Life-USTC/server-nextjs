@@ -13,11 +13,9 @@ import { resolveApiUserId } from "@/lib/auth/helpers";
 export const dynamic = "force-dynamic";
 
 /**
- * Get or update bus preferences for the current user.
- * @body busPreferenceRequestSchema
+ * Get bus preferences for the current user.
  * @response busPreferenceResponseSchema
  * @response 401:openApiErrorSchema
- * @response 400:openApiErrorSchema
  */
 export async function GET(request: Request) {
   const userId = await resolveApiUserId(request);
@@ -33,6 +31,13 @@ export async function GET(request: Request) {
   }
 }
 
+/**
+ * Update bus preferences for the current user.
+ * @body busPreferenceRequestSchema
+ * @response busPreferenceResponseSchema
+ * @response 401:openApiErrorSchema
+ * @response 400:openApiErrorSchema
+ */
 export async function POST(request: Request) {
   const userId = await resolveApiUserId(request);
   if (!userId) {

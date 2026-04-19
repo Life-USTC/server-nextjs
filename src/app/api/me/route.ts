@@ -5,10 +5,9 @@ import { prisma } from "@/lib/db/prisma";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /api/me — return the authenticated user's profile.
- *
- * Accepts Bearer token (OAuth JWT) or session cookie.
- * Used by the iOS client after OAuth2 PKCE login.
+ * Return the authenticated user's profile.
+ * @response meResponseSchema
+ * @response 401:openApiErrorSchema
  */
 export async function GET(request: Request) {
   const userId = await resolveApiUserId(request);

@@ -338,6 +338,13 @@ export const semestersQuerySchema = z.object({
 
 export const todoPrioritySchema = z.enum(["low", "medium", "high"]);
 
+export const todosQuerySchema = z.object({
+  completed: z.enum(["true", "false"]).optional(),
+  priority: todoPrioritySchema.optional(),
+  dueBefore: z.string().trim().datetime().optional(),
+  dueAfter: z.string().trim().datetime().optional(),
+});
+
 export const todoCreateRequestSchema = z.object({
   title: z.string().trim().min(1).max(200),
   content: z.string().max(4000).optional().nullable(),

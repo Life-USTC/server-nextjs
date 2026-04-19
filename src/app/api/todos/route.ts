@@ -3,7 +3,10 @@ import {
   jsonResponse,
   unauthorized,
 } from "@/lib/api/helpers";
-import { todoCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import {
+  todoCreateRequestSchema,
+  todosQuerySchema,
+} from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
@@ -11,7 +14,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * List todos for the current user.
+ * @params todosQuerySchema
  * @response todosListResponseSchema
+ * @response 401:openApiErrorSchema
  */
 export async function GET(request: Request) {
   const userId = await resolveApiUserId(request);
@@ -19,9 +24,33 @@ export async function GET(request: Request) {
     return unauthorized();
   }
 
+  const { searchParams } = new URL(request.url);
+  const parsedQuery = todosQuerySchema.safeParse({
+    completed: searchParams.get("completed") ?? undefined,
+    priority: searchParams.get("priority") ?? undefined,
+    dueBefore: searchParams.get("dueBefore") ?? undefined,
+    dueAfter: searchParams.get("dueAfter") ?? undefined,
+  });
+  if (!parsedQuery.success) {
+    return handleRouteError("Invalid todo query", parsedQuery.error, 400);
+  }
+
+  const where: Record<string, unknown> = { userId };
+  if (parsedQuery.data.completed === "true") where.completed = true;
+  else if (parsedQuery.data.completed === "false") where.completed = false;
+  if (parsedQuery.data.priority) where.priority = parsedQuery.data.priority;
+  if (parsedQuery.data.dueBefore || parsedQuery.data.dueAfter) {
+    const dueAtFilter: Record<string, Date> = {};
+    if (parsedQuery.data.dueBefore)
+      dueAtFilter.lt = new Date(parsedQuery.data.dueBefore);
+    if (parsedQuery.data.dueAfter)
+      dueAtFilter.gte = new Date(parsedQuery.data.dueAfter);
+    where.dueAt = dueAtFilter;
+  }
+
   try {
     const todos = await prisma.todo.findMany({
-      where: { userId },
+      where,
       orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
     });
 
