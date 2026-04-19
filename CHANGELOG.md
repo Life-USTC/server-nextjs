@@ -1,3 +1,10 @@
+## [1.23.4](https://github.com/Life-USTC/server-nextjs/compare/v1.23.3...v1.23.4) (2026-04-19)
+
+
+### Bug Fixes
+
+* **auth:** sign webhook session cookie with HMAC like Better Auth ([ca2e0ff](https://github.com/Life-USTC/server-nextjs/commit/ca2e0ff4e5ec05e9396c85f5a4c2ef92c308cdde))
+
 ## [1.23.3](https://github.com/Life-USTC/server-nextjs/compare/v1.23.2...v1.23.3) (2026-04-19)
 
 
