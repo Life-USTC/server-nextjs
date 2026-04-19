@@ -102,9 +102,10 @@ export async function GET(request: Request) {
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       }),
       prisma.homeworkAuditLog.findMany({
-        where: sectionIdList.length === 1
-          ? { sectionId: sectionIdList[0] }
-          : { sectionId: { in: sectionIdList } },
+        where:
+          sectionIdList.length === 1
+            ? { sectionId: sectionIdList[0] }
+            : { sectionId: { in: sectionIdList } },
         include: {
           actor: {
             select: { id: true, name: true, username: true, image: true },
