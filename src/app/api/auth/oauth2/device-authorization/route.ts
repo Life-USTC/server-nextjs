@@ -102,7 +102,8 @@ export async function POST(request: Request) {
     return jsonError(500, "server_error", "Failed to create device code");
   }
 
-  const baseUrl = getBetterAuthBaseUrl();
+  // Derive site origin — handles BETTER_AUTH_URL that may include /api/auth path
+  const siteOrigin = new URL(getBetterAuthBaseUrl()).origin;
 
   logOAuthDebug("device-auth.success", request, {
     clientIdPrefix: clientId.slice(0, 8),
@@ -114,8 +115,11 @@ export async function POST(request: Request) {
     {
       device_code: deviceCode,
       user_code: userCode,
-      verification_uri: getVerificationUri(baseUrl),
-      verification_uri_complete: getVerificationUriComplete(baseUrl, userCode),
+      verification_uri: getVerificationUri(siteOrigin),
+      verification_uri_complete: getVerificationUriComplete(
+        siteOrigin,
+        userCode,
+      ),
       expires_in: DEVICE_CODE_EXPIRES_IN,
       interval: DEVICE_CODE_POLL_INTERVAL,
     },
