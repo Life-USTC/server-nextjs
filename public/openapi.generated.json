@@ -731,9 +731,89 @@
         }
       }
     },
+    "/api/auth/oauth2/device-authorization": {
+      "post": {
+        "operationId": "post-api-auth-oauth2-device-authorization",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-auth-oauth2-device-authorization",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/oauth2/register": {
       "post": {
         "operationId": "post-api-auth-oauth2-register",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oauth2/token": {
+      "get": {
+        "operationId": "get-api-auth-oauth2-token",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "post-api-auth-oauth2-token",
         "summary": "",
         "description": "",
         "tags": [
@@ -756,6 +836,27 @@
       "get": {
         "operationId": "get-api-auth-session",
         "summary": "Compatibility endpoint for existing tests/tools that still call.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/webhook/login": {
+      "post": {
+        "operationId": "post-api-auth-webhook-login",
+        "summary": "",
         "description": "",
         "tags": [
           "Api"
@@ -2207,6 +2308,27 @@
       "delete": {
         "operationId": "delete-api-mcp",
         "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me": {
+      "get": {
+        "operationId": "get-api-me",
+        "summary": "GET /api/me — return the authenticated user's profile.",
         "description": "",
         "tags": [
           "Api"

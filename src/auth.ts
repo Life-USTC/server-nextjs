@@ -74,7 +74,11 @@ const OIDC_ISSUER =
   process.env.AUTH_OIDC_ISSUER ||
   "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2";
 const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid-configuration`;
-const AUTH_BASE_URL = process.env.BETTER_AUTH_URL || "http://localhost:3000";
+const AUTH_BASE_URL =
+  process.env.BETTER_AUTH_URL ||
+  (process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000");
 /** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
 const AUTH_PUBLIC_ORIGIN = new URL(`${AUTH_BASE_URL.replace(/\/$/, "")}/`)
   .origin;

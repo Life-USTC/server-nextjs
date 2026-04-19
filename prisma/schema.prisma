@@ -802,6 +802,7 @@ model User {
   oauthAccessTokens  OAuthAccessToken[]
   oauthRefreshTokens OAuthRefreshToken[]
   oauthConsents      OAuthConsent[]
+  deviceCodes        DeviceCode[]
 }
 
 
@@ -1246,8 +1247,34 @@ model OAuthClient {
   accessTokens  OAuthAccessToken[]
   refreshTokens OAuthRefreshToken[]
   consents      OAuthConsent[]
+  deviceCodes   DeviceCode[]
 
   @@index([userId])
+}
+
+model DeviceCode {
+  id String @id @default(cuid())
+
+  deviceCode String   @unique
+  userCode   String   @unique
+  scopes     String[] @default([])
+
+  clientId String
+  client   OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status       String   @default("pending") // pending, approved, denied
+  lastPolledAt DateTime?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([deviceCode])
+  @@index([userCode])
+  @@index([clientId])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model OAuthRefreshToken {
