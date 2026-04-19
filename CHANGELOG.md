@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/Life-USTC/server-nextjs/compare/v1.24.0...v1.25.0) (2026-04-19)
+
+
+### Features
+
+* **api:** openapi 3.0 compat, combined endpoints, server-side filtering, JWT issuer fix ([8163f8c](https://github.com/Life-USTC/server-nextjs/commit/8163f8cf9ac1bb11a234e6a5f277435ad96a79c7))
+
 # [1.24.0](https://github.com/Life-USTC/server-nextjs/compare/v1.23.5...v1.24.0) (2026-04-19)
 
 
