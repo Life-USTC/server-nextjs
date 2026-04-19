@@ -1,3 +1,10 @@
+## [1.23.3](https://github.com/Life-USTC/server-nextjs/compare/v1.23.2...v1.23.3) (2026-04-19)
+
+
+### Bug Fixes
+
+* **auth:** add username lookup to webhook login ([f8286ff](https://github.com/Life-USTC/server-nextjs/commit/f8286ff82ed47028289a18526f4baca6d8cb1bcb))
+
 ## [1.23.2](https://github.com/Life-USTC/server-nextjs/compare/v1.23.1...v1.23.2) (2026-04-19)
 
 
