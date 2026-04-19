@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/Life-USTC/server-nextjs/compare/v1.22.2...v1.23.0) (2026-04-19)
+
+
+### Features
+
+* **auth:** implement RFC 8628 device code flow, webhook login, and Vercel OAuth fix ([60d510d](https://github.com/Life-USTC/server-nextjs/commit/60d510ddef96c76dafca1002ec5e7bfc8cf9fb9f))
+
 ## [1.22.2](https://github.com/Life-USTC/server-nextjs/compare/v1.22.1...v1.22.2) (2026-04-18)
 
 
