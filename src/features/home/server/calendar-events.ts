@@ -55,29 +55,33 @@ export async function listUserCalendarEvents(
             sectionId: { in: sectionIds },
             date: { gte: windowStart, lt: windowEnd },
           },
-          include: {
+          select: {
+            id: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            customPlace: true,
+            sectionId: true,
             section: {
-              include: {
-                course: true,
-                semester: true,
+              select: {
+                jwId: true,
+                code: true,
+                course: { select: { namePrimary: true, code: true } },
+                semester: { select: { nameCn: true } },
               },
             },
             room: {
-              include: {
+              select: {
+                namePrimary: true,
                 building: {
-                  include: {
-                    campus: true,
+                  select: {
+                    namePrimary: true,
+                    campus: { select: { namePrimary: true } },
                   },
                 },
-                roomType: true,
               },
             },
-            teachers: {
-              include: {
-                department: true,
-              },
-            },
-            scheduleGroup: true,
+            teachers: { select: { namePrimary: true } },
           },
           orderBy: [{ date: "asc" }, { startTime: "asc" }],
         })
@@ -92,14 +96,19 @@ export async function listUserCalendarEvents(
             submissionDueAt: { gte: windowStart, lt: windowEnd },
             homeworkCompletions: { none: { userId } },
           },
-          include: {
-            description: {
-              select: { content: true },
-            },
+          select: {
+            id: true,
+            title: true,
+            submissionDueAt: true,
+            createdAt: true,
+            sectionId: true,
+            description: { select: { content: true } },
             section: {
-              include: {
-                course: true,
-                semester: true,
+              select: {
+                jwId: true,
+                code: true,
+                course: { select: { namePrimary: true } },
+                semester: { select: { nameCn: true } },
               },
             },
           },
@@ -114,15 +123,22 @@ export async function listUserCalendarEvents(
             sectionId: { in: sectionIds },
             examDate: { gte: windowStart, lt: windowEnd },
           },
-          include: {
+          select: {
+            id: true,
+            examDate: true,
+            startTime: true,
+            endTime: true,
+            examType: true,
+            sectionId: true,
             section: {
-              include: {
-                course: true,
-                semester: true,
+              select: {
+                jwId: true,
+                code: true,
+                course: { select: { namePrimary: true } },
+                semester: { select: { nameCn: true } },
               },
             },
-            examBatch: true,
-            examRooms: true,
+            examRooms: { select: { room: true, count: true } },
           },
           orderBy: [{ examDate: "asc" }, { startTime: "asc" }],
         })
@@ -133,6 +149,16 @@ export async function listUserCalendarEvents(
       userId,
       completed: false,
       dueAt: { gte: windowStart, lt: windowEnd },
+    },
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      dueAt: true,
+      priority: true,
+      completed: true,
+      createdAt: true,
+      updatedAt: true,
     },
     orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
   });

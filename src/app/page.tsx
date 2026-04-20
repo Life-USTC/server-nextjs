@@ -62,8 +62,11 @@ export default async function HomePage({
             ...debugOptions,
             calendarSemesterId: parsedCalendarSemester,
             busDayType,
+            skipLinks: true,
           }
-        : { ...debugOptions, busDayType };
+        : tab === "calendar"
+          ? { ...debugOptions, busDayType, skipLinks: true }
+          : { ...debugOptions, busDayType };
 
     const [
       navStats,

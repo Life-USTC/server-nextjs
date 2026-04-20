@@ -48,6 +48,8 @@ export type OverviewDataOptions = {
   calendarSemesterId?: number;
   /** Bus day type override (weekday/weekend); defaults to auto-detect. */
   busDayType?: "weekday" | "weekend";
+  /** Skip dashboard-links queries when the caller doesn't need them (e.g. calendar tab). */
+  skipLinks?: boolean;
 };
 
 export type DashboardNavStats = {
@@ -363,56 +365,112 @@ export async function getDashboardOverviewData(
     : baseNow;
   const referenceDate = referenceNow.toDate();
 
-  const [user, semesters] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        subscribedSections: {
-          include: {
-            course: true,
-            semester: true,
-            schedules: {
-              include: {
-                room: {
-                  include: {
-                    building: {
-                      include: { campus: true },
-                    },
-                  },
-                },
-                teachers: true,
-              },
-              orderBy: [{ date: "asc" }, { startTime: "asc" }],
-            },
-            exams: {
-              orderBy: { examDate: "asc" },
-              include: { examRooms: true },
-            },
-          },
-        },
-      },
-    }),
-    prisma.semester.findMany({
-      select: {
-        id: true,
-        nameCn: true,
-        startDate: true,
-        endDate: true,
-      },
-      orderBy: { startDate: "asc" },
-    }),
-  ]);
+  // Fetch semesters first so we can compute date bounds for schedule filtering
+  const semesters = await prisma.semester.findMany({
+    select: {
+      id: true,
+      nameCn: true,
+      startDate: true,
+      endDate: true,
+    },
+    orderBy: { startDate: "asc" },
+  });
 
-  if (!user) return null;
-
-  const allSections = user.subscribedSections;
   const currentSemester = selectCurrentSemesterFromList(
     semesters,
     referenceDate,
   );
+
+  // Pre-compute grid semester so we know which date range to filter schedules by
+  const calendarSemesterFromUrlValid =
+    options.calendarSemesterId != null &&
+    semesters.some((s) => s.id === options.calendarSemesterId);
+  const gridSemesterRow =
+    calendarSemesterFromUrlValid && options.calendarSemesterId != null
+      ? (semesters.find((s) => s.id === options.calendarSemesterId) ?? null)
+      : currentSemester && semesters.some((s) => s.id === currentSemester.id)
+        ? (semesters.find((s) => s.id === currentSemester.id) ?? null)
+        : null;
+
+  // Build a date window covering both current and grid semesters for schedule filtering.
+  // Falls back to ±6 months when no semester dates are available.
+  const fallbackStart = referenceNow.subtract(6, "month").toDate();
+  const fallbackEnd = referenceNow.add(6, "month").toDate();
+  const candidateStarts = [
+    currentSemester?.startDate,
+    gridSemesterRow?.startDate,
+  ].filter((d): d is Date => d != null);
+  const candidateEnds = [
+    currentSemester?.endDate,
+    gridSemesterRow?.endDate,
+  ].filter((d): d is Date => d != null);
+  const scheduleDateStart =
+    candidateStarts.length > 0
+      ? new Date(Math.min(...candidateStarts.map((d) => d.getTime())))
+      : fallbackStart;
+  const scheduleDateEnd =
+    candidateEnds.length > 0
+      ? new Date(Math.max(...candidateEnds.map((d) => d.getTime())))
+      : fallbackEnd;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      subscribedSections: {
+        select: {
+          id: true,
+          jwId: true,
+          course: { select: { namePrimary: true } },
+          semester: { select: { id: true } },
+          schedules: {
+            where: {
+              date: { gte: scheduleDateStart, lte: scheduleDateEnd },
+            },
+            select: {
+              id: true,
+              date: true,
+              startTime: true,
+              endTime: true,
+              customPlace: true,
+              room: {
+                select: {
+                  namePrimary: true,
+                  building: {
+                    select: {
+                      namePrimary: true,
+                      campus: { select: { namePrimary: true } },
+                    },
+                  },
+                },
+              },
+              teachers: { select: { namePrimary: true } },
+            },
+            orderBy: [{ date: "asc" }, { startTime: "asc" }],
+          },
+          exams: {
+            select: {
+              id: true,
+              examDate: true,
+              startTime: true,
+              endTime: true,
+              examType: true,
+              examTakeCount: true,
+              examMode: true,
+              examRooms: { select: { room: true, count: true } },
+            },
+            orderBy: { examDate: "asc" },
+          },
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  const allSections = user.subscribedSections;
   const {
     hasAnySelection,
     hasCurrentTermSelection,
@@ -440,17 +498,6 @@ export async function getDashboardOverviewData(
     nameCn: s.nameCn ?? "—",
   }));
 
-  const calendarSemesterFromUrlValid =
-    options.calendarSemesterId != null &&
-    semesters.some((s) => s.id === options.calendarSemesterId);
-
-  const gridSemesterRow =
-    calendarSemesterFromUrlValid && options.calendarSemesterId != null
-      ? (semesters.find((s) => s.id === options.calendarSemesterId) ?? null)
-      : currentSemester && semesters.some((s) => s.id === currentSemester.id)
-        ? (semesters.find((s) => s.id === currentSemester.id) ?? null)
-        : null;
-
   const sectionsForCalendarGrid = gridSemesterRow
     ? allSections.filter((s) => s.semester?.id === gridSemesterRow.id)
     : [];
@@ -464,14 +511,26 @@ export async function getDashboardOverviewData(
 
   const homeworks: HomeworkWithSection[] = homeworkSectionIds.length
     ? await prisma.homework.findMany({
-        where: { sectionId: { in: homeworkSectionIds }, deletedAt: null },
-        include: {
+        where: {
+          sectionId: { in: homeworkSectionIds },
+          deletedAt: null,
+          homeworkCompletions: { none: { userId } },
+        },
+        select: {
+          id: true,
+          title: true,
+          submissionDueAt: true,
           description: { select: { content: true } },
           homeworkCompletions: {
             where: { userId },
             select: { completedAt: true },
           },
-          section: { include: { course: true } },
+          section: {
+            select: {
+              jwId: true,
+              course: { select: { namePrimary: true } },
+            },
+          },
         },
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       })
@@ -489,11 +548,13 @@ export async function getDashboardOverviewData(
   const weeklySessions = selectWeeklySessions(sessions, weekStart, weekEnd);
   const weekDays = buildWeekDays(weekStart);
   const timeSlots = buildTimeSlots(weeklySessions);
-  const allScheduleTimes = buildScheduleTimes(allSections);
   const { incompleteHomeworks, dueToday, dueWithin3Days } =
     computeHomeworkBuckets(homeworks, todayStart);
   const weekDayFormatter = createWeekDayFormatter(locale);
-  const busiestDate = findBusiestDate(allScheduleTimes);
+  // busiestDate is only rendered in debug mode; scope to current semester schedules
+  const busiestDate = showDebugTools
+    ? findBusiestDate(buildScheduleTimes(dashboardSections))
+    : null;
 
   const calendarStart = todayStart.subtract(3, "day");
   const calendarEnd = todayStart.add(4, "day");
@@ -579,7 +640,14 @@ export async function getDashboardOverviewData(
   const activeCalendarSemesterName = gridSemesterRow?.nameCn ?? null;
 
   const { dashboardLinks, recommendedLinks, pinnedLinks, overviewLinks } =
-    await getSignedInDashboardLinksData(userId);
+    options.skipLinks
+      ? {
+          dashboardLinks: [],
+          recommendedLinks: [],
+          pinnedLinks: [],
+          overviewLinks: [],
+        }
+      : await getSignedInDashboardLinksData(userId);
 
   return {
     user: {
@@ -741,14 +809,27 @@ export async function getHomeworksTabData(userId: string) {
     sectionIds.length > 0
       ? await localizedPrisma.homework.findMany({
           where: { sectionId: { in: sectionIds }, deletedAt: null },
-          include: {
+          select: {
+            id: true,
+            title: true,
+            isMajor: true,
+            requiresTeam: true,
+            publishedAt: true,
+            submissionStartAt: true,
+            submissionDueAt: true,
+            createdAt: true,
             description: { select: { content: true } },
             homeworkCompletions: {
               where: { userId },
               select: { completedAt: true },
             },
             section: {
-              include: { course: true, semester: true },
+              select: {
+                jwId: true,
+                code: true,
+                course: { select: { namePrimary: true } },
+                semester: { select: { nameCn: true } },
+              },
             },
           },
           orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
@@ -796,25 +877,26 @@ export async function getSubscriptionsTabData(userId: string) {
   const [user, semesters] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      include: {
+      select: {
+        id: true,
         subscribedSections: {
-          include: {
-            course: true,
-            semester: true,
-            teachers: true,
-            schedules: {
-              include: {
-                room: {
-                  include: {
-                    building: { include: { campus: true } },
-                  },
-                },
-                teachers: true,
-              },
-              orderBy: [{ date: "asc" }, { startTime: "asc" }],
-            },
+          select: {
+            id: true,
+            jwId: true,
+            code: true,
+            credits: true,
+            course: { select: { namePrimary: true } },
+            semester: { select: { id: true, nameCn: true, startDate: true } },
+            teachers: { select: { namePrimary: true } },
             exams: {
-              include: { examBatch: true, examRooms: true },
+              select: {
+                id: true,
+                examDate: true,
+                startTime: true,
+                endTime: true,
+                examMode: true,
+                examRooms: { select: { room: true, count: true } },
+              },
               orderBy: [{ examDate: "asc" }],
             },
           },
@@ -885,6 +967,16 @@ export type TodoItem = {
 export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
   const todos = await basePrisma.todo.findMany({
     where: { userId },
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      completed: true,
+      priority: true,
+      dueAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
     orderBy: [{ completed: "asc" }, { dueAt: "asc" }, { createdAt: "desc" }],
   });
 
