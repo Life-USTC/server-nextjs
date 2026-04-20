@@ -5,6 +5,7 @@ import {
   handleRouteError,
   invalidParamResponse,
   jsonResponse,
+  notFound,
   parseInteger,
 } from "@/lib/api/helpers";
 import { busQueryResponseSchema } from "@/lib/api/schemas";
@@ -98,10 +99,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!result) {
-      return jsonResponse(
-        { error: "Bus schedule is not available" },
-        { status: 404 },
-      );
+      return notFound("Bus schedule is not available");
     }
 
     const validated = busQueryResponseSchema.parse(result);

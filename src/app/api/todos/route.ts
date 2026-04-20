@@ -1,4 +1,5 @@
 import {
+  badRequest,
   handleRouteError,
   jsonResponse,
   unauthorized,
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
 
   const dueAt = parseDateInput(parsedBody.data.dueAt);
   if (dueAt === undefined) {
-    return jsonResponse({ error: "Invalid due date" }, { status: 400 });
+    return badRequest("Invalid due date");
   }
 
   try {

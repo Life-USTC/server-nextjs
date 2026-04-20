@@ -6,6 +6,7 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
+  suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
@@ -65,13 +66,7 @@ export async function POST(
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return jsonResponse(
-      {
-        error: "Suspended",
-        reason: suspension.reason ?? null,
-      },
-      { status: 403 },
-    );
+    return suspensionForbidden(suspension.reason);
   }
 
   try {

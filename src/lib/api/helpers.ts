@@ -96,6 +96,13 @@ export function forbidden(message = "Forbidden") {
   return errorResponse(message, 403);
 }
 
+export function suspensionForbidden(reason?: string | null) {
+  return jsonResponse(
+    { error: "Suspended", reason: reason ?? null },
+    { status: 403 },
+  );
+}
+
 export function notFound(message = "Not found") {
   return errorResponse(message, 404);
 }

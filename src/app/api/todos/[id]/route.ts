@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  badRequest,
+  forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
@@ -21,7 +23,7 @@ async function parseTodoId(
   const raw = await params;
   const parsed = resourceIdPathParamsSchema.safeParse(raw);
   if (!parsed.success) {
-    return jsonResponse({ error: "Invalid todo ID" }, { status: 400 });
+    return badRequest("Invalid todo ID");
   }
   return parsed.data.id;
 }
@@ -63,7 +65,7 @@ export async function PATCH(
   const hasDueAt = Object.hasOwn(parsedBody.data, "dueAt");
   const dueAt = hasDueAt ? parseDateInput(parsedBody.data.dueAt) : undefined;
   if (hasDueAt && dueAt === undefined) {
-    return jsonResponse({ error: "Invalid due date" }, { status: 400 });
+    return badRequest("Invalid due date");
   }
 
   try {
@@ -77,7 +79,7 @@ export async function PATCH(
     }
 
     if (todo.userId !== userId) {
-      return jsonResponse({ error: "Forbidden" }, { status: 403 });
+      return forbidden();
     }
 
     const updates: Record<string, unknown> = {};
@@ -93,7 +95,7 @@ export async function PATCH(
       updates.completed = parsedBody.data.completed;
 
     if (Object.keys(updates).length === 0) {
-      return jsonResponse({ error: "No changes" }, { status: 400 });
+      return badRequest("No changes");
     }
 
     await prisma.todo.update({ where: { id }, data: updates });
@@ -136,7 +138,7 @@ export async function DELETE(
     }
 
     if (todo.userId !== userId) {
-      return jsonResponse({ error: "Forbidden" }, { status: 403 });
+      return forbidden();
     }
 
     await prisma.todo.delete({ where: { id } });

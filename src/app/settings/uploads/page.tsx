@@ -3,5 +3,5 @@ import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 
 export default function SettingsUploadsPage() {
-  redirect("/");
+  redirect("/settings?tab=content");
 }

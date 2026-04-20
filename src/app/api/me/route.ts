@@ -1,4 +1,4 @@
-import { jsonResponse } from "@/lib/api/helpers";
+import { jsonResponse, notFound, unauthorized } from "@/lib/api/helpers";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const userId = await resolveApiUserId(request);
   if (!userId) {
-    return jsonResponse({ error: "Not authenticated" }, { status: 401 });
+    return unauthorized();
   }
 
   const user = await prisma.user.findUnique({
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   });
 
   if (!user) {
-    return jsonResponse({ error: "User not found" }, { status: 404 });
+    return notFound("User not found");
   }
 
   return jsonResponse(user);

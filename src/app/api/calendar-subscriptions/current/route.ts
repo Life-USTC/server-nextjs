@@ -1,5 +1,9 @@
 import { getUserCalendarSubscription } from "@/features/home/server/subscriptions";
-import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  unauthorized,
+} from "@/lib/api/helpers";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +17,7 @@ export async function GET(request: Request) {
   try {
     const userId = await resolveApiUserId(request);
     if (!userId) {
-      return handleRouteError("Unauthorized", new Error("Unauthorized"), 401);
+      return unauthorized();
     }
 
     const subscription = await getUserCalendarSubscription(userId);

@@ -9,6 +9,7 @@ import {
   jsonResponse,
   notFound,
   parseOptionalInt,
+  suspensionForbidden,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
@@ -210,10 +211,7 @@ export async function POST(request: Request) {
 
   const suspension = await findActiveSuspension(userId);
   if (suspension) {
-    return jsonResponse(
-      { error: "Suspended", reason: suspension.reason ?? null },
-      { status: 403 },
-    );
+    return suspensionForbidden(suspension.reason);
   }
 
   try {
