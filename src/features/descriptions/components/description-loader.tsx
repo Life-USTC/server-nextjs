@@ -1,5 +1,5 @@
-import { DescriptionPanel } from "@/components/descriptions/description-panel";
 import { getViewerContext } from "@/features/comments/server/comment-utils";
+import { DescriptionPanel } from "@/features/descriptions/components/description-panel";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 
 export async function DescriptionLoader({

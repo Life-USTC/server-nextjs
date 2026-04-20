@@ -1,46 +1,34 @@
-import dayjs from "dayjs";
-import { ChevronDown } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { cache, Suspense } from "react";
-import type { CalendarEvent } from "@/components/event-calendar";
 import { EventCalendar } from "@/components/event-calendar";
-import {
-  CommentsSkeleton,
-  DescriptionSkeleton,
-  HomeworkSkeleton,
-} from "@/components/skeletons";
+import { DescriptionSkeleton } from "@/components/skeletons";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsiblePanel,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { CommentAwareTabs } from "@/features/comments/components/comment-aware-tabs";
-import { CommentsSection } from "@/features/comments/components/comments-section";
 import { getViewerContext } from "@/features/comments/server/comment-utils";
-import { getCommentsPayload } from "@/features/comments/server/comments-server";
 import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
-import { HomeworkPanel } from "@/features/homeworks/components/homework-panel";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-import { cn } from "@/lib/utils";
-import { formatTime } from "@/shared/lib/time-utils";
+import {
+  buildSectionCalendarEvents,
+  computeCalendarDates,
+  computeMiniCalendarData,
+} from "./section-calendar-events";
+import {
+  BasicInfoCard,
+  MiniCalendar,
+  SectionBreadcrumb,
+  SectionHeader,
+} from "./section-components";
+import {
+  SectionCommentsLoader,
+  SectionHomeworkLoader,
+} from "./section-loaders";
 
 const SECTION_DETAIL_INCLUDE = {
   course: true,
@@ -96,10 +84,6 @@ const fetchSectionDetail = cache(async (locale: string, jwId: number) => {
   });
 });
 
-type SectionDetail = NonNullable<
-  Awaited<ReturnType<typeof fetchSectionDetail>>
->;
-
 async function fetchOtherSections(
   prisma: LocalePrisma,
   section: { courseId: number; id: number },
@@ -113,8 +97,6 @@ async function fetchOtherSections(
     orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
   });
 }
-
-type OtherSection = Awaited<ReturnType<typeof fetchOtherSections>>[number];
 
 export async function generateMetadata({
   params,
@@ -266,152 +248,35 @@ export default async function SectionPage({
     t("weekdays.saturday"),
   ];
 
-  const formatDetailValue = (value: string | number | null | undefined) => {
-    if (value === null || value === undefined) return null;
-    const text = String(value).trim();
-    return text.length > 0 ? text : null;
-  };
-
-  const formatScheduleLocation = (
-    schedule: (typeof section.schedules)[number],
-  ) => {
-    if (schedule.customPlace) return schedule.customPlace;
-    if (!schedule.room) return "—";
-
-    const parts = [schedule.room.namePrimary];
-    if (schedule.room.building) {
-      parts.push(schedule.room.building.namePrimary);
-      if (schedule.room.building.campus) {
-        parts.push(schedule.room.building.campus.namePrimary);
-      }
-    }
-
-    return parts.join(" · ");
-  };
-
-  const toMinutes = (time: number | null | undefined) =>
-    time === null || time === undefined
-      ? undefined
-      : Math.floor(time / 100) * 60 + (time % 100);
-
-  const scheduleEvents: CalendarEvent[] = section.schedules.map((schedule) => {
-    const timeRange = `${formatTime(schedule.startTime)}-${formatTime(
-      schedule.endTime,
-    )}`;
-    const location = formatScheduleLocation(schedule);
-    const metaStr = [timeRange, location].filter(Boolean).join(" · ");
-    const meta = metaStr
-      ? metaStr.length > 60
-        ? `${metaStr.slice(0, 60)}…`
-        : metaStr
-      : undefined;
-    const details = [
-      { label: t("location"), value: location },
-      {
-        label: t("teacher"),
-        value:
-          schedule.teachers && schedule.teachers.length > 0
-            ? schedule.teachers.map((teacher) => teacher.namePrimary).join(", ")
-            : "—",
-      },
-      {
-        label: t("units"),
-        value: `${schedule.startUnit} - ${schedule.endUnit}`,
-      },
-      { label: t("week"), value: schedule.weekIndex ?? "—" },
-    ].flatMap((detail) => {
-      const value = formatDetailValue(detail.value);
-      return value ? [{ ...detail, value }] : [];
-    });
-
-    return {
-      id: `schedule-${schedule.id}`,
-      date: schedule.date,
-      title: t("classEvent"),
-      meta,
-      href: `/sections/${section.jwId}`,
-      variant: "session",
-      sortValue: toMinutes(schedule.startTime),
-      details,
-    };
-  });
-
-  const examEvents: CalendarEvent[] = section.exams.map((exam) => {
-    const timeRange =
-      exam.startTime !== null && exam.endTime !== null
-        ? `${formatTime(exam.startTime)}-${formatTime(exam.endTime)}`
-        : "";
-    const examRooms = exam.examRooms
-      ? exam.examRooms
-          .map((room) => room.room)
-          .filter(Boolean)
-          .join(", ")
-      : "";
-    const courseTitle = section.course?.namePrimary;
-    const details = [
-      { label: t("examMode"), value: exam.examMode ?? "" },
-      { label: t("examBatch"), value: exam.examBatch?.namePrimary ?? "" },
-      { label: t("location"), value: examRooms },
-      { label: t("examCount"), value: exam.examTakeCount ?? null },
-    ].flatMap((detail) => {
-      const value = formatDetailValue(detail.value);
-      return value ? [{ ...detail, value }] : [];
-    });
-
-    return {
-      id: `exam-${exam.id}`,
-      date: exam.examDate,
-      title: courseTitle ?? t("examEvent"),
-      meta: timeRange || undefined,
-      href: `/sections/${section.jwId}`,
-      variant: "exam",
-      sortValue: toMinutes(exam.startTime),
-      details,
-    };
-  });
-
-  const calendarEvents = [...scheduleEvents, ...examEvents];
-  const datedEvents = calendarEvents
-    .filter((event): event is CalendarEvent & { date: Date } =>
-      Boolean(event.date),
-    )
-    .sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-  const firstScheduleDate = section.schedules[0]?.date ?? null;
-  const lastEventDate = datedEvents.at(-1)?.date ?? null;
-  const today = dayjs().startOf("day");
-  const isOngoing =
-    firstScheduleDate &&
-    lastEventDate &&
-    !today.isBefore(dayjs(firstScheduleDate).startOf("day")) &&
-    !today.isAfter(dayjs(lastEventDate).startOf("day"));
-  const fallbackStartDate =
-    firstScheduleDate ?? datedEvents[0]?.date ?? today.toDate();
-  const calendarMonthStart = dayjs(isOngoing ? today : fallbackStartDate)
-    .startOf("month")
-    .toDate();
-  const scheduleDateKeys = new Set(
-    section.schedules
-      .filter((schedule) => schedule.date)
-      .map((schedule) => dayjs(schedule.date).format("YYYY-MM-DD")),
+  const calendarEvents = buildSectionCalendarEvents(
+    section.schedules,
+    section.exams,
+    section.jwId,
+    section.course?.namePrimary,
+    {
+      classEvent: t("classEvent"),
+      examEvent: t("examEvent"),
+      location: t("location"),
+      teacher: t("teacher"),
+      units: t("units"),
+      week: t("week"),
+      examMode: t("examMode"),
+      examBatch: t("examBatch"),
+      examCount: t("examCount"),
+    },
   );
-  const examDateKeys = new Set(
-    section.exams
-      .filter((exam) => exam.examDate)
-      .map((exam) => dayjs(exam.examDate).format("YYYY-MM-DD")),
+
+  const { calendarMonthStart, scheduleDateKeys, today } = computeCalendarDates(
+    calendarEvents,
+    section.schedules,
   );
-  const miniMonthStart = dayjs(calendarMonthStart).startOf("month");
-  const miniWeekStartsOn = 0;
-  let miniGridStart = miniMonthStart;
-  while (miniGridStart.day() !== miniWeekStartsOn) {
-    miniGridStart = miniGridStart.subtract(1, "day");
-  }
-  const miniDays = Array.from({ length: 42 }, (_, index) =>
-    miniGridStart.add(index, "day"),
-  );
-  const miniWeekdays = Array.from(
-    { length: 7 },
-    (_, index) => (miniWeekStartsOn + index) % 7,
-  );
+  const {
+    miniMonthStart,
+    miniDays,
+    miniWeekdays,
+    miniMonthLabel,
+    examDateKeys,
+  } = computeMiniCalendarData(calendarMonthStart, section.exams);
   const miniWeekdayLabels = [
     t("weekdays.shortSunday"),
     t("weekdays.shortMonday"),
@@ -421,7 +286,6 @@ export default async function SectionPage({
     t("weekdays.shortFriday"),
     t("weekdays.shortSaturday"),
   ];
-  const miniMonthLabel = miniMonthStart.format("YYYY.MM");
   const todayKey = today.format("YYYY-MM-DD");
 
   return (
@@ -457,35 +321,29 @@ export default async function SectionPage({
               </TabsTab>
             </TabsList>
             <TabsPanel value="homeworks" keepMounted>
-              <Suspense fallback={<HomeworkSkeleton />}>
-                <HomeworkLoader
-                  sectionId={section.id}
-                  semesterStart={
-                    section.semester?.startDate
-                      ? toShanghaiIsoString(section.semester.startDate)
-                      : null
-                  }
-                  semesterEnd={
-                    section.semester?.endDate
-                      ? toShanghaiIsoString(section.semester.endDate)
-                      : null
-                  }
-                />
-              </Suspense>
+              <SectionHomeworkLoader
+                sectionId={section.id}
+                semesterStart={
+                  section.semester?.startDate
+                    ? toShanghaiIsoString(section.semester.startDate)
+                    : null
+                }
+                semesterEnd={
+                  section.semester?.endDate
+                    ? toShanghaiIsoString(section.semester.endDate)
+                    : null
+                }
+              />
             </TabsPanel>
             <TabsPanel value="comments" keepMounted>
-              <div className="space-y-4">
-                <Suspense fallback={<CommentsSkeleton />}>
-                  <CommentsLoader
-                    sectionId={section.id}
-                    courseId={section.courseId}
-                    teacherOptions={teacherOptions}
-                    tabSectionLabel={tComments("tabSection")}
-                    tabCourseLabel={tComments("tabCourse")}
-                    tabSectionTeacherLabel={tComments("tabSectionTeacher")}
-                  />
-                </Suspense>
-              </div>
+              <SectionCommentsLoader
+                sectionId={section.id}
+                courseId={section.courseId}
+                teacherOptions={teacherOptions}
+                tabSectionLabel={tComments("tabSection")}
+                tabCourseLabel={tComments("tabCourse")}
+                tabSectionTeacherLabel={tComments("tabSectionTeacher")}
+              />
             </TabsPanel>
             <TabsPanel value="calendar" keepMounted>
               <div className="space-y-3">
@@ -553,730 +411,5 @@ export default async function SectionPage({
         </aside>
       </div>
     </main>
-  );
-}
-
-// --- Async Server Component Loaders (streamed via Suspense) ---
-
-async function CommentsLoader({
-  sectionId,
-  courseId,
-  teacherOptions,
-  tabSectionLabel,
-  tabCourseLabel,
-  tabSectionTeacherLabel,
-}: {
-  sectionId: number;
-  courseId: number;
-  teacherOptions: { id: number; label: string }[];
-  tabSectionLabel: string;
-  tabCourseLabel: string;
-  tabSectionTeacherLabel: string;
-}) {
-  const viewer = await getViewerContext({ includeAdmin: false });
-  const selectedTeacherId = teacherOptions[0]?.id ?? null;
-
-  const [sectionComments, courseComments, sectionTeacherComments] =
-    await Promise.all([
-      getCommentsPayload({ type: "section", targetId: sectionId }, viewer),
-      getCommentsPayload({ type: "course", targetId: courseId }, viewer),
-      selectedTeacherId
-        ? getCommentsPayload(
-            {
-              type: "section-teacher",
-              sectionId,
-              teacherId: selectedTeacherId,
-            },
-            viewer,
-          )
-        : Promise.resolve({ comments: [], hiddenCount: 0, viewer }),
-    ]);
-
-  const commentsInitialData = {
-    commentMap: {
-      section: sectionComments.comments,
-      course: courseComments.comments,
-      "section-teacher": sectionTeacherComments.comments,
-    },
-    hiddenMap: {
-      section: sectionComments.hiddenCount,
-      course: courseComments.hiddenCount,
-      "section-teacher": sectionTeacherComments.hiddenCount,
-    },
-    hiddenCount:
-      sectionComments.hiddenCount +
-      courseComments.hiddenCount +
-      sectionTeacherComments.hiddenCount,
-    viewer: sectionComments.viewer,
-  };
-
-  return (
-    <CommentsSection
-      targets={[
-        {
-          key: "section",
-          label: tabSectionLabel,
-          type: "section",
-          targetId: sectionId,
-        },
-        {
-          key: "course",
-          label: tabCourseLabel,
-          type: "course",
-          targetId: courseId,
-        },
-        {
-          key: "section-teacher",
-          label: tabSectionTeacherLabel,
-          type: "section-teacher",
-          sectionId,
-        },
-      ]}
-      teacherOptions={teacherOptions}
-      showAllTargets
-      initialData={commentsInitialData}
-    />
-  );
-}
-
-async function HomeworkLoader({
-  sectionId,
-  semesterStart,
-  semesterEnd,
-}: {
-  sectionId: number;
-  semesterStart: string | null;
-  semesterEnd: string | null;
-}) {
-  const homeworkViewer = await getViewerContext({ includeAdmin: true });
-
-  const homeworkInclude = {
-    description: true,
-    createdBy: {
-      select: { id: true, name: true, username: true, image: true },
-    },
-    updatedBy: {
-      select: { id: true, name: true, username: true, image: true },
-    },
-    deletedBy: {
-      select: { id: true, name: true, username: true, image: true },
-    },
-    ...(homeworkViewer.userId
-      ? {
-          homeworkCompletions: {
-            where: { userId: homeworkViewer.userId },
-            select: { completedAt: true },
-          },
-        }
-      : {}),
-  } as const;
-
-  const [homeworkEntries, homeworkAuditLogs] = await Promise.all([
-    basePrisma.homework.findMany({
-      where: { sectionId, deletedAt: null },
-      include: homeworkInclude,
-      orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-    }),
-    basePrisma.homeworkAuditLog.findMany({
-      where: { sectionId },
-      include: {
-        actor: {
-          select: { id: true, name: true, username: true, image: true },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
-  ]);
-  const homeworkCommentCountRows =
-    homeworkEntries.length > 0
-      ? await basePrisma.comment.groupBy({
-          by: ["homeworkId"],
-          where: {
-            homeworkId: { in: homeworkEntries.map((homework) => homework.id) },
-            status: { not: "deleted" },
-          },
-          _count: { _all: true },
-        })
-      : [];
-  const homeworkCommentCounts = new Map(
-    homeworkCommentCountRows.flatMap((row) =>
-      row.homeworkId ? [[row.homeworkId, row._count._all] as const] : [],
-    ),
-  );
-
-  type HomeworkRowWithCompletions = (typeof homeworkEntries)[number] & {
-    homeworkCompletions?: Array<{ completedAt: Date }>;
-  };
-
-  const homeworks = homeworkEntries.map(
-    (homework: HomeworkRowWithCompletions) => {
-      const { homeworkCompletions, ...rest } = homework;
-      return {
-        ...rest,
-        completion: homeworkCompletions?.[0] ?? null,
-        commentCount: homeworkCommentCounts.get(homework.id) ?? 0,
-      };
-    },
-  );
-
-  const homeworkInitialData = {
-    homeworks: homeworks.map((homework) => ({
-      ...homework,
-      createdAt: toShanghaiIsoString(homework.createdAt),
-      updatedAt: toShanghaiIsoString(homework.updatedAt),
-      deletedAt: homework.deletedAt
-        ? toShanghaiIsoString(homework.deletedAt)
-        : null,
-      publishedAt: homework.publishedAt
-        ? toShanghaiIsoString(homework.publishedAt)
-        : null,
-      submissionStartAt: homework.submissionStartAt
-        ? toShanghaiIsoString(homework.submissionStartAt)
-        : null,
-      submissionDueAt: homework.submissionDueAt
-        ? toShanghaiIsoString(homework.submissionDueAt)
-        : null,
-      description: homework.description
-        ? {
-            id: homework.description.id,
-            content: homework.description.content ?? "",
-            updatedAt: homework.description.updatedAt
-              ? toShanghaiIsoString(homework.description.updatedAt)
-              : null,
-          }
-        : null,
-      completion: homework.completion
-        ? { completedAt: toShanghaiIsoString(homework.completion.completedAt) }
-        : null,
-    })),
-    auditLogs: homeworkAuditLogs.map((log) => ({
-      ...log,
-      createdAt: toShanghaiIsoString(log.createdAt),
-    })),
-    viewer: homeworkViewer,
-  };
-
-  return (
-    <HomeworkPanel
-      sectionId={sectionId}
-      semesterStart={semesterStart}
-      semesterEnd={semesterEnd}
-      initialData={homeworkInitialData}
-    />
-  );
-}
-
-// --- Presentational Sub-Components ---
-
-type SectionBreadcrumbProps = {
-  sectionCode: string;
-  tCommon: (key: string) => string;
-};
-
-function SectionBreadcrumb({ sectionCode, tCommon }: SectionBreadcrumbProps) {
-  return (
-    <div className="mb-6 flex items-start justify-between gap-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>
-              {tCommon("home")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/sections" />}>
-              {tCommon("sections")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{sectionCode}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    </div>
-  );
-}
-
-type SectionHeaderProps = {
-  courseName: string;
-  courseNameSecondary: string | null;
-  sectionId: number;
-  sectionJwId: number;
-  subscriptionDisclaimer: string;
-};
-
-function SectionHeader({
-  courseName,
-  courseNameSecondary,
-  sectionId,
-  sectionJwId,
-  subscriptionDisclaimer,
-}: SectionHeaderProps) {
-  return (
-    <div className="mt-2">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1">
-          <h1 className="mb-2 text-display">{courseName}</h1>
-          {courseNameSecondary ? (
-            <p className="text-muted-foreground text-sm">
-              {courseNameSecondary}
-            </p>
-          ) : null}
-          <p className="max-w-2xl text-muted-foreground text-xs">
-            {subscriptionDisclaimer}
-          </p>
-        </div>
-        <SubscriptionCalendarButton
-          sectionDatabaseId={sectionId}
-          sectionJwId={sectionJwId}
-          showCalendarButton={false}
-        />
-      </div>
-    </div>
-  );
-}
-
-type MiniCalendarProps = {
-  monthLabel: string;
-  weekdayLabels: string[];
-  weekdays: number[];
-  days: dayjs.Dayjs[];
-  monthStart: dayjs.Dayjs;
-  scheduleDateKeys: Set<string>;
-  examDateKeys: Set<string>;
-  todayKey: string;
-};
-
-function MiniCalendar({
-  monthLabel,
-  weekdayLabels,
-  weekdays,
-  days,
-  monthStart,
-  scheduleDateKeys,
-  examDateKeys,
-  todayKey,
-}: MiniCalendarProps) {
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="font-semibold text-sm">{monthLabel}</CardTitle>
-      </CardHeader>
-      <CardPanel className="space-y-2">
-        <div className="grid grid-cols-7 gap-1 text-[0.65rem] text-muted-foreground">
-          {weekdays.map((weekday) => (
-            <div key={weekdayLabels[weekday]} className="text-center">
-              {weekdayLabels[weekday]}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {days.map((day) => {
-            const dayKey = day.format("YYYY-MM-DD");
-            const isCurrentMonth = day.month() === monthStart.month();
-            const hasCourse = scheduleDateKeys.has(dayKey);
-            const hasExam = examDateKeys.has(dayKey);
-            const isToday = dayKey === todayKey;
-
-            return (
-              <div
-                key={dayKey}
-                className={cn(
-                  "flex flex-col items-center gap-1 rounded-md p-1 text-xs",
-                  !isCurrentMonth && "text-muted-foreground/50",
-                )}
-              >
-                <span
-                  className={cn(
-                    isToday &&
-                      "underline decoration-foreground underline-offset-2",
-                  )}
-                >
-                  {day.date()}
-                </span>
-                {isCurrentMonth && (hasCourse || hasExam) ? (
-                  <div className="flex items-center gap-1">
-                    {hasCourse ? (
-                      <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
-                    ) : null}
-                    {hasExam ? (
-                      <span className="h-1.5 w-1.5 rounded-full border border-foreground" />
-                    ) : null}
-                  </div>
-                ) : (
-                  <span className="h-1.5" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </CardPanel>
-    </Card>
-  );
-}
-
-type BasicInfoCardProps = {
-  section: SectionDetail;
-  otherSections: OtherSection[];
-  sameSemesterOtherTeachers: OtherSection[];
-  sameTeacherOtherSemesters: OtherSection[];
-  t: (key: string, params?: Record<string, string | number | Date>) => string;
-  tCommon: (key: string) => string;
-};
-
-function BasicInfoCard({
-  section,
-  otherSections,
-  sameSemesterOtherTeachers,
-  sameTeacherOtherSemesters,
-  t,
-  tCommon,
-}: BasicInfoCardProps) {
-  if (!section) return null;
-
-  return (
-    <Collapsible className="space-y-4" defaultOpen>
-      <CollapsibleTrigger className="flex items-center justify-between rounded-lg border border-border bg-card px-3 py-2 font-medium text-foreground text-sm lg:hidden">
-        <span>{t("basicInfo")}</span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-      </CollapsibleTrigger>
-      <CollapsiblePanel className="lg:block">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t("basicInfo")}</CardTitle>
-          </CardHeader>
-          <CardPanel>
-            <div className="grid grid-cols-1 gap-2 text-sm">
-              {section.semester ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">{t("semester")}</span>
-                  <span className="font-medium text-foreground">
-                    {section.semester.nameCn}
-                  </span>
-                </div>
-              ) : null}
-
-              {section.code ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">
-                    {t("sectionCode")}
-                  </span>
-                  <span className="font-medium font-mono text-foreground">
-                    {section.code}
-                  </span>
-                </div>
-              ) : null}
-
-              <div className="mt-4" />
-
-              {section.campus ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">{t("campus")}</span>
-                  <span className="font-medium text-foreground">
-                    {section.campus.namePrimary}
-                    {section.campus.nameSecondary ? (
-                      <span className="ml-1 font-normal text-muted-foreground text-sm">
-                        ({section.campus.nameSecondary})
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
-              ) : null}
-
-              <div className="flex items-baseline gap-2">
-                <span className="text-muted-foreground">
-                  {tCommon("undergraduateGraduate")}
-                </span>
-                <span className="font-medium text-foreground">
-                  {section.graduateAndPostgraduate ? "✓" : "×"}
-                </span>
-              </div>
-
-              {section.credits !== null ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">{t("credits")}</span>
-                  <span className="font-medium text-foreground">
-                    {section.credits}
-                  </span>
-                </div>
-              ) : null}
-
-              {section.period !== null ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">{t("period")}</span>
-                  <span className="font-medium text-foreground">
-                    {section.period}
-                    {section.actualPeriods !== null &&
-                    section.actualPeriods !== section.period
-                      ? ` (${section.actualPeriods})`
-                      : null}
-                  </span>
-                </div>
-              ) : null}
-
-              {section.examMode ? (
-                <div className="flex items-baseline gap-2">
-                  <span className="text-muted-foreground">{t("examMode")}</span>
-                  <span className="font-medium text-foreground">
-                    {section.examMode.namePrimary}
-                  </span>
-                </div>
-              ) : null}
-
-              {section.remark ? (
-                <div className="mt-6">
-                  <p className="mb-1 text-muted-foreground text-sm">
-                    {t("remark")}
-                  </p>
-                  <p className="whitespace-pre-wrap text-body text-foreground">
-                    {section.remark}
-                  </p>
-                </div>
-              ) : null}
-
-              {section.teachers && section.teachers.length > 0 ? (
-                <div className="mt-6">
-                  <p className="mb-2 text-muted-foreground text-sm">
-                    {t("teachers")}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {section.teachers.map((teacher) => (
-                      <Link
-                        key={teacher.id}
-                        href={`/teachers/${teacher.id}`}
-                        className="no-underline"
-                      >
-                        <Badge
-                          variant="secondary"
-                          className="cursor-pointer hover:bg-secondary/80"
-                        >
-                          {teacher.namePrimary}
-                          {teacher.department ? (
-                            <span className="ml-1 text-muted-foreground">
-                              ({teacher.department.namePrimary})
-                            </span>
-                          ) : null}
-                        </Badge>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
-            <Collapsible className="mt-6">
-              <CollapsibleTrigger className="flex items-center text-muted-foreground text-sm hover:underline">
-                {t("moreDetails")} ↓
-              </CollapsibleTrigger>
-              <CollapsiblePanel className="mt-6">
-                <div className="grid grid-cols-1 gap-2 text-sm">
-                  {section.teachLanguage ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("teachLanguage")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.teachLanguage.namePrimary}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.roomType ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("roomType")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.roomType.namePrimary}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.timesPerWeek ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("timesPerWeek")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.timesPerWeek}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.periodsPerWeek ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("periodsPerWeek")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.periodsPerWeek}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.theoryPeriods ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("theoryPeriods")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.theoryPeriods}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.practicePeriods ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("practicePeriods")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.practicePeriods}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.experimentPeriods ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("experimentPeriods")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.experimentPeriods}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.machinePeriods ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("machinePeriods")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.machinePeriods}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.designPeriods ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("designPeriods")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.designPeriods}
-                      </span>
-                    </div>
-                  ) : null}
-                  {section.testPeriods ? (
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-muted-foreground">
-                        {t("testPeriods")}
-                      </span>
-                      <span className="font-medium text-foreground">
-                        {section.testPeriods}
-                      </span>
-                    </div>
-                  ) : null}
-                </div>
-
-                {section.adminClasses && section.adminClasses.length > 0 ? (
-                  <div className="mt-6">
-                    <p className="mb-2 text-muted-foreground text-sm">
-                      {t("adminClasses")}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {section.adminClasses.map((ac) => (
-                        <Badge key={ac.id} variant="secondary">
-                          {ac.namePrimary}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-
-                {sameSemesterOtherTeachers.length > 0 ||
-                sameTeacherOtherSemesters.length > 0 ||
-                otherSections.length > 0 ? (
-                  <div className="mt-6 space-y-4">
-                    {sameSemesterOtherTeachers.length > 0 ? (
-                      <div>
-                        <p className="mb-2 text-muted-foreground text-sm">
-                          {t("sameSemesterOtherTeachers")}
-                        </p>
-                        <div className="flex flex-wrap gap-x-2">
-                          {sameSemesterOtherTeachers
-                            .slice(0, 10)
-                            .map((otherSection) => (
-                              <Link
-                                key={otherSection.id}
-                                href={`/sections/${otherSection.jwId}`}
-                                className="no-underline"
-                              >
-                                <Badge
-                                  variant="outline"
-                                  className="cursor-pointer hover:bg-accent"
-                                >
-                                  {otherSection.teachers.length > 0 ? (
-                                    <span>
-                                      {otherSection.teachers
-                                        .map((t) => t.namePrimary)
-                                        .join(", ")}
-                                    </span>
-                                  ) : (
-                                    <span>{t("noTeacher")}</span>
-                                  )}
-                                  <span className="ml-1 text-muted-foreground">
-                                    {otherSection.code}
-                                  </span>
-                                </Badge>
-                              </Link>
-                            ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {sameTeacherOtherSemesters.length > 0 ? (
-                      <div>
-                        <p className="mb-2 text-muted-foreground text-sm">
-                          {t("sameTeacherOtherSemesters")}
-                        </p>
-                        <div className="flex flex-wrap gap-x-2">
-                          {sameTeacherOtherSemesters
-                            .slice(0, 10)
-                            .map((otherSection) => (
-                              <Link
-                                key={otherSection.id}
-                                href={`/sections/${otherSection.jwId}`}
-                                className="no-underline"
-                              >
-                                <Badge
-                                  variant="outline"
-                                  className="cursor-pointer hover:bg-accent"
-                                >
-                                  {otherSection.semester ? (
-                                    <span>{otherSection.semester.nameCn}</span>
-                                  ) : null}
-                                  <span className="ml-1 text-muted-foreground">
-                                    {otherSection.code}
-                                  </span>
-                                </Badge>
-                              </Link>
-                            ))}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-              </CollapsiblePanel>
-            </Collapsible>
-
-            <div className="mt-6">
-              <Link
-                href={`/courses/${section.course.jwId}`}
-                className="text-muted-foreground text-sm hover:underline"
-              >
-                {t("viewAllCourseSections")} ({otherSections.length + 1}) {"->"}
-              </Link>
-            </div>
-          </CardPanel>
-        </Card>
-      </CollapsiblePanel>
-    </Collapsible>
   );
 }

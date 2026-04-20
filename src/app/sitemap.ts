@@ -21,7 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "daily",
     },
     {
-      url: `${BASE_URL}/bus-schedule`,
+      url: `${BASE_URL}/bus-map`,
       lastModified: new Date(),
       changeFrequency: "weekly",
     },

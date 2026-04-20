@@ -24,7 +24,7 @@ import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { ADMIN_USERS_PAGE_SIZE } from "./constants";
 
 const AdminUsersTable = dynamic(() =>
-  import("@/components/admin/admin-users-table").then(
+  import("@/features/admin/components/admin-users-table").then(
     (mod) => mod.AdminUsersTable,
   ),
 );
