@@ -289,8 +289,6 @@ export default async function SectionPage({
     return parts.join(" · ");
   };
 
-  const buildEventLine = (timeRange: string, label: string) =>
-    timeRange ? `${timeRange}: ${label}` : label;
   const toMinutes = (time: number | null | undefined) =>
     time === null || time === undefined
       ? undefined
@@ -333,7 +331,6 @@ export default async function SectionPage({
       meta,
       href: `/sections/${section.jwId}`,
       variant: "session",
-      line: buildEventLine(timeRange, t("classEvent")),
       sortValue: toMinutes(schedule.startTime),
       details,
     };
@@ -368,7 +365,6 @@ export default async function SectionPage({
       meta: timeRange || undefined,
       href: `/sections/${section.jwId}`,
       variant: "exam",
-      line: buildEventLine(timeRange, t("examEvent")),
       sortValue: toMinutes(exam.startTime),
       details,
     };

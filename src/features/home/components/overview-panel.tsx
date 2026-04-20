@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
-  CardDescription,
   CardHeader,
   CardPanel,
   CardTitle,
@@ -110,9 +109,7 @@ export async function OverviewPanel({
     incompleteHomeworks,
     dueToday,
     dueWithin3Days,
-    showDebugTools,
     referenceNow,
-    busiestDate,
   } = data;
 
   if (!hasCurrentTermSelection) {
@@ -192,32 +189,6 @@ export async function OverviewPanel({
 
   return (
     <div className="space-y-6">
-      {showDebugTools && (
-        <Card className="border-muted-foreground/30 border-dashed">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">{t("devDate.title")}</CardTitle>
-            <CardDescription>
-              {t("devDate.description", {
-                date: referenceNow.format("YYYY-MM-DD"),
-              })}
-            </CardDescription>
-          </CardHeader>
-          <CardPanel className="flex flex-wrap gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {referenceNow.format("YYYY-MM-DD ddd")}
-            </span>
-            {busiestDate && (
-              <Link
-                href={`/?debugTools=1&debugDate=${busiestDate.format("YYYY-MM-DD")}`}
-                className="text-primary underline"
-              >
-                {t("devDate.busiest")}
-              </Link>
-            )}
-          </CardPanel>
-        </Card>
-      )}
-
       <DashboardLinksPanel links={data.overviewLinks} variant="overview" />
 
       <Card>

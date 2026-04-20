@@ -27,13 +27,11 @@ import {
 } from "@/shared/lib/date-utils";
 import {
   buildExams,
-  buildScheduleTimes,
   buildSessions,
   buildTimeSlots,
   buildWeekDays,
   computeHomeworkBuckets,
   filterSessionsByDay,
-  findBusiestDate,
   getSemesterWeeks,
   resolveDashboardSections,
   selectWeeklySessions,
@@ -42,8 +40,6 @@ import {
 import type { ExamItem, HomeworkWithSection, SessionItem } from "./types";
 
 export type OverviewDataOptions = {
-  debugDate?: string;
-  debugTools?: boolean;
   /** Calendar tab: show semester/month/week grid for this semester (any known term). */
   calendarSemesterId?: number;
   /** Bus day type override (weekday/weekend); defaults to auto-detect. */
@@ -62,24 +58,8 @@ export type DashboardNavStats = {
 
 export async function getDashboardNavStats(
   userId: string,
-  options: OverviewDataOptions = {},
 ): Promise<DashboardNavStats | null> {
-  const isDev = process.env.NODE_ENV !== "production";
-  const showDebugTools =
-    options.debugTools === true || (isDev && Boolean(options.debugDate));
-  const debugDateRaw = options.debugDate?.trim();
-  const debugDate =
-    showDebugTools && debugDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(debugDateRaw)
-      ? shanghaiDayjs(debugDateRaw)
-      : null;
-  const baseNow = shanghaiDayjs();
-  const referenceNow = debugDate?.isValid()
-    ? debugDate
-        .hour(baseNow.hour())
-        .minute(baseNow.minute())
-        .second(baseNow.second())
-        .millisecond(baseNow.millisecond())
-    : baseNow;
+  const referenceNow = shanghaiDayjs();
   const todayStart = referenceNow.startOf("day");
   const tomorrowStart = todayStart.add(1, "day");
   const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
@@ -315,8 +295,6 @@ export type OverviewData = {
   weekDayFormatter: ReturnType<typeof createWeekDayFormatter>;
   referenceNow: dayjs.Dayjs;
   todayStart: dayjs.Dayjs;
-  busiestDate: dayjs.Dayjs | null;
-  showDebugTools: boolean;
   /** Semester-spanning calendar: bounds and full data */
   semesterStart: dayjs.Dayjs | null;
   semesterEnd: dayjs.Dayjs | null;
@@ -347,22 +325,7 @@ export async function getDashboardOverviewData(
 ): Promise<OverviewData | null> {
   const locale = await getLocale();
   const prisma = getPrisma(locale);
-  const isDev = process.env.NODE_ENV !== "production";
-  const showDebugTools =
-    options.debugTools === true || (isDev && Boolean(options.debugDate));
-  const debugDateRaw = options.debugDate?.trim();
-  const debugDate =
-    showDebugTools && debugDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(debugDateRaw)
-      ? shanghaiDayjs(debugDateRaw)
-      : null;
-  const baseNow = shanghaiDayjs();
-  const referenceNow = debugDate?.isValid()
-    ? debugDate
-        .hour(baseNow.hour())
-        .minute(baseNow.minute())
-        .second(baseNow.second())
-        .millisecond(baseNow.millisecond())
-    : baseNow;
+  const referenceNow = shanghaiDayjs();
   const referenceDate = referenceNow.toDate();
 
   // Fetch semesters first so we can compute date bounds for schedule filtering
@@ -551,10 +514,6 @@ export async function getDashboardOverviewData(
   const { incompleteHomeworks, dueToday, dueWithin3Days } =
     computeHomeworkBuckets(homeworks, todayStart);
   const weekDayFormatter = createWeekDayFormatter(locale);
-  // busiestDate is only rendered in debug mode; scope to current semester schedules
-  const busiestDate = showDebugTools
-    ? findBusiestDate(buildScheduleTimes(dashboardSections))
-    : null;
 
   const calendarStart = todayStart.subtract(3, "day");
   const calendarEnd = todayStart.add(4, "day");
@@ -672,8 +631,6 @@ export async function getDashboardOverviewData(
     weekDayFormatter,
     referenceNow: now,
     todayStart,
-    busiestDate,
-    showDebugTools,
     semesterStart,
     semesterEnd,
     semesterWeeks,
@@ -699,25 +656,10 @@ export async function getLinksTabData(userId: string) {
 
 export async function getBusTabData(
   userId: string,
-  options: Pick<OverviewDataOptions, "debugDate" | "debugTools" | "busDayType">,
+  options: Pick<OverviewDataOptions, "busDayType">,
 ): Promise<BusDashboardData> {
   const locale = await getLocale();
-  const isDev = process.env.NODE_ENV !== "production";
-  const showDebugTools =
-    options.debugTools === true || (isDev && Boolean(options.debugDate));
-  const debugDateRaw = options.debugDate?.trim();
-  const debugDate =
-    showDebugTools && debugDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(debugDateRaw)
-      ? shanghaiDayjs(debugDateRaw)
-      : null;
-  const baseNow = shanghaiDayjs();
-  const referenceNow = debugDate?.isValid()
-    ? debugDate
-        .hour(baseNow.hour())
-        .minute(baseNow.minute())
-        .second(baseNow.second())
-        .millisecond(baseNow.millisecond())
-    : baseNow;
+  const referenceNow = shanghaiDayjs();
   const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
 
   return {

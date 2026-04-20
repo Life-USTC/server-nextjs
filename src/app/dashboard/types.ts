@@ -25,12 +25,6 @@ export type SessionItem = {
   teacherDisplay: string;
 };
 
-export type ScheduleTimeItem = {
-  date: Date;
-  startTime: number;
-  endTime: number;
-};
-
 export type ExamItem = {
   id: string;
   courseName: string;

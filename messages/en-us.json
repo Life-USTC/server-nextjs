@@ -488,16 +488,6 @@
       "browseCourses": "Browse Courses",
       "matchByCode": "Match by Code"
     },
-    "devDate": {
-      "title": "Dev Debug: Override \"Today\"",
-      "description": "Current dashboard reference date: {date}",
-      "previous": "Previous day",
-      "today": "Use real today",
-      "next": "Next day",
-      "busiest": "Jump to busiest day",
-      "busiestNoData": "No schedule data",
-      "reset": "Clear override"
-    },
     "linkHub": {
       "title": "Recommended websites",
       "searchPlaceholder": "Search by name or description…",

@@ -488,16 +488,6 @@
       "browseCourses": "浏览课程",
       "matchByCode": "按代码匹配"
     },
-    "devDate": {
-      "title": "开发调试：切换“今天”",
-      "description": "当前 dashboard 计算日期：{date}",
-      "previous": "前一天",
-      "today": "回到真实今天",
-      "next": "后一天",
-      "busiest": "跳到最忙日期",
-      "busiestNoData": "无可用课表数据",
-      "reset": "清除调试日期"
-    },
     "linkHub": {
       "title": "常用网站（推荐）",
       "searchPlaceholder": "搜索网站名称或描述…",

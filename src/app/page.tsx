@@ -22,8 +22,6 @@ export const dynamic = "force-dynamic";
 type HomeSearchParams = {
   tab?: string;
   dayType?: string;
-  debugDate?: string;
-  debugTools?: string;
   calendarSemester?: string;
 };
 
@@ -45,10 +43,6 @@ export default async function HomePage({
   if (session?.user?.id) {
     const params = await searchParams;
     const tab = params.tab ?? "overview";
-    const debugOptions = {
-      debugDate: params.debugDate,
-      debugTools: params.debugTools === "1" || params.debugTools === "true",
-    };
     const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
     const busDayType: "weekday" | "weekend" | undefined =
       params.dayType === "weekday" || params.dayType === "weekend"
@@ -59,14 +53,13 @@ export default async function HomePage({
       Number.isFinite(parsedCalendarSemester) &&
       parsedCalendarSemester > 0
         ? {
-            ...debugOptions,
             calendarSemesterId: parsedCalendarSemester,
             busDayType,
             skipLinks: true,
           }
         : tab === "calendar"
-          ? { ...debugOptions, busDayType, skipLinks: true }
-          : { ...debugOptions, busDayType };
+          ? { busDayType, skipLinks: true }
+          : { busDayType };
 
     const [
       navStats,
@@ -78,7 +71,7 @@ export default async function HomePage({
       todosData,
       busData,
     ] = await Promise.all([
-      getDashboardNavStats(session.user.id, debugOptions),
+      getDashboardNavStats(session.user.id),
       tab === "overview" || tab === "calendar"
         ? getDashboardOverviewData(session.user.id, overviewOptions)
         : Promise.resolve(null),
@@ -98,7 +91,7 @@ export default async function HomePage({
         ? getTodosTabData(session.user.id)
         : Promise.resolve(null),
       tab === "bus"
-        ? getBusTabData(session.user.id, overviewOptions)
+        ? getBusTabData(session.user.id, { busDayType })
         : Promise.resolve(null),
     ]);
 

@@ -26,18 +26,14 @@ export type { CalendarEventVariant } from "@/components/calendar-event-card";
 export interface CalendarEvent {
   id: string;
   date?: Date | null;
-  /** @deprecated Use title + meta instead */
-  line?: string;
-  /** Display as card title. Falls back to line when absent. */
+  /** Display as card title. */
   title?: string;
   /** Display as card meta (e.g. time, location). */
   meta?: string;
   /** Link URL for navigation on click. */
   href?: string;
-  /** Card border/style variant. Maps from tone when absent. */
+  /** Card border/style variant. */
   variant?: CalendarEventVariant;
-  /** @deprecated Use variant instead */
-  tone?: "default" | "inverse";
   details?: CalendarEventDetail[];
   sortValue?: number;
 }
@@ -241,9 +237,7 @@ export function EventCalendar({
                             dayjs(a.date).valueOf() - dayjs(b.date).valueOf()
                           );
                         }
-                        return (a.title ?? a.line ?? "").localeCompare(
-                          b.title ?? b.line ?? "",
-                        );
+                        return (a.title ?? "").localeCompare(b.title ?? "");
                       });
                       const isCurrentMonth =
                         day.month() === monthStartDay.month();
@@ -272,9 +266,8 @@ export function EventCalendar({
                           <div className="mt-1.5 min-w-0 space-y-1 overflow-hidden">
                             {sortedEvents.map((event) => {
                               const variant: CalendarEventVariant =
-                                event.variant ??
-                                (event.tone === "inverse" ? "exam" : "session");
-                              const title = event.title ?? event.line ?? "";
+                                event.variant ?? "session";
+                              const title = event.title ?? "";
                               return (
                                 <CalendarEventCardInteractive
                                   key={event.id}
@@ -306,10 +299,8 @@ export function EventCalendar({
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
             {unscheduledEvents.map((event) => {
-              const variant: CalendarEventVariant =
-                event.variant ??
-                (event.tone === "inverse" ? "exam" : "session");
-              const title = event.title ?? event.line ?? "";
+              const variant: CalendarEventVariant = event.variant ?? "session";
+              const title = event.title ?? "";
               return (
                 <CalendarEventCardInteractive
                   key={event.id}

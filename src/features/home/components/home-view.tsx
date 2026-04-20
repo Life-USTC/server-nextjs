@@ -44,8 +44,6 @@ type HomeViewProps = {
     calendarMonth?: string;
     calendarWeek?: string;
     overviewWeek?: string;
-    debugDate?: string;
-    debugTools?: string;
   }>;
   navStats: DashboardNavStats;
   overviewData: OverviewData | null;
