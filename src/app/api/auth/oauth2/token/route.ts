@@ -32,7 +32,15 @@ async function handleDeviceCodeGrant(
   // Find the device code record
   const record = await prisma.deviceCode.findUnique({
     where: { deviceCode },
-    include: { client: { select: { clientId: true, disabled: true } } },
+    select: {
+      id: true,
+      expiresAt: true,
+      lastPolledAt: true,
+      status: true,
+      userId: true,
+      scopes: true,
+      client: { select: { clientId: true, disabled: true } },
+    },
   });
 
   if (!record || record.client.clientId !== clientId) {

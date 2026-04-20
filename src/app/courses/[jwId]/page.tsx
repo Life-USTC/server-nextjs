@@ -4,16 +4,9 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { ClickableTableRow } from "@/components/clickable-table-row";
+import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
 import { CommentsSkeleton, DescriptionSkeleton } from "@/components/skeletons";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
@@ -103,7 +96,11 @@ export default async function CoursePage({
       category: true,
       classType: true,
       sections: {
-        include: {
+        select: {
+          jwId: true,
+          code: true,
+          stdCount: true,
+          limitCount: true,
           semester: true,
           campus: true,
           teachers: true,
@@ -130,27 +127,17 @@ export default async function CoursePage({
   ]);
 
   return (
-    <main className="page-main">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/">{tCommon("home")}</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink href="/courses">
-                {tCommon("courses")}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{course.code}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </div>
-
+    <PageLayout
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tCommon("courses"), href: "/courses" },
+            { label: course.code },
+          ]}
+        />
+      }
+    >
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
           <div className="mt-2">
@@ -323,7 +310,7 @@ export default async function CoursePage({
           </Collapsible>
         </aside>
       </div>
-    </main>
+    </PageLayout>
   );
 }
 

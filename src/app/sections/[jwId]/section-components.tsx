@@ -2,14 +2,6 @@ import type dayjs from "dayjs";
 import { ChevronDown } from "lucide-react";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import {
   Collapsible,
@@ -18,40 +10,6 @@ import {
 } from "@/components/ui/collapsible";
 import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-
-// --- SectionBreadcrumb ---
-
-export function SectionBreadcrumb({
-  sectionCode,
-  tCommon,
-}: {
-  sectionCode: string;
-  tCommon: (key: string) => string;
-}) {
-  return (
-    <div className="mb-6 flex items-start justify-between gap-4">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>
-              {tCommon("home")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/sections" />}>
-              {tCommon("sections")}
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>{sectionCode}</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    </div>
-  );
-}
 
 // --- SectionHeader ---
 

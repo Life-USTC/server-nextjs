@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
+import { PageLayout } from "@/components/page-layout";
 import { Card, CardHeader, CardPanel, CardTitle } from "@/components/ui/card";
 import { CommentMarkdown } from "@/features/comments/components/comment-markdown";
 
@@ -83,12 +84,7 @@ Something went wrong.
   ];
 
   return (
-    <main className="page-main">
-      <div className="mt-8 mb-8">
-        <h1 className="mb-2 text-display">{t("title")}</h1>
-        <p className="text-muted-foreground text-subtitle">{t("subtitle")}</p>
-      </div>
-
+    <PageLayout title={t("title")} description={t("subtitle")}>
       <div className="space-y-8 pb-20">
         {sections.map((section) => (
           <div
@@ -124,6 +120,6 @@ Something went wrong.
           </div>
         ))}
       </div>
-    </main>
+    </PageLayout>
   );
 }

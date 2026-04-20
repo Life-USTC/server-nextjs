@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { cache, Suspense } from "react";
 import { EventCalendar } from "@/components/event-calendar";
+import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
 import { DescriptionSkeleton } from "@/components/skeletons";
 import { SubscriptionCalendarButton } from "@/components/subscription-calendar-button";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,6 @@ import {
 import {
   BasicInfoCard,
   MiniCalendar,
-  SectionBreadcrumb,
   SectionHeader,
 } from "./section-components";
 import {
@@ -289,9 +289,17 @@ export default async function SectionPage({
   const todayKey = today.format("YYYY-MM-DD");
 
   return (
-    <main className="page-main">
-      <SectionBreadcrumb sectionCode={section.code} tCommon={tCommon} />
-
+    <PageLayout
+      breadcrumbs={
+        <PageBreadcrumbs
+          items={[
+            { label: tCommon("home"), href: "/" },
+            { label: tCommon("sections"), href: "/sections" },
+            { label: section.code },
+          ]}
+        />
+      }
+    >
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div className="space-y-8">
           <SectionHeader
@@ -410,6 +418,6 @@ export default async function SectionPage({
           />
         </aside>
       </div>
-    </main>
+    </PageLayout>
   );
 }

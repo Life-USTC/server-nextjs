@@ -1,4 +1,5 @@
 import type { useTranslations } from "next-intl";
+import { PageLayout } from "@/components/page-layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
@@ -38,8 +39,8 @@ export function ProfileView({
   };
 
   return (
-    <main className="page-main">
-      <div className="mt-8 grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
+    <PageLayout>
+      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)] lg:items-start">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-4">
@@ -155,6 +156,6 @@ export function ProfileView({
           </CardPanel>
         </Card>
       </div>
-    </main>
+    </PageLayout>
   );
 }

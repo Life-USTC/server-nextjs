@@ -2,7 +2,7 @@ import { stableSkeletonKeys } from "@/lib/ui/skeleton-keys";
 
 export default function Loading() {
   return (
-    <main className="page-main">
+    <main className="page-main flex flex-col gap-5 md:gap-6">
       <div className="animate-pulse">
         <div className="mb-4 h-8 w-48 rounded bg-card" />
         <div className="mb-8 h-6 w-96 rounded bg-card" />

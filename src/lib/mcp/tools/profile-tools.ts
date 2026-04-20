@@ -54,6 +54,16 @@ export function registerProfileTools(server: McpServer) {
       const userId = getUserId(extra.authInfo);
       const todos = await prisma.todo.findMany({
         where: { userId },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          priority: true,
+          dueAt: true,
+          completed: true,
+          createdAt: true,
+          updatedAt: true,
+        },
         orderBy: [
           { completed: "asc" },
           { dueAt: "asc" },
@@ -93,6 +103,7 @@ export function registerProfileTools(server: McpServer) {
       }
 
       const todo = await prisma.todo.create({
+        select: { id: true },
         data: {
           userId,
           title,

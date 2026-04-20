@@ -335,6 +335,13 @@ export function registerMyDataTools(server: McpServer) {
           completed: false,
           dueAt: { not: null },
         },
+        select: {
+          id: true,
+          title: true,
+          priority: true,
+          dueAt: true,
+          createdAt: true,
+        },
         orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
         take: 5,
       });

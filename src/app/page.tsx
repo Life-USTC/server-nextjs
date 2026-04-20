@@ -97,7 +97,7 @@ export default async function HomePage({
 
     if (!navStats) {
       return (
-        <main className="page-main">
+        <main className="page-main flex flex-col gap-5 md:gap-6">
           <p className="text-muted-foreground">User not found.</p>
         </main>
       );
