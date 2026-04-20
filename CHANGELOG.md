@@ -1,3 +1,10 @@
+## [1.25.1](https://github.com/Life-USTC/server-nextjs/compare/v1.25.0...v1.25.1) (2026-04-20)
+
+
+### Performance Improvements
+
+* **dashboard:** optimize Prisma queries with select, date filtering, and tab-aware skipping ([03e7df5](https://github.com/Life-USTC/server-nextjs/commit/03e7df585e42eeb9faad5930557e854bdff29358))
+
 # [1.25.0](https://github.com/Life-USTC/server-nextjs/compare/v1.24.0...v1.25.0) (2026-04-19)
 
 
