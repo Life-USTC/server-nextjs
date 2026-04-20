@@ -40,6 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient, extractApiErrorMessage } from "@/lib/api/client";
 import { adminUserResponseSchema } from "@/lib/api/schemas";
@@ -69,15 +70,6 @@ type AdminUsersTableProps = {
   totalPages: number;
   search: string;
 };
-
-const DURATION_OPTIONS = [
-  { value: "1d", labelKey: "duration1Day" },
-  { value: "3d", labelKey: "duration3Days" },
-  { value: "7d", labelKey: "duration1Week" },
-  { value: "30d", labelKey: "duration1Month" },
-  { value: "permanent", labelKey: "durationPermanent" },
-  { value: "custom", labelKey: "durationCustom" },
-] as const;
 
 export function AdminUsersTable({
   users: initialUsers,
@@ -372,7 +364,7 @@ export function AdminUsersTable({
                       onValueChange={(value) =>
                         setSuspendDuration(value ?? "3d")
                       }
-                      items={DURATION_OPTIONS.map((opt) => ({
+                      items={SUSPENSION_DURATION_OPTIONS.map((opt) => ({
                         value: opt.value,
                         label: tModeration(opt.labelKey),
                       }))}
@@ -381,7 +373,7 @@ export function AdminUsersTable({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectPopup>
-                        {DURATION_OPTIONS.map((opt) => (
+                        {SUSPENSION_DURATION_OPTIONS.map((opt) => (
                           <SelectItem key={opt.value} value={opt.value}>
                             {tModeration(opt.labelKey)}
                           </SelectItem>

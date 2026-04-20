@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import type { CalendarEvent } from "@/components/event-calendar";
 import type { Prisma } from "@/generated/prisma/client";
+import { formatScheduleLocation } from "@/lib/location-utils";
 
 export type SubscriptionSchedule = Prisma.ScheduleGetPayload<{
   include: {
@@ -49,20 +50,7 @@ export const formatDetailValue = (
   return text.length > 0 ? text : null;
 };
 
-export const formatScheduleLocation = (schedule: SubscriptionSchedule) => {
-  if (schedule.customPlace) return schedule.customPlace;
-  if (!schedule.room) return "—";
-
-  const parts = [schedule.room.namePrimary];
-  if (schedule.room.building) {
-    parts.push(schedule.room.building.namePrimary);
-    if (schedule.room.building.campus) {
-      parts.push(schedule.room.building.campus.namePrimary);
-    }
-  }
-
-  return parts.join(" · ");
-};
+export { formatScheduleLocation };
 
 export const getCalendarMonthStart = (events: CalendarEvent[]) => {
   if (events.length === 0) {

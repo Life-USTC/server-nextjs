@@ -1,4 +1,5 @@
 import type dayjs from "dayjs";
+import { formatScheduleLocation } from "@/lib/location-utils";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { getWeekStartSunday } from "@/shared/lib/date-utils";
 import { toMinutes } from "@/shared/lib/time-utils";
@@ -8,7 +9,6 @@ import type {
   SectionWithRelations,
   SemesterSummary,
   SessionItem,
-  SubscriptionSchedule,
   TimeSlot,
 } from "./types";
 
@@ -36,21 +36,6 @@ export const resolveDashboardSections = (
     dashboardSections,
     dashboardSectionIds,
   };
-};
-
-export const formatScheduleLocation = (schedule: SubscriptionSchedule) => {
-  if (schedule.customPlace) return schedule.customPlace;
-  if (!schedule.room) return "—";
-
-  const parts = [schedule.room.namePrimary];
-  if (schedule.room.building) {
-    parts.push(schedule.room.building.namePrimary);
-    if (schedule.room.building.campus) {
-      parts.push(schedule.room.building.campus.namePrimary);
-    }
-  }
-
-  return parts.join(" · ");
 };
 
 export const buildSessions = (

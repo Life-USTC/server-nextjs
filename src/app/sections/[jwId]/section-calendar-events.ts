@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import type { CalendarEvent } from "@/components/event-calendar";
+import { formatScheduleLocation } from "@/lib/location-utils";
 import { formatTime } from "@/shared/lib/time-utils";
 
 type ScheduleWithRoom = {
@@ -48,21 +49,6 @@ function formatDetailValue(value: string | number | null | undefined) {
   if (value === null || value === undefined) return null;
   const text = String(value).trim();
   return text.length > 0 ? text : null;
-}
-
-function formatScheduleLocation(schedule: ScheduleWithRoom) {
-  if (schedule.customPlace) return schedule.customPlace;
-  if (!schedule.room) return "—";
-
-  const parts = [schedule.room.namePrimary];
-  if (schedule.room.building) {
-    parts.push(schedule.room.building.namePrimary);
-    if (schedule.room.building.campus) {
-      parts.push(schedule.room.building.campus.namePrimary);
-    }
-  }
-
-  return parts.join(" · ");
 }
 
 function toMinutes(time: number | null | undefined) {

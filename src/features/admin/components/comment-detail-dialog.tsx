@@ -19,17 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { SUSPENSION_DURATION_OPTIONS } from "@/features/admin/constants";
 import { Link } from "@/i18n/routing";
 import type { AdminComment, CommentStatus } from "./moderation-types";
-
-const DURATION_OPTIONS = [
-  { value: "1d", labelKey: "duration1Day" },
-  { value: "3d", labelKey: "duration3Days" },
-  { value: "7d", labelKey: "duration1Week" },
-  { value: "30d", labelKey: "duration1Month" },
-  { value: "permanent", labelKey: "durationPermanent" },
-  { value: "custom", labelKey: "durationCustom" },
-] as const;
 
 type CommentDetailDialogProps = {
   open: boolean;
@@ -253,7 +245,7 @@ export function CommentDetailDialog({
                         onValueChange={(value) =>
                           onDurationChange(value ?? "3d")
                         }
-                        items={DURATION_OPTIONS.map((option) => ({
+                        items={SUSPENSION_DURATION_OPTIONS.map((option) => ({
                           value: option.value,
                           label: t(option.labelKey),
                         }))}
@@ -262,7 +254,7 @@ export function CommentDetailDialog({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectPopup>
-                          {DURATION_OPTIONS.map((option) => (
+                          {SUSPENSION_DURATION_OPTIONS.map((option) => (
                             <SelectItem key={option.value} value={option.value}>
                               {t(option.labelKey)}
                             </SelectItem>
