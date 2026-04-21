@@ -1,3 +1,10 @@
+## [1.25.4](https://github.com/Life-USTC/server-nextjs/compare/v1.25.3...v1.25.4) (2026-04-21)
+
+
+### Bug Fixes
+
+* **auth:** trace loopback oauth redirect mismatches ([fe21dda](https://github.com/Life-USTC/server-nextjs/commit/fe21dda76c5b4857181ca4b2ff130449d8a94326))
+
 ## [1.25.3](https://github.com/Life-USTC/server-nextjs/compare/v1.25.2...v1.25.3) (2026-04-21)
 
 
