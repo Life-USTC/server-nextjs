@@ -5,6 +5,7 @@ import { makeSignature } from "better-auth/crypto";
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
+import { getPublicOrigin } from "@/lib/site-url";
 
 function getAuthSecret(): string {
   const secret =
@@ -89,7 +90,7 @@ export async function POST(request: Request) {
       userId: user.id,
     });
 
-    const isSecure = (process.env.BETTER_AUTH_URL || "").startsWith("https");
+    const isSecure = getPublicOrigin().startsWith("https://");
     const cookieName = isSecure
       ? "__Secure-better-auth.session_token"
       : "better-auth.session_token";

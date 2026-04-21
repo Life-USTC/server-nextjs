@@ -17,6 +17,7 @@ import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
 import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
+import { getBetterAuthBaseUrl, getPublicOrigin } from "@/lib/site-url";
 
 const isDev = process.env.NODE_ENV === "development";
 const e2eDebugAuth = process.env.E2E_DEBUG_AUTH === "1";
@@ -74,31 +75,10 @@ const OIDC_ISSUER =
   process.env.AUTH_OIDC_ISSUER ||
   "https://sso-proxy.lug.ustc.edu.cn/auth/oauth2";
 const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid-configuration`;
-const AUTH_BASE_URL =
-  process.env.BETTER_AUTH_URL ||
-  (process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000");
+const AUTH_BASE_URL = getBetterAuthBaseUrl();
 /** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
-const AUTH_PUBLIC_ORIGIN = new URL(`${AUTH_BASE_URL.replace(/\/$/, "")}/`)
-  .origin;
+const AUTH_PUBLIC_ORIGIN = getPublicOrigin();
 const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
-
-// One-shot startup diagnostic for OAuth audience debugging.
-// Safe to remove once the token-exchange issue is resolved.
-console.log(
-  JSON.stringify({
-    _tag: "auth.init",
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? "(unset)",
-    AUTH_BASE_URL,
-    AUTH_PUBLIC_ORIGIN,
-    AUTH_BASE_URL_codepoints: [...AUTH_BASE_URL].map((c) => c.codePointAt(0)),
-    AUTH_PUBLIC_ORIGIN_codepoints: [...AUTH_PUBLIC_ORIGIN].map((c) =>
-      c.codePointAt(0),
-    ),
-    match: AUTH_BASE_URL.replace(/\/$/, "") === AUTH_PUBLIC_ORIGIN,
-  }),
-);
 
 function getBetterAuthSecret() {
   const secret =
@@ -129,8 +109,8 @@ const authInstance = betterAuth({
   ),
   disabledPaths: ["/token"],
   advanced: {
-    // Caddy → Docker: trust X-Forwarded-* so OAuth redirects use the public origin,
-    // not http(s)://localhost:3000 inside the container.
+    // Reverse proxies should still forward the original scheme/host correctly for
+    // request-aware Better Auth behavior, but deployment origin comes from config.
     trustedProxyHeaders: true,
   },
   socialProviders: {
@@ -261,7 +241,6 @@ const authInstance = betterAuth({
         AUTH_PUBLIC_ORIGIN,
         `${AUTH_PUBLIC_ORIGIN}/api/mcp`,
         AUTH_BASE_URL.replace(/\/$/, ""),
-        `${AUTH_BASE_URL.replace(/\/$/, "")}/api/mcp`,
       ],
       silenceWarnings: {
         oauthAuthServerConfig: true,

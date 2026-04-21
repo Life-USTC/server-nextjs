@@ -10,6 +10,7 @@ import BottomBar from "@/components/bottom-bar";
 import { Providers } from "@/components/providers";
 import { AnchoredToastProvider, ToastProvider } from "@/components/ui/toast";
 import { UserMenu } from "@/components/user-menu";
+import { getCanonicalOrigin } from "@/lib/site-url";
 import "./globals.css";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -36,6 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
 
   return {
+    metadataBase: new URL(getCanonicalOrigin()),
     title: {
       default: t("title"),
       template: t("titleTemplate"),

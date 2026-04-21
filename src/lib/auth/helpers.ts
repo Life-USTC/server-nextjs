@@ -6,6 +6,7 @@ import {
   getJwksUrlForOAuthVerification,
   getOAuthIssuerUrl,
 } from "@/lib/mcp/urls";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export async function requireSignedInUserId() {
   const session = await auth();
@@ -40,9 +41,7 @@ export async function resolveApiUserId(
       // "/api/auth" path suffix. Accept both so tokens issued by either path
       // verify correctly.
       const issuerPath = getOAuthIssuerUrl().toString();
-      const siteOrigin = new URL(
-        `${process.env.BETTER_AUTH_URL || "http://localhost:3000"}/`,
-      ).origin;
+      const siteOrigin = getPublicOrigin();
 
       try {
         const jwt = await verifyAccessToken(token, {

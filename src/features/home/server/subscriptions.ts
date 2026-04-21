@@ -4,8 +4,8 @@ import {
   ensureUserCalendarFeedToken,
 } from "@/lib/calendar-feed-token";
 import { getPrisma, prisma } from "@/lib/db/prisma";
-import { getBetterAuthBaseUrl } from "@/lib/mcp/urls";
 import { sectionCompactInclude } from "@/lib/query-helpers";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export const SECTION_SUBSCRIPTION_NOTE =
   "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
@@ -37,7 +37,7 @@ export async function getUserCalendarSubscription(
     userId: user.id,
     sections: user.subscribedSections,
     calendarPath,
-    calendarUrl: `${getBetterAuthBaseUrl()}${calendarPath}`,
+    calendarUrl: `${getPublicOrigin()}${calendarPath}`,
     note: SECTION_SUBSCRIPTION_NOTE,
   };
 }

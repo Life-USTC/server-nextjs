@@ -1,42 +1,43 @@
 import type { MetadataRoute } from "next";
-
-const BASE_URL = "https://life-ustc.tiankaima.dev";
+import { getCanonicalOrigin } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const baseUrl = getCanonicalOrigin();
+
   return [
-    { url: BASE_URL, lastModified: new Date(), changeFrequency: "daily" },
+    { url: baseUrl, lastModified: new Date(), changeFrequency: "daily" },
     {
-      url: `${BASE_URL}/sections`,
+      url: `${baseUrl}/sections`,
       lastModified: new Date(),
       changeFrequency: "daily",
     },
     {
-      url: `${BASE_URL}/courses`,
+      url: `${baseUrl}/courses`,
       lastModified: new Date(),
       changeFrequency: "daily",
     },
     {
-      url: `${BASE_URL}/teachers`,
+      url: `${baseUrl}/teachers`,
       lastModified: new Date(),
       changeFrequency: "daily",
     },
     {
-      url: `${BASE_URL}/bus-map`,
+      url: `${baseUrl}/bus-map`,
       lastModified: new Date(),
       changeFrequency: "weekly",
     },
     {
-      url: `${BASE_URL}/guides/markdown-support`,
+      url: `${baseUrl}/guides/markdown-support`,
       lastModified: new Date(),
       changeFrequency: "monthly",
     },
     {
-      url: `${BASE_URL}/privacy`,
+      url: `${baseUrl}/privacy`,
       lastModified: new Date(),
       changeFrequency: "yearly",
     },
     {
-      url: `${BASE_URL}/terms`,
+      url: `${baseUrl}/terms`,
       lastModified: new Date(),
       changeFrequency: "yearly",
     },

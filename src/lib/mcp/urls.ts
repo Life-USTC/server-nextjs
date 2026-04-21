@@ -1,3 +1,8 @@
+import {
+  getBetterAuthBaseUrl as getConfiguredBetterAuthBaseUrl,
+  getPublicOrigin,
+} from "@/lib/site-url";
+
 export const MCP_ROUTE_PATH = "/api/mcp";
 export const OAUTH_AUTHORIZATION_PATH = "/api/auth/oauth2/authorize";
 export const OAUTH_REGISTRATION_PATH = "/api/auth/oauth2/register";
@@ -13,22 +18,20 @@ export const OAUTH_ISSUER_PATH = "/api/auth";
  * so JWT `iss` / `aud` line up with MCP verification and metadata.
  */
 export function getBetterAuthBaseUrl(): string {
-  return (process.env.BETTER_AUTH_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  );
+  return getConfiguredBetterAuthBaseUrl();
 }
 
-/** Site origin for root-level `.well-known` URLs (scheme + host + optional port). */
-function getWellKnownSiteOrigin(): string {
-  return new URL(`${getBetterAuthBaseUrl()}/`).origin;
+/** Public origin for non-auth routes on the current deployment. */
+export function getSiteOrigin(): string {
+  return getPublicOrigin();
 }
 
 /**
- * OAuth resource indicator / access-token audience for MCP. Matches `validAudiences` in `oauthProvider`.
+ * OAuth resource indicator / access-token audience for MCP. This is the public
+ * MCP endpoint, not a Better Auth route under `/api/auth`.
  */
 export function getOAuthMcpResourceUrl(): string {
-  return `${getBetterAuthBaseUrl()}${MCP_ROUTE_PATH}`;
+  return `${getSiteOrigin()}${MCP_ROUTE_PATH}`;
 }
 
 export function getJwksUrlForOAuthVerification(): string {
@@ -40,7 +43,7 @@ export function getMcpServerUrl(_request?: Request): URL {
 }
 
 export function getOAuthIssuerUrl(_request?: Request): URL {
-  return new URL(OAUTH_ISSUER_PATH, `${getWellKnownSiteOrigin()}/`);
+  return new URL(OAUTH_ISSUER_PATH, `${getSiteOrigin()}/`);
 }
 
 export function getOAuthAuthorizationServerMetadataUrl(
@@ -48,13 +51,10 @@ export function getOAuthAuthorizationServerMetadataUrl(
 ): URL {
   return new URL(
     OAUTH_AUTHORIZATION_SERVER_METADATA_PATH,
-    `${getWellKnownSiteOrigin()}/`,
+    `${getSiteOrigin()}/`,
   );
 }
 
 export function getOAuthProtectedResourceMetadataUrl(_request?: Request): URL {
-  return new URL(
-    OAUTH_PROTECTED_RESOURCE_METADATA_PATH,
-    `${getWellKnownSiteOrigin()}/`,
-  );
+  return new URL(OAUTH_PROTECTED_RESOURCE_METADATA_PATH, `${getSiteOrigin()}/`);
 }

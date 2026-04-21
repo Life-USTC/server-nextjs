@@ -19,8 +19,8 @@ import {
   resolveMcpMode,
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
-import { getBetterAuthBaseUrl } from "@/lib/mcp/urls";
 import { sectionCompactInclude } from "@/lib/query-helpers";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export function registerCalendarTools(server: McpServer) {
   server.registerTool(
@@ -160,7 +160,7 @@ export function registerCalendarTools(server: McpServer) {
           found: Boolean(section),
           section,
           calendarPath: `/api/sections/${jwId}/calendar.ics`,
-          calendarUrl: `${getBetterAuthBaseUrl()}/api/sections/${jwId}/calendar.ics`,
+          calendarUrl: `${getPublicOrigin()}/api/sections/${jwId}/calendar.ics`,
         },
         { mode: resolveMcpMode(mode) },
       );

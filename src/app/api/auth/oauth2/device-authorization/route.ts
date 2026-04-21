@@ -1,7 +1,6 @@
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
-import { getBetterAuthBaseUrl } from "@/lib/mcp/urls";
 import {
   DEVICE_CODE_EXPIRES_IN,
   DEVICE_CODE_POLL_INTERVAL,
@@ -10,6 +9,7 @@ import {
   getVerificationUri,
   getVerificationUriComplete,
 } from "@/lib/oauth/device-code";
+import { getPublicOrigin } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -102,8 +102,7 @@ export async function POST(request: Request) {
     return jsonError(500, "server_error", "Failed to create device code");
   }
 
-  // Derive site origin — handles BETTER_AUTH_URL that may include /api/auth path
-  const siteOrigin = new URL(getBetterAuthBaseUrl()).origin;
+  const siteOrigin = getPublicOrigin();
 
   logOAuthDebug("device-auth.success", request, {
     clientIdPrefix: clientId.slice(0, 8),

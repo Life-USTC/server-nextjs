@@ -50,6 +50,7 @@ export default defineConfig({
       no_proxy: process.env.no_proxy
         ? `${process.env.no_proxy},${playwrightNoProxy}`
         : playwrightNoProxy,
+      APP_PUBLIC_ORIGIN: playwrightBaseUrl,
       AUTH_TRUST_HOST: "true",
       AUTH_URL: playwrightBaseUrl,
       BETTER_AUTH_URL: playwrightBaseUrl,

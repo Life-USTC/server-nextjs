@@ -74,9 +74,11 @@ test.describe("GET /api/calendar-subscriptions/current", () => {
     const sub = body.subscription as Record<string, unknown>;
     expect(Object.hasOwn(sub, "note")).toBe(true);
     expect(typeof sub.calendarPath).toBe("string");
-    expect((sub.calendarPath as string).startsWith("/")).toBe(true);
+    expect((sub.calendarPath as string).startsWith("/api/users/")).toBe(true);
     expect(typeof sub.calendarUrl).toBe("string");
     expect((sub.calendarUrl as string).startsWith("http")).toBe(true);
+    expect(sub.calendarUrl as string).toContain("/api/users/");
+    expect(sub.calendarUrl as string).not.toContain("/api/auth/api/users/");
   });
 
   test("reflects changes made via POST", async ({ page }) => {

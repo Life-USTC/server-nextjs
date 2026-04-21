@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getCanonicalOrigin } from "@/lib/site-url";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -16,6 +17,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: "https://life-ustc.tiankaima.dev/sitemap.xml",
+    sitemap: `${getCanonicalOrigin()}/sitemap.xml`,
   };
 }
