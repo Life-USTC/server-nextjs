@@ -1,3 +1,10 @@
+## [1.25.2](https://github.com/Life-USTC/server-nextjs/compare/v1.25.1...v1.25.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* **auth:** separate deployment and canonical origins ([8e4c57f](https://github.com/Life-USTC/server-nextjs/commit/8e4c57f6c723e5b32aa6f93da4db89b195788cf9))
+
 ## [1.25.1](https://github.com/Life-USTC/server-nextjs/compare/v1.25.0...v1.25.1) (2026-04-20)
 
 
