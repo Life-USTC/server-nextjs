@@ -1,3 +1,10 @@
+## [1.25.3](https://github.com/Life-USTC/server-nextjs/compare/v1.25.2...v1.25.3) (2026-04-21)
+
+
+### Bug Fixes
+
+* **auth:** support OAuth proxy for preview hosts ([ccc2adf](https://github.com/Life-USTC/server-nextjs/commit/ccc2adf03e53280bfac954a6fee601df558ce834))
+
 ## [1.25.2](https://github.com/Life-USTC/server-nextjs/compare/v1.25.1...v1.25.2) (2026-04-21)
 
 
