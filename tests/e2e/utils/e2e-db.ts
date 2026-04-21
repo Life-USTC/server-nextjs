@@ -62,7 +62,7 @@ function generateToken(bytes = 24) {
 }
 
 export async function getCurrentSessionUser(page: Page) {
-  const response = await page.request.get("/api/auth/session");
+  const response = await page.request.get("/api/auth/get-session");
   expect(response.status()).toBe(200);
   const session = (await response.json()) as {
     user?: {

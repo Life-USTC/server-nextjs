@@ -7,13 +7,9 @@ import { auth, authApi } from "@/auth";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logServerActionError } from "@/lib/log/app-logger";
-import {
-  resolveOAuthClientScopes,
-  validateOAuthRedirectUris,
-} from "@/lib/oauth/client-registration";
+import { resolveOAuthClientScopes } from "@/lib/oauth/client-registration";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
-  MCP_TOOLS_SCOPE,
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
   OAUTH_CLIENT_SECRET_POST_AUTH_METHOD,
   OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
@@ -22,6 +18,65 @@ import {
 type CreateOAuthClientResult =
   | { error: string }
   | { success: true; clientId: string; clientSecret: string | null };
+
+function resolveAdminOAuthClientPattern(tokenEndpointAuthMethod: string) {
+  if (tokenEndpointAuthMethod === OAUTH_PUBLIC_CLIENT_AUTH_METHOD) {
+    return {
+      pattern: "public_pkce",
+      skipConsent: false,
+      enableEndSession: false,
+    } as const;
+  }
+
+  if (tokenEndpointAuthMethod === OAUTH_CLIENT_SECRET_POST_AUTH_METHOD) {
+    return {
+      pattern: "confidential_connector",
+      skipConsent: false,
+      enableEndSession: false,
+    } as const;
+  }
+
+  return {
+    pattern: "trusted_first_party",
+    skipConsent: true,
+    enableEndSession: true,
+  } as const;
+}
+
+function getOAuthActionErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message;
+  }
+
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    if (
+      typeof record.message === "string" &&
+      record.message.trim().length > 0
+    ) {
+      return record.message;
+    }
+
+    const body = record.body;
+    if (body && typeof body === "object") {
+      const bodyRecord = body as Record<string, unknown>;
+      if (
+        typeof bodyRecord.error_description === "string" &&
+        bodyRecord.error_description.trim().length > 0
+      ) {
+        return bodyRecord.error_description;
+      }
+      if (
+        typeof bodyRecord.message === "string" &&
+        bodyRecord.message.trim().length > 0
+      ) {
+        return bodyRecord.message;
+      }
+    }
+  }
+
+  return fallback;
+}
 
 export async function createOAuthClient(
   formData: FormData,
@@ -49,8 +104,6 @@ export async function createOAuthClient(
     .getAll("scopes")
     .map((value) => String(value).trim())
     .filter(Boolean);
-  const enableMcp =
-    formData.get("enableMcp") === "on" || formData.get("enableMcp") === "true";
 
   if (!name) {
     return { error: "Name is required" };
@@ -64,21 +117,15 @@ export async function createOAuthClient(
     .map((s) => s.trim())
     .filter(Boolean);
 
-  const redirectUrisResult = validateOAuthRedirectUris(redirectUris);
-  if ("error" in redirectUrisResult) {
-    return { error: redirectUrisResult.error };
-  }
-
   const scopesResult = resolveOAuthClientScopes({
-    defaultScopes: enableMcp
-      ? [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE]
-      : [...DEFAULT_OAUTH_CLIENT_SCOPES],
+    defaultScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
     requestedScopes: requestedScopes.length > 0 ? requestedScopes : undefined,
   });
   if ("error" in scopesResult) {
     return { error: scopesResult.error };
   }
   const scopes = scopesResult.scopes;
+  const clientPattern = resolveAdminOAuthClientPattern(tokenEndpointAuthMethod);
 
   if (
     tokenEndpointAuthMethod !== OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD &&
@@ -93,7 +140,7 @@ export async function createOAuthClient(
       headers: await headers(),
       body: {
         client_name: name,
-        redirect_uris: redirectUrisResult.redirectUris,
+        redirect_uris: redirectUris,
         token_endpoint_auth_method: tokenEndpointAuthMethod,
         grant_types: scopes.includes("offline_access")
           ? ["authorization_code", "refresh_token"]
@@ -101,8 +148,11 @@ export async function createOAuthClient(
         response_types: ["code"],
         scope: scopes.join(" "),
         require_pkce: true,
+        skip_consent: clientPattern.skipConsent,
+        enable_end_session: clientPattern.enableEndSession,
         metadata: {
           source: "admin_panel",
+          client_pattern: clientPattern.pattern,
         },
       },
     });
@@ -118,7 +168,9 @@ export async function createOAuthClient(
       action: "createOAuthClient",
       userId: session.user.id,
     });
-    return { error: "Failed to create OAuth client" };
+    return {
+      error: getOAuthActionErrorMessage(error, "Failed to create OAuth client"),
+    };
   }
 }
 

@@ -50,7 +50,7 @@ test("/api/uploads/complete POST 无 pending 时返回 400 且清理 S3 对象",
   await signInAsDebugUser(page, "/");
 
   // Resolve current user id for constructing a valid key prefix
-  const sessionResponse = await page.request.get("/api/auth/session");
+  const sessionResponse = await page.request.get("/api/auth/get-session");
   expect(sessionResponse.status()).toBe(200);
   const session = (await sessionResponse.json()) as {
     user?: { id?: string };

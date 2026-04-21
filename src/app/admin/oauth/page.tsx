@@ -38,6 +38,7 @@ export default async function AdminOAuthPage() {
         responseTypes: true,
         public: true,
         requirePKCE: true,
+        skipConsent: true,
         metadata: true,
         createdAt: true,
       },
@@ -70,6 +71,7 @@ export default async function AdminOAuthPage() {
             c.tokenEndpointAuthMethod ?? "client_secret_basic",
           redirectUris: c.redirectUris,
           scopes: c.scopes,
+          isTrusted: Boolean(c.skipConsent),
           createdAt: toShanghaiIsoString(c.createdAt),
         }))}
       />

@@ -6,16 +6,14 @@ test("/api/auth/[...nextauth]", async ({ request }) => {
   await assertApiContract(request, { routePath: "/api/auth/[...nextauth]" });
 });
 
-test("/api/auth/[...nextauth] 未登录 session 返回空用户", async ({
+test("/api/auth/[...nextauth] 未登录 get-session 返回 null", async ({
   request,
 }) => {
-  const response = await request.get("/api/auth/session");
+  const response = await request.get("/api/auth/get-session");
   expect(response.status()).toBe(200);
 
-  const body = (await response.json()) as { user?: unknown } | null;
-  const user =
-    body && typeof body === "object" ? (body as { user?: unknown }).user : null;
-  expect(user ?? null).toBeNull();
+  const body = await response.json();
+  expect(body).toBeNull();
 });
 
 test("/api/auth/[...nextauth] 普通用户登录后 session 正确", async ({
@@ -23,7 +21,7 @@ test("/api/auth/[...nextauth] 普通用户登录后 session 正确", async ({
 }) => {
   await signInAsDebugUser(page);
 
-  const response = await page.request.get("/api/auth/session");
+  const response = await page.request.get("/api/auth/get-session");
   expect(response.status()).toBe(200);
 
   const body = (await response.json()) as {
@@ -39,7 +37,7 @@ test("/api/auth/[...nextauth] 管理员登录后 session 标记 admin", async ({
 }) => {
   await signInAsDevAdmin(page);
 
-  const response = await page.request.get("/api/auth/session");
+  const response = await page.request.get("/api/auth/get-session");
   expect(response.status()).toBe(200);
 
   const body = (await response.json()) as {

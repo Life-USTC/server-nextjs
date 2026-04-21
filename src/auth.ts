@@ -18,6 +18,7 @@ import {
   profileImage,
   profileName,
 } from "@/lib/auth/oauth-profile";
+import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
@@ -85,6 +86,13 @@ const AUTH_BASE_URL = getBetterAuthBaseUrl();
 const AUTH_PUBLIC_ORIGIN = getPublicOrigin();
 const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
 const OAUTH_PROXY_SECRET = getOAuthProxySecret();
+const OAUTH_PROVIDER_SCOPES = [
+  "openid",
+  "profile",
+  "email",
+  "offline_access",
+  MCP_TOOLS_SCOPE,
+] as const;
 
 function getBetterAuthSecret() {
   const secret =
@@ -239,13 +247,16 @@ const authInstance = betterAuth({
       productionURL: getOAuthProxyProductionUrl(),
       ...(OAUTH_PROXY_SECRET ? { secret: OAUTH_PROXY_SECRET } : {}),
     }),
+    webhookLoginPlugin(),
     oauthProvider({
       // Absolute URLs so redirects stay correct behind Docker/Caddy (avoid https://localhost:3000/...).
       loginPage: `${AUTH_PUBLIC_ORIGIN}/signin`,
       consentPage: `${AUTH_PUBLIC_ORIGIN}/oauth/authorize`,
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
-      scopes: ["openid", "profile", "email", "offline_access", MCP_TOOLS_SCOPE],
+      scopes: [...OAUTH_PROVIDER_SCOPES],
+      clientRegistrationDefaultScopes: [...OAUTH_PROVIDER_SCOPES],
+      clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],
       validAudiences: [
         // Use URL-normalized origin (strips invisible chars / trailing slashes
         // that raw env values may carry).  Keep the raw value too for safety.
@@ -272,13 +283,7 @@ const authInstance = betterAuth({
         },
       },
       advertisedMetadata: {
-        scopes_supported: [
-          "openid",
-          "profile",
-          "email",
-          "offline_access",
-          MCP_TOOLS_SCOPE,
-        ],
+        scopes_supported: [...OAUTH_PROVIDER_SCOPES],
         claims_supported: [
           "sub",
           "name",

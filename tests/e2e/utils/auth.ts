@@ -55,7 +55,7 @@ async function expectAuthenticatedSession(
   options: { isAdmin?: boolean } = {},
 ) {
   await expect(async () => {
-    const sessionResponse = await page.request.get("/api/auth/session");
+    const sessionResponse = await page.request.get("/api/auth/get-session");
     expect(sessionResponse.status()).toBe(200);
     const session = (await sessionResponse.json()) as {
       user?: { id?: string; isAdmin?: boolean };

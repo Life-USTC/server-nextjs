@@ -69,10 +69,10 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-oauth-created");
 
-    const row = page.locator("tr").filter({
+    const clientCard = page.locator('[class*="rounded-2xl"]').filter({
       has: page.getByText(clientName, { exact: true }),
     });
-    await row.getByRole("button", { name: /删除|Delete/i }).click();
+    await clientCard.getByRole("button", { name: /删除|Delete/i }).click();
 
     await expect(page.getByText(clientName)).toHaveCount(0, {
       timeout: 15000,

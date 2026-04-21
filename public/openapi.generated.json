@@ -771,27 +771,6 @@
         }
       }
     },
-    "/api/auth/oauth2/register": {
-      "post": {
-        "operationId": "post-api-auth-oauth2-register",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/auth/oauth2/token": {
       "get": {
         "operationId": "get-api-auth-oauth2-token",
@@ -814,48 +793,6 @@
       },
       "post": {
         "operationId": "post-api-auth-oauth2-token",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/auth/session": {
-      "get": {
-        "operationId": "get-api-auth-session",
-        "summary": "Compatibility endpoint for existing tests/tools that still call.",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/auth/webhook/login": {
-      "post": {
-        "operationId": "post-api-auth-webhook-login",
         "summary": "",
         "description": "",
         "tags": [

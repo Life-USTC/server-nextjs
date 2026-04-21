@@ -299,7 +299,7 @@ export async function assertApiContract(
   }
 
   if (routePath === "/api/auth/[...nextauth]") {
-    const response = await request.get("/api/auth/session");
+    const response = await request.get("/api/auth/get-session");
     expect(response.status()).toBe(200);
     return;
   }
