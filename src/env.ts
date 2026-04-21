@@ -15,6 +15,7 @@ const envSchema = z.object({
   AUTH_OIDC_ISSUER: z.string().optional(),
   AUTH_OIDC_CLIENT_ID: z.string().optional(),
   AUTH_OIDC_CLIENT_SECRET: z.string().optional(),
+  OAUTH_PROXY_SECRET: z.string().optional(),
 
   // S3 storage (optional outside upload flows)
   S3_BUCKET: z.string().optional(),

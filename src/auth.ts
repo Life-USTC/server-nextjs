@@ -3,10 +3,15 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { hashPassword } from "better-auth/crypto";
 import { nextCookies, toNextJsHandler } from "better-auth/next-js";
-import { genericOAuth, jwt } from "better-auth/plugins";
+import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
+import {
+  getAuthTrustedOrigins,
+  getOAuthProxyProductionUrl,
+  getOAuthProxySecret,
+} from "@/lib/auth/auth-origins";
 import {
   fallbackEmail,
   mapOidcProfileToUser,
@@ -79,6 +84,7 @@ const AUTH_BASE_URL = getBetterAuthBaseUrl();
 /** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
 const AUTH_PUBLIC_ORIGIN = getPublicOrigin();
 const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
+const OAUTH_PROXY_SECRET = getOAuthProxySecret();
 
 function getBetterAuthSecret() {
   const secret =
@@ -113,6 +119,7 @@ const authInstance = betterAuth({
     // request-aware Better Auth behavior, but deployment origin comes from config.
     trustedProxyHeaders: true,
   },
+  trustedOrigins: getAuthTrustedOrigins(),
   socialProviders: {
     ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
       ? {
@@ -227,6 +234,10 @@ const authInstance = betterAuth({
           modelName: "Jwks",
         },
       },
+    }),
+    oAuthProxy({
+      productionURL: getOAuthProxyProductionUrl(),
+      ...(OAUTH_PROXY_SECRET ? { secret: OAUTH_PROXY_SECRET } : {}),
     }),
     oauthProvider({
       // Absolute URLs so redirects stay correct behind Docker/Caddy (avoid https://localhost:3000/...).
