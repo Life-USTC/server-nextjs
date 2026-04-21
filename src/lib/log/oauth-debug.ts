@@ -46,6 +46,51 @@ const SENSITIVE_QUERY_KEYS = new Set([
   "client_secret",
 ]);
 
+export function summarizeOAuthRedirectUri(
+  redirect: string | null,
+): Record<string, unknown> {
+  let redirectHost: string | null = null;
+  let redirectHostname: string | null = null;
+  let redirectPort: string | null = null;
+  let redirectPath: string | null = null;
+
+  if (redirect) {
+    try {
+      const redirectUrl = new URL(redirect);
+      redirectHost = redirectUrl.host;
+      redirectHostname = redirectUrl.hostname;
+      redirectPort = redirectUrl.port || null;
+      redirectPath = redirectUrl.pathname;
+    } catch {
+      redirectHost = "invalid_redirect_uri";
+    }
+  }
+
+  return {
+    redirectUri: redirect,
+    redirectHost,
+    redirectHostname,
+    redirectPort,
+    redirectPath,
+  };
+}
+
+export function summarizeOAuthForwardingHeaders(
+  request: Request,
+  requestUrl?: URL,
+): Record<string, unknown> {
+  const url = requestUrl ?? new URL(request.url);
+  return {
+    requestOrigin: url.origin,
+    requestHost: url.host,
+    hostHeader: request.headers.get("host"),
+    forwardedHost: request.headers.get("x-forwarded-host"),
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+    forwardedPort: request.headers.get("x-forwarded-port"),
+    forwardedHeaderPresent: request.headers.has("forwarded"),
+  };
+}
+
 /** Redact sensitive query parameters in a redirect URL for logs. */
 export function sanitizeOAuthRedirectLocation(
   location: string | undefined,
@@ -69,18 +114,10 @@ function summarizeOAuthAuthorizeUrl(url: URL): Record<string, unknown> | null {
   if (!url.pathname.endsWith("/oauth2/authorize")) return null;
   const sp = url.searchParams;
   const redirect = sp.get("redirect_uri");
-  let redirectHost: string | null = null;
-  if (redirect) {
-    try {
-      redirectHost = new URL(redirect).host;
-    } catch {
-      redirectHost = "invalid_redirect_uri";
-    }
-  }
   const scope = sp.get("scope");
   return {
     clientIdPrefix: sp.get("client_id")?.slice(0, 16) ?? null,
-    redirectHost,
+    ...summarizeOAuthRedirectUri(redirect),
     scopeTokenCount: scope ? scope.split(" ").filter(Boolean).length : 0,
     resource: sp.get("resource"),
     statePresent: Boolean(sp.get("state")),
@@ -146,6 +183,7 @@ export async function withBetterAuthOAuthDebug(
     try {
       const cloned = request.clone();
       const fd = await cloned.formData();
+      const redirectUri = fd.get("redirect_uri");
       tokenRequestFingerprint = {
         bodyParams: [...fd.keys()].sort(),
         userAgent: request.headers.get("user-agent")?.slice(0, 80) ?? null,
@@ -158,6 +196,9 @@ export async function withBetterAuthOAuthDebug(
         debugNonce: request.headers.get("x-debug-nonce") ?? null,
         forwarded: request.headers.get("x-forwarded-for") ?? null,
         via: request.headers.get("via") ?? null,
+        ...(typeof redirectUri === "string"
+          ? { redirectSummary: summarizeOAuthRedirectUri(redirectUri) }
+          : {}),
       };
     } catch {
       // body not form-urlencoded or already consumed
@@ -168,6 +209,7 @@ export async function withBetterAuthOAuthDebug(
     method,
     path,
     queryKeys: [...url.searchParams.keys()],
+    forwardingSummary: summarizeOAuthForwardingHeaders(request, url),
     ...(authorizeSummary ? { authorizeSummary } : {}),
     ...(tokenRequestFingerprint ? { tokenRequestFingerprint } : {}),
   });

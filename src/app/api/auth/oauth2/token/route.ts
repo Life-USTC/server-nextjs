@@ -2,12 +2,18 @@ import { randomBytes } from "node:crypto";
 import { handlers } from "@/auth";
 import { jsonResponse } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
-import { logOAuthDebug, withBetterAuthOAuthDebug } from "@/lib/log/oauth-debug";
+import {
+  logOAuthDebug,
+  summarizeOAuthForwardingHeaders,
+  summarizeOAuthRedirectUri,
+  withBetterAuthOAuthDebug,
+} from "@/lib/log/oauth-debug";
 import {
   DEVICE_CODE_ERRORS,
   DEVICE_CODE_POLL_INTERVAL,
   DEVICE_CODE_STATUS,
 } from "@/lib/oauth/device-code";
+import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 import { hashOAuthClientSecretForDbStorage } from "@/lib/oauth/utils";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +22,67 @@ const DEVICE_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
 
 function deviceCodeError(error: string, status = 400) {
   return jsonResponse({ error }, { status });
+}
+
+function logObservedTokenRedirectRequest(
+  request: Request,
+  params: URLSearchParams,
+): void {
+  const clientId = params.get("client_id");
+  const redirectUri = params.get("redirect_uri");
+  if (!clientId || !redirectUri) {
+    return;
+  }
+
+  logOAuthDebug("oauth.token.request-observed", request, {
+    path: new URL(request.url).pathname,
+    clientIdPrefix: clientId.slice(0, 16),
+    grantType: params.get("grant_type"),
+    ...summarizeOAuthRedirectUri(redirectUri),
+    ...summarizeOAuthForwardingHeaders(request),
+  });
+}
+
+async function maybeNormalizeTokenLoopbackRedirectRequest(
+  request: Request,
+  params: URLSearchParams,
+): Promise<Request> {
+  const clientId = params.get("client_id");
+  const redirectUri = params.get("redirect_uri");
+  if (!clientId || !redirectUri) {
+    return request;
+  }
+
+  const client = await prisma.oAuthClient.findUnique({
+    where: { clientId },
+    select: { redirectUris: true },
+  });
+  if (!client) {
+    return request;
+  }
+
+  const normalizedRedirectUri = resolveEquivalentLoopbackRedirectUri(
+    client.redirectUris,
+    redirectUri,
+  );
+  if (!normalizedRedirectUri || normalizedRedirectUri === redirectUri) {
+    return request;
+  }
+
+  params.set("redirect_uri", normalizedRedirectUri);
+  const headers = new Headers(request.headers);
+  headers.delete("content-length");
+  logOAuthDebug("oauth.loopback-redirect-normalized", request, {
+    path: new URL(request.url).pathname,
+    clientIdPrefix: clientId.slice(0, 16),
+    fromRedirectUri: redirectUri,
+    toRedirectUri: normalizedRedirectUri,
+  });
+  return new Request(request.url, {
+    method: request.method,
+    headers,
+    body: params.toString(),
+  });
 }
 
 async function handleDeviceCodeGrant(
@@ -156,8 +223,14 @@ export async function POST(request: Request) {
     return handleDeviceCodeGrant(request, params);
   }
 
+  logObservedTokenRedirectRequest(request, params);
+
   // Delegate all other grant types to Better Auth
-  return withBetterAuthOAuthDebug("POST", request, handlers.POST);
+  return withBetterAuthOAuthDebug(
+    "POST",
+    await maybeNormalizeTokenLoopbackRedirectRequest(request, params),
+    handlers.POST,
+  );
 }
 
 // GET is not used for token endpoint but delegate just in case

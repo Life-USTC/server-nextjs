@@ -28,6 +28,8 @@ const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 const RESOURCE = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
 const CODE_VERIFIER =
   "oauth-provider-e2e-verifier-0123456789012345678901234567890123456789";
+const LOOPBACK_REDIRECT_URI = "http://127.0.0.1:61000/callback";
+const LOOPBACK_LOCALHOST_REDIRECT_URI = "http://localhost:61000/callback";
 
 test.describe("OAuth provider", () => {
   test("well-known endpoints are exposed at root", async ({ request }) => {
@@ -125,5 +127,51 @@ test.describe("OAuth provider", () => {
     expect(userinfoResponse.status()).toBe(200);
     const userinfoBody = (await userinfoResponse.json()) as { sub?: string };
     expect(typeof userinfoBody.sub).toBe("string");
+  });
+
+  test("loopback authorize accepts localhost alias for a 127.0.0.1 DCR client", async ({
+    page,
+    request,
+  }) => {
+    const registrationResponse = await request.post(
+      "/api/auth/oauth2/register",
+      {
+        data: {
+          client_name: `e2e-loopback-${Date.now()}`,
+          redirect_uris: [LOOPBACK_REDIRECT_URI],
+          token_endpoint_auth_method: "none",
+          grant_types: ["authorization_code"],
+          response_types: ["code"],
+          scope: "openid profile email mcp:tools",
+          type: "native",
+        },
+      },
+    );
+    expect(registrationResponse.status()).toBe(200);
+    const registrationBody = (await registrationResponse.json()) as {
+      client_id?: string;
+    };
+
+    await signInAsDebugUser(page, "/");
+
+    const authorizeResponse = await page.request.get(
+      "/api/auth/oauth2/authorize",
+      {
+        params: {
+          response_type: "code",
+          client_id: registrationBody.client_id,
+          redirect_uri: LOOPBACK_LOCALHOST_REDIRECT_URI,
+          scope: "openid profile email mcp:tools",
+          state: "e2e-loopback-state",
+          prompt: "consent",
+          code_challenge: generateCodeChallenge(CODE_VERIFIER),
+          code_challenge_method: "S256",
+        },
+        maxRedirects: 0,
+      },
+    );
+
+    expect(authorizeResponse.status()).toBe(302);
+    expect(authorizeResponse.headers().location).toContain("/oauth/authorize?");
   });
 });
