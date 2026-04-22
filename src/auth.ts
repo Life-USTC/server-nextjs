@@ -8,7 +8,9 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/generated/prisma/client";
 import {
+  getAuthAllowedHosts,
   getAuthTrustedOrigins,
+  getOAuthProxyCurrentUrl,
   getOAuthProxyProductionUrl,
   getOAuthProxySecret,
 } from "@/lib/auth/auth-origins";
@@ -113,7 +115,11 @@ function getBetterAuthSecret() {
 }
 
 const authInstance = betterAuth({
-  baseURL: AUTH_BASE_URL,
+  baseURL: {
+    allowedHosts: getAuthAllowedHosts(),
+    fallback: AUTH_PUBLIC_ORIGIN,
+    protocol: isDev ? "http" : "https",
+  },
   secret: getBetterAuthSecret(),
   database: prismaAdapter(
     prisma as unknown as Parameters<typeof prismaAdapter>[0],
@@ -245,6 +251,7 @@ const authInstance = betterAuth({
     }),
     oAuthProxy({
       productionURL: getOAuthProxyProductionUrl(),
+      currentURL: getOAuthProxyCurrentUrl(),
       ...(OAUTH_PROXY_SECRET ? { secret: OAUTH_PROXY_SECRET } : {}),
     }),
     webhookLoginPlugin(),

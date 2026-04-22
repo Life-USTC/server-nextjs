@@ -17,8 +17,30 @@ export function getAuthTrustedOrigins(): string[] {
   );
 }
 
+export function getAuthAllowedHosts(): string[] {
+  return Array.from(
+    new Set(
+      [
+        getPublicOrigin(),
+        getCanonicalOrigin(),
+        ...LOCALHOST_AUTH_ORIGINS,
+        VERCEL_PREVIEW_AUTH_ORIGIN,
+      ].map((origin) => {
+        if (origin.includes("://")) {
+          return new URL(origin).host;
+        }
+        return origin.replace(/^https?:\/\//, "");
+      }),
+    ),
+  );
+}
+
 export function getOAuthProxyProductionUrl(): string {
   return getCanonicalOrigin();
+}
+
+export function getOAuthProxyCurrentUrl(): string {
+  return getPublicOrigin();
 }
 
 export function getOAuthProxySecret(): string | undefined {
