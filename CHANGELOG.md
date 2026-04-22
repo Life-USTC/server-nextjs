@@ -1,3 +1,10 @@
+## [1.25.8](https://github.com/Life-USTC/server-nextjs/compare/v1.25.7...v1.25.8) (2026-04-22)
+
+
+### Performance Improvements
+
+* **tools:** harden static import pipeline ([dcfbfdc](https://github.com/Life-USTC/server-nextjs/commit/dcfbfdcb1f20f935498734ce07509df2fe15eec7))
+
 ## [1.25.7](https://github.com/Life-USTC/server-nextjs/compare/v1.25.6...v1.25.7) (2026-04-22)
 
 
