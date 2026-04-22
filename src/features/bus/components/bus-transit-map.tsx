@@ -784,7 +784,7 @@ export function BusTransitMap({ data }: { data: BusMapData | null }) {
           {/* Floating tooltip positioned over SVG */}
           {tooltip && (
             <div
-              className="-translate-x-1/2 -translate-y-full pointer-events-none absolute z-50 rounded-lg border bg-popover px-3 py-2 text-popover-foreground text-xs shadow-lg"
+              className="pointer-events-none absolute z-50 -translate-x-1/2 -translate-y-full rounded-lg border bg-popover px-3 py-2 text-popover-foreground text-xs shadow-lg"
               style={{
                 left: `${(tooltip.svgX / SVG_W) * 100}%`,
                 top: `${(tooltip.svgY / SVG_H) * 100}%`,

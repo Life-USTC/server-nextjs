@@ -297,7 +297,7 @@ async function loadRoom(
   data: RoomInterface,
   prisma: PrismaClient,
 ): Promise<Room | null> {
-  if (!data || !data.building || !data.roomType) {
+  if (!data?.building || !data?.roomType) {
     return null;
   }
 

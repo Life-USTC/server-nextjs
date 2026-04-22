@@ -21,6 +21,7 @@ import { Link } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
 
 type PageBreadcrumbItem = {
+  key?: string;
   label: React.ReactNode;
   href?: string;
 };
@@ -140,8 +141,8 @@ function PageBreadcrumbs({
   return (
     <Breadcrumb className={className}>
       <BreadcrumbList>
-        {items.map((item, index) => (
-          <React.Fragment key={`${String(item.href ?? item.label)}-${index}`}>
+        {items.map((item) => (
+          <React.Fragment key={item.key ?? item.href ?? String(item.label)}>
             <BreadcrumbItem>
               {item.href ? (
                 <BreadcrumbLink render={<Link href={item.href} />}>
@@ -151,7 +152,7 @@ function PageBreadcrumbs({
                 <BreadcrumbPage>{item.label}</BreadcrumbPage>
               )}
             </BreadcrumbItem>
-            {index < items.length - 1 ? <BreadcrumbSeparator /> : null}
+            {item !== items.at(-1) ? <BreadcrumbSeparator /> : null}
           </React.Fragment>
         ))}
       </BreadcrumbList>
@@ -265,7 +266,7 @@ function PageLinkCard({
           <div className="min-w-0 flex-1 space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <p className="font-medium text-[0.95rem] leading-6">{title}</p>
-              <ArrowUpRight className="group-hover:-translate-y-0.5 mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </div>
             {description ? (
               <p className="text-muted-foreground text-sm leading-6">
@@ -285,14 +286,14 @@ function PageLinkCard({
 }
 
 export {
-  PageLayout,
-  PageSection,
   PageBreadcrumbs,
-  PageToolbar,
-  PageMeta,
-  PageStatGrid,
-  PageStatCard,
-  PageLinkGrid,
+  PageLayout,
   PageLinkCard,
+  PageLinkGrid,
+  PageMeta,
+  PageSection,
+  PageStatCard,
+  PageStatGrid,
+  PageToolbar,
   Panel,
 };

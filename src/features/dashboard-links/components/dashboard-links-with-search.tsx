@@ -225,9 +225,9 @@ export function DashboardLinksWithSearch({
           />
         </DashboardTabToolbar>
       )}
-      {filteredGroups.map((entry, index) => (
+      {filteredGroups.map((entry) => (
         <section
-          key={`${entry.group}-${index}`}
+          key={entry.group}
           className={entry.label ? "space-y-2" : undefined}
         >
           {entry.label ? (

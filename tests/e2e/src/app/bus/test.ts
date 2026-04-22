@@ -143,6 +143,14 @@ test.describe("bus dashboard tab", () => {
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=bus");
+    await page.request.post("/api/bus/preferences", {
+      data: {
+        preferredOriginCampusId: null,
+        preferredDestinationCampusId: null,
+        showDepartedTrips: false,
+      },
+    });
+    await gotoAndWaitForReady(page, "/?tab=bus");
 
     await expect(page.getByText(/saved automatically|自动保存/)).toBeVisible();
 

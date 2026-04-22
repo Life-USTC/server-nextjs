@@ -107,7 +107,7 @@ export async function MobileAppIntroPage() {
                         <span className="font-medium text-sm leading-6">
                           {item.title}
                         </span>
-                        <ArrowUpRight className="group-hover:-translate-y-0.5 mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                        <ArrowUpRight className="mt-1 size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                       </span>
                       <span className="mt-0.5 block text-muted-foreground text-sm leading-6">
                         {item.description}

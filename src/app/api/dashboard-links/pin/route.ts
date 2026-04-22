@@ -15,7 +15,7 @@ type PinApiResponse = {
 };
 
 function sanitizeReturnTo(value: string | undefined): string {
-  if (!value || !value.startsWith("/")) return "/";
+  if (!value?.startsWith("/")) return "/";
   if (value.startsWith("//")) return "/";
   if (/[\\\r\n]/.test(value)) return "/";
   return value;

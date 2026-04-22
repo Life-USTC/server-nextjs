@@ -254,6 +254,11 @@ const authInstance = betterAuth({
       consentPage: `${AUTH_PUBLIC_ORIGIN}/oauth/authorize`,
       allowDynamicClientRegistration: true,
       allowUnauthenticatedClientRegistration: true,
+      rateLimit: e2eDebugAuth
+        ? {
+            register: false,
+          }
+        : undefined,
       scopes: [...OAUTH_PROVIDER_SCOPES],
       clientRegistrationDefaultScopes: [...OAUTH_PROVIDER_SCOPES],
       clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],

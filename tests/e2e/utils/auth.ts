@@ -106,10 +106,30 @@ async function signInWithDevButton(
     `/signin?callbackUrl=${encodeURIComponent(callbackPath)}`,
   );
 
+  if (!page.url().includes("/signin")) {
+    await expectPagePath(page, expectedPath);
+    await waitForUiSettled(page);
+    await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
+    await expect(page.locator("#main-content")).toBeVisible();
+    authStorageStateCache.set(role, await page.context().storageState());
+    return;
+  }
+
   const buttonName =
     role === "admin" ? DEV_ADMIN_LOGIN_BUTTON : DEV_DEBUG_LOGIN_BUTTON;
   const button = page.getByRole("button", { name: buttonName }).first();
-  await expect(button).toBeVisible();
+  try {
+    await expect(button).toBeVisible({ timeout: 1_000 });
+  } catch (error) {
+    try {
+      await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
+      await expect(page.locator("#main-content")).toBeVisible();
+      authStorageStateCache.set(role, await page.context().storageState());
+      return;
+    } catch {
+      throw error;
+    }
+  }
   await button.click();
 
   await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {

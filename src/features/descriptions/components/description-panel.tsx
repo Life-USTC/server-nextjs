@@ -113,9 +113,11 @@ function DiffView({
     return null;
   }
 
+  let segmentOffset = 0;
+
   return (
     <span className="whitespace-pre-wrap">
-      {visibleSegments.map((segment, index) => {
+      {visibleSegments.map((segment) => {
         const isAdded = Boolean(segment.added);
         const isRemoved = Boolean(segment.removed);
         const highlightClass = isAdded
@@ -123,12 +125,11 @@ function DiffView({
           : isRemoved
             ? "bg-rose-100 text-rose-900 dark:bg-rose-400/20 dark:text-rose-100"
             : null;
+        const segmentKey = `${mode}-${segmentOffset}-${segment.added ? "added" : "kept"}-${segment.removed ? "removed" : "visible"}`;
+        segmentOffset += segment.value.length;
 
         return (
-          <span
-            key={`${segment.value}-${index}`}
-            className={highlightClass ?? undefined}
-          >
+          <span key={segmentKey} className={highlightClass ?? undefined}>
             {segment.value}
           </span>
         );
