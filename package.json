@@ -16,6 +16,7 @@
     "check": "biome check",
     "check:e2e": "bun run tools/dev/check/check-e2e-conventions.ts",
     "check:i18n": "bun run tools/dev/check/check-i18n-keys.ts",
+    "check:static-import": "bun run tools/dev/check/check-static-import-regression.ts",
     "commitlint:last": "commitlint --from HEAD~1 --to HEAD",
     "commitlint:main": "commitlint --from origin/main --to HEAD",
     "dev": "next dev",
