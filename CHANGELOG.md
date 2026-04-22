@@ -1,3 +1,10 @@
+## [1.25.7](https://github.com/Life-USTC/server-nextjs/compare/v1.25.6...v1.25.7) (2026-04-22)
+
+
+### Bug Fixes
+
+* **auth:** resolve oauth proxy host inference ([a364b70](https://github.com/Life-USTC/server-nextjs/commit/a364b70584bea0e8ed6b1e58b417a556fdbb4674))
+
 ## [1.25.6](https://github.com/Life-USTC/server-nextjs/compare/v1.25.5...v1.25.6) (2026-04-22)
 
 
