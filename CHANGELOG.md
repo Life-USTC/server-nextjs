@@ -1,3 +1,10 @@
+## [1.25.5](https://github.com/Life-USTC/server-nextjs/compare/v1.25.4...v1.25.5) (2026-04-22)
+
+
+### Bug Fixes
+
+* **bus:** align planner time and preference data ([6603576](https://github.com/Life-USTC/server-nextjs/commit/6603576b2d0a69229c2a760a255c71afac0a9fae))
+
 ## [1.25.4](https://github.com/Life-USTC/server-nextjs/compare/v1.25.3...v1.25.4) (2026-04-21)
 
 
