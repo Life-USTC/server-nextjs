@@ -1,8 +1,8 @@
 import type dayjs from "dayjs";
 import { getLocale } from "next-intl/server";
 import { pinyin } from "pinyin-pro";
-import { getBusDashboardSnapshot } from "@/features/bus/lib/bus-service";
-import type { BusLocale } from "@/features/bus/lib/bus-types";
+import { getBusTimetableData } from "@/features/bus/lib/bus-service";
+import type { BusLocale, BusTimetableData } from "@/features/bus/lib/bus-types";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
@@ -42,8 +42,6 @@ import type { ExamItem, HomeworkWithSection, SessionItem } from "./types";
 export type OverviewDataOptions = {
   /** Calendar tab: show semester/month/week grid for this semester (any known term). */
   calendarSemesterId?: number;
-  /** Bus day type override (weekday/weekend); defaults to auto-detect. */
-  busDayType?: "weekday" | "weekend";
   /** Skip dashboard-links queries when the caller doesn't need them (e.g. calendar tab). */
   skipLinks?: boolean;
 };
@@ -654,20 +652,16 @@ export async function getLinksTabData(userId: string) {
   return getSignedInDashboardLinksData(userId);
 }
 
-export async function getBusTabData(
-  userId: string,
-  options: Pick<OverviewDataOptions, "busDayType">,
-): Promise<BusDashboardData> {
+export async function getBusTabData(userId: string): Promise<BusDashboardData> {
   const locale = await getLocale();
   const referenceNow = shanghaiDayjs();
   const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
 
   return {
-    snapshot: await getBusDashboardSnapshot({
+    data: await getBusTimetableData({
       locale: busLocale,
       userId,
       now: referenceNow.toISOString(),
-      dayType: options.busDayType,
     }),
   };
 }
@@ -935,5 +929,5 @@ export async function getTodosTabData(userId: string): Promise<TodoItem[]> {
 }
 
 export type BusDashboardData = {
-  snapshot: Awaited<ReturnType<typeof getBusDashboardSnapshot>> | null;
+  data: BusTimetableData | null;
 };

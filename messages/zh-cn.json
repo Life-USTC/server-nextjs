@@ -520,10 +520,10 @@
   },
   "bus": {
     "title": "校车",
-    "description": "公开查询校车时刻，登录后可记住偏好并优先推荐最合适的路线。",
-    "subtitle": "支持公开查询、偏好记忆与下一班推荐。",
+    "description": "公开查询校车时刻。选择工作日或周末，再直接点击纵向排列的出发站和到达站后，可在一张分路线大表中查看所有可用路线。",
+    "subtitle": "基于原始时刻表的客户端校车规划器，使用纵向站点列和合并时刻表。",
     "dashboardTitle": "校车出行",
-    "dashboardDescription": "根据当前时间和你常用的校区，优先展示最值得看的路线。",
+    "dashboardDescription": "选择出发站和到达站后，在一张按路线分组的大表里比较所有还能赶上的路线。",
     "publicEntry": "公开校车查询",
     "dayType": {
       "weekday": "工作日",
@@ -532,8 +532,8 @@
     },
     "query": {
       "dayType": "时刻类型",
-      "origin": "出发校区",
-      "destination": "到达校区",
+      "origin": "出发站",
+      "destination": "到达站",
       "originAny": "全部校区",
       "destinationAny": "任意目的地",
       "showDepartedTrips": "显示已发车班次",
@@ -542,20 +542,6 @@
       "versionCurrent": "当前生效",
       "versionPreview": "预览其它版本",
       "empty": "当前筛选下暂无可展示的校车班次。"
-    },
-    "recommended": {
-      "title": "推荐",
-      "description": "经过你常用校区的路线。",
-      "empty": "选择常用校区以获取推荐路线。",
-      "nextTrip": "下一班",
-      "noUpcoming": "今天这条线路没有后续班次了",
-      "arrive": "到达",
-      "departIn": "约 {count} 分钟后发车",
-      "departed": "已发车"
-    },
-    "allRoutes": {
-      "title": "全部匹配路线",
-      "description": "展示符合当前筛选的所有线路和班次。"
     },
     "route": {
       "favorite": "常用",
@@ -568,24 +554,37 @@
     },
     "preferences": {
       "title": "偏好设置",
-      "description": "记住你常用的校区与线路，下次打开优先推荐。",
-      "advanced": "高级偏好",
-      "advancedDescription": "置顶特定校区或线路，让它们始终优先显示。",
-      "signInHint": "登录后即可保存出发地、目的地和常用线路偏好。",
-      "origin": "默认出发校区",
-      "destination": "默认到达校区",
-      "favoriteCampuses": "常用校区",
-      "favoriteCampusesPlaceholder": "搜索校区…",
-      "favoriteRoutes": "常用线路",
-      "favoriteRoutesPlaceholder": "搜索线路…",
+      "description": "记住默认出发站、到达站和是否显示已发车班次。",
+      "signInHint": "登录后即可记住校车规划器的默认选择。",
+      "origin": "默认出发站",
+      "destination": "默认到达站",
       "showDepartedTrips": "默认展示已发车班次",
       "showDepartedTripsHint": "开启后会在列表中保留今天已发车的班次，方便回看全表。",
+      "autosaveHint": "已登录时会自动保存当前选择。",
       "unset": "未设置",
       "save": "保存偏好",
-      "saving": "保存中...",
+      "saving": "保存中…",
       "saved": "偏好已保存",
-      "saveFailed": "偏好保存失败",
-      "favoriteCampusesHint": "选择常用校区以筛选推荐路线"
+      "saveFailed": "偏好保存失败"
+    },
+    "planner": {
+      "start": "出发站",
+      "end": "到达站",
+      "reverse": "反向",
+      "startShort": "起",
+      "endShort": "终",
+      "empty": "当前方向下没有可用路线。可以尝试反向或重新选择站点。",
+      "departIn": "约 {count} 分钟后发车",
+      "departEtaMinutes": "{count} 分钟",
+      "departEtaHours": "{count} 小时",
+      "departEtaHoursMinutes": "{hours} 小时 {minutes} 分钟",
+      "etaUnknown": "到站时间未知",
+      "estimatedHint": "~ 表示该时间由同班次相邻站点推算得出。",
+      "clientHint": "工作日/周末判断、路线匹配和排序都在浏览器端基于原始时刻表完成。",
+      "routeSectionsCount": "共 {count} 条路线分组",
+      "departureColumn": "出发",
+      "routeColumn": "路线时刻",
+      "arrivalColumn": "到达"
     },
     "versionNotice": {
       "title": "时刻表说明",

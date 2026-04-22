@@ -40,7 +40,6 @@ export type BusTripStopTime = {
 export type BusTripSummary = {
   id: number;
   routeId: number;
-  route: BusRouteSummary;
   dayType: BusScheduleDayType;
   position: number;
   stopTimes: BusTripStopTime[];
@@ -48,8 +47,6 @@ export type BusTripSummary = {
   departureMinutes: number | null;
   arrivalTime: string | null;
   arrivalMinutes: number | null;
-  status: BusTripStatus;
-  minutesUntilDeparture: number | null;
 };
 
 export type BusNotice = {
@@ -70,57 +67,32 @@ export type BusScheduleVersionSummary = {
 export type BusUserPreferenceSummary = {
   preferredOriginCampusId: number | null;
   preferredDestinationCampusId: number | null;
-  favoriteCampusIds: number[];
-  favoriteRouteIds: number[];
   showDepartedTrips: boolean;
 };
 
 export type BusPreferencePayload = BusUserPreferenceSummary;
 
-export type BusQueryInput = {
+export type BusTimetableInput = {
   locale: BusLocale;
   now?: string;
-  dayType?: BusResolvedDayType;
-  originCampusId?: number | null;
-  destinationCampusId?: number | null;
-  favoriteRouteIds?: number[];
-  favoriteCampusIds?: number[];
-  showDepartedTrips?: boolean;
-  includeAllTrips?: boolean;
-  limit?: number;
   versionKey?: string | null;
   userId?: string | null;
 };
 
-export type BusRouteMatch = {
-  route: BusRouteSummary;
-  originStop: BusRouteStopSummary;
-  destinationStop: BusRouteStopSummary;
-  nextTrip: BusTripSummary | null;
-  upcomingTrips: BusTripSummary[];
-  visibleTrips: BusTripSummary[];
-  allTrips: BusTripSummary[];
-  totalTrips: number;
-  isRecommended: boolean;
-};
-
-export type BusQueryResult = {
+export type BusTimetableData = {
   locale: BusLocale;
-  now: string;
-  todayType: BusScheduleDayType;
+  fetchedAt: string;
   version: BusScheduleVersionSummary | null;
   availableVersions: BusScheduleVersionSummary[];
   campuses: BusCampusSummary[];
   routes: BusRouteSummary[];
+  trips: BusTripSummary[];
   preferences: BusUserPreferenceSummary | null;
-  recommended: BusRouteMatch | null;
-  matches: BusRouteMatch[];
   notice: BusNotice | null;
 };
 
 export type BusDashboardSnapshot = {
-  data: BusQueryResult;
-  highlightRoute: BusRouteMatch | null;
+  data: BusTimetableData;
 };
 
 /* ------------------------------------------------------------------ */

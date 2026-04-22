@@ -3,7 +3,7 @@ import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { BusPanel } from "@/features/bus/components/bus-panel";
-import type { BusQueryResult } from "@/features/bus/lib/bus-types";
+import type { BusTimetableData } from "@/features/bus/lib/bus-types";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
 import { Link } from "@/i18n/routing";
 import { type HomeTabId, HomeTabNav } from "./home-tab-nav";
@@ -29,7 +29,7 @@ export async function PublicHomeView({
 }: {
   searchParams: Promise<{ tab?: string }>;
   dashboardLinks: DashboardLinkSummary[];
-  busData: BusQueryResult | null;
+  busData: BusTimetableData | null;
 }) {
   const [params, t] = await Promise.all([
     searchParams,

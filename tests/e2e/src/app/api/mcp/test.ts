@@ -155,6 +155,16 @@ function parseTextContent(result: {
   return JSON.parse(textContent?.text ?? "{}") as Record<string, unknown>;
 }
 
+async function resetBusPreference(request: Page["request"]) {
+  await request.post("/api/bus/preferences", {
+    data: {
+      preferredOriginCampusId: null,
+      preferredDestinationCampusId: null,
+      showDepartedTrips: false,
+    },
+  });
+}
+
 test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
   test("/api/mcp 未认证时返回 OAuth bearer challenge", async ({ request }) => {
     const response = await request.post("/api/mcp", {
@@ -297,6 +307,13 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
     const currentUser = await getCurrentSessionUser(page);
+    await page.request.post("/api/bus/preferences", {
+      data: {
+        preferredOriginCampusId: 1,
+        preferredDestinationCampusId: 4,
+        showDepartedTrips: true,
+      },
+    });
     const { accessToken } = await issueAccessToken(page, request, {
       scope: "openid profile mcp:tools",
       clientScopes: ["openid", "profile", "mcp:tools"],
@@ -647,21 +664,29 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         },
       });
       const busPayload = parseTextContent(busResult) as {
-        todayType?: string;
+        fetchedAt?: string;
         version?: { title?: string | null };
-        recommended?: { route?: { id?: number } | null } | null;
-        matches?: Array<{ route?: { id?: number } | null }>;
+        routes?: Array<{ id?: number | null }>;
+        trips?: Array<{ dayType?: string }>;
+        preferences?: {
+          preferredOriginCampusId?: number | null;
+          preferredDestinationCampusId?: number | null;
+          showDepartedTrips?: boolean;
+        } | null;
       };
-      expect(
-        busPayload.todayType === "weekday" ||
-          busPayload.todayType === "weekend",
-      ).toBe(true);
+      expect(typeof busPayload.fetchedAt).toBe("string");
       expect(busPayload.version?.title).toContain(DEV_SEED.bus.versionTitle);
       expect(
-        busPayload.matches?.some(
-          (match) => match.route?.id === DEV_SEED.bus.routeId,
+        busPayload.routes?.some((route) => route.id === DEV_SEED.bus.routeId),
+      ).toBe(true);
+      expect(
+        busPayload.trips?.some(
+          (trip) => trip.dayType === "weekday" || trip.dayType === "weekend",
         ),
       ).toBe(true);
+      expect(busPayload.preferences?.preferredOriginCampusId).toBe(1);
+      expect(busPayload.preferences?.preferredDestinationCampusId).toBe(4);
+      expect(busPayload.preferences?.showDepartedTrips).toBe(true);
 
       // list_bus_routes — lightweight route catalog
       const listRoutesResult = await mcpClient.callTool({
@@ -809,6 +834,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(missingSectionPayload.message).toContain("999999999");
     } finally {
       await transport.close();
+      await resetBusPreference(page.request);
     }
   });
 });

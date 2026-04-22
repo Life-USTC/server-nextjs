@@ -20,9 +20,11 @@ export function DashboardTabToolbar({
 export function DashboardTabToolbarGroup({
   className,
   children,
+  ...props
 }: React.ComponentProps<"div">) {
   return (
     <div
+      {...props}
       className={cn(
         "inline-flex min-w-0 flex-wrap items-center gap-1 rounded-xl border border-border/60 bg-background/80 p-1",
         className,

@@ -107,9 +107,9 @@ export async function HomeView({
             week={params.calendarWeek}
           />
         )}
-        {currentTab === "bus" && busData?.snapshot && (
+        {currentTab === "bus" && busData?.data && (
           <BusPanel
-            data={busData.snapshot.data}
+            data={busData.data}
             signedIn={true}
             showPreferences={true}
           />

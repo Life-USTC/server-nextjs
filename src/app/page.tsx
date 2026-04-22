@@ -12,7 +12,7 @@ import {
   getTodosTabData,
 } from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
-import { queryBusSchedules } from "@/features/bus/lib/bus-service";
+import { getBusTimetableData } from "@/features/bus/lib/bus-service";
 import type { BusLocale } from "@/features/bus/lib/bus-types";
 import { HomeView } from "@/features/home/components/home-view";
 import { PublicHomeView } from "@/features/home/components/public-home-view";
@@ -44,22 +44,17 @@ export default async function HomePage({
     const params = await searchParams;
     const tab = params.tab ?? "overview";
     const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
-    const busDayType: "weekday" | "weekend" | undefined =
-      params.dayType === "weekday" || params.dayType === "weekend"
-        ? params.dayType
-        : undefined;
     const overviewOptions =
       tab === "calendar" &&
       Number.isFinite(parsedCalendarSemester) &&
       parsedCalendarSemester > 0
         ? {
             calendarSemesterId: parsedCalendarSemester,
-            busDayType,
             skipLinks: true,
           }
         : tab === "calendar"
-          ? { busDayType, skipLinks: true }
-          : { busDayType };
+          ? { skipLinks: true }
+          : {};
 
     const [
       navStats,
@@ -90,9 +85,7 @@ export default async function HomePage({
       tab === "todos" || tab === "overview"
         ? getTodosTabData(session.user.id)
         : Promise.resolve(null),
-      tab === "bus"
-        ? getBusTabData(session.user.id, { busDayType })
-        : Promise.resolve(null),
+      tab === "bus" ? getBusTabData(session.user.id) : Promise.resolve(null),
     ]);
 
     if (!navStats) {
@@ -131,14 +124,9 @@ export default async function HomePage({
   if (publicTab !== "links") {
     const locale = await getLocale();
     const busLocale: BusLocale = locale === "en-us" ? "en-us" : "zh-cn";
-    const dayType: "weekday" | "weekend" | undefined =
-      params.dayType === "weekday" || params.dayType === "weekend"
-        ? params.dayType
-        : undefined;
-    publicBusData = await queryBusSchedules({
+    publicBusData = await getBusTimetableData({
       locale: busLocale,
       userId: null,
-      dayType,
     });
   }
 

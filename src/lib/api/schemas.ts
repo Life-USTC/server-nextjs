@@ -1115,7 +1115,6 @@ const busRouteSummarySchema = z.object({
 const busTripSummarySchema = z.object({
   id: z.number().int(),
   routeId: z.number().int(),
-  route: busRouteSummarySchema,
   dayType: z.enum(["weekday", "weekend"]),
   position: z.number().int(),
   stopTimes: z.array(busTripStopTimeSummarySchema),
@@ -1123,38 +1122,11 @@ const busTripSummarySchema = z.object({
   departureMinutes: z.number().int().nullable(),
   arrivalTime: z.string().nullable(),
   arrivalMinutes: z.number().int().nullable(),
-  status: z.enum(["upcoming", "departed"]),
-  minutesUntilDeparture: z.number().int().nullable(),
-});
-
-const busRouteMatchSchema = z.object({
-  route: busRouteSummarySchema,
-  originStop: z.object({
-    stopOrder: z.number().int(),
-    campus: busCampusSchema.extend({
-      namePrimary: z.string(),
-      nameSecondary: z.string().nullable(),
-    }),
-  }),
-  destinationStop: z.object({
-    stopOrder: z.number().int(),
-    campus: busCampusSchema.extend({
-      namePrimary: z.string(),
-      nameSecondary: z.string().nullable(),
-    }),
-  }),
-  nextTrip: busTripSummarySchema.nullable(),
-  upcomingTrips: z.array(busTripSummarySchema),
-  visibleTrips: z.array(busTripSummarySchema),
-  allTrips: z.array(busTripSummarySchema),
-  totalTrips: z.number().int().nonnegative(),
-  isRecommended: z.boolean(),
 });
 
 export const busQueryResponseSchema = z.object({
   locale: z.enum(["zh-cn", "en-us"]),
-  now: dateTimeSchema,
-  todayType: z.enum(["weekday", "weekend"]),
+  fetchedAt: dateTimeSchema,
   version: z
     .object({
       id: z.number().int(),
@@ -1194,17 +1166,14 @@ export const busQueryResponseSchema = z.object({
     }),
   ),
   routes: z.array(busRouteSummarySchema),
+  trips: z.array(busTripSummarySchema),
   preferences: z
     .object({
       preferredOriginCampusId: z.number().int().nullable(),
       preferredDestinationCampusId: z.number().int().nullable(),
-      favoriteCampusIds: z.array(z.number().int()),
-      favoriteRouteIds: z.array(z.number().int()),
       showDepartedTrips: z.boolean(),
     })
     .nullable(),
-  recommended: busRouteMatchSchema.nullable(),
-  matches: z.array(busRouteMatchSchema),
   notice: z
     .object({
       message: z.string().nullable(),
@@ -1217,8 +1186,6 @@ export const busPreferenceResponseSchema = z.object({
   preference: z.object({
     preferredOriginCampusId: z.number().int().nullable(),
     preferredDestinationCampusId: z.number().int().nullable(),
-    favoriteCampusIds: z.array(z.number().int()),
-    favoriteRouteIds: z.array(z.number().int()),
     showDepartedTrips: z.boolean(),
   }),
 });

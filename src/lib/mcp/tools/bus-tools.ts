@@ -2,11 +2,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
   getBusRouteTimetable,
+  getBusTimetableData,
   listBusRoutes,
-  queryBusSchedules,
 } from "@/features/bus/lib/bus-service";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
+  getUserId,
   jsonToolResult,
   mcpModeInputSchema,
   resolveMcpMode,
@@ -17,21 +18,18 @@ export function registerBusTools(server: McpServer) {
     "query_bus_timetable",
     {
       description:
-        "Query today's USTC shuttle bus schedule. Returns all routes with upcoming/departed trip times for the current day type (weekday or weekend). Use list_bus_routes for a lightweight route catalog, or get_bus_route_timetable for a single route's full weekday+weekend timetable.",
+        "Query the full USTC shuttle bus timetable dataset. Returns campuses, routes, both weekday and weekend trips, and the active timetable version without filtering or ranking so clients can decide locally which routes to show.",
       inputSchema: {
-        showDepartedTrips: z.boolean().default(false),
-        dayType: z.enum(["weekday", "weekend", "auto"]).default("auto"),
         versionKey: z.string().trim().min(1).optional(),
         locale: localeSchema.default(DEFAULT_LOCALE),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ showDepartedTrips, dayType, versionKey, locale, mode }) => {
-      const result = await queryBusSchedules({
+    async ({ versionKey, locale, mode }, extra) => {
+      const result = await getBusTimetableData({
         locale,
-        showDepartedTrips,
-        dayType,
         versionKey,
+        userId: getUserId(extra.authInfo),
       });
 
       return jsonToolResult(
