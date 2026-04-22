@@ -1,3 +1,10 @@
+## [1.25.6](https://github.com/Life-USTC/server-nextjs/compare/v1.25.5...v1.25.6) (2026-04-22)
+
+
+### Bug Fixes
+
+* **auth:** align oauth discovery metadata endpoints ([101f688](https://github.com/Life-USTC/server-nextjs/commit/101f6888e9313606ab1b9cb0a8194b3c3828627b))
+
 ## [1.25.5](https://github.com/Life-USTC/server-nextjs/compare/v1.25.4...v1.25.5) (2026-04-22)
 
 
