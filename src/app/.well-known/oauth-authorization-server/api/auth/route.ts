@@ -1,29 +1,22 @@
-import { oauthProviderAuthServerMetadata } from "@better-auth/oauth-provider";
-import { betterAuthInstance } from "@/auth";
+import {
+  getAuthServerMetadataResponse,
+  getDiscoveryOptionsResponse,
+} from "@/lib/oauth/discovery-metadata";
 
 export const dynamic = "force-dynamic";
 
-const baseHandler = oauthProviderAuthServerMetadata(betterAuthInstance);
-
+/**
+ * Canonical RFC 8414 authorization server metadata for issuer `/api/auth`.
+ * @response 200
+ */
 export async function GET(request: Request) {
-  const response = await baseHandler(request);
-  const body = await response.json();
+  return getAuthServerMetadataResponse(request);
+}
 
-  const siteOrigin = body.issuer
-    ? new URL(body.issuer).origin
-    : new URL(request.url).origin;
-
-  const augmented = {
-    ...body,
-    device_authorization_endpoint: `${siteOrigin}/api/auth/oauth2/device-authorization`,
-    grant_types_supported: [
-      ...(body.grant_types_supported ?? []),
-      "urn:ietf:params:oauth:grant-type:device_code",
-    ],
-  };
-
-  return new Response(JSON.stringify(augmented), {
-    status: response.status,
-    headers: response.headers,
-  });
+/**
+ * CORS preflight for authorization server metadata.
+ * @response 204
+ */
+export function OPTIONS() {
+  return getDiscoveryOptionsResponse();
 }

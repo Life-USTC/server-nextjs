@@ -4,10 +4,12 @@
  * Tests the OAuth 2.0 / OpenID Connect infrastructure used for MCP authentication.
  * The actual dynamic client registration endpoint is at /api/auth/oauth2/register.
  *
- * - Well-known discovery endpoints:
- *   - /.well-known/oauth-authorization-server → authorization server metadata
- *   - /.well-known/openid-configuration → OpenID provider configuration
- *   - /.well-known/oauth-protected-resource → protected resource metadata
+ * - Canonical well-known discovery endpoints:
+ *   - /.well-known/oauth-authorization-server/api/auth → authorization server metadata
+ *   - /api/auth/.well-known/openid-configuration → OpenID provider configuration
+ *   - /.well-known/openid-configuration/api/auth → RFC 8414 compatibility form for OpenID metadata
+ *   - /.well-known/oauth-protected-resource/api/mcp → protected resource metadata
+ * - Legacy root aliases redirect to the canonical path-specific locations
  * - Full PKCE authorization code flow:
  *   1. POST /api/auth/oauth2/register → dynamic client registration
  *   2. GET /api/auth/oauth2/authorize → redirect to consent page
@@ -32,16 +34,69 @@ const LOOPBACK_REDIRECT_URI = "http://127.0.0.1:61000/callback";
 const LOOPBACK_LOCALHOST_REDIRECT_URI = "http://localhost:61000/callback";
 
 test.describe("OAuth provider", () => {
-  test("well-known endpoints are exposed at root", async ({ request }) => {
-    const [authServer, openid, protectedResource] = await Promise.all([
-      request.get("/.well-known/oauth-authorization-server"),
-      request.get("/.well-known/openid-configuration"),
-      request.get("/.well-known/oauth-protected-resource"),
+  test("canonical well-known endpoints are exposed and legacy aliases redirect", async ({
+    request,
+  }) => {
+    const [
+      authServer,
+      openid,
+      openidCompatibility,
+      protectedResource,
+      openidOptions,
+      authServerAlias,
+      openidAlias,
+      protectedResourceAlias,
+    ] = await Promise.all([
+      request.get("/.well-known/oauth-authorization-server/api/auth"),
+      request.get("/api/auth/.well-known/openid-configuration"),
+      request.get("/.well-known/openid-configuration/api/auth"),
+      request.get("/.well-known/oauth-protected-resource/api/mcp"),
+      request.fetch("/api/auth/.well-known/openid-configuration", {
+        method: "OPTIONS",
+      }),
+      request.get("/.well-known/oauth-authorization-server", {
+        maxRedirects: 0,
+      }),
+      request.get("/.well-known/openid-configuration", { maxRedirects: 0 }),
+      request.get("/.well-known/oauth-protected-resource", {
+        maxRedirects: 0,
+      }),
     ]);
 
     expect(authServer.status()).toBe(200);
     expect(openid.status()).toBe(200);
+    expect(openidCompatibility.status()).toBe(200);
     expect(protectedResource.status()).toBe(200);
+    expect(openid.headers()["access-control-allow-origin"]).toBe("*");
+    expect(openidCompatibility.headers()["access-control-allow-origin"]).toBe(
+      "*",
+    );
+    expect(authServer.headers()["access-control-allow-origin"]).toBe("*");
+    expect(protectedResource.headers()["access-control-allow-origin"]).toBe(
+      "*",
+    );
+    expect(openidOptions.status()).toBe(204);
+    expect(openidOptions.headers()["access-control-allow-origin"]).toBe("*");
+
+    expect(authServerAlias.status()).toBe(307);
+    expect(authServerAlias.headers().location).toBe(
+      `${PLAYWRIGHT_BASE_URL}/.well-known/oauth-authorization-server/api/auth`,
+    );
+    expect(authServerAlias.headers()["access-control-allow-origin"]).toBe("*");
+
+    expect(openidAlias.status()).toBe(307);
+    expect(openidAlias.headers().location).toBe(
+      `${PLAYWRIGHT_BASE_URL}/api/auth/.well-known/openid-configuration`,
+    );
+    expect(openidAlias.headers()["access-control-allow-origin"]).toBe("*");
+
+    expect(protectedResourceAlias.status()).toBe(307);
+    expect(protectedResourceAlias.headers().location).toBe(
+      `${PLAYWRIGHT_BASE_URL}/.well-known/oauth-protected-resource/api/mcp`,
+    );
+    expect(
+      protectedResourceAlias.headers()["access-control-allow-origin"],
+    ).toBe("*");
   });
 
   test("dynamic registration + consent + code exchange + userinfo", async ({

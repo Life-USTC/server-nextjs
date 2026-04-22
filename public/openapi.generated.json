@@ -15,18 +15,46 @@
     "/.well-known/oauth-authorization-server": {
       "get": {
         "operationId": "get-.well-known-oauth-authorization-server",
-        "summary": "",
+        "summary": "Compatibility alias for legacy clients that probe the root well-known path.",
         "description": "",
         "tags": [
           "Api"
         ],
         "parameters": [],
         "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server",
+        "summary": "Compatibility alias for legacy clients that probe the root well-known path.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Response 204"
+          },
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
               }
             }
           }
@@ -36,7 +64,7 @@
     "/.well-known/oauth-authorization-server/api/auth": {
       "get": {
         "operationId": "get-.well-known-oauth-authorization-server-api-auth",
-        "summary": "",
+        "summary": "Canonical RFC 8414 authorization server metadata for issuer `/api/auth`.",
         "description": "",
         "tags": [
           "Api"
@@ -44,12 +72,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server-api-auth",
+        "summary": "Canonical RFC 8414 authorization server metadata for issuer `/api/auth`.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "204": {
+            "description": "Response 204"
           }
         }
       }
@@ -57,7 +97,56 @@
     "/.well-known/oauth-protected-resource": {
       "get": {
         "operationId": "get-.well-known-oauth-protected-resource",
-        "summary": "",
+        "summary": "Compatibility alias for clients that probe the resource-origin root path.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource",
+        "summary": "Compatibility alias for clients that probe the resource-origin root path.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Response 204"
+          },
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/oauth-protected-resource/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "Canonical RFC 9728 protected resource metadata for MCP.",
         "description": "",
         "tags": [
           "Api"
@@ -65,12 +154,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "Canonical RFC 9728 protected resource metadata for MCP.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "204": {
+            "description": "Response 204"
           }
         }
       }
@@ -78,7 +179,56 @@
     "/.well-known/openid-configuration": {
       "get": {
         "operationId": "get-.well-known-openid-configuration",
-        "summary": "",
+        "summary": "Compatibility alias for clients that look up root OpenID discovery directly.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration",
+        "summary": "Compatibility alias for clients that look up root OpenID discovery directly.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Response 204"
+          },
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/openid-configuration/api/auth": {
+      "get": {
+        "operationId": "get-.well-known-openid-configuration-api-auth",
+        "summary": "RFC 8414-compatible path form for OpenID provider metadata.",
         "description": "",
         "tags": [
           "Api"
@@ -86,12 +236,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration-api-auth",
+        "summary": "RFC 8414-compatible path form for OpenID provider metadata.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "204": {
+            "description": "Response 204"
           }
         }
       }
@@ -616,7 +778,7 @@
     "/api/auth/.well-known/openid-configuration": {
       "get": {
         "operationId": "get-api-auth-.well-known-openid-configuration",
-        "summary": "Some clients resolve OpenID discovery as `{issuer}/.well-known/openid-configuration`.",
+        "summary": "Canonical OpenID Connect Discovery metadata for issuer `/api/auth`.",
         "description": "",
         "tags": [
           "Api"
@@ -624,12 +786,24 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
+            "description": "Response 200"
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-auth-.well-known-openid-configuration",
+        "summary": "Canonical OpenID Connect Discovery metadata for issuer `/api/auth`.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Response 200"
+          },
+          "204": {
+            "description": "Response 204"
           }
         }
       }

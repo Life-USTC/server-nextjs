@@ -2,6 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getOAuthAuthorizationServerMetadataUrl,
   getOAuthIssuerUrl,
+  getOAuthOpenIdConfigurationCompatibilityUrl,
+  getOAuthOpenIdConfigurationUrl,
+  getOAuthProtectedResourceMetadataUrl,
   getSiteOrigin,
 } from "@/lib/mcp/urls";
 import {
@@ -34,13 +37,22 @@ describe("MCP URL helpers", () => {
     expect(getCanonicalOrigin()).toBe("https://life-ustc.tiankaima.dev");
   });
 
-  it("keeps OAuth issuer and metadata on the public origin", () => {
+  it("derives canonical OAuth and MCP metadata URLs from path-based issuer/resource identifiers", () => {
     vi.stubEnv("APP_PUBLIC_ORIGIN", "https://life.example.com");
     expect(getOAuthIssuerUrl().toString()).toBe(
       "https://life.example.com/api/auth",
     );
     expect(getOAuthAuthorizationServerMetadataUrl().toString()).toBe(
-      "https://life.example.com/.well-known/oauth-authorization-server",
+      "https://life.example.com/.well-known/oauth-authorization-server/api/auth",
+    );
+    expect(getOAuthOpenIdConfigurationUrl().toString()).toBe(
+      "https://life.example.com/api/auth/.well-known/openid-configuration",
+    );
+    expect(getOAuthOpenIdConfigurationCompatibilityUrl().toString()).toBe(
+      "https://life.example.com/.well-known/openid-configuration/api/auth",
+    );
+    expect(getOAuthProtectedResourceMetadataUrl().toString()).toBe(
+      "https://life.example.com/.well-known/oauth-protected-resource/api/mcp",
     );
   });
 });

@@ -1,17 +1,24 @@
-import { NextResponse } from "next/server";
-import { getMcpServerUrl, getOAuthIssuerUrl } from "@/lib/mcp/urls";
-import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
+import { getOAuthProtectedResourceMetadataUrl } from "@/lib/mcp/urls";
+import {
+  getDiscoveryOptionsResponse,
+  getDiscoveryRedirectResponse,
+} from "@/lib/oauth/discovery-metadata";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
-  const issuerUrl = getOAuthIssuerUrl(request);
+/**
+ * Compatibility alias for clients that probe the resource-origin root path.
+ * The canonical RFC 9728 URL is path-specific for resource `/api/mcp`.
+ * @response 307
+ */
+export function GET() {
+  return getDiscoveryRedirectResponse(getOAuthProtectedResourceMetadataUrl());
+}
 
-  return NextResponse.json({
-    resource: getMcpServerUrl(request).toString(),
-    authorization_servers: [issuerUrl.toString()],
-    scopes_supported: [MCP_TOOLS_SCOPE],
-    bearer_methods_supported: ["header"],
-    resource_documentation: new URL("/api-docs", issuerUrl).toString(),
-  });
+/**
+ * CORS preflight for protected resource metadata alias.
+ * @response 204
+ */
+export function OPTIONS() {
+  return getDiscoveryOptionsResponse();
 }

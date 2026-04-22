@@ -6,7 +6,7 @@ import {
 export const dynamic = "force-dynamic";
 
 /**
- * Canonical OpenID Connect Discovery metadata for issuer `/api/auth`.
+ * RFC 8414-compatible path form for OpenID provider metadata.
  * @response 200
  */
 export async function GET(request: Request) {
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 }
 
 /**
- * CORS preflight for canonical OpenID discovery metadata.
+ * CORS preflight for OpenID provider metadata.
  * @response 204
  */
 export function OPTIONS() {
