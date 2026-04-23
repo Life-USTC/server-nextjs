@@ -193,18 +193,18 @@ export function compactMcpPayload(value: unknown): unknown {
   if (!isRecord(value)) return value;
 
   if (Object.hasOwn(value, "todos") && Array.isArray(value.todos)) {
-    return { ...value, todos: (value.todos as unknown[]).map(compactTodo) };
+    return { ...value, todos: asRecordArray(value.todos).map(compactTodo) };
   }
   if (Object.hasOwn(value, "courses") && Array.isArray(value.courses)) {
     return {
       ...value,
-      courses: (value.courses as unknown[]).map(compactCourse),
+      courses: asRecordArray(value.courses).map(compactCourse),
     };
   }
   if (Object.hasOwn(value, "sections") && Array.isArray(value.sections)) {
     return {
       ...value,
-      sections: (value.sections as unknown[]).map(compactSection),
+      sections: asRecordArray(value.sections).map(compactSection),
     };
   }
   if (Object.hasOwn(value, "section")) {
@@ -213,21 +213,20 @@ export function compactMcpPayload(value: unknown): unknown {
   if (Object.hasOwn(value, "homeworks") && Array.isArray(value.homeworks)) {
     return {
       ...value,
-      homeworks: (value.homeworks as unknown[]).map(compactHomework),
+      homeworks: asRecordArray(value.homeworks).map(compactHomework),
     };
   }
   if (Object.hasOwn(value, "schedules") && Array.isArray(value.schedules)) {
     return {
       ...value,
-      schedules: (value.schedules as unknown[]).map(compactSchedule),
+      schedules: asRecordArray(value.schedules).map(compactSchedule),
     };
   }
   if (Object.hasOwn(value, "exams") && Array.isArray(value.exams)) {
-    return { ...value, exams: (value.exams as unknown[]).map(compactExam) };
+    return { ...value, exams: asRecordArray(value.exams).map(compactExam) };
   }
   if (Object.hasOwn(value, "events") && Array.isArray(value.events)) {
-    const events = (value.events as unknown[]).map((event) => {
-      if (!isRecord(event)) return event;
+    const events = asRecordArray(value.events).map((event) => {
       const base = pick(event, ["type", "at"]);
       if (!Object.hasOwn(event, "payload")) return base;
       const type = event.type;

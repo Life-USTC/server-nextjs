@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
+import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
 import {
   DASHBOARD_LINK_GROUP_ORDER,
   type DashboardLinkGroup,

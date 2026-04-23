@@ -1,6 +1,5 @@
 import { oauthProvider } from "@better-auth/oauth-provider";
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
 import { hashPassword } from "better-auth/crypto";
 import { nextCookies, toNextJsHandler } from "better-auth/next-js";
 import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
@@ -14,6 +13,7 @@ import {
   getOAuthProxyProductionUrl,
   getOAuthProxySecret,
 } from "@/lib/auth/auth-origins";
+import { createBetterAuthPrismaAdapter } from "@/lib/auth/better-auth-prisma-adapter";
 import {
   fallbackEmail,
   mapOidcProfileToUser,
@@ -24,6 +24,7 @@ import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
+import { asGenericOAuthApi } from "@/lib/oauth/provider-api";
 import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
 import { getBetterAuthBaseUrl, getPublicOrigin } from "@/lib/site-url";
 
@@ -86,6 +87,7 @@ const OIDC_DISCOVERY_URL = `${OIDC_ISSUER.replace(/\/$/, "")}/.well-known/openid
 const AUTH_BASE_URL = getBetterAuthBaseUrl();
 /** Site origin (scheme + host) for UI routes like /signin and /oauth/authorize. */
 const AUTH_PUBLIC_ORIGIN = getPublicOrigin();
+const AUTH_PUBLIC_PROTOCOL = getAuthPublicProtocol(AUTH_PUBLIC_ORIGIN);
 const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
 const OAUTH_PROXY_SECRET = getOAuthProxySecret();
 const OAUTH_PROVIDER_SCOPES = [
@@ -95,6 +97,14 @@ const OAUTH_PROVIDER_SCOPES = [
   "offline_access",
   MCP_TOOLS_SCOPE,
 ] as const;
+
+function getAuthPublicProtocol(origin: string): "http" | "https" {
+  const protocol = new URL(origin).protocol;
+  if (protocol === "http:" || protocol === "https:") {
+    return protocol.slice(0, -1) as "http" | "https";
+  }
+  throw new Error(`Unsupported auth origin protocol: ${protocol}`);
+}
 
 function getBetterAuthSecret() {
   const secret =
@@ -118,15 +128,10 @@ const authInstance = betterAuth({
   baseURL: {
     allowedHosts: getAuthAllowedHosts(),
     fallback: AUTH_PUBLIC_ORIGIN,
-    protocol: isDev ? "http" : "https",
+    protocol: AUTH_PUBLIC_PROTOCOL,
   },
   secret: getBetterAuthSecret(),
-  database: prismaAdapter(
-    prisma as unknown as Parameters<typeof prismaAdapter>[0],
-    {
-      provider: "postgresql",
-    },
-  ),
+  database: createBetterAuthPrismaAdapter(prisma),
   disabledPaths: ["/token"],
   advanced: {
     // Reverse proxies should still forward the original scheme/host correctly for
@@ -581,7 +586,7 @@ export async function signIn(providerId?: string, options: SignInOptions = {}) {
       },
     });
   } else if (providerId === "oidc") {
-    result = await authInstance.api.signInWithOAuth2({
+    result = await asGenericOAuthApi(authInstance.api).signInWithOAuth2({
       body: {
         providerId,
         callbackURL: redirectTo,

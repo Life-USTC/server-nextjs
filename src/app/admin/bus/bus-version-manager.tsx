@@ -9,6 +9,15 @@ import {
   deleteBusVersion,
   triggerBusImport,
 } from "@/app/actions/bus";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +48,9 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
+  const [versionToDelete, setVersionToDelete] = useState<VersionRow | null>(
+    null,
+  );
 
   function handleActivate(versionId: number) {
     setLoadingAction(`activate-${versionId}`);
@@ -54,8 +66,9 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
     });
   }
 
-  function handleDelete(versionId: number) {
-    if (!window.confirm(t("deleteConfirm"))) return;
+  function handleDelete() {
+    if (!versionToDelete) return;
+    const versionId = versionToDelete.id;
     setLoadingAction(`delete-${versionId}`);
     startTransition(async () => {
       const result = await deleteBusVersion(versionId);
@@ -63,6 +76,7 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
       if ("error" in result) {
         toast({ title: t("actionFailed"), description: result.error });
       } else {
+        setVersionToDelete(null);
         toast({ title: t("deleted") });
         router.refresh();
       }
@@ -162,6 +176,7 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
                           size="sm"
                           onClick={() => handleActivate(v.id)}
                           disabled={isPending}
+                          aria-label={t("activateAction")}
                         >
                           {loadingAction === `activate-${v.id}` ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -174,8 +189,9 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(v.id)}
+                          onClick={() => setVersionToDelete(v)}
                           disabled={isPending}
+                          aria-label={t("deleteAction")}
                         >
                           {loadingAction === `delete-${v.id}` ? (
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -192,6 +208,43 @@ export function BusVersionManager({ versions }: { versions: VersionRow[] }) {
           </Table>
         </div>
       )}
+      <AlertDialog
+        open={versionToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !isPending) {
+            setVersionToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogPopup>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {versionToDelete
+                ? t("deleteDescription", { title: versionToDelete.title })
+                : t("deleteConfirm")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogClose render={<Button variant="ghost" />}>
+              {t("cancelAction")}
+            </AlertDialogClose>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isPending || !versionToDelete}
+            >
+              {versionToDelete &&
+              loadingAction === `delete-${versionToDelete.id}` ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="mr-2 h-4 w-4" />
+              )}
+              {t("confirmDeleteAction")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogPopup>
+      </AlertDialog>
     </div>
   );
 }

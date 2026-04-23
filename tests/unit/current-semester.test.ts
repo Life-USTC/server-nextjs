@@ -42,6 +42,24 @@ describe("current-semester helpers", () => {
     expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(2);
   });
 
+  it("prefers the latest-starting semester when ranges overlap", () => {
+    const referenceDate = new Date("2026-04-15T00:00:00.000Z");
+    const semesters: SemesterLike[] = [
+      {
+        id: 1,
+        startDate: new Date("2026-02-15T00:00:00.000Z"),
+        endDate: new Date("2026-07-10T00:00:00.000Z"),
+      },
+      {
+        id: 2,
+        startDate: new Date("2026-04-01T00:00:00.000Z"),
+        endDate: new Date("2026-08-31T00:00:00.000Z"),
+      },
+    ];
+
+    expect(selectCurrentSemesterFromList(semesters, referenceDate)?.id).toBe(2);
+  });
+
   it("falls back to earliest unfinished future semester", () => {
     const referenceDate = new Date("2026-01-01T00:00:00.000Z");
     const semesters: SemesterLike[] = [

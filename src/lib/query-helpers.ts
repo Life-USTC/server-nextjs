@@ -6,6 +6,14 @@ import {
 } from "@/lib/api/helpers";
 import { getPrisma } from "@/lib/db/prisma";
 
+/** Case-insensitive string contains filter for Prisma queries. */
+export function ilike(value: string): {
+  contains: string;
+  mode: "insensitive";
+} {
+  return { contains: value, mode: "insensitive" };
+}
+
 /**
  * Generic paginated query function for Prisma models
  */
@@ -202,7 +210,7 @@ export function buildSectionSearchWhere(search?: string): {
     conditions.push({
       teachers: {
         some: {
-          nameCn: { contains: parsed.teacher, mode: "insensitive" as const },
+          nameCn: ilike(parsed.teacher),
         },
       },
     });
@@ -211,21 +219,21 @@ export function buildSectionSearchWhere(search?: string): {
   if (parsed.courseCode) {
     conditions.push({
       course: {
-        code: { contains: parsed.courseCode, mode: "insensitive" as const },
+        code: ilike(parsed.courseCode),
       },
     });
   }
 
   if (parsed.lectureCode) {
     conditions.push({
-      code: { contains: parsed.lectureCode, mode: "insensitive" as const },
+      code: ilike(parsed.lectureCode),
     });
   }
 
   if (parsed.campus) {
     conditions.push({
       campus: {
-        nameCn: { contains: parsed.campus, mode: "insensitive" as const },
+        nameCn: ilike(parsed.campus),
       },
     });
   }
@@ -242,7 +250,7 @@ export function buildSectionSearchWhere(search?: string): {
   if (parsed.department) {
     conditions.push({
       openDepartment: {
-        nameCn: { contains: parsed.department, mode: "insensitive" as const },
+        nameCn: ilike(parsed.department),
       },
     });
   }
@@ -250,7 +258,7 @@ export function buildSectionSearchWhere(search?: string): {
   if (parsed.semester) {
     conditions.push({
       semester: {
-        nameCn: { contains: parsed.semester, mode: "insensitive" as const },
+        nameCn: ilike(parsed.semester),
       },
     });
   }
@@ -259,7 +267,7 @@ export function buildSectionSearchWhere(search?: string): {
     conditions.push({
       course: {
         category: {
-          nameCn: { contains: parsed.category, mode: "insensitive" as const },
+          nameCn: ilike(parsed.category),
         },
       },
     });
@@ -269,7 +277,7 @@ export function buildSectionSearchWhere(search?: string): {
     conditions.push({
       course: {
         educationLevel: {
-          nameCn: { contains: parsed.level, mode: "insensitive" as const },
+          nameCn: ilike(parsed.level),
         },
       },
     });
@@ -279,10 +287,7 @@ export function buildSectionSearchWhere(search?: string): {
     conditions.push({
       course: {
         classType: {
-          nameCn: {
-            contains: parsed.classType,
-            mode: "insensitive" as const,
-          },
+          nameCn: ilike(parsed.classType),
         },
       },
     });
@@ -293,27 +298,21 @@ export function buildSectionSearchWhere(search?: string): {
       OR: [
         {
           course: {
-            nameCn: {
-              contains: parsed.general,
-              mode: "insensitive" as const,
-            },
+            nameCn: ilike(parsed.general),
           },
         },
         {
           course: {
-            nameEn: {
-              contains: parsed.general,
-              mode: "insensitive" as const,
-            },
+            nameEn: ilike(parsed.general),
           },
         },
         {
           course: {
-            code: { contains: parsed.general, mode: "insensitive" as const },
+            code: ilike(parsed.general),
           },
         },
         {
-          code: { contains: parsed.general, mode: "insensitive" as const },
+          code: ilike(parsed.general),
         },
       ],
     });

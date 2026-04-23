@@ -1,21 +1,25 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
-import {
-  getBusTabData,
-  getCalendarSubscriptionUrl,
-  getDashboardNavStats,
-  getDashboardOverviewData,
-  getHomeworksTabData,
-  getLinksTabData,
-  getPublicDashboardLinksData,
-  getSubscriptionsTabData,
-  getTodosTabData,
-} from "@/app/dashboard/dashboard-data";
 import { auth } from "@/auth";
 import { getBusTimetableData } from "@/features/bus/lib/bus-service";
 import type { BusLocale } from "@/features/bus/lib/bus-types";
 import { HomeView } from "@/features/home/components/home-view";
 import { PublicHomeView } from "@/features/home/components/public-home-view";
+import {
+  getLinksTabData,
+  getPublicDashboardLinksData,
+} from "@/features/home/server/dashboard-link-data";
+import {
+  getDashboardNavStats,
+  getDashboardOverviewData,
+} from "@/features/home/server/dashboard-overview-data";
+import {
+  getBusTabData,
+  getCalendarSubscriptionUrl,
+  getHomeworksTabData,
+  getSubscriptionsTabData,
+  getTodosTabData,
+} from "@/features/home/server/dashboard-tab-data";
 
 export const dynamic = "force-dynamic";
 
@@ -118,8 +122,7 @@ export default async function HomePage({
   const params = await searchParams;
   const publicTab = params.tab;
 
-  // Fetch bus data for public view — bus is the default public tab,
-  // so load data unless the user explicitly selected the "links" tab
+  // Fetch bus data for public view because bus is the default public tab.
   let publicBusData = null;
   if (publicTab !== "links") {
     const locale = await getLocale();

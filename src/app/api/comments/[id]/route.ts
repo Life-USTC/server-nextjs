@@ -4,7 +4,6 @@ import {
   type CommentNode,
 } from "@/features/comments/server/comment-serialization";
 import { getViewerContext } from "@/features/comments/server/comment-utils";
-import type { CommentVisibility } from "@/generated/prisma/client";
 import {
   badRequest,
   forbidden,
@@ -235,7 +234,7 @@ export async function PATCH(
 
   const visibility =
     typeof parsedBody.data.visibility === "string"
-      ? (parsedBody.data.visibility as CommentVisibility)
+      ? parsedBody.data.visibility
       : undefined;
   const isAnonymous =
     typeof parsedBody.data.isAnonymous === "boolean"

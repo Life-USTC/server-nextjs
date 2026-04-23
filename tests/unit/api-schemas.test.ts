@@ -7,6 +7,8 @@ import {
   homeworkCreateRequestSchema,
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
+  meResponseSchema,
+  openApiErrorSchema,
   schedulesQuerySchema,
   sectionsQuerySchema,
   uploadCreateRequestSchema,
@@ -119,6 +121,23 @@ describe("other request schemas", () => {
     );
     expect(schedulesQuerySchema.safeParse({ weekday: "x" }).success).toBe(
       false,
+    );
+  });
+
+  it("re-exports response schemas from the compatibility barrel", () => {
+    expect(
+      meResponseSchema.safeParse({
+        id: "user_1",
+        email: null,
+        name: "User",
+        image: null,
+        username: "user",
+        isAdmin: false,
+      }).success,
+    ).toBe(true);
+
+    expect(openApiErrorSchema.safeParse({ error: "bad request" }).success).toBe(
+      true,
     );
   });
 });

@@ -8,6 +8,8 @@ import {
 } from "@/lib/log/oauth-debug";
 import { resolveEquivalentLoopbackRedirectUri } from "@/lib/oauth/loopback-redirect";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Better Auth handlers mounted on /api/auth/*.
  * @ignore

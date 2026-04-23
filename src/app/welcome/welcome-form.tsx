@@ -20,7 +20,7 @@ import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
-import { useSession } from "@/lib/auth/client";
+import { refreshAuthSessionCookieCache } from "@/lib/auth/session-refresh";
 
 interface WelcomeFormProps {
   user: {
@@ -47,7 +47,6 @@ export function WelcomeForm({
   const profileT = useTranslations("profile");
   const a11yT = useTranslations("accessibility");
   const { toast } = useToast();
-  const { update } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(user.image || "");
@@ -75,7 +74,7 @@ export function WelcomeForm({
         variant: "success",
       });
       // Refresh auth cache so proxy checks use latest profile fields.
-      await update();
+      await refreshAuthSessionCookieCache();
       router.push("/");
       router.refresh();
     }

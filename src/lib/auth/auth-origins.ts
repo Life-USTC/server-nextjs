@@ -1,8 +1,9 @@
 import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
 
+const LOCALHOST_DEV_PORT = 3000;
 const LOCALHOST_AUTH_ORIGINS = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
+  `http://localhost:${LOCALHOST_DEV_PORT}`,
+  `http://127.0.0.1:${LOCALHOST_DEV_PORT}`,
 ];
 const VERCEL_PREVIEW_AUTH_ORIGIN = "https://*.vercel.app";
 

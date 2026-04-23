@@ -2,7 +2,7 @@
 
 import { UploadCloud, XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -111,6 +111,16 @@ export function CommentEditor({
   const [targetDialogOpen, setTargetDialogOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingCursorPos, setPendingCursorPos] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (pendingCursorPos === null) return;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.selectionStart = textarea.selectionEnd = pendingCursorPos;
+    textarea.focus();
+    setPendingCursorPos(null);
+  }, [pendingCursorPos]);
   const anonymousId = useId();
   const loggedInId = useId();
 
@@ -131,11 +141,7 @@ export function CommentEditor({
     const after = content.substring(end);
     const newContent = before + text + after;
     setContent(newContent);
-    // Restore cursor and focus
-    setTimeout(() => {
-      textarea.selectionStart = textarea.selectionEnd = start + text.length;
-      textarea.focus();
-    }, 0);
+    setPendingCursorPos(start + text.length);
   };
 
   const handleUpload = async (file: File) => {

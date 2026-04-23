@@ -10,7 +10,7 @@ export async function requireAdmin() {
     select: { id: true, isAdmin: true },
   });
 
-  const isAdmin = (user as { isAdmin?: boolean } | null)?.isAdmin ?? false;
+  const isAdmin = user?.isAdmin ?? false;
   if (!user || !isAdmin) return null;
 
   return { userId: user.id };

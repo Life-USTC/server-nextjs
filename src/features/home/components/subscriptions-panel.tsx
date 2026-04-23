@@ -1,6 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import type { SubscriptionsTabData } from "@/app/dashboard/dashboard-data";
-import { groupSectionsBySemester } from "@/app/dashboard/subscriptions/sections/sections-page-helpers";
 import { BulkImportSectionsDialog } from "@/components/bulk-import-sections-dialog";
 import { Button } from "@/components/ui/button";
 import { CardPanel } from "@/components/ui/card";
@@ -19,6 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { groupSectionsBySemester } from "@/features/home/lib/subscription-section-groups";
+import type { SubscriptionsTabData } from "@/features/home/server/dashboard-tab-data";
 import { Link } from "@/i18n/routing";
 import { SubscriptionRowOptOutButton } from "./subscription-row-opt-out-button";
 

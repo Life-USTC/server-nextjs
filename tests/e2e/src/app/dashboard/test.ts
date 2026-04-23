@@ -24,6 +24,7 @@ import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import { ensureSeedSectionSubscription } from "../../../utils/subscriptions";
 
 test.describe("dashboard", () => {
   test("unauthenticated with ?tab=homeworks shows public bus view", async ({
@@ -54,6 +55,8 @@ test.describe("dashboard", () => {
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/");
 
     await expect(page).toHaveURL(/\/(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
@@ -69,10 +72,17 @@ test.describe("dashboard", () => {
       await expect(nav.getByRole("link", { name: label })).toBeVisible();
     }
 
-    // Seed homework title visible on overview
-    await expect(
-      page.getByText(DEV_SEED.homeworks.title).first(),
-    ).toBeVisible();
+    // Seed homework title visible on overview. Retry because other E2E slices
+    // exercise section subscription replacement for the shared debug user.
+    await expect(async () => {
+      await ensureSeedSectionSubscription(page);
+      await gotoAndWaitForReady(page, "/");
+      await expect(
+        page.getByText(DEV_SEED.homeworks.title).first(),
+      ).toBeVisible({
+        timeout: 2_000,
+      });
+    }).toPass({ timeout: 15_000 });
 
     await captureStepScreenshot(page, testInfo, "dashboard-home");
   });

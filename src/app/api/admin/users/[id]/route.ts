@@ -12,6 +12,8 @@ import {
 } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 
+export const dynamic = "force-dynamic";
+
 function normalizeName(value: unknown) {
   if (typeof value !== "string") return undefined;
   const trimmed = value.trim();

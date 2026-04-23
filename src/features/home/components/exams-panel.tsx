@@ -1,6 +1,5 @@
 import dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
-import type { SubscriptionsTabData } from "@/app/dashboard/dashboard-data";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -9,6 +8,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import type { SubscriptionsTabData } from "@/features/home/server/dashboard-tab-data";
 import { Link } from "@/i18n/routing";
 import { ExamsList } from "./exams-list";
 

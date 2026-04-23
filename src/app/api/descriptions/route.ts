@@ -1,3 +1,4 @@
+import type { z } from "zod";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import { getDescriptionPayload } from "@/features/descriptions/server/descriptions-server";
 import {
@@ -11,6 +12,7 @@ import {
 } from "@/lib/api/helpers";
 import {
   descriptionsQuerySchema,
+  type descriptionTargetTypeSchema,
   descriptionUpsertRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
@@ -19,8 +21,7 @@ import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
-const TARGET_TYPES = ["section", "course", "teacher", "homework"] as const;
-type TargetType = (typeof TARGET_TYPES)[number];
+type TargetType = z.infer<typeof descriptionTargetTypeSchema>;
 
 function getTargetWhere(targetType: TargetType, targetId: number | string) {
   switch (targetType) {
@@ -84,7 +85,7 @@ export async function GET(request: Request) {
     return badRequest("Invalid target");
   }
 
-  const targetType = parsedQuery.data.targetType as TargetType;
+  const targetType = parsedQuery.data.targetType;
   const targetIdParam = parsedQuery.data.targetId;
   const targetId =
     targetType === "homework" ? targetIdParam : parseOptionalInt(targetIdParam);

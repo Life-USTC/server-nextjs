@@ -6,6 +6,7 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { useMemo } from "react";
+import { getFreshSessionQuery } from "@/lib/auth/session-refresh";
 
 export const authClient = createAuthClient({
   plugins: [
@@ -91,9 +92,7 @@ export function useSession() {
     error,
     update: async () => {
       await refetch({
-        query: {
-          disableCookieCache: true,
-        },
+        query: getFreshSessionQuery(),
       });
     },
   };

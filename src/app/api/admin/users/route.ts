@@ -11,6 +11,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { ilike } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +48,13 @@ export async function GET(request: NextRequest) {
     const where = search
       ? {
           OR: [
-            { id: { contains: search, mode: "insensitive" as const } },
-            { name: { contains: search, mode: "insensitive" as const } },
-            { username: { contains: search, mode: "insensitive" as const } },
+            { id: ilike(search) },
+            { name: ilike(search) },
+            { username: ilike(search) },
             {
               verifiedEmails: {
                 some: {
-                  email: { contains: search, mode: "insensitive" as const },
+                  email: ilike(search),
                 },
               },
             },

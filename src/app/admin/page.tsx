@@ -8,8 +8,7 @@ import {
   PageLinkCard,
   PageLinkGrid,
 } from "@/components/page-layout";
-import { requireSignedInUserId } from "@/lib/auth/helpers";
-import { prisma } from "@/lib/db/prisma";
+import { requireAdmin } from "@/lib/admin-utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin");
@@ -19,14 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminHomePage() {
-  const userId = await requireSignedInUserId();
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isAdmin: true },
-  });
-  const isAdmin = user?.isAdmin ?? false;
-  if (!isAdmin) {
+  const admin = await requireAdmin();
+  if (!admin) {
     notFound();
   }
 

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
-import type { CommentReactionType } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
@@ -84,14 +83,14 @@ export async function POST(
         commentId_userId_type: {
           commentId: id,
           userId,
-          type: type as CommentReactionType,
+          type,
         },
       },
       update: {},
       create: {
         commentId: id,
         userId,
-        type: type as CommentReactionType,
+        type,
       },
     });
 
@@ -135,7 +134,7 @@ export async function DELETE(
       where: {
         commentId: id,
         userId,
-        type: type as CommentReactionType,
+        type,
       },
     });
 

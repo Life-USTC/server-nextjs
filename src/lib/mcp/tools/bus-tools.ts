@@ -49,7 +49,7 @@ export function registerBusTools(server: McpServer) {
     "list_bus_routes",
     {
       description:
-        "List all USTC shuttle bus routes and campuses. Returns route names, stop sequences, and campus details (no trip/timetable data). Use this for route discovery before querying timetables.",
+        "List shuttle bus routes and campuses for the currently effective timetable version. Returns route names, stop sequences, and campus details (no trip/timetable data). Use this for route discovery before querying timetables.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
       },

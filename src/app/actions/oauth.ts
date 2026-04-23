@@ -8,6 +8,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { logServerActionError } from "@/lib/log/app-logger";
 import { resolveOAuthClientScopes } from "@/lib/oauth/client-registration";
+import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import {
   DEFAULT_OAUTH_CLIENT_SCOPES,
   OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD,
@@ -95,10 +96,12 @@ export async function createOAuthClient(
     return { error: "Not authorized" };
   }
 
-  const name = (formData.get("name") as string)?.trim();
-  const redirectUrisRaw = (formData.get("redirectUris") as string)?.trim();
+  const name = (formData.get("name") as string | null)?.trim();
+  const redirectUrisRaw = (
+    formData.get("redirectUris") as string | null
+  )?.trim();
   const tokenEndpointAuthMethod =
-    (formData.get("tokenEndpointAuthMethod") as string)?.trim() ||
+    (formData.get("tokenEndpointAuthMethod") as string | null)?.trim() ||
     OAUTH_CLIENT_SECRET_BASIC_AUTH_METHOD;
   const requestedScopes = formData
     .getAll("scopes")
@@ -136,7 +139,7 @@ export async function createOAuthClient(
   }
 
   try {
-    const result = await authApi.adminCreateOAuthClient({
+    const result = await asOAuthProviderApi(authApi).adminCreateOAuthClient({
       headers: await headers(),
       body: {
         client_name: name,

@@ -129,13 +129,17 @@ async function isServerReady() {
   }
 }
 
+const SERVER_POLL_INTERVAL_MS = 500;
+
 async function waitForServer(timeoutMs = 120_000) {
   const startedAt = performance.now();
   while (performance.now() - startedAt < timeoutMs) {
     if (await isServerReady()) {
       return;
     }
-    await new Promise((resolveWait) => setTimeout(resolveWait, 500));
+    await new Promise((resolveWait) =>
+      setTimeout(resolveWait, SERVER_POLL_INTERVAL_MS),
+    );
   }
   throw new Error(`Timed out waiting for ${baseUrl}`);
 }

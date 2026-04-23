@@ -3,8 +3,7 @@ import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
-import { requireSignedInUserId } from "@/lib/auth/helpers";
-import { prisma } from "@/lib/db/prisma";
+import { requireAdmin } from "@/lib/admin-utils";
 
 const ModerationDashboard = dynamic(() =>
   import("@/features/admin/components/moderation-dashboard").then(
@@ -20,15 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ModerationPage() {
-  const userId = await requireSignedInUserId();
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isAdmin: true },
-  });
-
-  const isAdmin = user?.isAdmin ?? false;
-  if (!isAdmin) {
+  const admin = await requireAdmin();
+  if (!admin) {
     notFound();
   }
 

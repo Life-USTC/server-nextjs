@@ -15,29 +15,36 @@ const SAMPLE_BUILDING_RULES = [
 ];
 
 describe("location-utils", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
-    // Reset module-level caches by resetting the module
     vi.resetModules();
-    fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
+    vi.unstubAllGlobals();
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  function setupFetch() {
-    fetchMock.mockImplementation(async (url: string) => {
-      if (url.includes("geo_data.json")) {
-        return { json: async () => SAMPLE_GEO_DATA };
-      }
-      if (url.includes("building_img_rules.json")) {
-        return { json: async () => SAMPLE_BUILDING_RULES };
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
+  function mockStaticFiles({
+    geoData = SAMPLE_GEO_DATA,
+    buildingRules = SAMPLE_BUILDING_RULES,
+  }: {
+    geoData?: typeof SAMPLE_GEO_DATA;
+    buildingRules?: typeof SAMPLE_BUILDING_RULES;
+  } = {}) {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL | Request) => {
+        const href = url.toString();
+        if (href.endsWith("/geo_data.json")) {
+          return new Response(JSON.stringify(geoData), { status: 200 });
+        }
+        if (href.endsWith("/building_img_rules.json")) {
+          return new Response(JSON.stringify(buildingRules), { status: 200 });
+        }
+        return new Response("not found", { status: 404 });
+      }),
+    );
   }
 
   describe("getLocationGeo", () => {
@@ -45,11 +52,10 @@ describe("location-utils", () => {
       const { getLocationGeo } = await import("@/lib/location-utils");
       const result = await getLocationGeo("");
       expect(result).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
     });
 
     it("finds exact match (case-insensitive)", async () => {
-      setupFetch();
+      mockStaticFiles();
       const { getLocationGeo } = await import("@/lib/location-utils");
       const result = await getLocationGeo("library");
       expect(result).toEqual({
@@ -60,7 +66,7 @@ describe("location-utils", () => {
     });
 
     it("finds exact match with different casing", async () => {
-      setupFetch();
+      mockStaticFiles();
       const { getLocationGeo } = await import("@/lib/location-utils");
       const result = await getLocationGeo("SCIENCE BUILDING");
       expect(result).toEqual({
@@ -71,7 +77,7 @@ describe("location-utils", () => {
     });
 
     it("falls back to starts-with match", async () => {
-      setupFetch();
+      mockStaticFiles();
       const { getLocationGeo } = await import("@/lib/location-utils");
       const result = await getLocationGeo("East Campus Gate Room 101");
       expect(result).toEqual({
@@ -81,18 +87,35 @@ describe("location-utils", () => {
       });
     });
 
-    it("returns null when no match found", async () => {
-      setupFetch();
+    it("returns null when no match is found", async () => {
+      mockStaticFiles();
       const { getLocationGeo } = await import("@/lib/location-utils");
       const result = await getLocationGeo("Nonexistent Place");
       expect(result).toBeNull();
     });
 
-    it("handles fetch failure gracefully", async () => {
-      fetchMock.mockRejectedValue(new Error("Network error"));
+    it("returns null when published geo data is unavailable", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("not found", { status: 404 })),
+      );
       const { getLocationGeo } = await import("@/lib/location-utils");
       const result = await getLocationGeo("Library");
       expect(result).toBeNull();
+    });
+
+    it("logs and omits enrichment when published geo JSON is invalid", async () => {
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("{bad-json", { status: 200 })),
+      );
+
+      const { getLocationGeo } = await import("@/lib/location-utils");
+      const result = await getLocationGeo("Library");
+
+      expect(result).toBeNull();
+      expect(warnSpy).toHaveBeenCalled();
     });
   });
 
@@ -101,11 +124,10 @@ describe("location-utils", () => {
       const { getBuildingImagePath } = await import("@/lib/location-utils");
       const result = await getBuildingImagePath("");
       expect(result).toBeNull();
-      expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it("matches regex rules and builds URL", async () => {
-      setupFetch();
+    it("matches regex rules and builds a URL from the published static host", async () => {
+      mockStaticFiles();
       const { getBuildingImagePath } = await import("@/lib/location-utils");
       const result = await getBuildingImagePath("5101");
       expect(result).toBe(
@@ -113,8 +135,8 @@ describe("location-utils", () => {
       );
     });
 
-    it("matches a different regex rule", async () => {
-      setupFetch();
+    it("uses the published static host for relative building image rules", async () => {
+      mockStaticFiles();
       const { getBuildingImagePath } = await import("@/lib/location-utils");
       const result = await getBuildingImagePath("3A201");
       expect(result).toBe(
@@ -122,17 +144,21 @@ describe("location-utils", () => {
       );
     });
 
-    it("returns null when no regex matches", async () => {
-      setupFetch();
-      const { getBuildingImagePath } = await import("@/lib/location-utils");
-      const result = await getBuildingImagePath("UNKNOWN_CODE");
-      expect(result).toBeNull();
-    });
-
-    it("handles fetch failure gracefully", async () => {
-      fetchMock.mockRejectedValue(new Error("Network error"));
+    it("preserves absolute image URLs", async () => {
+      mockStaticFiles({
+        buildingRules: [
+          { regex: "5101", path: "https://cdn.example.com/5101.jpg" },
+        ],
+      });
       const { getBuildingImagePath } = await import("@/lib/location-utils");
       const result = await getBuildingImagePath("5101");
+      expect(result).toBe("https://cdn.example.com/5101.jpg");
+    });
+
+    it("returns null when no regex matches", async () => {
+      mockStaticFiles();
+      const { getBuildingImagePath } = await import("@/lib/location-utils");
+      const result = await getBuildingImagePath("UNKNOWN_CODE");
       expect(result).toBeNull();
     });
   });

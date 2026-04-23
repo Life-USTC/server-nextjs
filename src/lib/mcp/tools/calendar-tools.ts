@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
+import { getSubscribedSectionIds } from "@/features/home/server/subscribed-data";
 import {
   getUserCalendarSubscription,
   SECTION_SUBSCRIPTION_NOTE,
@@ -11,7 +12,6 @@ import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
-  getSubscribedSectionIds,
   getUserId,
   jsonToolResult,
   mcpModeInputSchema,

@@ -67,8 +67,8 @@ export async function resolveApiUserId(
     }
   }
 
-  // 2. Fall back to session cookie
-  const session = await auth();
+  // 2. Fall back to the session cookie on this route request.
+  const session = await auth(request.headers);
   return session?.user?.id ?? null;
 }
 

@@ -1,3 +1,8 @@
+import {
+  fetchLifeUstcStaticJson,
+  getLifeUstcStaticUrl,
+} from "@/lib/static-assets";
+
 /**
  * Minimal shape for schedule location formatting.
  * Compatible with both Prisma-selected and client-fetched schedules.
@@ -46,45 +51,32 @@ interface BuildingImgRule {
   path: string;
 }
 
+const GEO_DATA_FILE = "geo_data.json";
+const BUILDING_IMG_RULES_FILE = "building_img_rules.json";
+
 let geoDataCache: GeoData | null = null;
 let buildingImgRulesCache: BuildingImgRule[] | null = null;
 
-/**
- * Loads geographic data from static JSON file
- */
-async function loadGeoData(): Promise<GeoData> {
-  if (geoDataCache) return geoDataCache;
-
-  try {
-    const response = await fetch(
-      "https://raw.githubusercontent.com/Life-USTC/static/refs/heads/master/static/geo_data.json",
-    );
-    const data = await response.json();
-    geoDataCache = data as GeoData;
-    return geoDataCache;
-  } catch {
-    // Fallback to empty locations if fetch fails
-    return { locations: [] };
-  }
+async function readStaticJson<T>(fileName: string, fallback: T): Promise<T> {
+  return await fetchLifeUstcStaticJson(fileName, fallback);
 }
 
 /**
- * Loads building image rules from static JSON file
+ * Loads geographic data from the published static host.
+ */
+async function loadGeoData(): Promise<GeoData> {
+  if (geoDataCache) return geoDataCache;
+  geoDataCache = await readStaticJson(GEO_DATA_FILE, { locations: [] });
+  return geoDataCache;
+}
+
+/**
+ * Loads building image rules from the published static host.
  */
 async function loadBuildingImgRules(): Promise<BuildingImgRule[]> {
   if (buildingImgRulesCache) return buildingImgRulesCache;
-
-  try {
-    const response = await fetch(
-      "https://raw.githubusercontent.com/Life-USTC/static/refs/heads/master/static/building_img_rules.json",
-    );
-    const data = await response.json();
-    buildingImgRulesCache = data as BuildingImgRule[];
-    return buildingImgRulesCache;
-  } catch {
-    // Fallback to empty rules if fetch fails
-    return [];
-  }
+  buildingImgRulesCache = await readStaticJson(BUILDING_IMG_RULES_FILE, []);
+  return buildingImgRulesCache;
 }
 
 /**
@@ -133,7 +125,11 @@ export async function getBuildingImagePath(
 
   if (!rule) return null;
 
+  if (/^https?:\/\//i.test(rule.path)) {
+    return rule.path;
+  }
+
   // Convert relative path to absolute URL
   const imagePath = rule.path.replace("./imgs/", "");
-  return `https://static.life-ustc.tiankaima.dev/imgs/${imagePath}`;
+  return getLifeUstcStaticUrl(`imgs/${imagePath}`);
 }

@@ -22,6 +22,7 @@ import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
 
 test.describe("dashboard homeworks", () => {
   test("unauthenticated ?tab=homeworks shows public view", async ({
@@ -87,6 +88,8 @@ test.describe("dashboard homeworks", () => {
   test("can toggle homework completion status", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     await signInAsDebugUser(page, "/?tab=homeworks");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/?tab=homeworks");
 
     // Switch to "all" filter to ensure we see all homeworks regardless of state
     await page
@@ -110,7 +113,7 @@ test.describe("dashboard homeworks", () => {
       .first();
     await expect(completionButton).toHaveCSS("opacity", "1");
 
-    const before = await completionButton.textContent();
+    const before = (await completionButton.textContent())?.trim() ?? "";
 
     // Toggle completion
     const completionResponse = page.waitForResponse(
@@ -121,10 +124,12 @@ test.describe("dashboard homeworks", () => {
     );
     await completionButton.click();
     await completionResponse;
-    await page.waitForLoadState("networkidle");
+    await expect(completionButton).not.toHaveText(before, {
+      timeout: 15_000,
+    });
 
     // Verify state changed
-    const after = await completionButton.textContent();
+    const after = (await completionButton.textContent())?.trim() ?? "";
     expect(after).not.toBe(before);
     await captureStepScreenshot(page, testInfo, "dashboard-homeworks-toggled");
 

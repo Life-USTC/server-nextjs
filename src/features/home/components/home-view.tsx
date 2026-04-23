@@ -1,16 +1,18 @@
-import type {
-  BusDashboardData,
-  DashboardLinkSummary,
-  DashboardNavStats,
-  HomeworkSummaryItem,
-  OverviewData,
-  SectionOption,
-  SubscriptionsTabData,
-  TodoItem,
-} from "@/app/dashboard/dashboard-data";
 import { PageLayout } from "@/components/page-layout";
 import { BusPanel } from "@/features/bus/components/bus-panel";
 import { LinksTabPanel } from "@/features/dashboard-links/components/links-tab-panel";
+import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
+import type {
+  DashboardNavStats,
+  OverviewData,
+} from "@/features/home/server/dashboard-overview-data";
+import type {
+  BusDashboardData,
+  HomeworkSummaryItem,
+  SectionOption,
+  SubscriptionsTabData,
+  TodoItem,
+} from "@/features/home/server/dashboard-tab-data";
 import { TodosPanel } from "@/features/todos/components/todos-panel";
 import { CalendarPanel } from "./calendar-panel";
 import { ExamsPanel } from "./exams-panel";

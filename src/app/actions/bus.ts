@@ -1,37 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { auth } from "@/auth";
 import { importBusStaticPayload } from "@/features/bus/lib/bus-import";
-import {
-  loadBusStaticPayload,
-  resolveStaticRepoRoot,
-} from "@/features/bus/lib/bus-static-source";
+import { loadBusStaticPayload } from "@/features/bus/lib/bus-static-source";
+import { requireAdmin } from "@/lib/admin-utils";
 import { prisma } from "@/lib/db/prisma";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    throw new Error("Not authenticated");
-  }
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { isAdmin: true },
-  });
-  if (!user?.isAdmin) {
-    throw new Error("Not authorized");
-  }
-  return session.user.id;
-}
 
 type ActionResult = { error: string } | { success: true; message?: string };
 
 export async function activateBusVersion(
   versionId: number,
 ): Promise<ActionResult> {
-  try {
-    await requireAdmin();
-  } catch {
+  const admin = await requireAdmin();
+  if (!admin) {
     return { error: "Not authorized" };
   }
 
@@ -63,9 +44,8 @@ export async function activateBusVersion(
 export async function deleteBusVersion(
   versionId: number,
 ): Promise<ActionResult> {
-  try {
-    await requireAdmin();
-  } catch {
+  const admin = await requireAdmin();
+  if (!admin) {
     return { error: "Not authorized" };
   }
 
@@ -87,15 +67,13 @@ export async function deleteBusVersion(
 }
 
 export async function triggerBusImport(): Promise<ActionResult> {
-  try {
-    await requireAdmin();
-  } catch {
+  const admin = await requireAdmin();
+  if (!admin) {
     return { error: "Not authorized" };
   }
 
   try {
-    const repoRoot = resolveStaticRepoRoot();
-    const payload = loadBusStaticPayload(repoRoot);
+    const payload = await loadBusStaticPayload();
 
     // Import
     const result = await importBusStaticPayload(prisma, payload);
@@ -104,7 +82,7 @@ export async function triggerBusImport(): Promise<ActionResult> {
     revalidatePath("/");
     return {
       success: true,
-      message: `Imported: ${result.campuses} campuses, ${result.routes} routes, ${result.trips} trips from ${repoRoot} (version: ${result.versionKey})`,
+      message: `Imported: ${result.campuses} campuses, ${result.routes} routes, ${result.trips} trips from published static data (version: ${result.versionKey})`,
     };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);

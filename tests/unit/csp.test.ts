@@ -25,6 +25,7 @@ describe("csp helpers", () => {
     expect(scriptDirective).toBeDefined();
     expect(scriptDirective).not.toContain("'unsafe-inline'");
     expect(scriptDirective).not.toContain("'unsafe-eval'");
+    expect(scriptDirective).not.toContain("unpkg.com");
     expect(policy).toContain("object-src 'none'");
   });
 

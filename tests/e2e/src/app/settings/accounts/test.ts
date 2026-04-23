@@ -33,6 +33,7 @@ import {
   ensureLinkedAccountFixture,
   getCurrentSessionUser,
 } from "../../../../utils/e2e-db";
+import { waitForUiSettled } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("/settings/accounts", () => {
@@ -131,7 +132,8 @@ test.describe("/settings/accounts", () => {
     ensureLinkedAccountFixture({ userId: user.id, provider });
 
     try {
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await waitForUiSettled(page);
       await expectPagePath(page, "/settings/accounts");
 
       const providerCard = page

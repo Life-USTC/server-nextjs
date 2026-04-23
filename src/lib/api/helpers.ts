@@ -79,9 +79,7 @@ export function errorResponse(message: string, status: number) {
 }
 
 export function jsonResponse(body: unknown, init?: ResponseInit) {
-  const response = NextResponse.json(serializeDatesDeep(body), init);
-  response.headers.set("x-request-id", crypto.randomUUID());
-  return response;
+  return NextResponse.json(serializeDatesDeep(body), init);
 }
 
 export function badRequest(message: string) {

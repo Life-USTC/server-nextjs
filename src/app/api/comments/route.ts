@@ -23,18 +23,6 @@ import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
-const VISIBILITY_VALUES = ["public", "logged_in_only", "anonymous"] as const;
-const TARGET_TYPES = [
-  "section",
-  "course",
-  "teacher",
-  "section-teacher",
-  "homework",
-] as const;
-
-type TargetType = (typeof TARGET_TYPES)[number];
-type Visibility = (typeof VISIBILITY_VALUES)[number];
-
 /**
  * List comments for a target.
  * @params commentsQuerySchema
@@ -53,7 +41,7 @@ export async function GET(request: Request) {
     return badRequest("Invalid target");
   }
 
-  const targetType = parsedQuery.data.targetType as TargetType;
+  const targetType = parsedQuery.data.targetType;
   const targetIdParam = parsedQuery.data.targetId ?? null;
   const targetId = parseOptionalInt(targetIdParam);
   const sectionId = parseOptionalInt(parsedQuery.data.sectionId);
@@ -175,7 +163,7 @@ export async function POST(request: Request) {
   const targetType = parsedBody.data.targetType;
   const content = parsedBody.data.body;
 
-  const visibility: Visibility = parsedBody.data.visibility ?? "public";
+  const visibility = parsedBody.data.visibility ?? "public";
   const isAnonymous = parsedBody.data.isAnonymous === true;
 
   const userId = await resolveApiUserId(request);

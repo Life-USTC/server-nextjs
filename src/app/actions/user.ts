@@ -16,9 +16,9 @@ export async function updateProfile(formData: FormData) {
     select: { username: true },
   });
 
-  const name = formData.get("name") as string;
-  const username = (formData.get("username") as string)?.trim() || null;
-  const image = formData.get("image") as string;
+  const name = formData.get("name");
+  const username = (formData.get("username") as string | null)?.trim() || null;
+  const image = formData.get("image");
 
   // Validate username (if provided and non-empty)
   if (username) {
@@ -44,7 +44,7 @@ export async function updateProfile(formData: FormData) {
   }
 
   // Validate image - must be from user's profilePictures array
-  if (image) {
+  if (image && typeof image === "string") {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { profilePictures: true },
@@ -61,9 +61,10 @@ export async function updateProfile(formData: FormData) {
       username?: string | null;
       image?: string | null;
     } = {};
-    if (name !== undefined) data.name = name || "";
+    if (name !== null) data.name = typeof name === "string" ? name : "";
     if (username !== undefined) data.username = username;
-    if (image !== undefined) data.image = image || null;
+    if (image !== null)
+      data.image = typeof image === "string" ? image || null : null;
 
     const oldProfileUsername = currentUser?.username ?? null;
 

@@ -3,6 +3,8 @@ import { LOCALE_COOKIE } from "@/i18n/config";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 import { localeUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Update user locale cookie.
  * @body localeUpdateRequestSchema

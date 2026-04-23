@@ -7,7 +7,7 @@ import {
   PageStatCard,
   PageStatGrid,
 } from "@/components/page-layout";
-import { requireSignedInUserId } from "@/lib/auth/helpers";
+import { requireAdmin } from "@/lib/admin-utils";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { BusVersionManager } from "./bus-version-manager";
@@ -20,13 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function AdminBusPage() {
-  const userId = await requireSignedInUserId();
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isAdmin: true },
-  });
-  if (!user?.isAdmin) {
+  const admin = await requireAdmin();
+  if (!admin) {
     notFound();
   }
 

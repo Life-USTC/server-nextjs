@@ -21,7 +21,7 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
-import { paginatedTeacherQuery } from "@/lib/query-helpers";
+import { ilike, paginatedTeacherQuery } from "@/lib/query-helpers";
 import { TeachersFilter } from "./teachers-filter";
 
 async function fetchTeachers(
@@ -41,9 +41,9 @@ async function fetchTeachers(
 
   if (search) {
     where.OR = [
-      { nameCn: { contains: search, mode: "insensitive" } },
-      { nameEn: { contains: search, mode: "insensitive" } },
-      { code: { contains: search, mode: "insensitive" } },
+      { nameCn: ilike(search) },
+      { nameEn: ilike(search) },
+      { code: ilike(search) },
     ];
   }
 

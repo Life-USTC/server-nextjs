@@ -1,51 +1,43 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  getBusDataUrl,
   loadBusStaticPayload,
-  resolveBusDataFile,
 } from "@/features/bus/lib/bus-static-source";
 
 describe("bus static source", () => {
   afterEach(() => {
-    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
-  it("prefers the static payload when present", () => {
-    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "bus-static-"));
-    fs.mkdirSync(path.join(repoRoot, "static"), { recursive: true });
-    fs.writeFileSync(
-      path.join(repoRoot, "static", "bus_data_v3.json"),
-      JSON.stringify({ versionKey: "static" }),
-    );
-    fs.mkdirSync(path.join(repoRoot, "build"), { recursive: true });
-    fs.writeFileSync(
-      path.join(repoRoot, "build", "bus_data_v3.json"),
-      JSON.stringify({ versionKey: "build" }),
-    );
-
-    expect(resolveBusDataFile(repoRoot)).toBe(
-      path.join(repoRoot, "static", "bus_data_v3.json"),
+  it("uses the published static bus data URL", () => {
+    expect(getBusDataUrl()).toBe(
+      "https://static.life-ustc.tiankaima.dev/bus_data_v3.json",
     );
   });
 
-  it("loads the payload from the configured repository root", () => {
-    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "bus-static-"));
-    fs.mkdirSync(path.join(repoRoot, "build"), { recursive: true });
-    fs.writeFileSync(
-      path.join(repoRoot, "build", "bus_data_v3.json"),
-      JSON.stringify({ versionKey: "2026.04" }),
-    );
+  it("loads the payload from the published static host", async () => {
+    const fetchMock = vi.fn(async () => {
+      return new Response(JSON.stringify({ versionKey: "2026.04" }), {
+        status: 200,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
 
-    const payload = loadBusStaticPayload(repoRoot);
+    const payload = await loadBusStaticPayload();
     expect(payload).toMatchObject({ versionKey: "2026.04" });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://static.life-ustc.tiankaima.dev/bus_data_v3.json",
+      { cache: "force-cache" },
+    );
   });
 
-  it("throws when the repository has no bus payload", () => {
-    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "bus-static-"));
-    expect(() => loadBusStaticPayload(repoRoot)).toThrow(
-      /Bus data file not found/,
+  it("throws when the published payload cannot be loaded", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("missing", { status: 404 })),
+    );
+    await expect(loadBusStaticPayload()).rejects.toThrow(
+      /Static asset request failed: 404/,
     );
   });
 });

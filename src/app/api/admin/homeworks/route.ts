@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminHomeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { ilike } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -56,23 +57,23 @@ export async function GET(request: Request) {
   const searchFilter = search
     ? {
         OR: [
-          { title: { contains: search, mode: "insensitive" as const } },
+          { title: ilike(search) },
           {
             section: {
-              code: { contains: search, mode: "insensitive" as const },
+              code: ilike(search),
             },
           },
           {
             section: {
               course: {
-                code: { contains: search, mode: "insensitive" as const },
+                code: ilike(search),
               },
             },
           },
           {
             section: {
               course: {
-                nameCn: { contains: search, mode: "insensitive" as const },
+                nameCn: ilike(search),
               },
             },
           },

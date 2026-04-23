@@ -6,7 +6,7 @@
   - Test files use `test.ts`, `*.test.ts`, or `*.spec.ts`
 
 - Web server
-  - Config builds with `bun run build`, then starts with `bunx next start`
+  - Config builds with `bun run build`, stages standalone assets with `bun run test:e2e:prepare-server`, then starts `node .next/standalone/server.js`
   - Defaults are host `127.0.0.1`, port `3000`, two local workers for the shared-state full suite and conservative CI workers for scoped jobs
   - Env knobs: `PLAYWRIGHT_HOST`, `PLAYWRIGHT_PORT`, `PLAYWRIGHT_REUSE_SERVER=1`, `PLAYWRIGHT_RETRIES`, `PLAYWRIGHT_WORKERS`
   - Benchmark workers with `bun run test:e2e:benchmark`; use focused paths for parallel-safe scopes when measuring CI-style slices

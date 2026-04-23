@@ -1,4 +1,4 @@
-import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
+import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
 import { DashboardLinksPanel } from "./dashboard-links-panel";
 
 export function LinksTabPanel({

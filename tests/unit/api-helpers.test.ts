@@ -1,11 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  jsonResponse,
   parseInteger,
   parseIntegerList,
   parseOptionalInt,
 } from "@/lib/api/helpers";
 
-describe("api-helpers integer parsing", () => {
+describe("api helpers", () => {
+  it("does not overwrite proxy-owned request id headers", () => {
+    const response = jsonResponse({ ok: true });
+
+    expect(response.headers.has("x-request-id")).toBe(false);
+  });
+
   it("accepts safe integers from string and number", () => {
     expect(parseInteger("42")).toBe(42);
     expect(parseInteger("  -7 ")).toBe(-7);

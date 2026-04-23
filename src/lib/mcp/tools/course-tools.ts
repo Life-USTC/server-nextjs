@@ -15,6 +15,7 @@ import {
   buildSectionSearchWhere,
   courseDetailInclude,
   courseInclude,
+  ilike,
   sectionCompactInclude,
   sectionInclude,
   teacherDetailInclude,
@@ -100,9 +101,9 @@ export function registerCourseTools(server: McpServer) {
       const courses = await localizedPrisma.course.findMany({
         where: {
           OR: [
-            { nameCn: { contains: search, mode: "insensitive" } },
-            { nameEn: { contains: search, mode: "insensitive" } },
-            { code: { contains: search, mode: "insensitive" } },
+            { nameCn: ilike(search) },
+            { nameEn: ilike(search) },
+            { code: ilike(search) },
           ],
         },
         include: courseInclude,
@@ -292,9 +293,9 @@ export function registerCourseTools(server: McpServer) {
         ...(search
           ? {
               OR: [
-                { nameCn: { contains: search, mode: "insensitive" as const } },
-                { nameEn: { contains: search, mode: "insensitive" as const } },
-                { code: { contains: search, mode: "insensitive" as const } },
+                { nameCn: ilike(search) },
+                { nameEn: ilike(search) },
+                { code: ilike(search) },
               ],
             }
           : {}),

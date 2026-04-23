@@ -21,7 +21,7 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { getPrisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
-import { paginatedCourseQuery } from "@/lib/query-helpers";
+import { ilike, paginatedCourseQuery } from "@/lib/query-helpers";
 import { CoursesFilter } from "./courses-filter";
 
 async function fetchCourses(
@@ -36,9 +36,9 @@ async function fetchCourses(
 
   if (search) {
     where.OR = [
-      { nameCn: { contains: search, mode: "insensitive" as const } },
-      { nameEn: { contains: search, mode: "insensitive" as const } },
-      { code: { contains: search, mode: "insensitive" as const } },
+      { nameCn: ilike(search) },
+      { nameEn: ilike(search) },
+      { code: ilike(search) },
     ];
   }
 

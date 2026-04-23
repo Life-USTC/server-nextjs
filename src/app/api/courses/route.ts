@@ -6,7 +6,7 @@ import {
   jsonResponse,
 } from "@/lib/api/helpers";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
-import { paginatedCourseQuery } from "@/lib/query-helpers";
+import { ilike, paginatedCourseQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -38,19 +38,9 @@ export async function GET(request: NextRequest) {
 
   if (search) {
     where.OR = [
-      {
-        nameCn: {
-          contains: search,
-          mode: "insensitive" as const,
-        },
-      },
-      {
-        nameEn: {
-          contains: search,
-          mode: "insensitive" as const,
-        },
-      },
-      { code: { contains: search, mode: "insensitive" as const } },
+      { nameCn: ilike(search) },
+      { nameEn: ilike(search) },
+      { code: ilike(search) },
     ];
   }
 

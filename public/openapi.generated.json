@@ -4133,11 +4133,34 @@
                     },
                     "code": {
                       "type": "string"
+                    },
+                    "course": {
+                      "type": "object",
+                      "properties": {
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "jwId",
+                        "code",
+                        "nameCn"
+                      ],
+                      "additionalProperties": false
                     }
                   },
                   "required": [
                     "jwId",
-                    "code"
+                    "code",
+                    "course"
                   ],
                   "additionalProperties": false,
                   "nullable": true
@@ -4227,11 +4250,34 @@
                         },
                         "code": {
                           "type": "string"
+                        },
+                        "course": {
+                          "type": "object",
+                          "properties": {
+                            "jwId": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "nameCn": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "jwId",
+                            "code",
+                            "nameCn"
+                          ],
+                          "additionalProperties": false
                         }
                       },
                       "required": [
                         "jwId",
-                        "code"
+                        "code",
+                        "course"
                       ],
                       "additionalProperties": false
                     },
@@ -4293,7 +4339,267 @@
         ],
         "additionalProperties": false
       },
-      "adminDescriptionsResponseSchema": {},
+      "adminDescriptionsResponseSchema": {
+        "type": "object",
+        "properties": {
+          "descriptions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "updatedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "lastEditedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                  "nullable": true
+                },
+                "lastEditedById": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "sectionId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "courseId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "teacherId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "homeworkId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "lastEditedBy": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "username": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "image": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "username",
+                    "image"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                },
+                "section": {
+                  "type": "object",
+                  "properties": {
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "nullable": true
+                    },
+                    "code": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "course": {
+                      "type": "object",
+                      "properties": {
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        "code": {
+                          "type": "string"
+                        },
+                        "nameCn": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "jwId",
+                        "code",
+                        "nameCn"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "jwId",
+                    "code",
+                    "course"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                },
+                "course": {
+                  "type": "object",
+                  "properties": {
+                    "jwId": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "code": {
+                      "type": "string"
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "jwId",
+                    "code",
+                    "nameCn"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                },
+                "teacher": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nameCn": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "nameCn"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                },
+                "homework": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "section": {
+                      "type": "object",
+                      "properties": {
+                        "jwId": {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991,
+                          "nullable": true
+                        },
+                        "code": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "course": {
+                          "type": "object",
+                          "properties": {
+                            "jwId": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            },
+                            "code": {
+                              "type": "string"
+                            },
+                            "nameCn": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "jwId",
+                            "code",
+                            "nameCn"
+                          ],
+                          "additionalProperties": false,
+                          "nullable": true
+                        }
+                      },
+                      "required": [
+                        "jwId",
+                        "code",
+                        "course"
+                      ],
+                      "additionalProperties": false,
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "section"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "createdAt",
+                "updatedAt",
+                "lastEditedAt",
+                "lastEditedById",
+                "sectionId",
+                "courseId",
+                "teacherId",
+                "homeworkId",
+                "lastEditedBy",
+                "section",
+                "course",
+                "teacher",
+                "homework"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "descriptions"
+        ],
+        "additionalProperties": false
+      },
       "successResponseSchema": {
         "type": "object",
         "properties": {
@@ -4642,7 +4948,41 @@
         ],
         "additionalProperties": false
       },
-      "busPreferenceResponseSchema": {},
+      "busPreferenceResponseSchema": {
+        "type": "object",
+        "properties": {
+          "preference": {
+            "type": "object",
+            "properties": {
+              "preferredOriginCampusId": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              },
+              "preferredDestinationCampusId": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              },
+              "showDepartedTrips": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "preferredOriginCampusId",
+              "preferredDestinationCampusId",
+              "showDepartedTrips"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "preference"
+        ],
+        "additionalProperties": false
+      },
       "busPreferenceRequestSchema": {
         "type": "object",
         "properties": {
@@ -4673,7 +5013,451 @@
         ],
         "additionalProperties": false
       },
-      "busQueryResponseSchema": {},
+      "busQueryResponseSchema": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": [
+              "zh-cn",
+              "en-us"
+            ]
+          },
+          "fetchedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+          },
+          "version": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "key": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "effectiveFrom": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "nullable": true
+              },
+              "effectiveUntil": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                "nullable": true
+              },
+              "importedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              },
+              "notice": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "url": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "message",
+                  "url"
+                ],
+                "additionalProperties": false,
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "key",
+              "title",
+              "effectiveFrom",
+              "effectiveUntil",
+              "importedAt",
+              "notice"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "availableVersions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "key": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "effectiveFrom": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                  "nullable": true
+                },
+                "effectiveUntil": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
+                  "nullable": true
+                },
+                "importedAt": {
+                  "type": "string",
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                },
+                "notice": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "url": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "url"
+                  ],
+                  "additionalProperties": false,
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "key",
+                "title",
+                "effectiveFrom",
+                "effectiveUntil",
+                "importedAt",
+                "notice"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "campuses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "nameCn": {
+                  "type": "string"
+                },
+                "nameEn": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "latitude": {
+                  "type": "number"
+                },
+                "longitude": {
+                  "type": "number"
+                },
+                "namePrimary": {
+                  "type": "string"
+                },
+                "nameSecondary": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "nameCn",
+                "nameEn",
+                "latitude",
+                "longitude",
+                "namePrimary",
+                "nameSecondary"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "nameCn": {
+                  "type": "string"
+                },
+                "nameEn": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "descriptionPrimary": {
+                  "type": "string"
+                },
+                "descriptionSecondary": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "stops": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "stopOrder": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "campus": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "nameCn": {
+                            "type": "string"
+                          },
+                          "nameEn": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "latitude": {
+                            "type": "number"
+                          },
+                          "longitude": {
+                            "type": "number"
+                          },
+                          "namePrimary": {
+                            "type": "string"
+                          },
+                          "nameSecondary": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "nameCn",
+                          "nameEn",
+                          "latitude",
+                          "longitude",
+                          "namePrimary",
+                          "nameSecondary"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "stopOrder",
+                      "campus"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "nameCn",
+                "nameEn",
+                "descriptionPrimary",
+                "descriptionSecondary",
+                "stops"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "trips": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "routeId": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "dayType": {
+                  "type": "string",
+                  "enum": [
+                    "weekday",
+                    "weekend"
+                  ]
+                },
+                "position": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "stopTimes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "stopOrder": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "campusId": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "campusName": {
+                        "type": "string"
+                      },
+                      "time": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "minutesSinceMidnight": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991,
+                        "nullable": true
+                      },
+                      "isPassThrough": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "stopOrder",
+                      "campusId",
+                      "campusName",
+                      "time",
+                      "minutesSinceMidnight",
+                      "isPassThrough"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "departureTime": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "departureMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                },
+                "arrivalTime": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "arrivalMinutes": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
+                }
+              },
+              "required": [
+                "id",
+                "routeId",
+                "dayType",
+                "position",
+                "stopTimes",
+                "departureTime",
+                "departureMinutes",
+                "arrivalTime",
+                "arrivalMinutes"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "preferences": {
+            "type": "object",
+            "properties": {
+              "preferredOriginCampusId": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              },
+              "preferredDestinationCampusId": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "nullable": true
+              },
+              "showDepartedTrips": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "preferredOriginCampusId",
+              "preferredDestinationCampusId",
+              "showDepartedTrips"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          },
+          "notice": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string",
+                "nullable": true
+              },
+              "url": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "required": [
+              "message",
+              "url"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        },
+        "required": [
+          "locale",
+          "fetchedAt",
+          "version",
+          "availableVersions",
+          "campuses",
+          "routes",
+          "trips",
+          "preferences",
+          "notice"
+        ],
+        "additionalProperties": false
+      },
       "currentCalendarSubscriptionResponseSchema": {
         "type": "object",
         "properties": {
@@ -9010,43 +9794,15 @@
               "content": {
                 "type": "string"
               },
-              "createdAt": {},
               "updatedAt": {
                 "type": "string",
                 "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-                "nullable": true
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
               },
               "lastEditedAt": {
                 "type": "string",
                 "format": "date-time",
                 "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-                "nullable": true
-              },
-              "lastEditedById": {
-                "type": "string",
-                "nullable": true
-              },
-              "sectionId": {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991,
-                "nullable": true
-              },
-              "courseId": {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991,
-                "nullable": true
-              },
-              "teacherId": {
-                "type": "integer",
-                "minimum": -9007199254740991,
-                "maximum": 9007199254740991,
-                "nullable": true
-              },
-              "homeworkId": {
-                "type": "string",
                 "nullable": true
               },
               "lastEditedBy": {
@@ -9081,14 +9837,8 @@
             "required": [
               "id",
               "content",
-              "createdAt",
               "updatedAt",
               "lastEditedAt",
-              "lastEditedById",
-              "sectionId",
-              "courseId",
-              "teacherId",
-              "homeworkId",
               "lastEditedBy"
             ],
             "additionalProperties": false
@@ -9101,12 +9851,10 @@
                 "id": {
                   "type": "string"
                 },
-                "descriptionId": {
-                  "type": "string"
-                },
-                "editorId": {
+                "createdAt": {
                   "type": "string",
-                  "nullable": true
+                  "format": "date-time",
+                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                 },
                 "previousContent": {
                   "type": "string",
@@ -9114,11 +9862,6 @@
                 },
                 "nextContent": {
                   "type": "string"
-                },
-                "createdAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                 },
                 "editor": {
                   "type": "object",
@@ -9151,11 +9894,9 @@
               },
               "required": [
                 "id",
-                "descriptionId",
-                "editorId",
+                "createdAt",
                 "previousContent",
                 "nextContent",
-                "createdAt",
                 "editor"
               ],
               "additionalProperties": false

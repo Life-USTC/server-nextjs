@@ -5,6 +5,8 @@ const playwrightHost = process.env.PLAYWRIGHT_HOST ?? "127.0.0.1";
 const playwrightBaseUrl = `http://${playwrightHost}:${playwrightPort}`;
 const reuseExistingServer = process.env.PLAYWRIGHT_REUSE_SERVER === "1";
 const playwrightNoProxy = "127.0.0.1,localhost,::1";
+const mockS3Endpoint =
+  process.env.E2E_MOCK_S3_ENDPOINT ?? "http://127.0.0.1:4569";
 
 function parsePositiveInteger(value: string | undefined, fallback: number) {
   if (!value) return fallback;
@@ -26,6 +28,37 @@ const playwrightWorkers = parsePositiveInteger(
   defaultPlaywrightWorkers,
 );
 
+function isConfiguredEnvValue(value: string | undefined) {
+  if (!value) return false;
+  const trimmed = value.trim();
+  return (
+    trimmed.length > 0 &&
+    !/^replace-with-/i.test(trimmed) &&
+    !/^your-/i.test(trimmed)
+  );
+}
+
+function hasUsableS3UploadConfig() {
+  return (
+    isConfiguredEnvValue(process.env.S3_BUCKET) &&
+    isConfiguredEnvValue(process.env.AWS_REGION) &&
+    isConfiguredEnvValue(process.env.AWS_ACCESS_KEY_ID) &&
+    isConfiguredEnvValue(process.env.AWS_SECRET_ACCESS_KEY)
+  );
+}
+
+if (process.env.E2E_USE_MOCK_S3 === "1" || !hasUsableS3UploadConfig()) {
+  process.env.E2E_MOCK_S3_ENDPOINT = mockS3Endpoint;
+  process.env.S3_BUCKET = process.env.S3_BUCKET ?? "life-ustc-e2e";
+  process.env.AWS_REGION = process.env.AWS_REGION ?? "us-east-1";
+  process.env.AWS_ACCESS_KEY_ID =
+    process.env.AWS_ACCESS_KEY_ID ?? "e2e-access-key";
+  process.env.AWS_SECRET_ACCESS_KEY =
+    process.env.AWS_SECRET_ACCESS_KEY ?? "e2e-secret-key";
+  process.env.AWS_ENDPOINT_URL_S3 =
+    process.env.AWS_ENDPOINT_URL_S3 ?? mockS3Endpoint;
+}
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: ["**/*.spec.ts", "**/*.test.ts", "**/test.ts"],
@@ -41,9 +74,12 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: `bun run build && bunx next start --hostname ${playwrightHost} --port ${playwrightPort}`,
+    command:
+      "bun run build && bun run test:e2e:prepare-server && node .next/standalone/server.js",
     env: {
       ...process.env,
+      HOSTNAME: playwrightHost,
+      PORT: playwrightPort,
       NO_PROXY: process.env.NO_PROXY
         ? `${process.env.NO_PROXY},${playwrightNoProxy}`
         : playwrightNoProxy,

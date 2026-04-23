@@ -10,7 +10,7 @@ import type {
   SemesterSummary,
   SessionItem,
   TimeSlot,
-} from "./types";
+} from "./dashboard-types";
 
 export const resolveDashboardSections = (
   allSections: SectionWithRelations[],

@@ -1,11 +1,16 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
+import {
+  getSubscribedSectionIds,
+  listSubscribedExams,
+  listSubscribedHomeworks,
+  listSubscribedSchedules,
+} from "@/features/home/server/subscribed-data";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
-import { getPrisma, prisma } from "@/lib/db/prisma";
+import { prisma } from "@/lib/db/prisma";
 import {
   dateTimeSchema,
-  getSubscribedSectionIds,
   getTodayBounds,
   getUserId,
   getViewerInfo,
@@ -32,39 +37,10 @@ export function registerMyDataTools(server: McpServer) {
     async ({ completed, limit, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const sectionIds = await getSubscribedSectionIds(userId);
-      if (sectionIds.length === 0) {
-        return jsonToolResult({ homeworks: [] }, { mode: resolvedMode });
-      }
-
-      const localizedPrisma = getPrisma(locale);
-      const homeworks = await localizedPrisma.homework.findMany({
-        where: {
-          deletedAt: null,
-          sectionId: { in: sectionIds },
-          ...(completed === undefined
-            ? {}
-            : completed
-              ? { homeworkCompletions: { some: { userId } } }
-              : { homeworkCompletions: { none: { userId } } }),
-        },
-        include: {
-          description: {
-            select: { content: true },
-          },
-          homeworkCompletions: {
-            where: { userId },
-            select: { completedAt: true },
-          },
-          section: {
-            include: {
-              course: true,
-              semester: true,
-            },
-          },
-        },
-        orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-        take: limit,
+      const homeworks = await listSubscribedHomeworks(userId, {
+        locale,
+        completed,
+        limit,
       });
 
       return jsonToolResult({ homeworks }, { mode: resolvedMode });
@@ -152,53 +128,12 @@ export function registerMyDataTools(server: McpServer) {
     async ({ dateFrom, dateTo, weekday, limit, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const sectionIds = await getSubscribedSectionIds(userId);
-      if (sectionIds.length === 0) {
-        return jsonToolResult({ schedules: [] }, { mode: resolvedMode });
-      }
-
-      const localizedPrisma = getPrisma(locale);
-      const schedules = await localizedPrisma.schedule.findMany({
-        where: {
-          sectionId: { in: sectionIds },
-          ...(dateFrom || dateTo
-            ? {
-                date: {
-                  ...(dateFrom
-                    ? { gte: parseRequiredDateInput(dateFrom) }
-                    : {}),
-                  ...(dateTo ? { lte: parseRequiredDateInput(dateTo) } : {}),
-                },
-              }
-            : {}),
-          ...(weekday ? { weekday } : {}),
-        },
-        include: {
-          room: {
-            include: {
-              building: {
-                include: {
-                  campus: true,
-                },
-              },
-              roomType: true,
-            },
-          },
-          teachers: {
-            include: {
-              department: true,
-            },
-          },
-          section: {
-            include: {
-              course: true,
-              semester: true,
-            },
-          },
-          scheduleGroup: true,
-        },
-        orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        take: limit,
+      const schedules = await listSubscribedSchedules(userId, {
+        locale,
+        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
+        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+        weekday,
+        limit,
       });
 
       return jsonToolResult({ schedules }, { mode: resolvedMode });
@@ -225,47 +160,12 @@ export function registerMyDataTools(server: McpServer) {
     ) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const sectionIds = await getSubscribedSectionIds(userId);
-      if (sectionIds.length === 0) {
-        return jsonToolResult({ exams: [] }, { mode: resolvedMode });
-      }
-
-      const localizedPrisma = getPrisma(locale);
-      const exams = await localizedPrisma.exam.findMany({
-        where: {
-          sectionId: { in: sectionIds },
-          ...(dateFrom || dateTo
-            ? {
-                OR: [
-                  {
-                    examDate: {
-                      ...(dateFrom
-                        ? { gte: parseRequiredDateInput(dateFrom) }
-                        : {}),
-                      ...(dateTo
-                        ? { lte: parseRequiredDateInput(dateTo) }
-                        : {}),
-                    },
-                  },
-                  ...(includeDateUnknown ? [{ examDate: null }] : []),
-                ],
-              }
-            : includeDateUnknown
-              ? {}
-              : { examDate: { not: null } }),
-        },
-        include: {
-          examBatch: true,
-          examRooms: true,
-          section: {
-            include: {
-              course: true,
-              semester: true,
-            },
-          },
-        },
-        orderBy: [{ examDate: "asc" }, { startTime: "asc" }, { jwId: "asc" }],
-        take: limit,
+      const exams = await listSubscribedExams(userId, {
+        locale,
+        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
+        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+        includeDateUnknown,
+        limit,
       });
 
       return jsonToolResult({ exams }, { mode: resolvedMode });
@@ -289,7 +189,6 @@ export function registerMyDataTools(server: McpServer) {
       const sectionIds = await getSubscribedSectionIds(userId);
       const { now, todayStart, tomorrowStart } = getTodayBounds();
 
-      const localizedPrisma = getPrisma(locale);
       // Prisma's pg adapter currently emits a driver deprecation warning when
       // a single request fans out multiple queries concurrently.
       const pendingTodosCount = await prisma.todo.count({
@@ -345,46 +244,22 @@ export function registerMyDataTools(server: McpServer) {
         orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
         take: 5,
       });
-      const dueHomeworks =
-        sectionIds.length > 0
-          ? await localizedPrisma.homework.findMany({
-              where: {
-                deletedAt: null,
-                sectionId: { in: sectionIds },
-                homeworkCompletions: { none: { userId } },
-                submissionDueAt: { not: null },
-              },
-              include: {
-                section: {
-                  include: {
-                    course: true,
-                  },
-                },
-              },
-              orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-              take: 5,
-            })
-          : [];
-      const upcomingExams =
-        sectionIds.length > 0
-          ? await localizedPrisma.exam.findMany({
-              where: {
-                sectionId: { in: sectionIds },
-                examDate: { gte: now },
-              },
-              include: {
-                section: {
-                  include: {
-                    course: true,
-                  },
-                },
-                examBatch: true,
-                examRooms: true,
-              },
-              orderBy: [{ examDate: "asc" }, { startTime: "asc" }],
-              take: 5,
-            })
-          : [];
+      const [dueHomeworks, upcomingExams] = await Promise.all([
+        listSubscribedHomeworks(userId, {
+          locale,
+          completed: false,
+          requireDueDate: true,
+          limit: 5,
+          sectionIds,
+        }),
+        listSubscribedExams(userId, {
+          locale,
+          dateFrom: now,
+          includeDateUnknown: false,
+          limit: 5,
+          sectionIds,
+        }),
+      ]);
 
       return jsonToolResult(
         {

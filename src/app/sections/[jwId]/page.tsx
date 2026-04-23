@@ -197,9 +197,7 @@ export default async function SectionPage({
     }),
   ]);
 
-  const sectionTeacherIdList = (sectionTeacherIds as { id: number }[]).map(
-    (entry) => entry.id,
-  );
+  const sectionTeacherIdList = sectionTeacherIds.map((entry) => entry.id);
   const sectionTeacherCommentCount = sectionTeacherIdList.length
     ? await basePrisma.comment.count({
         where: {
@@ -209,9 +207,7 @@ export default async function SectionPage({
       })
     : 0;
   const commentCount =
-    (sectionCommentCount as number) +
-    (courseCommentCount as number) +
-    (sectionTeacherCommentCount as number);
+    sectionCommentCount + courseCommentCount + sectionTeacherCommentCount;
 
   // Get current section's teacher IDs for comparison
   const currentTeacherIds = new Set(section.teachers.map((t) => t.id));

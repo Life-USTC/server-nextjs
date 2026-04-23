@@ -153,6 +153,16 @@ async function listBusVersions() {
   }));
 }
 
+async function getVersionRouteIds(versionId: number) {
+  const routeRows = await prisma.busTrip.findMany({
+    where: { versionId },
+    select: { routeId: true },
+    distinct: ["routeId"],
+  });
+
+  return new Set(routeRows.map((row) => row.routeId));
+}
+
 async function getRouteRecords(locale: AppLocale) {
   const localizedPrisma = getPrisma(locale);
   const routes = await localizedPrisma.busRoute.findMany({
@@ -305,22 +315,26 @@ export async function getBusTimetableData(
   const version = await findEffectiveBusVersion(dateKey, input.versionKey);
   if (!version) return null;
 
-  const [routes, campuses, preference, versions, tripRows] = await Promise.all([
-    getRouteRecords(locale).then((records) =>
-      records
-        .map((record) => buildRouteSummary(locale, record))
-        .filter((record): record is BusRouteSummary => record != null),
-    ),
-    getBusCampuses(locale),
-    getBusPreference(input.userId ?? null),
-    listBusVersions(),
-    prisma.busTrip.findMany({
-      where: {
-        versionId: version.id,
-      },
-      orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
-    }),
-  ]);
+  const [routeRecords, campuses, preference, versions, tripRows] =
+    await Promise.all([
+      getRouteRecords(locale),
+      getBusCampuses(locale),
+      getBusPreference(input.userId ?? null),
+      listBusVersions(),
+      prisma.busTrip.findMany({
+        where: {
+          versionId: version.id,
+        },
+        orderBy: [{ dayType: "asc" }, { routeId: "asc" }, { position: "asc" }],
+      }),
+    ]);
+
+  const versionRouteIds = new Set(tripRows.map((trip) => trip.routeId));
+  const routes = routeRecords
+    .filter((record) => versionRouteIds.has(record.id))
+    .map((record) => buildRouteSummary(locale, record))
+    .filter((record): record is BusRouteSummary => record != null);
+
   const routeMap = new Map(routes.map((route) => [route.id, route] as const));
   const trips = tripRows
     .map((trip) => {
@@ -405,11 +419,18 @@ function toRouteListing(
 export async function listBusRoutes(
   locale: AppLocale,
 ): Promise<{ routes: BusRouteListing[]; campuses: BusCampusSummary[] }> {
-  const [records, campuses] = await Promise.all([
+  const dateKey = shanghaiDayjs().format("YYYY-MM-DD");
+  const version = await findEffectiveBusVersion(dateKey);
+
+  const [records, campuses, versionRouteIds] = await Promise.all([
     getRouteRecords(locale),
     getBusCampuses(locale),
+    version
+      ? getVersionRouteIds(version.id)
+      : Promise.resolve(new Set<number>()),
   ]);
   const routes = records
+    .filter((record) => versionRouteIds.has(record.id))
     .map((r) => toRouteListing(locale, r))
     .filter((r): r is BusRouteListing => r != null);
   return { routes, campuses };

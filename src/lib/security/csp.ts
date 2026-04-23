@@ -5,8 +5,6 @@ const ANALYTICS_SCRIPT_SOURCES = [
   "https://www.google-analytics.com",
 ];
 
-const SWAGGER_UI_SOURCES = ["https://unpkg.com"];
-
 const ANALYTICS_CONNECT_SOURCES = [
   "https://www.google-analytics.com",
   "https://www.googletagmanager.com",
@@ -35,7 +33,6 @@ export function buildContentSecurityPolicy(
     "'self'",
     `'nonce-${nonce}'`,
     ...ANALYTICS_SCRIPT_SOURCES,
-    ...SWAGGER_UI_SOURCES,
   ];
 
   if (options.isDevelopment) {
@@ -45,8 +42,8 @@ export function buildContentSecurityPolicy(
   const directives = [
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
-    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${SWAGGER_UI_SOURCES.join(" ")}`,
-    `img-src 'self' data: blob: ${[...EXTERNAL_IMAGE_SOURCES, ...SWAGGER_UI_SOURCES].join(" ")}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    `img-src 'self' data: blob: ${EXTERNAL_IMAGE_SOURCES.join(" ")}`,
     "font-src 'self' https://fonts.gstatic.com",
     `connect-src 'self' ${[...ANALYTICS_CONNECT_SOURCES, ...getS3ConnectSources()].join(" ")}`,
     "frame-ancestors 'none'",

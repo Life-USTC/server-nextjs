@@ -12,6 +12,7 @@ import {
   School,
   Users,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   useCallback,
@@ -21,10 +22,12 @@ import {
   useRef,
   useState,
 } from "react";
-import type { DashboardLinkSummary } from "@/app/dashboard/dashboard-data";
 import { DashboardTabToolbar } from "@/components/filters/dashboard-tab-toolbar";
 import { FiltersBarSearch } from "@/components/filters/filters-bar";
 import { Button } from "@/components/ui/button";
+import type { DashboardLinkSummary } from "@/features/home/server/dashboard-link-data";
+import { useToast } from "@/hooks/use-toast";
+import { usePathname, useRouter } from "@/i18n/routing";
 import type {
   DashboardLinkGroup,
   DashboardLinkIcon,
@@ -123,6 +126,10 @@ export function DashboardLinksWithSearch({
   allowPinning?: boolean;
 }) {
   const t = useTranslations("meDashboard");
+  const { toast } = useToast();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const [linksState, setLinksState] = useState(groupedLinks);
@@ -138,6 +145,25 @@ export function DashboardLinksWithSearch({
   useEffect(() => {
     setSearchShortcutHint(resolveSearchShortcutHint());
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get("dashboardLinkPinError") !== "1") {
+      return;
+    }
+
+    toast({
+      title: t("linkHub.pinFailedTitle"),
+      description: t("linkHub.pinFailedDescription"),
+      variant: "destructive",
+    });
+
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("dashboardLinkPinError");
+    const nextQuery = nextParams.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParams, t, toast]);
 
   const filteredGroups = useMemo(
     () => filterGroupedBySearch(linksState, deferredSearchQuery),
@@ -161,10 +187,18 @@ export function DashboardLinksWithSearch({
           },
         });
 
-        if (!response.ok) return;
         const data = (await response.json()) as {
+          error?: string | null;
           pinnedSlugs?: string[];
         };
+        if (!response.ok) {
+          toast({
+            title: t("linkHub.pinFailedTitle"),
+            description: data.error ?? t("linkHub.pinFailedDescription"),
+            variant: "destructive",
+          });
+          return;
+        }
         const pinnedSlugs = new Set(data.pinnedSlugs ?? []);
 
         setLinksState((previous) =>
@@ -176,11 +210,21 @@ export function DashboardLinksWithSearch({
             })),
           })),
         );
+      } catch (error) {
+        const description =
+          error instanceof Error && error.message.trim().length > 0
+            ? error.message
+            : t("linkHub.pinFailedDescription");
+        toast({
+          title: t("linkHub.pinFailedTitle"),
+          description,
+          variant: "destructive",
+        });
       } finally {
         setUpdatingSlug(null);
       }
     },
-    [returnTo],
+    [returnTo, t, toast],
   );
 
   const focusSearch = useCallback(() => {

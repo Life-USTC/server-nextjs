@@ -1,7 +1,13 @@
 import { DEFAULT_LOCALE } from "@/i18n/config";
-import { getPrisma, prisma } from "@/lib/db/prisma";
+import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import {
+  getSubscribedSectionIds,
+  listSubscribedExams,
+  listSubscribedHomeworks,
+  listSubscribedSchedules,
+} from "./subscribed-data";
 
 function startOfShanghaiDay(date: Date) {
   return new Date(`${formatShanghaiDate(date)}T00:00:00+08:00`);
@@ -17,19 +23,6 @@ function toDateTimeFromHHmm(baseDate: Date | null, hhmm: number | null) {
   );
 }
 
-async function getSubscribedSectionIds(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        select: { id: true },
-      },
-    },
-  });
-
-  return user?.subscribedSections.map((section) => section.id) ?? [];
-}
-
 export async function listUserCalendarEvents(
   userId: string,
   {
@@ -42,107 +35,33 @@ export async function listUserCalendarEvents(
     dateTo?: Date | null;
   } = {},
 ) {
-  const localizedPrisma = getPrisma(locale);
-  const sectionIds = await getSubscribedSectionIds(userId);
   const windowStart = dateFrom ?? startOfShanghaiDay(new Date());
   const windowEnd =
     dateTo ?? new Date(windowStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const sectionIds = await getSubscribedSectionIds(userId);
 
-  const schedules =
-    sectionIds.length > 0
-      ? await localizedPrisma.schedule.findMany({
-          where: {
-            sectionId: { in: sectionIds },
-            date: { gte: windowStart, lt: windowEnd },
-          },
-          select: {
-            id: true,
-            date: true,
-            startTime: true,
-            endTime: true,
-            customPlace: true,
-            sectionId: true,
-            section: {
-              select: {
-                jwId: true,
-                code: true,
-                course: { select: { namePrimary: true, code: true } },
-                semester: { select: { nameCn: true } },
-              },
-            },
-            room: {
-              select: {
-                namePrimary: true,
-                building: {
-                  select: {
-                    namePrimary: true,
-                    campus: { select: { namePrimary: true } },
-                  },
-                },
-              },
-            },
-            teachers: { select: { namePrimary: true } },
-          },
-          orderBy: [{ date: "asc" }, { startTime: "asc" }],
-        })
-      : [];
-
-  const homeworks =
-    sectionIds.length > 0
-      ? await localizedPrisma.homework.findMany({
-          where: {
-            deletedAt: null,
-            sectionId: { in: sectionIds },
-            submissionDueAt: { gte: windowStart, lt: windowEnd },
-            homeworkCompletions: { none: { userId } },
-          },
-          select: {
-            id: true,
-            title: true,
-            submissionDueAt: true,
-            createdAt: true,
-            sectionId: true,
-            description: { select: { content: true } },
-            section: {
-              select: {
-                jwId: true,
-                code: true,
-                course: { select: { namePrimary: true } },
-                semester: { select: { nameCn: true } },
-              },
-            },
-          },
-          orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-        })
-      : [];
-
-  const exams =
-    sectionIds.length > 0
-      ? await localizedPrisma.exam.findMany({
-          where: {
-            sectionId: { in: sectionIds },
-            examDate: { gte: windowStart, lt: windowEnd },
-          },
-          select: {
-            id: true,
-            examDate: true,
-            startTime: true,
-            endTime: true,
-            examType: true,
-            sectionId: true,
-            section: {
-              select: {
-                jwId: true,
-                code: true,
-                course: { select: { namePrimary: true } },
-                semester: { select: { nameCn: true } },
-              },
-            },
-            examRooms: { select: { room: true, count: true } },
-          },
-          orderBy: [{ examDate: "asc" }, { startTime: "asc" }],
-        })
-      : [];
+  const [schedules, homeworks, exams] = await Promise.all([
+    listSubscribedSchedules(userId, {
+      locale,
+      dateFrom: windowStart,
+      dateTo: windowEnd,
+      sectionIds,
+    }),
+    listSubscribedHomeworks(userId, {
+      locale,
+      completed: false,
+      dueAtFrom: windowStart,
+      dueAtTo: windowEnd,
+      sectionIds,
+    }),
+    listSubscribedExams(userId, {
+      locale,
+      dateFrom: windowStart,
+      dateTo: windowEnd,
+      includeDateUnknown: false,
+      sectionIds,
+    }),
+  ]);
 
   const todos = await prisma.todo.findMany({
     where: {

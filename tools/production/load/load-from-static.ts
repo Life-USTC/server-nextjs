@@ -19,7 +19,6 @@ import { createToolPrisma } from "../../shared/tool-prisma";
 const { values: args } = parseArgs({
   options: {
     "cache-dir": { type: "string", default: "./.cache/life-ustc/static" },
-    "snapshot-url": { type: "string" },
     "min-semester": { type: "string", default: "401" },
     "skip-courses": { type: "boolean", default: false },
     "skip-bus": { type: "boolean", default: false },
@@ -33,7 +32,6 @@ if (args.help) {
 
 Options:
   --cache-dir <path>      Snapshot download cache directory (default: .cache/life-ustc/static)
-  --snapshot-url <url>    Override the published SQLite snapshot URL
   --min-semester <id>     Minimum semester jwId to import (default: 401)
   --skip-courses          Skip course/exam/schedule import
   --skip-bus              Skip bus data import
@@ -43,7 +41,6 @@ Options:
 
 const cacheDir = args["cache-dir"] ?? "./.cache/life-ustc/static";
 const minSemesterJwId = Number.parseInt(args["min-semester"] ?? "401", 10);
-const snapshotUrl = args["snapshot-url"]?.trim();
 
 const prisma = createToolPrisma();
 
@@ -161,9 +158,8 @@ const logger = {
   error: (msg: string) => console.error(`[ERROR] ${msg}`),
 };
 
-const DEFAULT_SNAPSHOT_URLS = [
-  "https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite",
-];
+const STATIC_SNAPSHOT_URL =
+  "https://static.life-ustc.tiankaima.dev/life-ustc-static.sqlite";
 
 const STATIC_SCHEMA_VERSION = 2;
 const CHINA_OFFSET_SECONDS = 8 * 60 * 60;
@@ -253,15 +249,6 @@ type ExamImportRow = {
   examMode: string | null;
   rooms: string[];
 };
-
-function uniqueSnapshotUrls(override?: string) {
-  const urls = [override, process.env.LIFE_USTC_STATIC_SNAPSHOT_URL].filter(
-    (value): value is string =>
-      typeof value === "string" && value.trim().length > 0,
-  );
-  urls.push(...DEFAULT_SNAPSHOT_URLS);
-  return [...new Set(urls.map((url) => url.trim()))];
-}
 
 function stableNumericId(namespace: string, value: string) {
   const digest = createHash("sha256")
@@ -546,48 +533,21 @@ class StaticSnapshot {
   }
 }
 
-async function downloadStaticSnapshot(
-  targetDir: string,
-  overrideUrl?: string,
-): Promise<string> {
+async function downloadStaticSnapshot(targetDir: string): Promise<string> {
   const snapshotPath = path.join(targetDir, "life-ustc-static.sqlite");
   fs.mkdirSync(targetDir, { recursive: true });
 
-  let lastError: Error | null = null;
-  for (const url of uniqueSnapshotUrls(overrideUrl)) {
-    try {
-      logger.info(`Downloading static snapshot from ${url}`);
-      const response = await fetch(url, {
-        headers: { "user-agent": "life-ustc-static-import/1.0" },
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
-      }
-
-      const bytes = Buffer.from(await response.arrayBuffer());
-      fs.writeFileSync(snapshotPath, bytes);
-      return snapshotPath;
-    } catch (error: unknown) {
-      lastError =
-        error instanceof Error
-          ? error
-          : new Error(`Unknown error: ${String(error)}`);
-      logger.warning(
-        `Failed to download snapshot from ${url}: ${lastError.message}`,
-      );
-    }
+  logger.info(`Downloading static snapshot from ${STATIC_SNAPSHOT_URL}`);
+  const response = await fetch(STATIC_SNAPSHOT_URL, {
+    headers: { "user-agent": "life-ustc-static-import/1.0" },
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} ${response.statusText}`);
   }
 
-  if (fs.existsSync(snapshotPath)) {
-    logger.warning(`Falling back to cached snapshot at ${snapshotPath}`);
-    return snapshotPath;
-  }
-
-  throw new Error(
-    `Unable to download static snapshot${
-      lastError ? `: ${lastError.message}` : ""
-    }`,
-  );
+  const bytes = Buffer.from(await response.arrayBuffer());
+  fs.writeFileSync(snapshotPath, bytes);
+  return snapshotPath;
 }
 
 function chunkArray<T>(items: T[], size: number) {
@@ -1592,7 +1552,7 @@ async function main() {
   try {
     logger.info(`Starting data load (min semester code: ${minSemesterJwId})`);
     logger.info("Downloading static snapshot...");
-    const snapshotPath = await downloadStaticSnapshot(cacheDir, snapshotUrl);
+    const snapshotPath = await downloadStaticSnapshot(cacheDir);
     const snapshot = new StaticSnapshot(snapshotPath);
     logger.info(`Static snapshot at: ${snapshotPath}`);
 

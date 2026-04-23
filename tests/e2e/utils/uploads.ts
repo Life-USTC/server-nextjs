@@ -4,25 +4,6 @@ function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function isConfiguredEnvValue(value: string | undefined) {
-  if (!value) return false;
-  const trimmed = value.trim();
-  return (
-    trimmed.length > 0 &&
-    !/^replace-with-/i.test(trimmed) &&
-    !/^your-/i.test(trimmed)
-  );
-}
-
-export function hasUsableS3UploadConfig() {
-  return (
-    isConfiguredEnvValue(process.env.S3_BUCKET) &&
-    isConfiguredEnvValue(process.env.AWS_REGION) &&
-    isConfiguredEnvValue(process.env.AWS_ACCESS_KEY_ID) &&
-    isConfiguredEnvValue(process.env.AWS_SECRET_ACCESS_KEY)
-  );
-}
-
 export async function uploadFileFromDashboard(
   page: Page,
   options: {

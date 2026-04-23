@@ -1,8 +1,6 @@
 import dayjs from "dayjs";
 import { BookOpenCheck, Calendar, CheckSquare } from "lucide-react";
 import { getLocale, getTranslations } from "next-intl/server";
-import type { OverviewData } from "@/app/dashboard/dashboard-data";
-import type { SessionItem } from "@/app/dashboard/types";
 import { ScheduleSessionLink } from "@/components/schedules/schedule-session-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +20,8 @@ import {
 } from "@/components/ui/empty";
 import { DashboardLinksPanel } from "@/features/dashboard-links/components/dashboard-links-panel";
 import { DashboardWeekCalendar } from "@/features/home/components/dashboard-week-calendar";
+import type { OverviewData } from "@/features/home/server/dashboard-overview-data";
+import type { SessionItem } from "@/features/home/server/dashboard-types";
 import type { TodoItem } from "@/features/todos/components/todo-list";
 import { Link } from "@/i18n/routing";
 import {

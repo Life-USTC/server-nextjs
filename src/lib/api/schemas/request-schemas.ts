@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  CommentReactionType,
+  CommentVisibility,
+} from "@/generated/prisma/client";
 import { APP_LOCALES } from "@/i18n/config";
 import { parseOptionalInt } from "../helpers";
 
@@ -101,11 +105,7 @@ export const calendarSubscriptionCreateRequestSchema = z.object({
   sectionIds: z.array(z.number().int().positive()).optional(),
 });
 
-export const commentVisibilitySchema = z.enum([
-  "public",
-  "logged_in_only",
-  "anonymous",
-]);
+export const commentVisibilitySchema = z.nativeEnum(CommentVisibility);
 
 export const commentTargetTypeSchema = z.enum([
   "section",
@@ -135,16 +135,7 @@ export const commentUpdateRequestSchema = z.object({
 });
 
 export const commentReactionRequestSchema = z.object({
-  type: z.enum([
-    "upvote",
-    "downvote",
-    "heart",
-    "laugh",
-    "hooray",
-    "confused",
-    "rocket",
-    "eyes",
-  ]),
+  type: z.nativeEnum(CommentReactionType),
 });
 
 export const adminModerateCommentRequestSchema = z.object({
@@ -298,14 +289,20 @@ export const dashboardLinkVisitRequestSchema = z.object({
   slug: z.string().trim().min(1),
 });
 
+export type MatchSectionCodesRequest = z.infer<
+  typeof matchSectionCodesRequestSchema
+>;
+
+export type HomeworkCreateRequest = z.infer<typeof homeworkCreateRequestSchema>;
+
+export type DescriptionUpsertRequest = z.infer<
+  typeof descriptionUpsertRequestSchema
+>;
+
 export const dashboardLinkPinRequestSchema = z.object({
   slug: z.string().trim().min(1),
   returnTo: z.string().trim().optional(),
   action: z.enum(["pin", "unpin"]).optional(),
-});
-
-export const openApiErrorSchema = z.object({
-  error: z.string(),
 });
 
 export const resourceIdPathParamsSchema = z.object({

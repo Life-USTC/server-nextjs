@@ -114,25 +114,6 @@ export async function getViewerInfo(userId: string) {
   return user;
 }
 
-export async function getSubscribedSectionIds(
-  userId: string,
-): Promise<number[]> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        select: { id: true },
-      },
-    },
-  });
-
-  if (!user) {
-    return [];
-  }
-
-  return user.subscribedSections.map((section) => section.id);
-}
-
 export function getTodayBounds() {
   const now = new Date();
   const todayStart = parseRequiredDateInput(formatShanghaiDate(now));

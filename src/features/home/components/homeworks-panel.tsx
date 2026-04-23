@@ -1,8 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import type {
-  HomeworkSummaryItem,
-  SectionOption,
-} from "@/app/dashboard/dashboard-data";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -11,6 +7,10 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty";
+import type {
+  HomeworkSummaryItem,
+  SectionOption,
+} from "@/features/home/server/dashboard-tab-data";
 import { HomeworkSummaryList } from "@/features/homeworks/components/homework-summary-list";
 import { Link } from "@/i18n/routing";
 

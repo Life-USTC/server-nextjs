@@ -4,6 +4,7 @@ import {
 } from "@better-auth/oauth-provider";
 import { NextResponse } from "next/server";
 import { betterAuthInstance } from "@/auth";
+import { asOAuthProviderMetadataAuth } from "@/lib/oauth/provider-api";
 
 const DEVICE_CODE_GRANT_TYPE = "urn:ietf:params:oauth:grant-type:device_code";
 const DISCOVERY_CORS_HEADERS = {
@@ -18,10 +19,14 @@ type DiscoveryMetadata = {
   [key: string]: unknown;
 };
 
-const authServerMetadataHandler =
-  oauthProviderAuthServerMetadata(betterAuthInstance);
-const openIdConfigMetadataHandler =
-  oauthProviderOpenIdConfigMetadata(betterAuthInstance);
+const oauthProviderMetadataAuth =
+  asOAuthProviderMetadataAuth(betterAuthInstance);
+const authServerMetadataHandler = oauthProviderAuthServerMetadata(
+  oauthProviderMetadataAuth,
+);
+const openIdConfigMetadataHandler = oauthProviderOpenIdConfigMetadata(
+  oauthProviderMetadataAuth,
+);
 
 function withDiscoveryCorsHeaders(headers?: HeadersInit): Headers {
   const responseHeaders = new Headers(headers);

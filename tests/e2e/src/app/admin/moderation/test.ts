@@ -89,7 +89,9 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
     .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
     .fill(keyword);
   await page.getByText(keyword).first().click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page
+    .getByRole("dialog", { name: /管理评论|Manage Comment/i })
+    .first();
   await expect(dialog).toBeVisible();
 
   await dialog.getByText(/仅自己可见|Private/i).click();
@@ -106,7 +108,7 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   );
   await dialog.getByRole("button", { name: /确认|Confirm/i }).click();
   await patchResponse;
-  await page.waitForLoadState("networkidle");
+  await expect(dialog).not.toBeVisible({ timeout: 15_000 });
   await captureStepScreenshot(page, testInfo, "admin-moderation-updated");
 });
 

@@ -1,6 +1,9 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
-import type { Prisma } from "@/generated/prisma/client";
+import {
+  runUploadSerializableTransaction,
+  UploadError,
+} from "@/features/uploads/lib/upload-quota";
 import {
   badRequest,
   handleRouteError,
@@ -17,45 +20,6 @@ import { buildUploadKey, getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 export const dynamic = "force-dynamic";
 
 const MAX_UPLOAD_EXPIRES_SECONDS = 300;
-
-class UploadError extends Error {
-  code: string;
-
-  constructor(code: string, message?: string) {
-    super(message ?? code);
-    this.code = code;
-  }
-}
-
-function isSerializationError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof (error as { code?: string }).code === "string" &&
-    (error as { code?: string }).code === "P2034"
-  );
-}
-
-async function runSerializableTransaction<T>(
-  action: (tx: Prisma.TransactionClient) => Promise<T>,
-) {
-  const maxAttempts = 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return await prisma.$transaction(action, {
-        isolationLevel: "Serializable",
-      });
-    } catch (error) {
-      if (isSerializationError(error) && attempt < maxAttempts) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error("Failed to reserve upload quota");
-}
 
 function parseFileSize(value: unknown) {
   return parseOptionalInt(value);
@@ -173,7 +137,7 @@ export async function POST(request: Request) {
     const key = buildUploadKey(userId);
     const expiresAt = new Date(Date.now() + MAX_UPLOAD_EXPIRES_SECONDS * 1000);
 
-    const reservation = await runSerializableTransaction(async (tx) => {
+    const reservation = await runUploadSerializableTransaction(async (tx) => {
       const [usage, pendingUsage] = await Promise.all([
         tx.upload.aggregate({
           where: { userId },
@@ -202,7 +166,7 @@ export async function POST(request: Request) {
       });
 
       return { usedBytes };
-    });
+    }, "Failed to reserve upload quota");
 
     const command = new PutObjectCommand({
       Bucket: getS3Bucket(),

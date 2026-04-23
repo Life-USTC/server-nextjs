@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { USTC_DASHBOARD_LINKS } from "@/features/dashboard-links/lib/dashboard-links";
+import { resolveDashboardLinkBySlug } from "@/features/dashboard-links/server/route-helpers";
 import {
   dashboardLinkVisitQuerySchema,
   dashboardLinkVisitRequestSchema,
@@ -9,14 +9,6 @@ import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export const dynamic = "force-dynamic";
-
-function resolveLinkBySlug(slug: string | null | undefined) {
-  const normalizedSlug = slug?.trim();
-  if (!normalizedSlug) return null;
-  return (
-    USTC_DASHBOARD_LINKS.find((link) => link.slug === normalizedSlug) ?? null
-  );
-}
 
 /**
  * Redirect to one dashboard link without side effects.
@@ -29,7 +21,7 @@ export async function GET(request: Request) {
     slug: searchParams.get("slug"),
   });
   const target = parsedQuery.success
-    ? resolveLinkBySlug(parsedQuery.data.slug)
+    ? resolveDashboardLinkBySlug(parsedQuery.data.slug)
     : null;
 
   if (!target) {
@@ -50,7 +42,7 @@ export async function POST(request: Request) {
     slug: formData.get("slug"),
   });
   const target = parsedBody.success
-    ? resolveLinkBySlug(parsedBody.data.slug)
+    ? resolveDashboardLinkBySlug(parsedBody.data.slug)
     : null;
 
   if (!target) {

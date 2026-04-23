@@ -107,41 +107,42 @@ export function ModerationDashboard() {
         descriptionsPromise,
       ]);
 
-      if (commentResult.response.ok && commentResult.data) {
-        const parsed = adminCommentsResponseSchema.safeParse(
-          commentResult.data,
+      if (!commentResult.response.ok || !commentResult.data) {
+        throw new Error(
+          extractApiErrorMessage(commentResult.error) ??
+            "Failed to load moderation comments",
         );
-        if (parsed.success) {
-          setComments(parsed.data.comments);
-        } else {
-          const maybe = commentResult.data as unknown as {
-            comments?: unknown;
-          };
-          if (Array.isArray(maybe.comments)) {
-            setComments(maybe.comments as AdminComment[]);
-          }
-        }
       }
 
-      if (descriptionsResult.response.ok && descriptionsResult.data) {
-        const parsed = adminDescriptionsResponseSchema.safeParse(
-          descriptionsResult.data,
-        );
-        if (parsed.success) {
-          setDescriptions(parsed.data.descriptions as AdminDescription[]);
-        } else {
-          const maybe = descriptionsResult.data as unknown as {
-            descriptions?: unknown;
-          };
-          if (Array.isArray(maybe.descriptions)) {
-            setDescriptions(maybe.descriptions as AdminDescription[]);
-          }
-        }
+      const parsedComments = adminCommentsResponseSchema.safeParse(
+        commentResult.data,
+      );
+      if (!parsedComments.success) {
+        throw new Error("Invalid moderation comments payload");
       }
+
+      if (!descriptionsResult.response.ok || !descriptionsResult.data) {
+        throw new Error(
+          extractApiErrorMessage(descriptionsResult.error) ??
+            "Failed to load moderation descriptions",
+        );
+      }
+
+      const parsedDescriptions = adminDescriptionsResponseSchema.safeParse(
+        descriptionsResult.data,
+      );
+      if (!parsedDescriptions.success) {
+        throw new Error("Invalid moderation descriptions payload");
+      }
+
+      setComments(parsedComments.data.comments);
+      setDescriptions(parsedDescriptions.data.descriptions);
     } catch (error) {
       logClientError("Failed to load moderation data", error, {
         component: "ModerationDashboard",
       });
+      setComments([]);
+      setDescriptions([]);
       setError(t("updateFailed"));
       toast({
         title: t("updateFailed"),

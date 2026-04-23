@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
+import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/welcome-redirect";
 import { logApiRequest, shouldLog } from "@/lib/log/app-logger";
 import {
   buildContentSecurityPolicy,
@@ -38,11 +39,12 @@ export default async function proxy(request: NextRequest) {
   // Redirect signed-in users with incomplete profiles to /welcome
   const user = session?.user;
   if (
-    user &&
-    (!user.name || !user.username) &&
-    pathname !== "/welcome" &&
-    pathname !== "/signin" &&
-    !pathname.startsWith("/oauth/")
+    shouldRedirectIncompleteProfileToWelcome({
+      pathname,
+      url: request.nextUrl,
+      hasUser: Boolean(user),
+      hasCompleteProfile: Boolean(user?.name && user.username),
+    })
   ) {
     return NextResponse.redirect(new URL("/welcome", request.url));
   }

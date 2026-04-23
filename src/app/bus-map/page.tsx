@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import dynamicImport from "next/dynamic";
+import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 import { getBusMapData } from "@/features/bus/lib/bus-service";
-import type { AppLocale } from "@/i18n/config";
+import { isAppLocale } from "@/i18n/config";
 
 const BusTransitMap = dynamicImport(
   () =>
@@ -29,8 +30,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function BusMapPage() {
-  const locale = (await getLocale()) as AppLocale;
-  const data = await getBusMapData({ locale });
+  const rawLocale = await getLocale();
+  if (!isAppLocale(rawLocale)) {
+    notFound();
+  }
+  const data = await getBusMapData({ locale: rawLocale });
 
   return <BusTransitMap data={data} />;
 }

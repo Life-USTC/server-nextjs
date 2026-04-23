@@ -706,6 +706,20 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(
         listRoutesPayload.routes?.some((r) => r.id === DEV_SEED.bus.routeId),
       ).toBe(true);
+      const queryRouteIds = new Set(
+        (busPayload.routes ?? [])
+          .map((route) => route.id)
+          .filter((routeId): routeId is number => typeof routeId === "number"),
+      );
+      const listedRouteIds = new Set(
+        (listRoutesPayload.routes ?? [])
+          .map((route) => route.id)
+          .filter((routeId): routeId is number => typeof routeId === "number"),
+      );
+      expect(listedRouteIds.size).toBeGreaterThan(0);
+      expect(
+        [...listedRouteIds].every((routeId) => queryRouteIds.has(routeId)),
+      ).toBe(true);
 
       // get_bus_route_timetable — full weekday+weekend for one route
       const timetableResult = await mcpClient.callTool({

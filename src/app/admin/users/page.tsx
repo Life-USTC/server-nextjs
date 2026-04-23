@@ -18,8 +18,9 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group";
 import { Link } from "@/i18n/routing";
-import { requireSignedInUserId } from "@/lib/auth/helpers";
+import { requireAdmin } from "@/lib/admin-utils";
 import { prisma } from "@/lib/db/prisma";
+import { ilike } from "@/lib/query-helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { ADMIN_USERS_PAGE_SIZE } from "./constants";
 
@@ -41,14 +42,8 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ page?: string; search?: string }>;
 }) {
-  const userId = await requireSignedInUserId();
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { isAdmin: true },
-  });
-  const isAdmin = user?.isAdmin ?? false;
-  if (!isAdmin) {
+  const admin = await requireAdmin();
+  if (!admin) {
     notFound();
   }
 
@@ -60,13 +55,13 @@ export default async function AdminUsersPage({
   const where = search
     ? {
         OR: [
-          { id: { contains: search, mode: "insensitive" as const } },
-          { name: { contains: search, mode: "insensitive" as const } },
-          { username: { contains: search, mode: "insensitive" as const } },
+          { id: ilike(search) },
+          { name: ilike(search) },
+          { username: ilike(search) },
           {
             verifiedEmails: {
               some: {
-                email: { contains: search, mode: "insensitive" as const },
+                email: ilike(search),
               },
             },
           },

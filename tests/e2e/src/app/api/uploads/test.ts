@@ -20,10 +20,7 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import {
-  createUploadedFileViaApi,
-  hasUsableS3UploadConfig,
-} from "../../../../utils/uploads";
+import { createUploadedFileViaApi } from "../../../../utils/uploads";
 
 test("/api/uploads GET 未登录返回 401", async ({ request }) => {
   const response = await request.get("/api/uploads");
@@ -60,7 +57,6 @@ test("/api/uploads POST 未登录返回 401", async ({ request }) => {
 });
 
 test("/api/uploads POST 可申请上传并完成文件入库", async ({ page }) => {
-  test.fixme(!hasUsableS3UploadConfig(), "Requires usable S3 configuration");
   test.setTimeout(60_000);
   await signInAsDebugUser(page, "/");
 

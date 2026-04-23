@@ -12,6 +12,7 @@
  * - 200: `{ pinnedSlugs: string[], maxPinnedLinks: number }`
  * - 400: validation error for malformed body
  * - 401: unauthorized when not signed in
+ * - 500: write failure with explicit error payload
  *
  * ## Response (redirect mode)
  * - 303: redirect to `returnTo` or `/`
@@ -30,7 +31,11 @@ import { signInAsDebugUser } from "../../../../../utils/auth";
 const BASE = "/api/dashboard-links/pin";
 const JSON_HEADERS = { accept: "application/json" };
 
-type PinResponse = { pinnedSlugs?: string[]; maxPinnedLinks?: number };
+type PinResponse = {
+  pinnedSlugs?: string[];
+  maxPinnedLinks?: number;
+  error?: string | null;
+};
 
 test.describe("POST /api/dashboard-links/pin", () => {
   test("returns 401 JSON when not authenticated", async ({ request }) => {

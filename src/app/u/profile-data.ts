@@ -130,7 +130,7 @@ export async function fetchProfileData(
   );
 
   return {
-    user: user as ProfileUser,
+    user,
     sectionCount,
     weeks,
     totalContributions,

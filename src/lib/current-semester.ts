@@ -13,6 +13,23 @@ const getSemesterStartTime = (semester: SemesterWithDateRange) =>
 const getSemesterEndTime = (semester: SemesterWithDateRange) =>
   semester.endDate?.getTime() ?? Number.POSITIVE_INFINITY;
 
+const hasStarted = (semester: SemesterWithDateRange, referenceDate: Date) =>
+  !semester.startDate || semester.startDate <= referenceDate;
+
+const hasNotEnded = (semester: SemesterWithDateRange, referenceDate: Date) =>
+  !semester.endDate || semester.endDate >= referenceDate;
+
+const compareMostSpecificCurrentSemester = <
+  TSemester extends SemesterWithDateRange,
+>(
+  a: TSemester,
+  b: TSemester,
+) => {
+  const startDiff = getSemesterStartTime(b) - getSemesterStartTime(a);
+  if (startDiff !== 0) return startDiff;
+  return getSemesterEndTime(a) - getSemesterEndTime(b);
+};
+
 export const buildCurrentSemesterWhere = (
   referenceDate: Date,
 ): Prisma.SemesterWhereInput => ({
@@ -26,6 +43,12 @@ export const findCurrentSemester = (
 ): Promise<Semester | null> =>
   semesterDelegate.findFirst({
     where: buildCurrentSemesterWhere(referenceDate),
+    orderBy: [
+      { startDate: "desc" },
+      { endDate: "asc" },
+      { jwId: "desc" },
+      { id: "desc" },
+    ],
   });
 
 export const selectCurrentSemesterFromList = <
@@ -34,15 +57,23 @@ export const selectCurrentSemesterFromList = <
   semesters: TSemester[],
   referenceDate: Date,
 ): TSemester | null => {
-  const unfinished = semesters
+  const current = semesters
     .filter(
-      (semester) => !semester.endDate || semester.endDate >= referenceDate,
+      (semester) =>
+        hasStarted(semester, referenceDate) &&
+        hasNotEnded(semester, referenceDate),
     )
+    .sort(compareMostSpecificCurrentSemester);
+  if (current[0]) return current[0];
+
+  const future = semesters
+    .filter((semester) => !hasStarted(semester, referenceDate))
     .sort((a, b) => {
       const startDiff = getSemesterStartTime(a) - getSemesterStartTime(b);
       if (startDiff !== 0) return startDiff;
       return getSemesterEndTime(a) - getSemesterEndTime(b);
     });
+  if (future[0]) return future[0];
 
-  return unfinished.at(0) ?? semesters.at(-1) ?? null;
+  return [...semesters].sort(compareMostSpecificCurrentSemester).at(0) ?? null;
 };

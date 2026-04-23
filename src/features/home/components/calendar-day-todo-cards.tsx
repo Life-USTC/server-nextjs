@@ -2,8 +2,8 @@
 
 import dayjs from "dayjs";
 import { useTranslations } from "next-intl";
-import type { CalendarTodoItem } from "@/app/dashboard/dashboard-data";
 import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
+import type { CalendarTodoItem } from "@/features/home/server/dashboard-overview-data";
 
 export function CalendarDayTodoCards({ todos }: { todos: CalendarTodoItem[] }) {
   const t = useTranslations("todos");

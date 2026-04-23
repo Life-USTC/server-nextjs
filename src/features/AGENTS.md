@@ -9,8 +9,8 @@
 
 - `home/`
   - Own dashboard panels and cards
-  - Dashboard aggregation currently lives in `src/app/dashboard/dashboard-data.ts`
-  - Move reusable dashboard behavior into `src/features/home/` only as an intentional refactor
+  - Dashboard aggregation lives in `src/features/home/server/`
+  - Keep route-level composition in `src/app/page.tsx`; do not reintroduce reusable dashboard business logic under `src/app/dashboard/`
   - Overview should answer what the user should do next
   - Prioritize current-semester work
   - Do not make stale semesters look current

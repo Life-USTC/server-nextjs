@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth, authApi } from "@/auth";
+import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { OAuthConsentForm } from "./consent-form";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -48,7 +49,7 @@ export default async function OAuthAuthorizePage({
     );
   }
 
-  const client = await authApi.getOAuthClientPublic({
+  const client = await asOAuthProviderApi(authApi).getOAuthClientPublic({
     headers: await headers(),
     query: { client_id: params.client_id },
   });

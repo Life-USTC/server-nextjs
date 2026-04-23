@@ -41,23 +41,49 @@ const envSchema = z.object({
 });
 
 export type Env = z.infer<typeof envSchema>;
+export type DevEnv = Partial<Env> & Pick<Env, "NODE_ENV">;
 
-function validateEnv(): Env {
+const devEnvSchema = envSchema.partial().extend({
+  NODE_ENV: envSchema.shape.NODE_ENV,
+});
+
+function formatEnvIssues(issues: z.ZodIssue[]) {
+  return issues
+    .map((issue) => `  ${issue.path.join(".")}: ${issue.message}`)
+    .join("\n");
+}
+
+function normalizeDevelopmentEnv(input: NodeJS.ProcessEnv) {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== ""),
+  );
+}
+
+function validateEnv(): Env | DevEnv {
   const result = envSchema.safeParse(process.env);
 
   if (!result.success) {
-    const formatted = result.error.issues
-      .map((issue) => `  ${issue.path.join(".")}: ${issue.message}`)
-      .join("\n");
+    const formatted = formatEnvIssues(result.error.issues);
 
     console.error(`❌ Invalid environment variables:\n${formatted}`);
 
-    if (process.env.NODE_ENV === "production") {
+    if (process.env.NODE_ENV !== "development") {
       throw new Error("Invalid environment variables");
     }
+
+    const devResult = devEnvSchema.safeParse(
+      normalizeDevelopmentEnv(process.env),
+    );
+    if (!devResult.success) {
+      throw new Error(
+        `Invalid development environment variables:\n${formatEnvIssues(devResult.error.issues)}`,
+      );
+    }
+
+    return devResult.data;
   }
 
-  return result.success ? result.data : (process.env as unknown as Env);
+  return result.data;
 }
 
 export const env = validateEnv();

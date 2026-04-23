@@ -1,12 +1,15 @@
 import type dayjs from "dayjs";
 import { getTranslations } from "next-intl/server";
+import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
+import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
 import type {
   CalendarTodoItem,
   OverviewData,
-} from "@/app/dashboard/dashboard-data";
-import type { ExamItem, SessionItem } from "@/app/dashboard/types";
-import { CalendarEventCardInteractive } from "@/components/calendar-event-card-interactive";
-import { CalendarDayTodoCards } from "@/features/home/components/calendar-day-todo-cards";
+} from "@/features/home/server/dashboard-overview-data";
+import type {
+  ExamItem,
+  SessionItem,
+} from "@/features/home/server/dashboard-types";
 import { Link } from "@/i18n/routing";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { cn } from "@/lib/utils";

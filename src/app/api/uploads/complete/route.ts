@@ -1,6 +1,9 @@
 import { DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { uploadConfig } from "@/features/uploads/lib/upload-config";
-import type { Prisma } from "@/generated/prisma/client";
+import {
+  runUploadSerializableTransaction,
+  UploadError,
+} from "@/features/uploads/lib/upload-quota";
 import {
   badRequest,
   forbidden,
@@ -15,45 +18,6 @@ import { prisma } from "@/lib/db/prisma";
 import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
-
-class UploadError extends Error {
-  code: string;
-
-  constructor(code: string, message?: string) {
-    super(message ?? code);
-    this.code = code;
-  }
-}
-
-function isSerializationError(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    typeof (error as { code?: string }).code === "string" &&
-    (error as { code?: string }).code === "P2034"
-  );
-}
-
-async function runSerializableTransaction<T>(
-  action: (tx: Prisma.TransactionClient) => Promise<T>,
-) {
-  const maxAttempts = 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      return await prisma.$transaction(action, {
-        isolationLevel: "Serializable",
-      });
-    } catch (error) {
-      if (isSerializationError(error) && attempt < maxAttempts) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error("Failed to finalize upload quota");
-}
 
 function normalizeContentType(value: unknown) {
   if (typeof value !== "string") return null;
@@ -162,7 +126,7 @@ export async function POST(request: Request) {
     const contentType =
       normalizeContentType(parsedBody.data.contentType) ?? head.ContentType;
 
-    const reservation = await runSerializableTransaction(async (tx) => {
+    const reservation = await runUploadSerializableTransaction(async (tx) => {
       const pending = await tx.uploadPending.findUnique({ where: { key } });
       if (!pending || pending.userId !== userId) {
         throw new UploadError("Upload session expired");
@@ -207,7 +171,7 @@ export async function POST(request: Request) {
       await tx.uploadPending.delete({ where: { key } });
 
       return { upload, usedBytes: usedBytes + size };
-    });
+    }, "Failed to finalize upload quota");
 
     return jsonResponse({
       upload: {

@@ -4,6 +4,15 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { unlinkAccount } from "@/app/actions/user";
 import { linkAccount } from "@/lib/auth/client";
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -12,16 +21,6 @@ import {
   CardPanel,
   CardTitle,
 } from "./ui/card";
-import {
-  Dialog,
-  DialogClose,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPopup,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
 import { toastManager } from "./ui/toast";
 
 interface AccountLinkingSectionProps {
@@ -110,38 +109,37 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
               </div>
               <div>
                 {isConnected ? (
-                  <Dialog
+                  <AlertDialog
                     open={dialogOpen === provider.id}
                     onOpenChange={(open) =>
                       setDialogOpen(open ? provider.id : null)
                     }
                   >
-                    <DialogTrigger
-                      render={
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={!canDisconnect || isCurrentlyUnlinking}
-                        />
-                      }
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!canDisconnect || isCurrentlyUnlinking}
+                      onClick={() => setDialogOpen(provider.id)}
                     >
                       {isCurrentlyUnlinking
                         ? t("disconnecting")
                         : t("disconnect")}
-                    </DialogTrigger>
-                    <DialogPopup>
-                      <DialogHeader>
-                        <DialogTitle>{t("disconnectConfirmTitle")}</DialogTitle>
-                        <DialogDescription>
+                    </Button>
+                    <AlertDialogPopup>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          {t("disconnectConfirmTitle")}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
                           {t("disconnectConfirmDescription", {
                             provider: provider.name,
                           })}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter>
-                        <DialogClose render={<Button variant="outline" />}>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogClose render={<Button variant="outline" />}>
                           {t("cancel")}
-                        </DialogClose>
+                        </AlertDialogClose>
                         <Button
                           variant="destructive"
                           disabled={isCurrentlyUnlinking}
@@ -151,9 +149,9 @@ export function AccountLinkingSection({ user }: AccountLinkingSectionProps) {
                             ? t("disconnecting")
                             : t("disconnect")}
                         </Button>
-                      </DialogFooter>
-                    </DialogPopup>
-                  </Dialog>
+                      </AlertDialogFooter>
+                    </AlertDialogPopup>
+                  </AlertDialog>
                 ) : (
                   <Button
                     variant="default"

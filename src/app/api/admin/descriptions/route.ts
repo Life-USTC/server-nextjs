@@ -7,6 +7,7 @@ import {
 } from "@/lib/api/helpers";
 import { adminDescriptionsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
+import { ilike } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -69,51 +70,51 @@ export async function GET(request: Request) {
   const searchWhere = search
     ? {
         OR: [
-          { content: { contains: search, mode: "insensitive" as const } },
+          { content: ilike(search) },
           {
             course: {
-              code: { contains: search, mode: "insensitive" as const },
+              code: ilike(search),
             },
           },
           {
             course: {
-              nameCn: { contains: search, mode: "insensitive" as const },
+              nameCn: ilike(search),
             },
           },
           {
             section: {
               course: {
-                code: { contains: search, mode: "insensitive" as const },
+                code: ilike(search),
               },
             },
           },
           {
             section: {
               course: {
-                nameCn: { contains: search, mode: "insensitive" as const },
+                nameCn: ilike(search),
               },
             },
           },
           {
             section: {
-              code: { contains: search, mode: "insensitive" as const },
+              code: ilike(search),
             },
           },
           {
             teacher: {
-              nameCn: { contains: search, mode: "insensitive" as const },
+              nameCn: ilike(search),
             },
           },
           {
             homework: {
-              title: { contains: search, mode: "insensitive" as const },
+              title: ilike(search),
             },
           },
           {
             homework: {
               section: {
                 course: {
-                  code: { contains: search, mode: "insensitive" as const },
+                  code: ilike(search),
                 },
               },
             },
@@ -122,7 +123,7 @@ export async function GET(request: Request) {
             homework: {
               section: {
                 course: {
-                  nameCn: { contains: search, mode: "insensitive" as const },
+                  nameCn: ilike(search),
                 },
               },
             },

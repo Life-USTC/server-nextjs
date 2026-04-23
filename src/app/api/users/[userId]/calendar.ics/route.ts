@@ -170,7 +170,7 @@ export async function GET(
               title: todo.title,
               content: todo.content ?? null,
               dueAt: todo.dueAt,
-              priority: todo.priority as "low" | "medium" | "high",
+              priority: todo.priority,
             },
           ]
         : [],
