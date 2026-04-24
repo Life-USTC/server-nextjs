@@ -29,6 +29,7 @@ RUN mkdir -p /output/.next /output/dist \
  && cp -a .next/static /output/.next/static \
  && cp -a public /output/public \
  && cp package.json /output/package.json \
+ && cp prisma.config.ts /output/prisma.config.ts \
  && cp -a dist/tools /output/dist/tools \
  && cp -a prisma /output/prisma
 
