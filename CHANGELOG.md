@@ -1,3 +1,10 @@
+## [1.25.9](https://github.com/Life-USTC/server-nextjs/compare/v1.25.8...v1.25.9) (2026-04-24)
+
+
+### Bug Fixes
+
+* **ci:** restore local and GitHub validation ([793ff93](https://github.com/Life-USTC/server-nextjs/commit/793ff9350d05842295424a803733d6f70413d9df))
+
 ## [1.25.8](https://github.com/Life-USTC/server-nextjs/compare/v1.25.7...v1.25.8) (2026-04-22)
 
 
