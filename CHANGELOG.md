@@ -1,3 +1,10 @@
+## [1.25.11](https://github.com/Life-USTC/server-nextjs/compare/v1.25.10...v1.25.11) (2026-04-24)
+
+
+### Bug Fixes
+
+* **docker:** merge public/ contents to fix nested directory in standalone ([e13e53e](https://github.com/Life-USTC/server-nextjs/commit/e13e53ec2ae3cf91790e671ea02993c208353a54))
+
 ## [1.25.10](https://github.com/Life-USTC/server-nextjs/compare/v1.25.9...v1.25.10) (2026-04-24)
 
 
