@@ -18,7 +18,7 @@ import {
   InputGroupText,
 } from "@/components/ui/input-group";
 import { Link } from "@/i18n/routing";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdminPage } from "@/lib/admin-utils";
 import { prisma } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-helpers";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -42,7 +42,7 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ page?: string; search?: string }>;
 }) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminPage();
   if (!admin) {
     notFound();
   }

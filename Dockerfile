@@ -18,6 +18,8 @@ COPY . .
 ENV NODE_ENV=production
 
 RUN export DATABASE_URL="postgresql://user:password@localhost:5432/dummy" \
+ && export JWT_SECRET="docker-build-secret-0123456789abcdef0123456789abcdef" \
+ && export AUTH_SECRET="docker-build-secret-0123456789abcdef0123456789abcdef" \
  && bun run build \
  && bun run build:tools
 

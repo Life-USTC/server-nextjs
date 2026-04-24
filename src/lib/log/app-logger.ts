@@ -1,4 +1,3 @@
-import { env } from "@/env";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
 const LOG_LEVEL_ORDER = ["debug", "info", "warn", "error"] as const;
@@ -7,7 +6,7 @@ type AppLogLevel = (typeof LOG_LEVEL_ORDER)[number];
 type AppLogContext = Record<string, unknown>;
 
 export function shouldLog(level: AppLogLevel): boolean {
-  const configured = env.LOG_LEVEL ?? "info";
+  const configured = process.env.LOG_LEVEL ?? "info";
   const configuredIdx = LOG_LEVEL_ORDER.indexOf(configured as AppLogLevel);
   const levelIdx = LOG_LEVEL_ORDER.indexOf(level);
   const effectiveConfigIdx = configuredIdx >= 0 ? configuredIdx : 1;

@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageBreadcrumbs, PageLayout } from "@/components/page-layout";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdminPage } from "@/lib/admin-utils";
 
 const ModerationDashboard = dynamic(() =>
   import("@/features/admin/components/moderation-dashboard").then(
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ModerationPage() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminPage();
   if (!admin) {
     notFound();
   }

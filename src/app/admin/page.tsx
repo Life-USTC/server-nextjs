@@ -8,7 +8,7 @@ import {
   PageLinkCard,
   PageLinkGrid,
 } from "@/components/page-layout";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdminPage } from "@/lib/admin-utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("admin");
@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminHomePage() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminPage();
   if (!admin) {
     notFound();
   }

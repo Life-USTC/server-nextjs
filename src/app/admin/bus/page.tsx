@@ -7,7 +7,7 @@ import {
   PageStatCard,
   PageStatGrid,
 } from "@/components/page-layout";
-import { requireAdmin } from "@/lib/admin-utils";
+import { requireAdminPage } from "@/lib/admin-utils";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { BusVersionManager } from "./bus-version-manager";
@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function AdminBusPage() {
-  const admin = await requireAdmin();
+  const admin = await requireAdminPage();
   if (!admin) {
     notFound();
   }

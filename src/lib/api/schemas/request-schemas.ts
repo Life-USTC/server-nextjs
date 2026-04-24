@@ -1,10 +1,6 @@
 import { z } from "zod";
-import {
-  CommentReactionType,
-  CommentVisibility,
-} from "@/generated/prisma/client";
 import { APP_LOCALES } from "@/i18n/config";
-import { parseOptionalInt } from "../helpers";
+import { CommentVisibilitySchema } from "../model-schemas";
 
 const parseOptionalIntLike = (value: unknown) => {
   if (value === null || value === undefined || value === "") {
@@ -21,6 +17,35 @@ const parseOptionalIntLike = (value: unknown) => {
 
   return value;
 };
+
+const parseOptionalInt = (value: unknown) => {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) ? value : null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized || !/^-?\d+$/.test(normalized)) {
+    return null;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+const commentReactionTypeSchema = z.enum([
+  "upvote",
+  "downvote",
+  "heart",
+  "laugh",
+  "hooray",
+  "confused",
+  "rocket",
+  "eyes",
+]);
 
 export const sectionCodeSchema = z
   .string()
@@ -105,7 +130,7 @@ export const calendarSubscriptionCreateRequestSchema = z.object({
   sectionIds: z.array(z.number().int().positive()).optional(),
 });
 
-export const commentVisibilitySchema = z.nativeEnum(CommentVisibility);
+export const commentVisibilitySchema = CommentVisibilitySchema;
 
 export const commentTargetTypeSchema = z.enum([
   "section",
@@ -135,7 +160,7 @@ export const commentUpdateRequestSchema = z.object({
 });
 
 export const commentReactionRequestSchema = z.object({
-  type: z.nativeEnum(CommentReactionType),
+  type: commentReactionTypeSchema,
 });
 
 export const adminModerateCommentRequestSchema = z.object({
