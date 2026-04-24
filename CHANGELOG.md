@@ -1,3 +1,10 @@
+## [1.25.10](https://github.com/Life-USTC/server-nextjs/compare/v1.25.9...v1.25.10) (2026-04-24)
+
+
+### Bug Fixes
+
+* **docker:** copy prisma.config.ts into runtime image ([263d0aa](https://github.com/Life-USTC/server-nextjs/commit/263d0aa8d3df236a859fadbb4dae77f41833eed2))
+
 ## [1.25.9](https://github.com/Life-USTC/server-nextjs/compare/v1.25.8...v1.25.9) (2026-04-24)
 
 
