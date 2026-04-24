@@ -27,7 +27,7 @@ RUN export DATABASE_URL="postgresql://user:password@localhost:5432/dummy" \
 RUN mkdir -p /output/.next /output/dist \
  && cp -a .next/standalone/. /output/ \
  && cp -a .next/static /output/.next/static \
- && cp -a public /output/public \
+ && cp -a public/. /output/public \
  && cp package.json /output/package.json \
  && cp prisma.config.ts /output/prisma.config.ts \
  && cp -a dist/tools /output/dist/tools \
