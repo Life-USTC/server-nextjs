@@ -7,8 +7,7 @@ import {
   parseInteger,
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { getPrisma } from "@/lib/db/prisma";
-import { sectionInclude } from "@/lib/query-helpers";
+import { findSectionDetailByJwId } from "@/lib/course-section-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -36,33 +35,7 @@ export async function GET(
       return invalidParamResponse("section ID");
     }
 
-    const section = await getPrisma("zh-cn").section.findUnique({
-      where: { jwId: parsedJwId },
-      include: {
-        ...sectionInclude,
-        roomType: true,
-        schedules: true,
-        scheduleGroups: true,
-        teachers: {
-          include: {
-            department: true,
-            teacherTitle: true,
-          },
-        },
-        teacherAssignments: {
-          include: {
-            teacher: true,
-            teacherLessonType: true,
-          },
-        },
-        exams: {
-          include: {
-            examBatch: true,
-            examRooms: true,
-          },
-        },
-      },
-    });
+    const section = await findSectionDetailByJwId(parsedJwId, "zh-cn");
 
     if (!section) {
       return notFound("Section not found");

@@ -18,13 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Prisma } from "@/generated/prisma/client";
+import { buildSectionListQuery } from "@/lib/course-section-queries";
 import { prisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
-import {
-  buildSectionSearchWhere,
-  paginatedSectionQuery,
-} from "@/lib/query-helpers";
+import { paginatedSectionQuery } from "@/lib/query-helpers";
 import { SectionsFilter } from "./sections-filter";
 
 async function fetchSections(
@@ -33,29 +30,15 @@ async function fetchSections(
   search?: string,
   locale = "zh-cn",
 ) {
-  const where: Prisma.SectionWhereInput = {};
-  let orderBy: Prisma.SectionOrderByWithRelationInput | undefined;
-
-  if (semesterId) {
-    const parsedSemesterId = parseInt(semesterId, 10);
-    if (!Number.isNaN(parsedSemesterId)) {
-      where.semesterId = parsedSemesterId;
-    }
-  }
-  if (search) {
-    const searchFilters = buildSectionSearchWhere(search);
-    if (searchFilters.where?.AND) {
-      where.AND = searchFilters.where.AND;
-    }
-    orderBy = searchFilters.orderBy;
-  }
+  const { where, orderBy } = buildSectionListQuery({
+    semesterId,
+    search,
+  });
 
   // Default orderBy if none specified
-  if (!orderBy) {
-    orderBy = { semester: { jwId: "desc" } };
-  }
+  const resolvedOrderBy = orderBy ?? { semester: { jwId: "desc" as const } };
 
-  return paginatedSectionQuery(page, where, orderBy, locale);
+  return paginatedSectionQuery(page, where, resolvedOrderBy, locale);
 }
 
 async function fetchSemesters() {

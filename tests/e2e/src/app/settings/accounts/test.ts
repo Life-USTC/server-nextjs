@@ -1,8 +1,8 @@
 /**
- * E2E tests for the Settings Accounts Tab (`/settings/accounts`)
+ * E2E tests for the Settings Accounts Tab (`/settings?tab=accounts`)
  *
  * ## Data Represented
- * - `/settings/accounts` redirects to `/settings?tab=accounts`.
+ * - `/settings?tab=accounts` is the canonical linked-account settings entry.
  * - Shows linked OAuth provider accounts for the current user.
  * - Three providers: GitHub, Google, USTC (OIDC).
  * - Each provider card shows: name, "Connected" badge (if linked),
@@ -36,9 +36,9 @@ import {
 import { waitForUiSettled } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings/accounts", () => {
+test.describe("/settings?tab=accounts", () => {
   test("requires authentication", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/accounts");
+    await expectRequiresSignIn(page, "/settings?tab=accounts");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -47,9 +47,9 @@ test.describe("/settings/accounts", () => {
   });
 
   test("displays all provider cards", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/accounts");
+    await signInAsDebugUser(page, "/settings?tab=accounts");
 
-    await expectPagePath(page, "/settings/accounts");
+    await expectPagePath(page, "/settings?tab=accounts");
     await expect(page.getByText("GitHub").first()).toBeVisible();
     await expect(page.getByText("Google").first()).toBeVisible();
     await expect(page.getByText("USTC").first()).toBeVisible();
@@ -59,7 +59,7 @@ test.describe("/settings/accounts", () => {
   test("connect button initiates account-linking OAuth flow", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/accounts");
+    await signInAsDebugUser(page, "/settings?tab=accounts");
 
     const providerCard = page
       .locator("#main-content .rounded-lg.border")
@@ -99,7 +99,7 @@ test.describe("/settings/accounts", () => {
   test("disconnect disabled when only one account linked", async ({
     page,
   }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/accounts");
+    await signInAsDebugUser(page, "/settings?tab=accounts");
 
     const disconnectButton = page
       .getByRole("button", { name: /断开连接|Disconnect/i })
@@ -124,7 +124,7 @@ test.describe("/settings/accounts", () => {
     page,
   }, testInfo) => {
     const provider = "github";
-    await signInAsDebugUser(page, "/settings/accounts");
+    await signInAsDebugUser(page, "/settings?tab=accounts");
     const user = await getCurrentSessionUser(page);
 
     // Ensure a second account exists for the test
@@ -134,7 +134,7 @@ test.describe("/settings/accounts", () => {
     try {
       await page.reload({ waitUntil: "domcontentloaded" });
       await waitForUiSettled(page);
-      await expectPagePath(page, "/settings/accounts");
+      await expectPagePath(page, "/settings?tab=accounts");
 
       const providerCard = page
         .locator("#main-content .rounded-lg.border")

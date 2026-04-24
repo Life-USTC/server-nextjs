@@ -1,10 +1,14 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../utils/auth";
+import { DEV_SEED } from "../../utils/dev-seed";
 import {
   getCurrentSessionUser,
+  getUserProfileById,
   getUserSubscribedSectionIds,
   replaceUserSubscribedSectionIds,
+  updateUserProfileById,
 } from "../../utils/e2e-db";
+import { withE2eLock } from "../../utils/locks";
 import { gotoAndWaitForReady } from "../../utils/page-ready";
 import { captureStepScreenshot } from "../../utils/screenshot";
 import { assertPageContract } from "./_shared/page-contract";
@@ -60,27 +64,37 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
   page,
 }, testInfo) => {
   test.setTimeout(60000);
-  await signInAsDebugUser(page, "/");
+  await withE2eLock("debug-user-profile", async () => {
+    await signInAsDebugUser(page, "/");
 
-  const sessionUser = await getCurrentSessionUser(page);
-  const originalSectionIds = getUserSubscribedSectionIds(sessionUser.id);
-  replaceUserSubscribedSectionIds(sessionUser.id, []);
+    const sessionUser = await getCurrentSessionUser(page);
+    const originalProfile = getUserProfileById(sessionUser.id);
+    const originalSectionIds = getUserSubscribedSectionIds(sessionUser.id);
 
-  try {
-    await gotoAndWaitForReady(page, "/");
+    updateUserProfileById(sessionUser.id, {
+      name: originalProfile.name ?? DEV_SEED.debugName,
+      username: originalProfile.username ?? DEV_SEED.debugUsername,
+      image: originalProfile.image,
+    });
+    replaceUserSubscribedSectionIds(sessionUser.id, []);
 
-    await expect(
-      page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
-    ).toBeVisible();
+    try {
+      await gotoAndWaitForReady(page, "/");
 
-    await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
-  } finally {
-    replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
-  }
+      await expect(
+        page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /按代码匹配|Match by Code/i }),
+      ).toBeVisible();
+
+      await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
+    } finally {
+      updateUserProfileById(sessionUser.id, originalProfile);
+      replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
+    }
+  });
 });

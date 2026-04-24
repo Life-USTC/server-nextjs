@@ -1,21 +1,18 @@
 /**
- * E2E tests for the Settings Content Tab (`/settings/content`)
+ * E2E tests for the Settings Content Tab (`/settings?tab=content`)
  *
  * ## Data Represented
- * - `/settings/content` redirects to `/settings?tab=content`.
- * - Content section shows a link-card grid with two entries:
- *   - Uploads management (currently links to `/`)
- *   - Comments management (currently links to `/`)
+ * - `/settings?tab=content` is the canonical content settings entry.
+ * - Content section explains that uploads/comments are object-scoped, not
+ *   standalone settings pages.
+ * - It provides next-step links to section browsing and the comment guide.
  *
  * ## UI/UX Elements
- * - `PageLinkGrid` with 2-column layout containing `PageLinkCard` components
- * - Each card has: title, description, and navigates on click
- * - Uploads card: "我的上传" / "My uploads"
- * - Comments card: "我的评论" / "My comments"
+ * - Informational empty state about content management
+ * - `PageLinkGrid` with cards for sections and comment guide
  *
  * ## Edge Cases
  * - Unauthenticated → redirects to /signin
- * - Both cards currently link to `/` (feature placeholder)
  */
 import { expect, test } from "@playwright/test";
 import {
@@ -26,9 +23,9 @@ import {
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings/content", () => {
+test.describe("/settings?tab=content", () => {
   test("requires authentication", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/content");
+    await expectRequiresSignIn(page, "/settings?tab=content");
     await captureStepScreenshot(
       page,
       testInfo,
@@ -36,48 +33,48 @@ test.describe("/settings/content", () => {
     );
   });
 
-  test("displays content entry points", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/content");
+  test("displays canonical content guidance", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/settings?tab=content");
 
-    await expectPagePath(page, "/settings/content");
-    const contentLinks = page.locator('#main-content .grid a[href="/"]');
-    const uploadsLink = contentLinks.filter({
-      has: page.getByText(/我的上传|My uploads/i),
-    });
-    const commentsLink = contentLinks.filter({
-      has: page.getByText(/我的评论|My comments/i),
-    });
-    await expect(uploadsLink).toBeVisible();
-    await expect(commentsLink).toBeVisible();
+    await expectPagePath(page, "/settings?tab=content");
+    await expect(
+      page.getByText(
+        /内容会跟随课程、班级、作业等对象管理|Manage uploads and comments from the course, section, or homework where they belong/i,
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /浏览班级|Browse sections/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /评论指南|Comment guide/i }),
+    ).toBeVisible();
     await captureStepScreenshot(page, testInfo, "settings-content-links");
   });
 
   test("content links navigate correctly", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings/content");
+    await signInAsDebugUser(page, "/settings?tab=content");
 
-    // Click uploads link
-    const uploadsLink = page
-      .locator('#main-content .grid a[href="/"]')
-      .filter({ has: page.getByText(/我的上传|My uploads/i) });
-    await uploadsLink.click();
-    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+    const sectionsLink = page.getByRole("link", {
+      name: /浏览班级|Browse sections/i,
+    });
+    await sectionsLink.click();
+    await expect(page).toHaveURL(/\/sections(?:\?.*)?$/);
     await captureStepScreenshot(
       page,
       testInfo,
-      "settings-content-navigate-uploads",
+      "settings-content-navigate-sections",
     );
 
-    // Go back and click comments link
     await gotoAndWaitForReady(page, "/settings?tab=content");
-    const commentsLink = page
-      .locator('#main-content .grid a[href="/"]')
-      .filter({ has: page.getByText(/我的评论|My comments/i) });
-    await commentsLink.click();
-    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+    const guideLink = page.getByRole("link", {
+      name: /评论指南|Comment guide/i,
+    });
+    await guideLink.click();
+    await expect(page).toHaveURL(/\/guides\/markdown-support(?:\?.*)?$/);
     await captureStepScreenshot(
       page,
       testInfo,
-      "settings-content-navigate-comments",
+      "settings-content-navigate-guide",
     );
   });
 });

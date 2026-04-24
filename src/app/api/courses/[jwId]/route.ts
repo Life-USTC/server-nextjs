@@ -7,8 +7,7 @@ import {
   parseInteger,
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { getPrisma } from "@/lib/db/prisma";
-import { courseDetailInclude } from "@/lib/query-helpers";
+import { findCourseDetailByJwId } from "@/lib/course-section-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -34,10 +33,7 @@ export async function GET(
       return invalidParamResponse("course ID");
     }
 
-    const course = await getPrisma("zh-cn").course.findUnique({
-      where: { jwId: parsedJwId },
-      include: courseDetailInclude,
-    });
+    const course = await findCourseDetailByJwId(parsedJwId, "zh-cn");
 
     if (!course) {
       return notFound("Course not found");

@@ -1,8 +1,14 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
+import {
+  buildSectionListQuery,
+  findCourseDetailByJwId,
+  findSectionByJwId,
+  findSectionCodeMatches,
+  listCoursesBySearch,
+} from "@/lib/course-section-queries";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
@@ -12,11 +18,7 @@ import {
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
 import {
-  buildSectionSearchWhere,
-  courseDetailInclude,
-  courseInclude,
   ilike,
-  sectionCompactInclude,
   sectionInclude,
   teacherDetailInclude,
   teacherListInclude,
@@ -97,19 +99,7 @@ export function registerCourseTools(server: McpServer) {
       },
     },
     async ({ search, limit, locale, mode }) => {
-      const localizedPrisma = getPrisma(locale);
-      const courses = await localizedPrisma.course.findMany({
-        where: {
-          OR: [
-            { nameCn: ilike(search) },
-            { nameEn: ilike(search) },
-            { code: ilike(search) },
-          ],
-        },
-        include: courseInclude,
-        orderBy: [{ code: "asc" }, { jwId: "asc" }],
-        take: limit,
-      });
+      const courses = await listCoursesBySearch(search, limit, locale);
 
       return jsonToolResult(
         { courses },
@@ -131,11 +121,7 @@ export function registerCourseTools(server: McpServer) {
       },
     },
     async ({ jwId, locale, mode }) => {
-      const localizedPrisma = getPrisma(locale);
-      const course = await localizedPrisma.course.findUnique({
-        where: { jwId },
-        include: courseDetailInclude,
-      });
+      const course = await findCourseDetailByJwId(jwId, locale);
 
       return jsonToolResult(
         {
@@ -160,11 +146,7 @@ export function registerCourseTools(server: McpServer) {
       },
     },
     async ({ jwId, locale, mode }) => {
-      const localizedPrisma = getPrisma(locale);
-      const section = await localizedPrisma.section.findUnique({
-        where: { jwId },
-        include: sectionInclude,
-      });
+      const section = await findSectionByJwId(jwId, locale);
 
       if (!section) {
         return jsonToolResult({
@@ -218,34 +200,15 @@ export function registerCourseTools(server: McpServer) {
     }) => {
       const localizedPrisma = getPrisma(locale);
       const pagination = normalizePagination({ page, pageSize: limit });
-      const where: Prisma.SectionWhereInput = {
-        ...(courseId ? { courseId } : {}),
-        ...(semesterId ? { semesterId } : {}),
-        ...(campusId ? { campusId } : {}),
-        ...(departmentId ? { openDepartmentId: departmentId } : {}),
-        ...(teacherId
-          ? {
-              teachers: {
-                some: {
-                  id: teacherId,
-                },
-              },
-            }
-          : {}),
-        ...(ids?.length ? { id: { in: ids } } : {}),
-      };
-      const searchFilters = buildSectionSearchWhere(search);
-      if (searchFilters.where?.AND) {
-        const searchAnd = Array.isArray(searchFilters.where.AND)
-          ? searchFilters.where.AND
-          : [searchFilters.where.AND];
-        const existingAnd = Array.isArray(where.AND)
-          ? where.AND
-          : where.AND
-            ? [where.AND]
-            : [];
-        where.AND = [...existingAnd, ...searchAnd];
-      }
+      const { where, orderBy } = buildSectionListQuery({
+        courseId,
+        semesterId,
+        campusId,
+        departmentId,
+        teacherId,
+        ids,
+        search,
+      });
 
       const [sections, total] = await Promise.all([
         localizedPrisma.section.findMany({
@@ -253,7 +216,7 @@ export function registerCourseTools(server: McpServer) {
           skip: pagination.skip,
           take: pagination.pageSize,
           include: sectionInclude,
-          orderBy: searchFilters.orderBy,
+          orderBy,
         }),
         localizedPrisma.section.count({ where }),
       ]);
@@ -368,43 +331,22 @@ export function registerCourseTools(server: McpServer) {
       },
     },
     async ({ codes, semesterId, locale, mode }) => {
-      const localizedPrisma = getPrisma(locale);
-      const semester = semesterId
-        ? await prisma.semester.findUnique({
-            where: { id: semesterId },
-          })
-        : await findCurrentSemester(prisma.semester, new Date());
-
-      if (!semester) {
+      const matches = await findSectionCodeMatches(codes, locale, semesterId);
+      if (!matches) {
         return jsonToolResult({
           success: false,
           message: "No semester found",
         });
       }
 
-      const sections = await localizedPrisma.section.findMany({
-        where: {
-          code: { in: codes },
-          semesterId: semester.id,
-        },
-        include: sectionCompactInclude,
-        orderBy: [{ code: "asc" }, { jwId: "asc" }],
-      });
-
       return jsonToolResult(
         {
           success: true,
-          semester: {
-            id: semester.id,
-            nameCn: semester.nameCn,
-            code: semester.code,
-          },
-          matchedCodes: sections.map((section) => section.code),
-          unmatchedCodes: codes.filter(
-            (code) => !sections.some((section) => section.code === code),
-          ),
-          sections,
-          total: sections.length,
+          semester: matches.semester,
+          matchedCodes: matches.matchedCodes,
+          unmatchedCodes: matches.unmatchedCodes,
+          sections: matches.sections,
+          total: matches.total,
           note: SECTION_SUBSCRIPTION_NOTE,
         },
         {

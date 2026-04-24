@@ -9,7 +9,10 @@ import {
   unsubscribeUserFromSectionByJwId,
 } from "@/features/home/server/subscriptions";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
-import { findCurrentSemester } from "@/lib/current-semester";
+import {
+  findSectionCodeMatches,
+  findSectionCompactByJwId,
+} from "@/lib/course-section-queries";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   getUserId,
@@ -149,11 +152,7 @@ export function registerCalendarTools(server: McpServer) {
       },
     },
     async ({ jwId, locale, mode }) => {
-      const localizedPrisma = getPrisma(locale);
-      const section = await localizedPrisma.section.findUnique({
-        where: { jwId },
-        include: sectionCompactInclude,
-      });
+      const section = await findSectionCompactByJwId(jwId, locale);
 
       return jsonToolResult(
         {
@@ -184,27 +183,14 @@ export function registerCalendarTools(server: McpServer) {
       const userId = getUserId(extra.authInfo);
       const localizedPrisma = getPrisma(locale);
 
-      const semester = semesterId
-        ? await prisma.semester.findUnique({
-            where: { id: semesterId },
-          })
-        : await findCurrentSemester(prisma.semester, new Date());
-
-      if (!semester) {
+      const matches = await findSectionCodeMatches(codes, locale, semesterId);
+      if (!matches) {
         return jsonToolResult({
           success: false,
           message: "No semester found",
         });
       }
-
-      const matchedSections = await localizedPrisma.section.findMany({
-        where: {
-          code: { in: codes },
-          semesterId: semester.id,
-        },
-        include: sectionCompactInclude,
-        orderBy: [{ code: "asc" }, { jwId: "asc" }],
-      });
+      const matchedSections = matches.sections;
 
       const existingIds = new Set(await getSubscribedSectionIds(userId));
       const existingIdsBefore = new Set(existingIds);
@@ -240,15 +226,9 @@ export function registerCalendarTools(server: McpServer) {
       return jsonToolResult(
         {
           success: true,
-          semester: {
-            id: semester.id,
-            nameCn: semester.nameCn,
-            code: semester.code,
-          },
-          matchedCodes: matchedSections.map((section) => section.code),
-          unmatchedCodes: codes.filter(
-            (code) => !matchedSections.some((section) => section.code === code),
-          ),
+          semester: matches.semester,
+          matchedCodes: matches.matchedCodes,
+          unmatchedCodes: matches.unmatchedCodes,
           addedCount,
           subscription: {
             userId: updatedUser.id,

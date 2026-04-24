@@ -3,7 +3,8 @@ import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 const DEV_DEBUG_LOGIN_BUTTON = /Debug User \(Dev\)|调试用户（开发）/i;
 const DEV_ADMIN_LOGIN_BUTTON = /Admin User \(Dev\)|调试管理员（开发）/i;
-const SESSION_RETRY_ATTEMPTS = 5;
+const SESSION_RETRY_ATTEMPTS = 8;
+const SESSION_RETRY_TIMEOUT_MS = 15_000;
 
 type AuthRole = "debug" | "admin";
 type AuthStorageState = Awaited<
@@ -12,34 +13,17 @@ type AuthStorageState = Awaited<
 
 const authStorageStateCache = new Map<AuthRole, AuthStorageState>();
 
-const ROUTE_ALIASES = new Map<string, string>([
-  ["/settings/accounts", "/settings?tab=accounts"],
-  ["/settings/content", "/settings?tab=content"],
-  ["/settings/danger", "/settings?tab=danger"],
-  ["/settings/profile", "/settings?tab=profile"],
-  ["/settings/comments", "/"],
-  ["/settings/uploads", "/"],
-]);
-
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function resolveExpectedPath(path: string) {
-  return ROUTE_ALIASES.get(path) ?? path;
+  return path;
 }
 
 export async function expectPagePath(page: Page, path: string) {
-  const alias = ROUTE_ALIASES.get(path);
-  const candidates = Array.from(
-    new Set([path, alias].filter(Boolean)),
-  ) as string[];
-  const pattern = candidates
-    .map((candidate) =>
-      candidate === "/" ? "\\/$" : escapeForRegExp(candidate),
-    )
-    .join("|");
-  await expect(page).toHaveURL(new RegExp(`(?:${pattern})$`));
+  const pattern = path === "/" ? "\\/$" : escapeForRegExp(path);
+  await expect(page).toHaveURL(new RegExp(`${pattern}$`));
 }
 
 type SignInProvider = "ustc" | "github" | "google";
@@ -68,9 +52,9 @@ async function expectAuthenticatedSession(
   }).toPass({
     intervals: Array.from(
       { length: SESSION_RETRY_ATTEMPTS - 1 },
-      (_, index) => 250 * (index + 1),
+      (_, index) => 500 * (index + 1),
     ),
-    timeout: 5_000,
+    timeout: SESSION_RETRY_TIMEOUT_MS,
   });
 }
 

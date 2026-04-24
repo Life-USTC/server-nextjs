@@ -18,10 +18,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Prisma } from "@/generated/prisma/client";
+import { buildCourseListWhere } from "@/lib/course-section-queries";
 import { getPrisma } from "@/lib/db/prisma";
 import { buildSearchParams } from "@/lib/navigation/search-params";
-import { ilike, paginatedCourseQuery } from "@/lib/query-helpers";
+import { paginatedCourseQuery } from "@/lib/query-helpers";
 import { CoursesFilter } from "./courses-filter";
 
 async function fetchCourses(
@@ -32,38 +32,17 @@ async function fetchCourses(
   classTypeId?: string,
   locale = "zh-cn",
 ) {
-  const where: Prisma.CourseWhereInput = {};
-
-  if (search) {
-    where.OR = [
-      { nameCn: ilike(search) },
-      { nameEn: ilike(search) },
-      { code: ilike(search) },
-    ];
-  }
-
-  if (educationLevelId) {
-    const parsed = parseInt(educationLevelId, 10);
-    if (!Number.isNaN(parsed)) {
-      where.educationLevelId = parsed;
-    }
-  }
-
-  if (categoryId) {
-    const parsed = parseInt(categoryId, 10);
-    if (!Number.isNaN(parsed)) {
-      where.categoryId = parsed;
-    }
-  }
-
-  if (classTypeId) {
-    const parsed = parseInt(classTypeId, 10);
-    if (!Number.isNaN(parsed)) {
-      where.classTypeId = parsed;
-    }
-  }
-
-  return paginatedCourseQuery(page, where, undefined, locale);
+  return paginatedCourseQuery(
+    page,
+    buildCourseListWhere({
+      search,
+      educationLevelId,
+      categoryId,
+      classTypeId,
+    }),
+    undefined,
+    locale,
+  );
 }
 
 async function fetchFilterOptions(locale: string) {

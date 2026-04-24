@@ -5,9 +5,7 @@ import {
   parseInteger,
 } from "@/lib/api/helpers";
 import { matchSectionCodesRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { findCurrentSemester } from "@/lib/current-semester";
-import { prisma } from "@/lib/db/prisma";
-import { sectionCompactInclude } from "@/lib/query-helpers";
+import { findSectionCodeMatches } from "@/lib/course-section-queries";
 
 export const dynamic = "force-dynamic";
 
@@ -43,16 +41,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date();
-    const currentSemester = parsedSemesterId
-      ? await prisma.semester.findUnique({
-          where: {
-            id: parsedSemesterId,
-          },
-        })
-      : await findCurrentSemester(prisma.semester, now);
+    const matches = await findSectionCodeMatches(
+      codes,
+      "zh-cn",
+      parsedSemesterId ?? undefined,
+    );
 
-    if (!currentSemester) {
+    if (!matches) {
       return handleRouteError(
         "No semester found",
         new Error("No semester"),
@@ -60,32 +55,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find matching sections in current semester
-    const matchingSections = await prisma.section.findMany({
-      where: {
-        code: {
-          in: codes,
-        },
-        semesterId: currentSemester.id,
-      },
-      include: sectionCompactInclude,
-      orderBy: {
-        code: "asc",
-      },
-    });
-
     return jsonResponse({
-      semester: {
-        id: currentSemester.id,
-        nameCn: currentSemester.nameCn,
-        code: currentSemester.code,
-      },
-      matchedCodes: matchingSections.map((s) => s.code),
-      unmatchedCodes: codes.filter(
-        (code) => !matchingSections.some((s) => s.code === code),
-      ),
-      sections: matchingSections,
-      total: matchingSections.length,
+      semester: matches.semester,
+      matchedCodes: matches.matchedCodes,
+      unmatchedCodes: matches.unmatchedCodes,
+      sections: matches.sections,
+      total: matches.total,
     });
   } catch (error) {
     return handleRouteError("Failed to match section codes", error);

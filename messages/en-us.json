@@ -681,14 +681,16 @@
     },
     "content": {
       "title": "Content",
-      "description": "Keep your personal content entry points in one place.",
-      "uploads": {
-        "title": "My uploads",
-        "description": "Manage files, quota, and share links."
+      "description": "Uploads and comments stay with the course, section, or homework where they belong.",
+      "emptyTitle": "No standalone content settings",
+      "emptyDescription": "Manage uploads and comments from the course, section, or homework where they belong. Use the links below to continue from the right context.",
+      "browseSections": {
+        "title": "Browse sections",
+        "description": "Open a section page to review comments, homework, and attached uploads."
       },
-      "comments": {
-        "title": "My comments",
-        "description": "Review and jump to the discussions you posted."
+      "commentGuide": {
+        "title": "Comment guide",
+        "description": "Review visibility, anonymous posting, and formatting rules before joining a discussion."
       }
     }
   },

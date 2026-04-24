@@ -658,14 +658,16 @@
     },
     "content": {
       "title": "内容管理",
-      "description": "将常用的个人内容入口集中在此页面。",
-      "uploads": {
-        "title": "我的上传",
-        "description": "管理文件、配额和分享链接。"
+      "description": "上传与评论会保留在所属课程、班级或作业对象中管理。",
+      "emptyTitle": "没有独立的内容设置页",
+      "emptyDescription": "请在对应课程、班级或作业页面中管理上传与评论。下面提供继续操作的入口。",
+      "browseSections": {
+        "title": "浏览班级",
+        "description": "打开班级详情页，查看相关评论、作业与附加上传。"
       },
-      "comments": {
-        "title": "我的评论",
-        "description": "查看并跳转到你发布过的讨论。"
+      "commentGuide": {
+        "title": "评论指南",
+        "description": "参与讨论前，先了解可见性、匿名发布与格式支持规则。"
       }
     }
   },

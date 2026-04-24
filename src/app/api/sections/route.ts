@@ -1,17 +1,12 @@
 import type { NextRequest } from "next/server";
-import type { Prisma } from "@/generated/prisma/client";
 import {
   getPagination,
   handleRouteError,
   jsonResponse,
-  parseIntegerList,
-  parseOptionalInt,
 } from "@/lib/api/helpers";
 import { sectionsQuerySchema } from "@/lib/api/schemas/request-schemas";
-import {
-  buildSectionSearchWhere,
-  paginatedSectionQuery,
-} from "@/lib/query-helpers";
+import { buildSectionListQuery } from "@/lib/course-section-queries";
+import { paginatedSectionQuery } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -48,52 +43,18 @@ export async function GET(request: NextRequest) {
     search,
     ids: idsParam,
   } = parsedQuery.data;
-
-  const where: Prisma.SectionWhereInput = {};
-  const parsedCourseId = parseOptionalInt(courseId);
-  if (parsedCourseId !== null) where.courseId = parsedCourseId;
-  const parsedSemesterId = parseOptionalInt(semesterId);
-  if (parsedSemesterId !== null) where.semesterId = parsedSemesterId;
-  const parsedCampusId = parseOptionalInt(campusId);
-  if (parsedCampusId !== null) where.campusId = parsedCampusId;
-  const parsedDepartmentId = parseOptionalInt(departmentId);
-  if (parsedDepartmentId !== null) where.openDepartmentId = parsedDepartmentId;
-  if (teacherId) {
-    const parsedTeacherId = parseOptionalInt(teacherId);
-    if (parsedTeacherId !== null) {
-      where.teachers = {
-        some: {
-          id: parsedTeacherId,
-        },
-      };
-    }
-  }
-  if (idsParam) {
-    const ids = parseIntegerList(idsParam);
-    if (ids.length > 0) {
-      where.id = { in: ids };
-    }
-  }
-
-  const searchFilters = buildSectionSearchWhere(search);
-  if (searchFilters.where?.AND) {
-    const searchAnd = Array.isArray(searchFilters.where.AND)
-      ? searchFilters.where.AND
-      : [searchFilters.where.AND];
-    const existingAnd = Array.isArray(where.AND)
-      ? where.AND
-      : where.AND
-        ? [where.AND]
-        : [];
-    where.AND = [...existingAnd, ...searchAnd];
-  }
+  const { where, orderBy } = buildSectionListQuery({
+    courseId,
+    semesterId,
+    campusId,
+    departmentId,
+    teacherId,
+    ids: idsParam,
+    search,
+  });
 
   try {
-    const result = await paginatedSectionQuery(
-      pagination.page,
-      where,
-      searchFilters.orderBy,
-    );
+    const result = await paginatedSectionQuery(pagination.page, where, orderBy);
     return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);

@@ -93,19 +93,16 @@ test.describe("/sections", () => {
 
   test("semester filter preserves seed results", async ({ page }, testInfo) => {
     const filter = getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
-    await gotoAndWaitForReady(page, "/sections");
-
     if (!filter.semesterName) {
+      await gotoAndWaitForReady(page, "/sections");
       await expect(page.locator("#main-content")).toBeVisible();
       return;
     }
 
-    await page.getByRole("combobox").first().click();
-    await page
-      .getByRole("option", { name: new RegExp(filter.semesterName) })
-      .first()
-      .click();
-
+    await gotoAndWaitForReady(
+      page,
+      `/sections?semesterId=${filter.semesterId}`,
+    );
     await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));
     await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
     await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();

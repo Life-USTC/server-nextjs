@@ -1,8 +1,8 @@
 /**
- * E2E tests for the Settings Danger Tab (`/settings/danger`)
+ * E2E tests for the Settings Danger Tab (`/settings?tab=danger`)
  *
  * ## Data Represented
- * - `/settings/danger` redirects to `/settings?tab=danger`.
+ * - `/settings?tab=danger` is the canonical destructive settings entry.
  * - The danger section provides irreversible account deletion.
  * - Card styled with destructive border to signal danger.
  *
@@ -30,9 +30,9 @@ import {
 } from "../../../../utils/auth";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
-test.describe("/settings/danger", () => {
+test.describe("/settings?tab=danger", () => {
   test("requires authentication", async ({ page }, testInfo) => {
-    await expectRequiresSignIn(page, "/settings/danger");
+    await expectRequiresSignIn(page, "/settings?tab=danger");
     await captureStepScreenshot(page, testInfo, "settings-danger-unauthorized");
   });
 
@@ -43,7 +43,7 @@ test.describe("/settings/danger", () => {
       "/settings?tab=danger",
     );
 
-    await expectPagePath(page, "/settings/danger");
+    await expectPagePath(page, "/settings?tab=danger");
 
     // Open the deletion dialog
     const openDialogButton = page
