@@ -53,38 +53,7 @@ export async function GET(
       tokenFromPath?.trim() ||
       new URL(request.url).searchParams.get("token")?.trim();
 
-    if (token) {
-      const user = await prisma.user.findFirst({
-        where: {
-          id: userId,
-          calendarFeedToken: token,
-        },
-        select: { id: true },
-      });
-
-      if (!user) {
-        return forbidden("Invalid or unauthorized token");
-      }
-    } else {
-      const viewerUserId = await resolveApiUserId(request);
-      if (!viewerUserId) {
-        return unauthorized();
-      }
-
-      if (viewerUserId !== userId) {
-        return forbidden("You can only access your own calendar");
-      }
-
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true },
-      });
-
-      if (!user) {
-        return notFound("User not found");
-      }
-    }
-
+    // Fetch full user data in one query; auth check happens after.
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -129,6 +98,26 @@ export async function GET(
       },
     });
 
+    if (token) {
+      if (!user || user.calendarFeedToken !== token) {
+        return forbidden("Invalid or unauthorized token");
+      }
+    } else {
+      const viewerUserId = await resolveApiUserId(request);
+      if (!viewerUserId) {
+        return unauthorized();
+      }
+
+      if (viewerUserId !== userId) {
+        return forbidden("You can only access your own calendar");
+      }
+
+      if (!user) {
+        return notFound("User not found");
+      }
+    }
+
+    // TypeScript narrowing: user is non-null past this point (both paths check it).
     if (!user) {
       return notFound("User not found");
     }

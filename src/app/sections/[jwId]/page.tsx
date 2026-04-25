@@ -154,7 +154,8 @@ export default async function SectionPage({
     notFound();
   }
 
-  // Parallel: semesters, otherSections, translations, viewer, and lightweight counts
+  // Parallel: semesters, otherSections, translations, viewer, and all comment/homework counts.
+  // sectionTeacherCommentCount uses a nested filter to avoid a sequential second round.
   const [
     semesters,
     otherSections,
@@ -162,9 +163,9 @@ export default async function SectionPage({
     tCommon,
     tComments,
     ,
-    sectionTeacherIds,
     sectionCommentCount,
     courseCommentCount,
+    sectionTeacherCommentCount,
     homeworkCount,
   ] = await Promise.all([
     prisma.semester.findMany({
@@ -182,30 +183,23 @@ export default async function SectionPage({
     getTranslations("common"),
     getTranslations("comments"),
     getViewerContext({ includeAdmin: false }),
-    basePrisma.sectionTeacher.findMany({
-      where: { sectionId: section.id },
-      select: { id: true },
-    }),
     basePrisma.comment.count({
       where: { sectionId: section.id, status: { not: "deleted" } },
     }),
     basePrisma.comment.count({
       where: { courseId: section.courseId, status: { not: "deleted" } },
     }),
+    basePrisma.comment.count({
+      where: {
+        sectionTeacher: { sectionId: section.id },
+        status: { not: "deleted" },
+      },
+    }),
     basePrisma.homework.count({
       where: { sectionId: section.id, deletedAt: null },
     }),
   ]);
 
-  const sectionTeacherIdList = sectionTeacherIds.map((entry) => entry.id);
-  const sectionTeacherCommentCount = sectionTeacherIdList.length
-    ? await basePrisma.comment.count({
-        where: {
-          sectionTeacherId: { in: sectionTeacherIdList },
-          status: { not: "deleted" },
-        },
-      })
-    : 0;
   const commentCount =
     sectionCommentCount + courseCommentCount + sectionTeacherCommentCount;
 

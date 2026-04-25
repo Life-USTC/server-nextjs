@@ -191,15 +191,73 @@ export async function getDashboardOverviewData(
   const referenceNow = shanghaiDayjs();
   const referenceDate = referenceNow.toDate();
 
-  const semesters = await localizedPrisma.semester.findMany({
-    select: {
-      id: true,
-      nameCn: true,
-      startDate: true,
-      endDate: true,
-    },
-    orderBy: { startDate: "asc" },
-  });
+  // Fetch semesters and user data in parallel. Subscribed sections are
+  // semester-specific, so their schedules are naturally bounded; no date filter
+  // is needed at the DB level. We post-filter in memory once semester dates are known.
+  const [semesters, user] = await Promise.all([
+    localizedPrisma.semester.findMany({
+      select: {
+        id: true,
+        nameCn: true,
+        startDate: true,
+        endDate: true,
+      },
+      orderBy: { startDate: "asc" },
+    }),
+    localizedPrisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        subscribedSections: {
+          select: {
+            id: true,
+            jwId: true,
+            course: { select: { namePrimary: true } },
+            semester: { select: { id: true } },
+            schedules: {
+              select: {
+                id: true,
+                date: true,
+                startTime: true,
+                endTime: true,
+                customPlace: true,
+                room: {
+                  select: {
+                    namePrimary: true,
+                    building: {
+                      select: {
+                        namePrimary: true,
+                        campus: { select: { namePrimary: true } },
+                      },
+                    },
+                  },
+                },
+                teachers: { select: { namePrimary: true } },
+              },
+              orderBy: [{ date: "asc" }, { startTime: "asc" }],
+            },
+            exams: {
+              select: {
+                id: true,
+                examDate: true,
+                startTime: true,
+                endTime: true,
+                examType: true,
+                examTakeCount: true,
+                examMode: true,
+                examRooms: { select: { room: true, count: true } },
+              },
+              orderBy: { examDate: "asc" },
+            },
+          },
+        },
+      },
+    }),
+  ]);
+
+  if (!user) return null;
 
   const currentSemester = selectCurrentSemesterFromList(
     semesters,
@@ -239,64 +297,21 @@ export async function getDashboardOverviewData(
       ? new Date(Math.max(...candidateEnds.map((date) => date.getTime())))
       : fallbackEnd;
 
-  const user = await localizedPrisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      subscribedSections: {
-        select: {
-          id: true,
-          jwId: true,
-          course: { select: { namePrimary: true } },
-          semester: { select: { id: true } },
-          schedules: {
-            where: {
-              date: { gte: scheduleDateStart, lte: scheduleDateEnd },
-            },
-            select: {
-              id: true,
-              date: true,
-              startTime: true,
-              endTime: true,
-              customPlace: true,
-              room: {
-                select: {
-                  namePrimary: true,
-                  building: {
-                    select: {
-                      namePrimary: true,
-                      campus: { select: { namePrimary: true } },
-                    },
-                  },
-                },
-              },
-              teachers: { select: { namePrimary: true } },
-            },
-            orderBy: [{ date: "asc" }, { startTime: "asc" }],
-          },
-          exams: {
-            select: {
-              id: true,
-              examDate: true,
-              startTime: true,
-              endTime: true,
-              examType: true,
-              examTakeCount: true,
-              examMode: true,
-              examRooms: { select: { room: true, count: true } },
-            },
-            orderBy: { examDate: "asc" },
-          },
-        },
-      },
-    },
-  });
+  // Post-filter schedules to the semester date window now that we have semester data.
+  const userWithFilteredSchedules = {
+    ...user,
+    subscribedSections: user.subscribedSections.map((section) => ({
+      ...section,
+      schedules: section.schedules.filter(
+        (schedule) =>
+          schedule.date != null &&
+          schedule.date >= scheduleDateStart &&
+          schedule.date <= scheduleDateEnd,
+      ),
+    })),
+  };
 
-  if (!user) return null;
-
-  const allSections = user.subscribedSections;
+  const allSections = userWithFilteredSchedules.subscribedSections;
   const {
     hasAnySelection,
     hasCurrentTermSelection,
