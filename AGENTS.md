@@ -18,6 +18,21 @@ prebuild: bun run prebuild
 build_image: docker build .
 ```
 
+## CI/CD
+
+Workflows live in `.github/workflows/`. See `.github/workflows/AGENTS.md` for full details.
+
+| Workflow | Trigger | Jobs |
+|----------|---------|------|
+| CI | push/PR to main | Check (lint + typecheck + unit), E2E (4 shards), Commitlint |
+| CD | push to main | Docker Build → Docker Push, Prisma Deploy |
+| Release | push to main | Changelog + version bump |
+| Code Quality | push to main | Biome check |
+| Copilot Setup Steps | copilot | Dependency pre-install |
+
+**Known pitfalls from past upgrades:**
+- `better-auth` social provider `mapProfileToUser` inline profile types must match the library's own profile types exactly — `GithubProfile.email` is `string | null`, not `string | undefined`; mismatches break typecheck and Docker Build.
+
 ## Generated Files
 
 - Do not edit generated files manually:
