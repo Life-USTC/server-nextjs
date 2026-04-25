@@ -30,6 +30,7 @@ export const DEV_SEED = {
   },
   homeworks: {
     title: "迭代二系统设计评审",
+    completedTitle: "迭代一需求拆解",
   },
   todos: {
     dueTodayTitle: "[DEV-SCENARIO] 今天截止待办",

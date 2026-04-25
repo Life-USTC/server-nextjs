@@ -350,6 +350,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "delete_my_todo",
           "list_my_homeworks",
           "set_my_homework_completion",
+          "unset_my_homework_completion",
           "list_my_schedules",
           "list_my_exams",
           "get_my_overview",
@@ -556,6 +557,37 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       };
       expect(setCompletionFalsePayload.success).toBe(true);
       expect(setCompletionFalsePayload.completion?.completed).toBe(false);
+
+      // Re-mark as completed so unset_my_homework_completion has something to undo
+      const reSetCompletionResult = await mcpClient.callTool({
+        name: "set_my_homework_completion",
+        arguments: {
+          homeworkId: firstHomeworkId,
+          completed: true,
+        },
+      });
+      expect(
+        (
+          parseTextContent(reSetCompletionResult) as {
+            success?: boolean;
+          }
+        ).success,
+      ).toBe(true);
+
+      const unsetCompletionResult = await mcpClient.callTool({
+        name: "unset_my_homework_completion",
+        arguments: {
+          homeworkId: firstHomeworkId,
+        },
+      });
+      const unsetCompletionPayload = parseTextContent(
+        unsetCompletionResult,
+      ) as {
+        success?: boolean;
+        completion?: { completed?: boolean; completedAt?: null };
+      };
+      expect(unsetCompletionPayload.success).toBe(true);
+      expect(unsetCompletionPayload.completion?.completed).toBe(false);
 
       const mySchedulesResult = await mcpClient.callTool({
         name: "list_my_schedules",

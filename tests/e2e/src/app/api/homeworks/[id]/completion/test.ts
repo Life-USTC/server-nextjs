@@ -10,8 +10,14 @@
  *
  * ## Edge cases
  * - Unauthenticated PUT → 401
- * - Toggle on then off, verifying completedAt changes
+ * - Toggle off then on (seed homework is pre-completed), verifying completedAt changes
  * - Restores original completion state in finally block
+ *
+ * ## Test isolation note
+ * The toggle test uses DEV_SEED.homeworks.completedTitle ("迭代一需求拆解"), which is
+ * pre-seeded as completed.  This avoids a parallelism race with the MCP and
+ * calendar.ics tests, which both check that DEV_SEED.homeworks.title
+ * ("迭代二系统设计评审") appears in the incomplete-homework list.
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../../utils/auth";
@@ -47,8 +53,10 @@ async function findSeedHomeworkId(
   const listBody = (await listResponse.json()) as {
     homeworks?: Array<{ id?: string; title?: string }>;
   };
+  // Use the pre-seeded completed homework to avoid racing with tests that
+  // check for the main seed homework ("迭代二系统设计评审") in the incomplete list.
   const hw = listBody.homeworks?.find(
-    (h) => h.title === DEV_SEED.homeworks.title,
+    (h) => h.title === DEV_SEED.homeworks.completedTitle,
   );
   expect(hw?.id).toBeTruthy();
   // biome-ignore lint/style/noNonNullAssertion: guarded by expect above
@@ -78,22 +86,7 @@ test("/api/homeworks/[id]/completion PUT 可切换完成状态并还原", async 
   const homeworkId = await findSeedHomeworkId(page.request, sectionId);
 
   try {
-    // Mark as completed
-    await expect(async () => {
-      const completeResponse = await page.request.put(
-        `/api/homeworks/${homeworkId}/completion`,
-        { data: { completed: true } },
-      );
-      expect(completeResponse.status()).toBe(200);
-      expect(
-        (await completeResponse.json()) as {
-          completed?: boolean;
-          completedAt?: string | null;
-        },
-      ).toMatchObject({ completed: true });
-    }).toPass({ timeout: 10_000 });
-
-    // Undo completion
+    // Undo completion (seed homework starts as completed)
     await expect(async () => {
       const undoResponse = await page.request.put(
         `/api/homeworks/${homeworkId}/completion`,
@@ -107,10 +100,25 @@ test("/api/homeworks/[id]/completion PUT 可切换完成状态并还原", async 
         },
       ).toMatchObject({ completed: false, completedAt: null });
     }).toPass({ timeout: 10_000 });
+
+    // Re-mark as completed
+    await expect(async () => {
+      const completeResponse = await page.request.put(
+        `/api/homeworks/${homeworkId}/completion`,
+        { data: { completed: true } },
+      );
+      expect(completeResponse.status()).toBe(200);
+      expect(
+        (await completeResponse.json()) as {
+          completed?: boolean;
+          completedAt?: string | null;
+        },
+      ).toMatchObject({ completed: true });
+    }).toPass({ timeout: 10_000 });
   } finally {
-    // Restore to uncompleted state
+    // Restore to completed state (matches seed)
     await page.request.put(`/api/homeworks/${homeworkId}/completion`, {
-      data: { completed: false },
+      data: { completed: true },
     });
   }
 });
