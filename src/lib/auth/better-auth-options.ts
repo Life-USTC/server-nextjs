@@ -55,7 +55,7 @@ export function buildBetterAuthOptions() {
               clientId: process.env.AUTH_GITHUB_ID,
               clientSecret: process.env.AUTH_GITHUB_SECRET,
               mapProfileToUser: (profile: {
-                email?: string;
+                email?: string | null;
                 id: string;
                 name?: string;
                 login?: string;
