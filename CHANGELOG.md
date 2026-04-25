@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/Life-USTC/server-nextjs/compare/v1.25.12...v1.26.0) (2026-04-25)
+
+
+### Features
+
+* **mcp:** add unset_my_homework_completion tool and document subscriptions/homeworks route ([f41c8b8](https://github.com/Life-USTC/server-nextjs/commit/f41c8b8c57f38a863ead2d85952d3754b6ece6da))
+
 ## [1.25.12](https://github.com/Life-USTC/server-nextjs/compare/v1.25.11...v1.25.12) (2026-04-25)
 
 
