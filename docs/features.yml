@@ -1327,9 +1327,14 @@ modules:
           - Homework cards prioritize displaying due date, title, and course name.
           - Section codes and internal IDs do not enter the main display area by default.
         rest:
-          status: unavailable
-          notes:
-          - No separate 'current user cross-section homework summary' REST endpoint currently exists.
+          status: stable
+          routes:
+          - path: /api/me/subscriptions/homeworks
+            method: GET
+            returns: "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[], sectionIds: String[] }"
+            auth: user
+            notes:
+            - Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context.
         mcp:
           status: stable
           tools:
@@ -1426,7 +1431,7 @@ modules:
           status: stable
           routes:
           - path: /api/homeworks/[id]/completion
-            method: POST
+            method: PUT
             returns: "{ completed: Boolean, completedAt: DateTime? }"
             auth: user
         mcp:
@@ -1435,7 +1440,15 @@ modules:
           - name: set_my_homework_completion
             auth: user
             returns: "{ homeworkId: String, completed: Boolean, completedAt: DateTime? }"
-            rest_equivalent: POST /api/homeworks/[id]/completion
+            rest_equivalent: PUT /api/homeworks/[id]/completion
+            notes:
+            - Pass completed=true to mark as done, completed=false to revert to incomplete.
+          - name: unset_my_homework_completion
+            auth: user
+            returns: "{ homeworkId: String, completed: Boolean, completedAt: DateTime? }"
+            rest_equivalent: PUT /api/homeworks/[id]/completion
+            notes:
+            - Dedicated tool to revert a completed homework back to incomplete; equivalent to set_my_homework_completion with completed=false.
   todo:
     name: Todo
     access:
@@ -2481,6 +2494,7 @@ modules:
             tools:
             - list_my_homeworks
             - set_my_homework_completion
+            - unset_my_homework_completion
             - list_my_exams
             - list_homeworks_by_section
             - create_homework_on_section

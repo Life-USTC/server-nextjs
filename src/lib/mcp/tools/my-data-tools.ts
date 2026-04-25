@@ -112,6 +112,49 @@ export function registerMyDataTools(server: McpServer) {
   );
 
   server.registerTool(
+    "unset_my_homework_completion",
+    {
+      description:
+        "Revert a completed homework back to incomplete for the authenticated user.",
+      inputSchema: {
+        homeworkId: z.string().trim().min(1),
+        mode: mcpModeInputSchema,
+      },
+    },
+    async ({ homeworkId, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
+      const userId = getUserId(extra.authInfo);
+      const homework = await prisma.homework.findUnique({
+        where: { id: homeworkId },
+        select: { id: true, deletedAt: true },
+      });
+
+      if (!homework || homework.deletedAt) {
+        return jsonToolResult({
+          success: false,
+          message: "Homework not found",
+        });
+      }
+
+      await prisma.homeworkCompletion.deleteMany({
+        where: { userId, homeworkId },
+      });
+
+      return jsonToolResult(
+        {
+          success: true,
+          completion: {
+            homeworkId,
+            completed: false,
+            completedAt: null,
+          },
+        },
+        { mode: resolvedMode },
+      );
+    },
+  );
+
+  server.registerTool(
     "list_my_schedules",
     {
       description:
