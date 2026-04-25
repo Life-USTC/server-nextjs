@@ -1,0 +1,2282 @@
+#!/usr/bin/env python3
+"""Generate docs/features.yml - proper YAML with English content."""
+
+import yaml
+import sys
+
+# Custom YAML dumper that preserves insertion order and uses block style
+class BlockDumper(yaml.Dumper):
+    pass
+
+def dict_representer(dumper, data):
+    return dumper.represent_mapping('tag:yaml.org,2002:map', data.items())
+
+def str_representer(dumper, data):
+    if '\n' in data:
+        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+BlockDumper.add_representer(dict, dict_representer)
+BlockDumper.add_representer(str, str_representer)
+
+data = {
+    'version': 1,
+    'meta': {
+        'name': 'Life@USTC',
+        'language': 'en',
+        'file': 'docs/features.yml',
+        'query': 'yq',
+    },
+    'product': {
+        'priority': [
+            'student learning workspace',
+            'public campus info browser',
+            'controlled REST / MCP surface',
+            'admin maintenance surface',
+        ],
+        'surfaces': ['web', 'rest', 'mcp'],
+        'terms': {
+            'sectionSubscription': 'In-app follow relationship; not equivalent to official course enrollment.',
+            'homework': 'Class-attached learning task; completion state is tracked per user independently.',
+            'todo': 'Personal user task; not attached to any class.',
+        },
+        'workflow': [
+            'Edit docs/features.yml first.',
+            'Use yq to inspect the affected semantic blocks while editing.',
+            'Implement the behavior change in code.',
+            'Reconcile the YAML if implementation scope changed.',
+        ],
+    },
+    'models': {
+        'SemesterSummary': {
+            'fields': {
+                'identity': [
+                    'semester.id',
+                    'semester.jwId',
+                    'semester.code',
+                ],
+                'name-and-dates': [
+                    'semester.nameCn',
+                    'semester.startDate',
+                    'semester.endDate',
+                ],
+            },
+        },
+        'CourseSummary': {
+            'fields': {
+                'identity': [
+                    'course.id',
+                    'course.jwId',
+                    'course.code',
+                ],
+                'primary-display': [
+                    'course.namePrimary',
+                    'course.nameSecondary',
+                ],
+                'classification': [
+                    'course.educationLevel?.namePrimary',
+                    'course.category?.namePrimary',
+                    'course.classType?.namePrimary',
+                    'course.classify?.namePrimary',
+                    'course.gradation?.namePrimary',
+                    'course.type?.namePrimary',
+                ],
+            },
+        },
+        'CourseDetail': {
+            'notes': ['Inherits CourseSummary'],
+            'fields': {
+                'child-sections': [
+                    'course.sections[].jwId',
+                    'course.sections[].code',
+                    'course.sections[].semester?.nameCn',
+                    'course.sections[].campus?.namePrimary',
+                    'course.sections[].teachers[].namePrimary',
+                    'course.sections[].stdCount',
+                    'course.sections[].limitCount',
+                ],
+            },
+        },
+        'SectionSummary': {
+            'fields': {
+                'identity': [
+                    'section.id',
+                    'section.jwId',
+                    'section.code',
+                ],
+                'primary-display': [
+                    'section.course.namePrimary',
+                    'section.course.nameSecondary',
+                ],
+                'disambiguation': [
+                    'section.semester?.nameCn',
+                    'section.teachers[].namePrimary',
+                    'section.credits',
+                    'section.stdCount',
+                    'section.limitCount',
+                    'section.campus?.namePrimary',
+                    'section.openDepartment?.namePrimary',
+                ],
+            },
+        },
+        'SectionDetail': {
+            'notes': ['Inherits SectionSummary'],
+            'fields': {
+                'detail-extension': [
+                    'section.examMode?.namePrimary',
+                    'section.teachLanguage?.namePrimary',
+                    'section.roomType?.namePrimary',
+                    'section.adminClasses[]',
+                ],
+                'teacher-and-comment-context': [
+                    'section.teachers[].id',
+                    'section.teachers[].namePrimary',
+                    'section.teachers[].department?.namePrimary',
+                ],
+                'schedule-and-exam': [
+                    'section.schedules[]',
+                    'section.scheduleGroups[]',
+                    'section.exams[]',
+                ],
+            },
+        },
+        'TeacherSummary': {
+            'fields': {
+                'identity': [
+                    'teacher.id',
+                    'teacher.code',
+                ],
+                'primary-display': [
+                    'teacher.namePrimary',
+                    'teacher.nameSecondary',
+                ],
+                'auxiliary': [
+                    'teacher.department?.namePrimary',
+                    'teacher.teacherTitle?.namePrimary',
+                    'teacher.email',
+                    'teacher._count.sections',
+                ],
+            },
+        },
+        'TeacherDetail': {
+            'notes': ['Inherits TeacherSummary'],
+            'fields': {
+                'detail-extension': [
+                    'teacher.telephone',
+                    'teacher.mobile',
+                    'teacher.address',
+                    'teacher.sections[].jwId',
+                    'teacher.sections[].code',
+                    'teacher.sections[].course.namePrimary',
+                    'teacher.sections[].semester?.nameCn',
+                    'teacher.sections[].credits',
+                ],
+            },
+        },
+        'CalendarSubscription': {
+            'fields': {
+                'user-and-note': [
+                    'subscription.userId',
+                    'subscription.note',
+                ],
+                'section-detail': [
+                    'subscription.sections[] uses SectionSummary',
+                ],
+                'export': [
+                    'subscription.calendarPath',
+                    'subscription.calendarUrl',
+                ],
+            },
+        },
+        'CalendarEvent': {
+            'fields': {
+                'event-envelope': [
+                    'event.type',
+                    'event.at',
+                ],
+                'event-payload': [
+                    'event.payload',
+                    'event.payload shape depends on type',
+                ],
+                'event-types': [
+                    'schedule',
+                    'homework_due',
+                    'exam',
+                    'todo_due',
+                ],
+            },
+        },
+        'ScheduleEntry': {
+            'fields': {
+                'identity': [
+                    'schedule.id',
+                    'schedule.date',
+                    'schedule.weekday',
+                    'schedule.startTime',
+                    'schedule.endTime',
+                ],
+                'parent-object': [
+                    'schedule.section.jwId',
+                    'schedule.section.code',
+                    'schedule.section.course.namePrimary',
+                    'schedule.section.semester?.nameCn',
+                ],
+                'location-and-teacher': [
+                    'schedule.room?.namePrimary',
+                    'schedule.room?.building?.namePrimary',
+                    'schedule.room?.building?.campus?.namePrimary',
+                    'schedule.teachers[].namePrimary',
+                    'schedule.scheduleGroup',
+                ],
+            },
+        },
+        'ScheduleGroupEntry': {
+            'fields': {
+                'identity': [
+                    'scheduleGroup.id',
+                    'scheduleGroup.jwId',
+                    'scheduleGroup.sectionId',
+                ],
+                'group-fields': [
+                    'scheduleGroup.no',
+                    'scheduleGroup.limitCount',
+                    'scheduleGroup.stdCount',
+                    'scheduleGroup.actualPeriods',
+                    'scheduleGroup.isDefault',
+                ],
+                'static-import-constraints': [
+                    'When the static SQLite snapshot does not provide an official jwId, scheduleGroup.jwId uses a stable site-synthesized value.',
+                    'For the current production static import scope (recent semesters), preserve existing synthesized values; only fall back to another stable value when full-history imports produce conflicts to ensure uniqueness.',
+                ],
+            },
+        },
+        'ExamEntry': {
+            'fields': {
+                'identity': [
+                    'exam.id',
+                    'exam.jwId',
+                    'exam.examDate',
+                    'exam.startTime',
+                    'exam.endTime',
+                ],
+                'parent-object': [
+                    'exam.section.jwId',
+                    'exam.section.code',
+                    'exam.section.course.namePrimary',
+                    'exam.section.semester?.nameCn',
+                ],
+                'exam-info': [
+                    'exam.examBatch',
+                    'exam.examRooms[]',
+                ],
+                'static-import-constraints': [
+                    'When the static SQLite snapshot does not provide an official jwId, exam.jwId uses a stable site-synthesized value.',
+                ],
+            },
+        },
+        'HomeworkItem': {
+            'fields': {
+                'identity': [
+                    'homework.id',
+                    'homework.title',
+                ],
+                'timestamps': [
+                    'homework.publishedAt',
+                    'homework.submissionStartAt',
+                    'homework.submissionDueAt',
+                    'homework.createdAt',
+                    'homework.updatedAt',
+                    'homework.deletedAt',
+                ],
+                'parent-object': [
+                    'homework.sectionId',
+                    'homework.section.code',
+                    'homework.section.course.namePrimary',
+                    'homework.section.semester?.nameCn',
+                ],
+                'collaboration-and-personal-state': [
+                    'homework.description?.content',
+                    'homework.createdBy',
+                    'homework.updatedBy',
+                    'homework.deletedBy',
+                    'homework.completion?.completedAt',
+                    'homework.commentCount',
+                ],
+            },
+        },
+        'TodoItem': {
+            'fields': {
+                'identity': [
+                    'todo.id',
+                    'todo.title',
+                    'todo.content',
+                ],
+                'status': [
+                    'todo.completed',
+                    'todo.priority',
+                    'todo.dueAt',
+                    'todo.createdAt',
+                    'todo.updatedAt',
+                ],
+            },
+        },
+        'OverviewSnapshot': {
+            'fields': {
+                'user-info': [
+                    'overview.user.id',
+                    'overview.user.name',
+                    'overview.user.image',
+                    'overview.user.isAdmin',
+                ],
+                'counts': [
+                    'overview.overview.pendingTodosCount',
+                    'overview.overview.pendingHomeworksCount',
+                    'overview.overview.todaySchedulesCount',
+                    'overview.overview.upcomingExamsCount',
+                ],
+                'samples': [
+                    'overview.samples.dueTodos[] uses TodoItem',
+                    'overview.samples.dueHomeworks[] uses HomeworkItem',
+                    'overview.samples.upcomingExams[] uses ExamEntry',
+                ],
+            },
+        },
+    },
+    'ui': {
+        'List Table': '* Used for discovery-type lists such as courses, sections, and teachers.\n* Primary display information is placed in the first visual column.\n* Structured fields serve disambiguation and comparison.\n* Rows are fully clickable and navigate to the detail page.',
+        'Detail Hero': '* Used at the top of course, section, and teacher detail pages.\n* Contains breadcrumb, h1, and an optional subtitle.\n* h1 uses the primary display name of the current object, not an internal ID.',
+        'Basic Info Card': '* Used in detail page sidebars or collapsible panels.\n* Displays structured fields; does not carry comment or homework interactions.',
+        'Context Tabs': '* Used for multi-context switching within detail pages.\n* Common combinations: sections — homework, calendar, comments; courses — sections, comments; teachers — sections, comments.',
+        'Calendar Export Dialog': '* Used to display single-object iCal and personal subscription iCal.\n* Presented as a copyable link; users are not required to manually construct the URL.',
+    },
+    'modules': {
+        'user': {
+            'name': 'User',
+            'access': {
+                'anon': 'Can browse all public information; further actions are not available before entering the sign-in flow.',
+                'user': 'Can follow sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences, post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.',
+                'admin': 'Can review comments, maintain descriptions, manage users, suspend accounts, manage OAuth clients, maintain bus data, and handle user content and platform security issues.',
+                'agent': 'Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.',
+            },
+            'rules': [
+                'Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.',
+                'On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.',
+                'New users who have not set a name or username on first login must complete the welcome flow before proceeding.',
+                'Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.',
+                'After successful login, the user should be redirected back to the originally requested page whenever possible; if no origin page exists, redirect to the home page.',
+                'Public identity defaults to displaying name or username, not internal identifiers.',
+            ],
+            'capabilities': {
+                'sign-in': {
+                    'title': 'Sign In',
+                    'web': {
+                        'pages': ['/signin'],
+                        'notes': ['Centrally displays OAuth sign-in entries.'],
+                    },
+                    'rest': {
+                        'notes': ['Authentication routes handle sign-in and session creation.'],
+                    },
+                    'mcp': {
+                        'notes': ['Does not provide sign-in capabilities.'],
+                    },
+                },
+                'first-login-welcome': {
+                    'title': 'First Login & Welcome Page',
+                    'web': {
+                        'pages': ['/welcome'],
+                        'notes': [
+                            'The welcome page only handles completing profile information and does not mix in other personalization settings.',
+                            'Usernames must remain short and publicly displayable.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['No separate welcome page write endpoint is currently exposed.'],
+                    },
+                    'mcp': {
+                        'notes': ['No corresponding write capability is provided.'],
+                    },
+                },
+                'post-login-redirect': {
+                    'title': 'Post-Login Redirect',
+                    'web': {
+                        'notes': [
+                            'After successful login, redirect back to the originally requested page whenever possible.',
+                            'Return to the home page when no specific origin page exists.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ["No separate 'post-login redirect' endpoint currently exists."],
+                    },
+                },
+                'public-profile': {
+                    'title': 'Public Profile',
+                    'web': {
+                        'pages': ['/u/$username', '/u/id/$uid'],
+                        'notes': [
+                            '/u/id/$uid is an exception entry that can additionally display the user ID.',
+                            'The regular public profile displays avatar, nickname or name, @username, and join date.',
+                            'The contribution overview displays the number of followed sections, comments, uploads, created homework items, and a contribution graph for the past year.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/me'],
+                        'notes': [
+                            'Returns the authenticated user\'s core profile fields (id, email, name, image, username, isAdmin).',
+                            "No separate public profile endpoint for other users is currently exposed.",
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['get_my_profile'],
+                        'notes': ["Returns the signed-in user's own core profile fields."],
+                    },
+                },
+                'settings': {
+                    'title': 'Settings',
+                    'web': {
+                        'pages': [
+                            '/settings?tab=profile',
+                            '/settings?tab=accounts',
+                            '/settings?tab=content',
+                            '/settings?tab=danger',
+                        ],
+                        'notes': [
+                            'profile: Edit name, username, and avatar.',
+                            'accounts: View and manage connected OAuth accounts; disconnecting an account is a destructive action that must display a confirmation dialog first; attempting to disconnect the last sign-in account must result in an error.',
+                            "content: Explains that uploads and comments are object-attached content; no standalone 'my comments / my uploads' settings page; currently provides a next-step entry point to section browsing and the comment guide.",
+                            'danger: Delete account; deletion is a high-risk operation requiring the user to enter the fixed confirmation word DELETE.',
+                            'The settings page currently only uses the ?tab= query parameter as a stable entry point; alias paths such as /settings/profile, /settings/accounts, /settings/content, /settings/danger, /settings/comments, and /settings/uploads are no longer provided.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['No separate settings center aggregation endpoint currently exists.'],
+                    },
+                    'mcp': {
+                        'notes': ['No account connection management or account deletion capability is provided.'],
+                    },
+                },
+            },
+        },
+        'semester': {
+            'name': 'Semester',
+            'access': {
+                'anon': 'Can read semester information.',
+                'user': 'Can read semester information. Cannot modify semester data.',
+                'admin': 'Can read semester information. Does not directly modify semester facts through ordinary pages.',
+                'agent': 'Can only read existing semester information; no additional write permissions.',
+            },
+            'rules': [
+                'Semesters are the organizational dimension for courses, sections, schedules, and exams.',
+                'The current semester must be determined by explicit business rules, not by rough natural-year inference.',
+                'Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester browsing.',
+            ],
+            'capabilities': {
+                'semester-list': {
+                    'title': 'Semester List',
+                    'links': {
+                        'models': ['SemesterSummary'],
+                    },
+                    'web': {
+                        'notes': [
+                            'Courses, sections, home page, and filter contexts consume semester.nameCn and semester.id.',
+                            'Semester appears in this project as an actual display and disambiguation field.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/semesters'],
+                        'notes': ['Returns PaginatedResponse<SemesterSummary>.'],
+                    },
+                    'mcp': {
+                        'tools': ['list_semesters'],
+                        'notes': ['Returns a paginated semester list; fields align with SemesterSummary.'],
+                    },
+                },
+                'current-semester': {
+                    'title': 'Current Semester',
+                    'links': {
+                        'models': ['SemesterSummary'],
+                    },
+                    'rules': [
+                        'The current semester is determined by date range; when multiple semester ranges overlap the current date, the semester with the latest startDate is selected to prevent an older range or import residue from shadowing a more specific newer semester.',
+                    ],
+                    'web': {
+                        'notes': ["The home page and calendar logic consume the current semester object; no separate 'current semester detail page' is shown."],
+                    },
+                    'rest': {
+                        'routes': ['/api/semesters/current'],
+                        'notes': ['Returns a single SemesterSummary or 404.'],
+                    },
+                    'mcp': {
+                        'tools': ['get_current_semester'],
+                        'notes': ['Returns { found, semester }.'],
+                    },
+                },
+            },
+        },
+        'course': {
+            'name': 'Course',
+            'access': {
+                'anon': 'Can browse course information.',
+                'user': 'Can browse course information. Cannot modify course fact data.',
+                'admin': 'Can browse course information. Does not directly modify course facts through ordinary pages.',
+                'agent': 'Can read course search and detail capabilities.',
+            },
+            'rules': [
+                'A course is a stable course entity and does not represent a specific semester offering.',
+                'jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed in ordinary course UI.',
+            ],
+            'capabilities': {
+                'course-list': {
+                    'title': 'Course List & Filter',
+                    'links': {
+                        'models': ['CourseSummary'],
+                        'ui': ['List Table'],
+                    },
+                    'web': {
+                        'pages': ['/courses'],
+                        'notes': [
+                            'The first visual column uses course.namePrimary; the secondary line uses course.nameSecondary.',
+                            'Structured columns display course.code, course.educationLevel?.namePrimary, course.category?.namePrimary, course.classType?.namePrimary.',
+                            'Supports searching by course name, English name, and course code.',
+                            'Supports filtering by category, level, and type.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/courses'],
+                        'notes': ['Returns PaginatedResponse<CourseSummary>.'],
+                    },
+                    'mcp': {
+                        'tools': ['search_courses'],
+                        'notes': ["Returns courses[]; each item's fields align with CourseSummary."],
+                    },
+                },
+                'course-detail': {
+                    'title': 'Course Detail',
+                    'links': {
+                        'models': ['CourseDetail'],
+                        'ui': ['Detail Hero', 'Context Tabs', 'Basic Info Card'],
+                    },
+                    'web': {
+                        'pages': ['/courses/[jwId]'],
+                        'notes': [
+                            'h1 uses course.namePrimary; subtitle uses course.nameSecondary.',
+                            'Breadcrumb current item displays course.code.',
+                            'Basic info card shows course.code, course.educationLevel?.namePrimary, course.category?.namePrimary, course.classType?.namePrimary.',
+                            'Child sections table shows course.sections[].semester?.nameCn, course.sections[].code, course.sections[].teachers[].namePrimary, course.sections[].campus?.namePrimary, course.sections[].stdCount, course.sections[].limitCount.',
+                            'Comments and description are present in the detail page context.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/courses/[jwId]'],
+                        'notes': ['Returns CourseDetail.'],
+                    },
+                    'mcp': {
+                        'tools': ['get_course_by_jw_id'],
+                        'notes': ['Returns { found, course }; course aligns with CourseDetail.'],
+                    },
+                },
+            },
+        },
+        'section': {
+            'name': 'Section',
+            'access': {
+                'anon': 'Can browse public section information.',
+                'user': 'Can perform subscription, homework, comment, and description collaborative actions around sections, but cannot modify section fact data.',
+                'admin': 'Does not directly modify academic section facts through ordinary pages.',
+                'agent': 'Can read section information and manage personal section-related state through OAuth-authorized REST / MCP endpoints.',
+            },
+            'rules': [
+                'A section is a specific teaching class for a course in a given semester.',
+                'Pages involving subscription actions must clearly state this is not official academic course enrollment.',
+                'jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.',
+            ],
+            'capabilities': {
+                'section-list': {
+                    'title': 'Section List & Filter',
+                    'links': {
+                        'models': ['SectionSummary'],
+                        'ui': ['List Table'],
+                    },
+                    'web': {
+                        'pages': ['/sections'],
+                        'notes': [
+                            'In this project, the primary display field for section lists is not a standalone section.name but section.course.namePrimary.',
+                            'Structured columns display section.semester?.nameCn, section.code, section.teachers[].namePrimary, section.credits, section.stdCount, section.limitCount, section.campus?.namePrimary.',
+                            'Supports search, semester filter, clear filter, and navigation to detail.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/sections'],
+                        'notes': ['Returns PaginatedResponse<SectionSummary>.'],
+                    },
+                    'mcp': {
+                        'tools': ['search_sections'],
+                        'notes': ['Returns paginated section results; fields align with SectionSummary.'],
+                    },
+                },
+                'section-detail': {
+                    'title': 'Section Detail',
+                    'links': {
+                        'models': ['SectionDetail'],
+                        'ui': ['Detail Hero', 'Context Tabs', 'Basic Info Card'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': [
+                            'h1 uses section.course.namePrimary, not a standalone section.name.',
+                            "Subtitle displays section.course.nameSecondary and a 'not official enrollment' reminder.",
+                            'Breadcrumb current item displays section.code.',
+                            'Basic info area shows section.semester?.nameCn, section.code, section.campus?.namePrimary, section.credits, section.teachLanguage?.namePrimary, section.examMode?.namePrimary, section.openDepartment?.namePrimary.',
+                            'The main content area uses three context tabs: homework, calendar, and comments.',
+                            'The sidebar displays description, basic info, other teaching sections, and a mini calendar.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/sections/[jwId]'],
+                        'notes': ['Returns SectionDetail.'],
+                    },
+                    'mcp': {
+                        'tools': ['get_section_by_jw_id'],
+                        'notes': ['Returns { found, section }; section aligns with SectionDetail.'],
+                    },
+                },
+                'section-ical': {
+                    'title': 'Section iCal Export',
+                    'links': {
+                        'ui': ['Calendar Export Dialog'],
+                    },
+                    'web': {
+                        'notes': ['The calendar entry on the section detail page provides a single-section iCal.'],
+                    },
+                    'rest': {
+                        'routes': ['/api/sections/[jwId]/calendar.ics'],
+                        'notes': ["Returns text/calendar; content is derived from the section's schedule and exams."],
+                    },
+                    'mcp': {
+                        'tools': ['get_section_calendar_subscription'],
+                        'notes': ['Returns a single-section iCal link and usage instructions.'],
+                    },
+                },
+            },
+        },
+        'teacher': {
+            'name': 'Teacher',
+            'access': {
+                'anon': 'Can browse teacher information.',
+                'user': 'Can browse teacher information. Cannot modify teacher fact data.',
+                'admin': 'Can browse teacher information. Does not directly modify teacher facts through ordinary pages.',
+                'agent': 'Can directly read teacher lists and details; also indirectly consumes teacher information in course and section results.',
+            },
+            'rules': [
+                'Teacher objects are naturally identified by name.',
+                'Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.',
+            ],
+            'capabilities': {
+                'teacher-list': {
+                    'title': 'Teacher List & Filter',
+                    'links': {
+                        'models': ['TeacherSummary'],
+                        'ui': ['List Table'],
+                    },
+                    'web': {
+                        'pages': ['/teachers'],
+                        'notes': [
+                            'The first visual column uses teacher.namePrimary; in English contexts, teacher.nameSecondary can be appended.',
+                            'Structured columns display teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher._count.sections.',
+                            'Supports searching by name, English name, and teacher code.',
+                            'Supports department filtering and pagination.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/teachers'],
+                        'notes': ['Returns PaginatedResponse<TeacherSummary>.'],
+                    },
+                    'mcp': {
+                        'tools': ['search_teachers'],
+                        'notes': ['Returns paginated teacher results; fields align with TeacherSummary.'],
+                    },
+                },
+                'teacher-detail': {
+                    'title': 'Teacher Detail',
+                    'links': {
+                        'models': ['TeacherDetail'],
+                        'ui': ['Detail Hero', 'Context Tabs', 'Basic Info Card'],
+                    },
+                    'web': {
+                        'pages': ['/teachers/[id]'],
+                        'notes': [
+                            'h1 uses teacher.namePrimary; in English contexts, teacher.nameSecondary can be appended.',
+                            'Basic info area shows teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher.telephone, teacher.mobile, teacher.address.',
+                            'Related sections table shows teacher.sections[].semester?.nameCn, teacher.sections[].course.namePrimary, teacher.sections[].code, teacher.sections[].credits.',
+                            'Comments and description are present in the detail page context.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/teachers/[id]'],
+                        'notes': ['Returns TeacherDetail.'],
+                    },
+                    'mcp': {
+                        'tools': ['get_teacher_by_id'],
+                        'notes': ['Returns { found, teacher }; teacher aligns with TeacherDetail.'],
+                    },
+                },
+            },
+        },
+        'subscription': {
+            'name': 'Subscription',
+            'access': {
+                'anon': 'Can see the subscription entry but cannot directly create a subscription.',
+                'user': 'Can only manage their own section subscription relationships.',
+                'admin': 'Does not manage personal subscriptions on behalf of users through ordinary pages.',
+                'agent': "After OAuth authorization, can manage the current user's own subscription relationships; REST and MCP both support the same semantic operations.",
+            },
+            'rules': [
+                "Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.",
+                'Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam.',
+            ],
+            'capabilities': {
+                'subscribe-from-section': {
+                    'title': 'Subscribe from Section Detail',
+                    'links': {
+                        'models': ['CalendarSubscription'],
+                        'ui': ['Detail Hero'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': [
+                            'The individual subscribe/unsubscribe action on the section detail page is a lightweight personal state toggle that takes effect immediately without a confirmation dialog.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': [
+                            "No separate 'single subscribe / unsubscribe' REST route currently exists.",
+                            "Page behavior is handled through server actions; results are converged to the current user's subscription state.",
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['subscribe_section_by_jw_id', 'unsubscribe_section_by_jw_id'],
+                        'notes': ['Returns success and subscription; subscription.sections[] uses SectionSummary.'],
+                    },
+                },
+                'batch-subscribe-by-codes': {
+                    'title': 'Batch Subscribe by Course Codes',
+                    'links': {
+                        'models': ['SectionSummary', 'CalendarSubscription'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=subscriptions'],
+                        'notes': [
+                            'Home page empty state.',
+                            'Batch import results must distinguish between successful items, failed items, and items awaiting confirmation.',
+                            'Subscription relationships are created only after user confirmation.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/sections/match-codes', '/api/calendar-subscriptions'],
+                        'notes': [
+                            '/api/sections/match-codes returns semester, matchedCodes, unmatchedCodes, and sections[].',
+                            "/api/calendar-subscriptions returns subscription; sections[] is the user's new set of subscribed sections.",
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['match_section_codes', 'subscribe_my_sections_by_codes'],
+                        'notes': [
+                            'match_section_codes returns semester, match results, and sections[].',
+                            'subscribe_my_sections_by_codes returns matchedCodes, unmatchedCodes, addedCount, and subscription.',
+                        ],
+                    },
+                },
+            },
+        },
+        'ical': {
+            'name': 'Personal Calendar Subscription iCal',
+            'access': {
+                'anon': 'Can copy a single-section iCal link from the public section detail page.',
+                'user': "Can copy their own personal subscription iCal link.",
+                'admin': 'No additional exclusive iCal capabilities.',
+                'agent': "After authorization, can read the current user's personal calendar subscription information; REST and MCP should both return the same subscription feed information and description.",
+            },
+            'rules': [
+                'iCal links should be presented as copyable links rather than requiring users to manually construct them.',
+                'iCal is an export / subscription capability and should not carry a second business model.',
+                'Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned.',
+            ],
+            'capabilities': {
+                'section-calendar-dialog': {
+                    'title': 'Section Calendar Dialog',
+                    'links': {
+                        'ui': ['Calendar Export Dialog'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': [
+                            'Exposes both single-section iCal and personal subscription iCal simultaneously; the latter requires sign-in.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/sections/[jwId]/calendar.ics'],
+                        'notes': ["Returns text/calendar synthesized from the section's schedule and exams."],
+                    },
+                },
+                'personal-calendar-subscription': {
+                    'title': 'Personal Calendar Subscription',
+                    'links': {
+                        'models': ['CalendarSubscription'],
+                        'ui': ['Calendar Export Dialog'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=calendar'],
+                        'notes': ['Displays the personal subscription URL as a copyable link.'],
+                    },
+                    'rest': {
+                        'routes': [
+                            '/api/users/[userId]/calendar.ics',
+                            '/api/calendar-subscriptions/current',
+                        ],
+                        'notes': [
+                            'Currently returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text.',
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['get_my_calendar_subscription'],
+                        'notes': [
+                            'Returns subscription.userId, subscription.sections[], subscription.calendarPath, subscription.calendarUrl, subscription.note.',
+                        ],
+                    },
+                },
+                'multi-section-ical': {
+                    'title': 'Multi-Section iCal Export',
+                    'web': {
+                        'notes': [
+                            'No stable standalone page entry currently exists; this capability is more like a lower-level export endpoint.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/sections/calendar.ics'],
+                        'notes': ['Generates a multi-section iCal based on sectionIds.'],
+                    },
+                },
+            },
+        },
+        'subscribed-sections': {
+            'name': 'Subscribed Sections',
+            'access': {
+                'anon': "Cannot view their own subscribed sections list.",
+                'user': 'Can only view and manage their own subscribed sections list.',
+                'admin': "Does not view or edit other users' subscription lists through ordinary pages.",
+                'agent': 'Can read and manage the subscribed sections list data with the same semantics as the web through REST and MCP.',
+            },
+            'rules': [
+                'The list is grouped by semester rather than presented as a single flat list.',
+                "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted.",
+            ],
+            'capabilities': {
+                'subscribed-sections-tab': {
+                    'title': 'Subscribed Sections Tab',
+                    'links': {
+                        'models': ['CalendarSubscription', 'SectionSummary'],
+                        'ui': ['List Table'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=subscriptions'],
+                        'notes': [
+                            'A section table grouped by semester.',
+                            'Inline fields currently retain section code, course name, teacher, and credits.',
+                            'The empty state provides entries for searching sections, browsing courses, and batch import.',
+                            'The unsubscribe action uses a lightweight two-step armed button rather than a modal confirmation dialog.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/calendar-subscriptions/current'],
+                        'notes': [
+                            "Currently returns the current user's subscribed section details and personal subscription feed information; can directly support the subscribed sections list and personal calendar subscription entry.",
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['list_my_subscribed_sections', 'get_my_calendar_subscription'],
+                        'notes': [
+                            'list_my_subscribed_sections returns sections[] and note.',
+                            'get_my_calendar_subscription supplements calendarPath and calendarUrl on the same abstract entry.',
+                        ],
+                    },
+                },
+            },
+        },
+        'schedule': {
+            'name': 'Schedule',
+            'access': {
+                'anon': 'Can read public schedule information.',
+                'user': 'Can read public schedule information. Cannot modify schedule fact data.',
+                'admin': 'Can read public schedule information. Does not directly modify schedule facts through ordinary pages.',
+                'agent': 'Can read schedules for specific sections; current-user schedule aggregation is primarily exposed via MCP; public schedule retrieval is available through REST and MCP.',
+            },
+            'rules': [
+                "Schedule refers to a section's class times, locations, and week patterns.",
+                'The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding the section context.',
+                'The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates.',
+            ],
+            'capabilities': {
+                'my-schedule': {
+                    'title': 'My Schedule',
+                    'links': {
+                        'models': ['ScheduleEntry'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=calendar'],
+                        'notes': ['The home page calendar consumes schedule data from subscribed sections.'],
+                    },
+                    'rest': {
+                        'notes': ["No separate 'current user schedule' REST aggregation endpoint currently exists."],
+                    },
+                    'mcp': {
+                        'tools': ['list_my_schedules'],
+                        'notes': [
+                            'Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup.',
+                        ],
+                    },
+                },
+                'public-schedule-query': {
+                    'title': 'Public Schedule Query',
+                    'links': {
+                        'models': ['ScheduleEntry'],
+                    },
+                    'web': {
+                        'notes': [
+                            'No standalone public schedule page currently calls this endpoint directly; pages assemble data more through server-side queries.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/schedules'],
+                        'notes': [
+                            'Supports filtering public schedules by section, teacher, room, date range, and day of week.',
+                            'Returns PaginatedResponse<ScheduleEntry>.',
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['query_schedules'],
+                        'notes': ['Returns public schedule results; fields align with ScheduleEntry.'],
+                    },
+                },
+                'section-schedule': {
+                    'title': 'Section Schedule',
+                    'links': {
+                        'models': ['ScheduleEntry'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': ["The calendar tab on the section detail page consumes the section's schedule and exam data."],
+                    },
+                    'rest': {
+                        'routes': [
+                            '/api/sections/[jwId]/schedules',
+                            '/api/sections/[jwId]/schedule-groups',
+                        ],
+                        'notes': [
+                            '/api/sections/[jwId]/schedules returns a simplified variant of ScheduleEntry[] for the section.',
+                            '/api/sections/[jwId]/schedule-groups returns period information aggregated by group.',
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['list_schedules_by_section', 'get_my_7days_timeline'],
+                        'notes': [
+                            "list_schedules_by_section returns a single section's schedule.",
+                            'get_my_7days_timeline returns schedules as the schedule type within a unified event stream.',
+                        ],
+                    },
+                },
+            },
+        },
+        'calendar': {
+            'name': 'Calendar',
+            'access': {
+                'anon': 'Can browse calendar information on public section detail pages.',
+                'user': 'Can browse the personal calendar view.',
+                'admin': 'Has no special calendar view separate from regular users.',
+                'agent': 'Can read timeline information with the same semantics through OAuth REST and MCP.',
+            },
+            'rules': [
+                'Currently provides semester, month, and week views simultaneously.',
+                'The week view starts on Sunday.',
+                'Calendar event cards uniformly carry course, exam, homework, and todo events.',
+            ],
+            'capabilities': {
+                'personal-calendar-view': {
+                    'title': 'Personal Calendar View',
+                    'links': {
+                        'models': ['CalendarEvent', 'ScheduleEntry', 'HomeworkItem', 'ExamEntry', 'TodoItem'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=calendar'],
+                        'notes': ['Provides semester view, month view, and week view.'],
+                    },
+                    'rest': {
+                        'notes': ['No separate unified calendar aggregation endpoint currently exists.'],
+                    },
+                    'mcp': {
+                        'tools': [
+                            'list_my_calendar_events',
+                            'get_my_7days_timeline',
+                            'list_my_schedules',
+                            'list_my_exams',
+                        ],
+                        'notes': [
+                            'list_my_calendar_events returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.',
+                            'Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.',
+                        ],
+                    },
+                },
+                'section-calendar-view': {
+                    'title': 'Section Calendar View',
+                    'links': {
+                        'ui': ['Context Tabs'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': [
+                            'The current implementation merges schedule and exams in the same calendar tab rather than splitting them into a separate exam tab.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['Currently supported through a combination of schedule, exam, and iCal endpoints.'],
+                    },
+                },
+                'event-card': {
+                    'title': 'Event Card',
+                    'web': {
+                        'notes': [
+                            'Compact cards prioritize displaying title and time.',
+                            'Location is not expanded in the second row by default; location, teacher, exam batch, and other details appear in a popover / details.',
+                            'Cards can navigate to the related section, homework, exam, or home page tab.',
+                            'The home page calendar and section calendar reuse the same card, hover/popover, and navigation behavior as much as possible.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ["Does not directly expose the 'card' concept; only exposes structured event data."],
+                    },
+                    'mcp': {
+                        'notes': ["Does not directly expose the 'card' concept; only exposes structured results."],
+                    },
+                },
+            },
+        },
+        'homework': {
+            'name': 'Homework',
+            'access': {
+                'anon': 'Can read homework information under public sections, but cannot create, update, or delete.',
+                'user': "When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.",
+                'admin': 'Can delete homework and participate in governance.',
+                'agent': "After authorization, can read, create, and update homework and set the current user's completion state; both REST and MCP currently provide this capability.",
+            },
+            'rules': [
+                'Homework is attached to a section, not a personal user todo.',
+                'Creating homework does not require the user to be subscribed to the section first.',
+                "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'.",
+            ],
+            'capabilities': {
+                'cross-section-homework-summary': {
+                    'title': 'Cross-Section Homework Summary',
+                    'links': {
+                        'models': ['HomeworkItem'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=homeworks'],
+                        'notes': [
+                            'The homework summary page handles scanning across sections.',
+                            'Homework cards prioritize displaying due date, title, and course name.',
+                            'Section codes and internal IDs do not enter the main display area by default.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ["No separate 'current user cross-section homework summary' REST endpoint currently exists."],
+                    },
+                    'mcp': {
+                        'tools': ['list_my_homeworks'],
+                        'notes': [
+                            'Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion.',
+                        ],
+                    },
+                },
+                'section-homework-tab': {
+                    'title': 'Section Homework Tab',
+                    'links': {
+                        'models': ['HomeworkItem'],
+                        'ui': ['Context Tabs'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': [
+                            'Provides full entries for create, edit, delete, and description maintenance.',
+                            'Deleting homework is a high-risk operation that requires confirmation.',
+                            'Homework description is maintained alongside the homework entity; at minimum the last update time is retained.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/homeworks', '/api/homeworks/[id]'],
+                        'notes': [
+                            '/api/homeworks returns viewer, homeworks[], and auditLogs[].',
+                            'homeworks[] uses HomeworkItem.',
+                        ],
+                    },
+                    'mcp': {
+                        'tools': [
+                            'list_homeworks_by_section',
+                            'create_homework_on_section',
+                            'update_homework_on_section',
+                        ],
+                    },
+                },
+                'homework-governance': {
+                    'title': 'Homework Governance',
+                    'web': {
+                        'notes': [
+                            'No standalone homework governance page currently exists; admin deletion is handled through governance endpoints.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/admin/homeworks', '/api/admin/homeworks/[id]'],
+                    },
+                    'mcp': {
+                        'notes': ['No admin homework tools are currently provided.'],
+                    },
+                },
+                'homework-completion': {
+                    'title': 'Homework Completion',
+                    'links': {
+                        'models': ['HomeworkItem'],
+                    },
+                    'web': {
+                        'notes': [
+                            "The home page, homework summary page, and section detail all support toggling the current user's completion state.",
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/homeworks/[id]/completion'],
+                        'notes': ['Returns completed and completedAt.'],
+                    },
+                    'mcp': {
+                        'tools': ['set_my_homework_completion'],
+                        'notes': ['Returns completion.homeworkId, completion.completed, completion.completedAt.'],
+                    },
+                },
+            },
+        },
+        'todo': {
+            'name': 'Todo',
+            'access': {
+                'anon': 'Cannot read or write personal todos.',
+                'user': 'Can only manage their own todos.',
+                'admin': "Has no ordinary page capability to independently manage other users' todos.",
+                'agent': "After authorization, can only read and write the current user's own todos; both REST and MCP currently provide this capability.",
+            },
+            'rules': [
+                'Todo is a purely personal object and is not bound to any section.',
+                'Only incomplete todos with a due date appear in the calendar.',
+                'Completed todos retain history but no longer occupy urgent information areas.',
+            ],
+            'capabilities': {
+                'todo-list': {
+                    'title': 'Todo List & Filter',
+                    'links': {
+                        'models': ['TodoItem'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=todos'],
+                        'notes': [
+                            'Filter dimensions include all, incomplete, and completed.',
+                            'Cards primarily display todo title; secondary display shows priority and due date.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/todos', '/api/todos/[id]'],
+                        'notes': [
+                            '/api/todos returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.',
+                            '/api/todos/[id] handles updates and deletions.',
+                        ],
+                    },
+                    'mcp': {
+                        'tools': ['list_my_todos'],
+                        'notes': ['Returns todos[]; fields align with TodoItem.'],
+                    },
+                },
+                'todo-edit': {
+                    'title': 'Todo Edit Sheet',
+                    'links': {
+                        'models': ['TodoItem'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=todos', '/?tab=overview'],
+                        'notes': [
+                            'Todos are created and edited through a Sheet panel.',
+                            'Deleting a todo currently does not use a destructive confirm dialog.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/todos', '/api/todos/[id]'],
+                        'ops': ['POST /api/todos returns the new todo id.'],
+                    },
+                    'mcp': {
+                        'tools': ['create_my_todo', 'update_my_todo', 'delete_my_todo'],
+                        'notes': [
+                            'create_my_todo returns success and id.',
+                            'update_my_todo and delete_my_todo return success.',
+                        ],
+                    },
+                },
+            },
+        },
+        'exam': {
+            'name': 'Exam',
+            'access': {
+                'anon': 'Can read exam information.',
+                'user': 'Can read exam information. Cannot modify exam fact data.',
+                'admin': 'Maintains exam data through admin or import flows, not direct edits on ordinary pages.',
+                'agent': 'After authorization, can read exams relevant to the current user; this capability is primarily exposed via MCP.',
+            },
+            'rules': [
+                'Exams are attached to sections and are high-priority time events.',
+                'Exams are read-only; no ordinary user edit entry point is provided.',
+                'Semesters must be explicitly displayed when browsing exams across semesters.',
+            ],
+            'capabilities': {
+                'cross-section-exam-list': {
+                    'title': 'Cross-Section Exam List',
+                    'links': {
+                        'models': ['ExamEntry'],
+                    },
+                    'web': {
+                        'pages': ['/?tab=exams'],
+                        'notes': [
+                            'The home page exam tab provides a cross-section exam list.',
+                            'Cards primarily display course name; secondary display shows exam room, date/time, and exam mode.',
+                            'Section codes are only promoted in priority when disambiguation is needed.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['No standalone exam list endpoint is currently exposed.'],
+                    },
+                    'mcp': {
+                        'tools': ['list_my_exams'],
+                        'notes': [
+                            'Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].',
+                        ],
+                    },
+                },
+                'section-exam-info': {
+                    'title': 'Section Exam Info',
+                    'links': {
+                        'models': ['ExamEntry'],
+                    },
+                    'web': {
+                        'pages': ['/sections/[jwId]'],
+                        'notes': ["The section detail page displays the section's exams in the calendar tab and mini calendar."],
+                    },
+                    'rest': {
+                        'notes': ['Currently provided through a combination of existing public academic objects and calendar capabilities.'],
+                    },
+                    'mcp': {
+                        'tools': ['list_exams_by_section'],
+                        'notes': ["Returns a single section's exams[]."],
+                    },
+                },
+            },
+        },
+        'overview': {
+            'name': 'Overview',
+            'access': {
+                'anon': 'On the home page, can only see the public bus and frequent links views; cannot enter the personal overview.',
+                'user': 'The home page serves as the personal workspace.',
+                'admin': 'The home page personal workspace behavior is the same as regular users.',
+                'agent': 'Can read overview results with the same semantics as the home page; REST and MCP should return consistent overview information.',
+            },
+            'rules': [
+                "The home page is not a directory page but a decision page for 'what to do next'.",
+                'The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.',
+                "Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.",
+                'Non-current-semester subscribed sections must not be disguised as current learning tasks.',
+            ],
+            'capabilities': {
+                'authenticated-overview': {
+                    'title': 'Authenticated Homepage Overview',
+                    'links': {
+                        'models': ['OverviewSnapshot'],
+                    },
+                    'web': {
+                        'pages': [
+                            '/?tab=overview',
+                            '/?tab=calendar',
+                            '/?tab=subscriptions',
+                            '/?tab=exams',
+                            '/?tab=homeworks',
+                            '/?tab=todos',
+                            '/?tab=bus',
+                            '/?tab=links',
+                        ],
+                        'notes': [
+                            '/',
+                            "Displays frequent links, today's and tomorrow's schedule, this week's calendar, incomplete homework, and incomplete todos.",
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['No standalone overview endpoint is currently exposed.'],
+                    },
+                    'mcp': {
+                        'tools': ['get_my_overview'],
+                        'notes': [
+                            "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
+                            'samples contains dueTodos[], dueHomeworks[], and upcomingExams[].',
+                            'Returns user, overview, and samples.',
+                        ],
+                    },
+                },
+                'anonymous-overview': {
+                    'title': 'Anonymous Homepage',
+                    'web': {
+                        'notes': [
+                            '/',
+                            'Retains only the two public tabs: bus and links.',
+                        ],
+                    },
+                },
+            },
+        },
+        'permission': {
+            'name': 'Permission UI / Permission',
+            'access': {
+                'anon': 'Can only perform public browsing and pre-sign-in guidance actions.',
+                'user': 'Cannot modify schedules or exams; can only manage personal state such as homework completion status and todos.',
+                'admin': 'Has governance entries but this does not change the information hierarchy logic on ordinary detail pages.',
+                'agent': 'Can receive more structured fields but should not produce a second product model as a result.',
+            },
+            'rules': [
+                'Users first identify by name, not by code.',
+                'Codes, semesters, and numbers primarily serve disambiguation and retrieval.',
+                'jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default.',
+            ],
+            'capabilities': {
+                'list-page': {
+                    'title': 'List Page',
+                    'web': {
+                        'notes': [
+                            'List pages handle discovery, filtering, and disambiguation.',
+                            'Sufficient disambiguation fields must be retained.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['Can return structured identifier fields for retrieval and consumption.'],
+                    },
+                    'mcp': {
+                        'notes': ['Can return structured identifier fields for retrieval and consumption.'],
+                    },
+                },
+                'detail-page': {
+                    'title': 'Detail Page',
+                    'web': {
+                        'notes': [
+                            'Detail pages handle complete context and object-related operations.',
+                            'Should display complete context and collaborative content.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['Returns structured fields required for details.'],
+                    },
+                    'mcp': {
+                        'notes': ['Returns structured fields required for details.'],
+                    },
+                },
+                'card': {
+                    'title': 'Card',
+                    'web': {
+                        'notes': [
+                            'Cards handle quick scanning and quick action.',
+                            'Prioritizes displaying information needed for the next decision.',
+                            'The home page calendar and section calendar reuse consistent event cards and navigation behavior as much as possible.',
+                            'Both mobile and desktop must avoid overflow, occlusion, and hiding of critical actions.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['Does not expose the card format; only exposes data.'],
+                    },
+                    'mcp': {
+                        'notes': ['Does not expose the card format; only exposes data.'],
+                    },
+                },
+                'auxiliary-pages': {
+                    'title': 'Auxiliary Pages',
+                    'web': {
+                        'notes': [
+                            '/mobile-app: Mobile app onboarding page.',
+                            '/privacy: Privacy policy.',
+                            '/terms: Terms of service.',
+                            '/guides/markdown-support: Markdown support documentation.',
+                        ],
+                    },
+                },
+            },
+        },
+        'comment': {
+            'name': 'Comment',
+            'access': {
+                'anon': 'Can read public comments but cannot create sign-in-required comments.',
+                'user': 'Can post, reply, react, edit, and delete their own comments; suspended users cannot post new comments.',
+                'admin': 'Can hide, delete, and moderate comments, and handle reports or suspensions.',
+                'agent': 'No comment read/write capability is currently provided.',
+            },
+            'rules': [
+                'Comments must be attached to a specific object; no decontextualized public feed entry is provided.',
+                'Attached objects include courses, sections, teachers, homework, and section-teacher relationships.',
+                'Supports Markdown, math formulas, emoji, tables, replies, and reactions.',
+                'Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.',
+            ],
+            'capabilities': {
+                'object-comment-section': {
+                    'title': 'Object Comment Section',
+                    'web': {
+                        'notes': [
+                            'Comment section in detail pages for objects such as courses, sections, teachers, and homework.',
+                            'Comments and descriptions are placed in the object detail page, not in a standalone community page.',
+                            'Deleting a comment is a high-risk operation that requires confirmation.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': [
+                            '/api/comments',
+                            '/api/comments/[id]',
+                            '/api/comments/[id]/reactions',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No comment read/write tools are currently provided.'],
+                    },
+                },
+                'comment-governance': {
+                    'title': 'Comment Governance',
+                    'web': {
+                        'pages': ['/admin/moderation'],
+                    },
+                    'rest': {
+                        'routes': [
+                            '/api/admin/comments',
+                            '/api/admin/comments/[id]',
+                            '/api/admin/suspensions',
+                            '/api/admin/suspensions/[id]',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No admin comment tools are currently provided.'],
+                    },
+                },
+                'comment-auxiliary-pages': {
+                    'title': 'Comment Auxiliary Pages',
+                    'web': {
+                        'pages': ['/comments/[id]', '/comments/guide'],
+                        'notes': [
+                            'The former redirects a single comment back to its original object context; the latter provides comment format documentation.',
+                        ],
+                    },
+                },
+            },
+        },
+        'description': {
+            'name': 'Description',
+            'access': {
+                'anon': 'Can read public descriptions.',
+                'user': 'When signed in and not suspended, can maintain descriptions.',
+                'admin': 'Can review and maintain descriptions in the admin backend.',
+                'agent': 'No general description tools are currently provided.',
+            },
+            'rules': [
+                'Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.',
+                'Attached objects include courses, sections, teachers, homework, and similar.',
+                'When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default.',
+            ],
+            'capabilities': {
+                'object-description-section': {
+                    'title': 'Object Description Section',
+                    'web': {
+                        'notes': [
+                            'Description area in detail pages for courses, sections, teachers, and homework.',
+                            'Descriptions are displayed as stable supplementary information for objects.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/descriptions'],
+                    },
+                    'mcp': {
+                        'notes': ['No general object description maintenance tools are currently provided.'],
+                    },
+                },
+                'description-governance': {
+                    'title': 'Description Governance',
+                    'web': {
+                        'pages': ['/admin/moderation'],
+                    },
+                    'rest': {
+                        'routes': ['/api/admin/descriptions'],
+                    },
+                    'mcp': {
+                        'notes': ['No description governance tools are currently provided.'],
+                    },
+                },
+            },
+        },
+        'upload': {
+            'name': 'Upload',
+            'access': {
+                'anon': 'Cannot upload attachments.',
+                'user': 'Can upload in the comment attachment flow; download permissions must be re-validated.',
+                'admin': "No standalone public 'upload management console' currently exists.",
+                'agent': 'No upload capability is currently provided.',
+            },
+            'rules': [
+                'Uploads serve only comment attachments; they are not an independent file space.',
+                'Permission and quota checks are required before upload.',
+                "Web comment attachment uploads follow a three-step flow — create upload session on-site → browser direct upload to S3-compatible pre-signed URL generated by AWS SDK → confirm completion on-site; page CSP must allow the signed storage origin actually used by the upload backend, including AWS S3 virtual-hosted / path-style addresses or compatible backend addresses via custom endpoint configuration.",
+                'The storage backend operates with AWS SDK S3-compatible configuration; defaults to AWS S3 but allows connecting to compatible backends via custom endpoint.',
+                'E2E tests use a local S3-compatible test endpoint by default; external storage is only used when an available S3 environment is explicitly provided.',
+                'Downloads must not bypass authorization by obtaining a direct link.',
+                '/api/uploads/[id]/download only returns a short-lived signed download URL redirect, not a stable long-reusable object direct link.',
+            ],
+            'capabilities': {
+                'upload-list': {
+                    'title': 'Upload List',
+                    'web': {
+                        'notes': [
+                            "No standalone upload management page exists; the comment editor reads the current user's upload quota and upload history on demand and initiates upload sessions from here.",
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/uploads'],
+                        'notes': [
+                            "The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.",
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No upload tools are currently provided.'],
+                    },
+                },
+                'comment-attachment-upload': {
+                    'title': 'Comment Attachment Upload',
+                    'web': {
+                        'notes': [
+                            'Attachment flow within the comment editor.',
+                            'No standalone resource browsing entry independent of object context is provided.',
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/uploads', '/api/uploads/complete'],
+                    },
+                    'mcp': {
+                        'notes': ['No upload tools are currently provided.'],
+                    },
+                },
+                'comment-attachment-download': {
+                    'title': 'Comment Attachment Download',
+                    'web': {
+                        'notes': ['Comment attachment download entry.'],
+                    },
+                    'rest': {
+                        'routes': ['/api/uploads/[id]', '/api/uploads/[id]/download'],
+                        'notes': ['The current download implementation validates access permissions based on the upload owner.'],
+                    },
+                    'mcp': {
+                        'notes': ['No download tools are currently provided.'],
+                    },
+                },
+            },
+        },
+        'bus': {
+            'name': 'Bus',
+            'access': {
+                'anon': 'Can query bus information.',
+                'user': 'Can query bus information and save preferences.',
+                'admin': 'Can maintain bus data.',
+                'agent': 'Can read bus timetable capabilities.',
+            },
+            'rules': [
+                'Bus is public campus life information; sign-in should not be a prerequisite.',
+                "The dashboard bus page determines weekday/weekend by the user's local time on the client side by default and allows manual switching.",
+                "When calculating 'how long until departure', whether a trip has departed, and route ordering, the dashboard client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.",
+                "The dashboard bus page provides only core filters for departure stop, arrival stop, direction reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.",
+                "The dashboard visual structure should prioritize 'quick scanning of the next trip and route differences'; selected stop, direction, next departure time, and route grouping must be more prominent than decorative cards.",
+                "Routes are currently sorted by 'the next boardable time from the selected departure stop'; if a stop has no exact time in the original timetable, the average of adjacent known stop times in the same trip is used as an estimate.",
+                'The dashboard main view uses a single merged large table to display all applicable routes, grouped into table sections by route; each section shows the visible trips for that route.',
+                '/api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller\'s saved preferences; the server does not pre-apply recommendations, filtering, or sorting.',
+                'list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.',
+                "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
+            ],
+            'capabilities': {
+                'bus-dashboard': {
+                    'title': 'Bus Dashboard',
+                    'web': {
+                        'pages': ['/?tab=bus'],
+                        'notes': [
+                            "The dashboard route and trip view supports client-side weekday/weekend switching, vertical departure/arrival stop selection, direction reversal, toggling display of already-departed trips, and displays all applicable routes in a large table grouped by route.",
+                        ],
+                    },
+                    'rest': {
+                        'routes': ['/api/bus', '/api/bus/preferences'],
+                    },
+                    'mcp': {
+                        'tools': ['query_bus_timetable', 'list_bus_routes', 'get_bus_route_timetable'],
+                    },
+                },
+                'bus-map': {
+                    'title': 'Bus Route Map',
+                    'web': {
+                        'pages': ['/bus-map'],
+                        'notes': ['Bus route map.'],
+                    },
+                    'rest': {
+                        'notes': ['No standalone map REST entry currently exists.'],
+                    },
+                    'mcp': {
+                        'notes': ['No map view capability is provided.'],
+                    },
+                },
+            },
+        },
+        'dashboard-link': {
+            'name': 'Dashboard Link',
+            'access': {
+                'anon': 'Can browse frequent links but cannot pin them.',
+                'user': 'Can pin, unpin, and record link visits.',
+                'admin': 'Has no dedicated link management interface separate from regular users.',
+                'agent': 'No frequent link management capability is currently provided.',
+            },
+            'rules': [
+                'Frequent links are a navigation capability, not a content feed.',
+                'Search supports Chinese, pinyin, and whitespace-tolerant matching.',
+                'Links are for navigation; buttons are for actions.',
+                'Currently a maximum of 5 links can be pinned; exceeding this displaces the earliest pinned link.',
+                'When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes.',
+            ],
+            'capabilities': {
+                'link-browse': {
+                    'title': 'Link Browse & Search',
+                    'web': {
+                        'pages': ['/?tab=links', '/?tab=overview'],
+                        'notes': [
+                            'The home page provides frequent links to internal and external campus systems; unsigned-in users can only browse.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ["No standalone 'search links' endpoint currently exists."],
+                    },
+                    'mcp': {
+                        'notes': ['No frequent link tools are currently provided.'],
+                    },
+                },
+                'link-pin-and-visit': {
+                    'title': 'Link Pin & Visit',
+                    'web': {
+                        'notes': ['Signed-in users can pin, unpin, and record link visits.'],
+                    },
+                    'rest': {
+                        'routes': ['/api/dashboard-links/pin', '/api/dashboard-links/visit'],
+                    },
+                    'mcp': {
+                        'notes': ['No corresponding capability is currently provided.'],
+                    },
+                },
+            },
+        },
+        'admin': {
+            'name': 'Admin',
+            'access': {
+                'anon': 'Cannot access the admin backend.',
+                'user': 'Cannot access the admin backend.',
+                'admin': 'Can access governance pages for moderation, users, OAuth, bus, and more.',
+                'agent': 'No admin tools are currently provided.',
+            },
+            'rules': [
+                'The admin backend is divided by governance responsibility, not all actions on one page.',
+                'Comment and description governance are currently centralized on the moderation page.',
+                'High-risk admin actions such as delete, suspend, and hide must have clear feedback.',
+            ],
+            'capabilities': {
+                'admin-home': {
+                    'title': 'Admin Home',
+                    'web': {
+                        'pages': ['/admin'],
+                        'notes': ['Entry aggregation page.'],
+                    },
+                },
+                'moderation': {
+                    'title': 'Moderation',
+                    'web': {
+                        'pages': ['/admin/moderation'],
+                        'notes': ['Hosts both comment and description governance simultaneously.'],
+                    },
+                    'rest': {
+                        'routes': [
+                            '/api/admin/comments',
+                            '/api/admin/comments/[id]',
+                            '/api/admin/descriptions',
+                            '/api/admin/suspensions',
+                            '/api/admin/suspensions/[id]',
+                            '/api/admin/homeworks',
+                            '/api/admin/homeworks/[id]',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No standalone admin tools are currently provided.'],
+                    },
+                },
+                'user-management': {
+                    'title': 'User Management',
+                    'web': {
+                        'pages': ['/admin/users'],
+                    },
+                    'rest': {
+                        'routes': ['/api/admin/users', '/api/admin/users/[id]'],
+                    },
+                    'mcp': {
+                        'notes': ['No standalone admin tools are currently provided.'],
+                    },
+                },
+                'oauth-client-management': {
+                    'title': 'OAuth Client Management',
+                    'web': {
+                        'pages': ['/admin/oauth'],
+                        'notes': [
+                            'The admin home should first explain client modes: first-party / internal applications prefer creating confidential clients; CLI, native apps, and MCP tools prefer creating public PKCE clients.',
+                            "The page should separate 'how to select client type' from 'existing client overview', prioritizing reduction of the admin's cognitive load.",
+                        ],
+                    },
+                    'rest': {
+                        'notes': [
+                            'No standalone REST admin interface currently exists.',
+                            'Backend creation and deletion are handled through server actions.',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No standalone admin tools are currently provided.'],
+                    },
+                },
+                'bus-management': {
+                    'title': 'Bus Management',
+                    'web': {
+                        'pages': ['/admin/bus'],
+                        'notes': [
+                            'When manually importing static bus data in the admin backend, data should be read directly from https://static.life-ustc.tiankaima.dev; local clone, paths outside the working directory, or git commands must not be used.',
+                            'Deleting an inactive timetable version must use the in-app destructive confirm dialog; browser-native confirm dialogs must not be used.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': [
+                            'No standalone admin REST management interface currently exists.',
+                            'Version import, activation, and deletion are handled through server actions.',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No standalone admin tools are currently provided.'],
+                    },
+                },
+            },
+        },
+        'oauth': {
+            'name': 'OAuth',
+            'access': {
+                'anon': 'When accessing the authorization page, will first be guided to sign in.',
+                'user': 'Can only approve or reject third-party client authorization requests.',
+                'admin': 'Can manage OAuth clients in the admin backend.',
+                'agent': 'Accesses restricted capabilities after obtaining a token through the standard authorization flow.',
+            },
+            'rules': [
+                'The authorization page must clearly display the application name, requested permissions, approve action, and reject action.',
+                "Users see 'what this app wants and whether I allow it', not technical protocol details.",
+                'Dynamic client registration is handled by the standard /oauth2/register path of the Better Auth OAuth provider; the project no longer maintains a parallel hand-written DCR persistence logic.',
+                'Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer.',
+                'First-party / internal applications prefer using trusted OAuth clients created in the admin backend; such clients can skip consent and can further be incorporated into the Better Auth provider\'s trusted / cached client scheme when needed, rather than relying on public DCR.',
+                'Public MCP / CLI / native clients use public + PKCE mode; admin copy and grouping should explicitly separate trusted first-party from external/public to reduce admin misconfiguration probability.',
+                'When creating clients in the admin backend, redirect URI and client metadata validation should preferentially reuse the rules of the Better Auth OAuth provider, no longer maintaining a local forked rule document.',
+                'For public native clients with loopback redirect URIs, the server should accommodate the hostname alias difference between 127.0.0.1 and localhost to avoid DCR registration and authorization requests failing solely due to these two local loopback representations; beyond this, strict matching is maintained for path, query, scheme, and non-loopback host rules.',
+                'The device authorization flow is currently still implemented by the project as a custom implementation, because the existing Better Auth device-authorization plugin returns a session token rather than the OAuth bearer-token / refresh-token semantics of this project; it should not be forcibly replaced until the provider natively supports the OAuth device grant.',
+                'Local development and preview deployments without fixed hostnames can reuse the production site\'s registered provider callback address through an OAuth proxy; after the preview/local instance shares the proxy encryption key with the production instance, the production site completes the provider callback and sends the encrypted user profile back to the current instance to establish a local session.',
+                'For OAuth issuers with a path (currently /api/auth), the canonical entry for authorization server metadata should be /.well-known/oauth-authorization-server/api/auth; the root-level /.well-known/oauth-authorization-server serves only as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the issuer at the root level.',
+                'For OpenID issuers with a path (currently /api/auth), the canonical entry for OIDC Discovery should be /api/auth/.well-known/openid-configuration, with /.well-known/openid-configuration/api/auth also provided as an RFC 8414 compatible path; the root-level /.well-known/openid-configuration serves only as a compatibility alias redirect to the canonical address.',
+                'For protected resources with a path (currently MCP resource /api/mcp), the canonical entry per RFC 9728 should be /.well-known/oauth-protected-resource/api/mcp; the root-level /.well-known/oauth-protected-resource serves only as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the resource field.',
+                'Compatibility aliases should use redirects rather than redundantly returning a JSON that "looks usable but is inconsistent with issuer/resource validation", so that clients ultimately complete metadata validation at the canonical address.',
+                'Discovery metadata should support cross-origin reading: at minimum return Access-Control-Allow-Origin: * for OpenID discovery, and keep the CORS behavior of authorization server metadata and protected resource metadata consistent, reducing compatibility risks for browser-type clients and debugging tools.',
+            ],
+            'capabilities': {
+                'authorization': {
+                    'title': 'Authorization',
+                    'web': {
+                        'pages': ['/oauth/authorize'],
+                        'notes': ['Displays client name and requested scopes.'],
+                    },
+                    'rest': {
+                        'notes': ['The authorization protocol is handled by authentication routes.'],
+                    },
+                },
+                'client-registration': {
+                    'title': 'Client Registration & Discovery',
+                    'web': {
+                        'pages': ['/admin/oauth'],
+                        'notes': ['The admin backend displays OAuth client management capabilities.'],
+                    },
+                    'rest': {
+                        'routes': [
+                            '/api/auth/.well-known/openid-configuration',
+                            '/api/auth/oauth2/register',
+                            '/.well-known/oauth-authorization-server/api/auth',
+                            '/.well-known/openid-configuration/api/auth',
+                            '/.well-known/oauth-protected-resource/api/mcp',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['No OAuth management capability is provided.'],
+                    },
+                },
+                'device-authorization-grant': {
+                    'title': 'Device Authorization Grant (RFC 8628)',
+                    'web': {
+                        'pages': ['/oauth/device'],
+                        'notes': [
+                            'Users enter the device code (user_code) on this page; upon confirmation, they approve or reject the device sign-in request.',
+                            'When unsigned-in users access this page, they are first directed to the sign-in page and automatically return to the device verification page after signing in.',
+                            'Supports pre-filling the device code via the code query parameter in verification_uri_complete.',
+                        ],
+                    },
+                    'rest': {
+                        'ops': [
+                            'POST /api/auth/oauth2/device-authorization',
+                            'POST /api/auth/oauth2/token',
+                        ],
+                        'notes': [
+                            'Request body is application/x-www-form-urlencoded; parameters:',
+                            'Returns JSON:',
+                            'Supports CORS (Access-Control-Allow-Origin: *).',
+                            'The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.',
+                            'During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on state.',
+                            '.well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported.',
+                        ],
+                    },
+                    'mcp': {
+                        'notes': ['Not applicable; the device authorization flow completes before MCP establishes a connection.'],
+                    },
+                },
+            },
+        },
+        'webhook-login': {
+            'name': 'Webhook Login',
+            'access': {
+                'anon': 'Not applicable.',
+                'user': 'Not applicable.',
+                'admin': 'Must hold the WEBHOOK_SECRET environment variable value.',
+                'agent': 'Not applicable.',
+            },
+            'rules': [
+                'Only available when the server is configured with the WEBHOOK_SECRET environment variable; all requests return 403 when not configured.',
+                'Used for passwordless login in production debugging scenarios; not a regular user sign-in entry point.',
+                'Locates the target user by email or userId and establishes a session via Better Auth session primitives; no longer hand-writes session cookie signing.',
+            ],
+            'capabilities': {
+                'webhook-login': {
+                    'title': 'Webhook Login',
+                    'web': {
+                        'notes': ['Not applicable; no corresponding web entry.'],
+                    },
+                    'rest': {
+                        'ops': ['POST /api/auth/webhook/login'],
+                        'notes': [
+                            'Request body is JSON:',
+                            'Returns JSON on success: ok, userId, email, sessionToken, expires.',
+                            'Also sets the better-auth.session_token cookie.',
+                        ],
+                    },
+                },
+            },
+        },
+        'openapi': {
+            'name': 'REST / OpenAPI',
+            'access': {
+                'anon': 'Can browse API documentation and public REST capabilities.',
+                'user': 'When signed in, can call their own restricted REST capabilities.',
+                'admin': 'Calls governance capabilities through the corresponding admin endpoints.',
+                'agent': 'Can call public REST capabilities and, after OAuth authorization, can call restricted REST and MCP capabilities; both share the same authorization boundary by default.',
+            },
+            'rules': [
+                'The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.',
+                'Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate \'developer-specific business model\'.',
+                'Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.',
+                'The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.',
+            ],
+            'capabilities': {
+                'api-docs-page': {
+                    'title': 'API Docs Page',
+                    'web': {
+                        'pages': ['/api-docs'],
+                        'notes': ['Swagger documentation entry.'],
+                    },
+                },
+                'openapi-spec': {
+                    'title': 'OpenAPI Spec',
+                    'web': {
+                        'notes': ['The /api-docs page consumes this document.'],
+                    },
+                    'rest': {
+                        'routes': ['/api/openapi'],
+                    },
+                },
+                'business-rest-routes': {
+                    'title': 'Business REST Routes',
+                    'web': {
+                        'notes': ['Page behavior is implemented through corresponding /api/* route calls.'],
+                    },
+                    'rest': {
+                        'notes': [
+                            'Domain-specific REST endpoints under /api/*.',
+                            'Current user-side protected endpoints support both in-site session from the request cookie and OAuth bearer tokens.',
+                        ],
+                    },
+                },
+                'platform-utility-routes': {
+                    'title': 'Platform Utility Routes',
+                    'rest': {
+                        'notes': [
+                            '/api/metadata: Returns filter dictionaries (education level, course category, campus, etc.).',
+                            '/api/locale: Sets the user language preference cookie.',
+                        ],
+                    },
+                },
+            },
+        },
+        'mcp': {
+            'name': 'MCP',
+            'access': {
+                'anon': 'Cannot call MCP tools that require user context.',
+                'user': 'After authorization, can call personal workspace-related tools.',
+                'admin': 'Currently does not automatically gain additional MCP admin tools due to admin status.',
+                'agent': 'MCP is one of the protocol entry points alongside REST, covering capabilities aligned with the web by default and sharing the same OAuth permission boundary.',
+            },
+            'rules': [
+                'MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities; admin capabilities are not exposed by default.',
+                'Current tool output is uniformly text-formatted JSON.',
+                'Output mode has three levels: summary, default, full.',
+                'MCP currently covers core query tools for courses, sections, teachers, semesters, subscriptions, schedules, and unified calendar events; comment, upload, description governance, link management, and admin capabilities do not yet have corresponding tools.',
+            ],
+            'capabilities': {
+                'protocol-endpoint': {
+                    'title': 'Protocol Endpoint',
+                    'web': {
+                        'notes': ['No standalone MCP Web UI currently exists; the documentation entry remains at /api-docs.'],
+                    },
+                    'rest': {
+                        'routes': ['/api/mcp'],
+                    },
+                    'mcp': {
+                        'notes': ['All tool calls are handled through this endpoint.'],
+                    },
+                },
+                'tool-groups': {
+                    'title': 'Tool Groups',
+                    'mcp': {
+                        'notes': [
+                            'Profile / Todo',
+                            'Course / Section',
+                            'Calendar / Timeline',
+                            'Homework / Exam / Schedule',
+                            'Bus',
+                        ],
+                    },
+                },
+                'available-tools': {
+                    'title': 'Currently Available MCP Tools',
+                    'mcp': {
+                        'tools': [
+                            'get_my_profile',
+                            'list_my_todos',
+                            'create_my_todo',
+                            'update_my_todo',
+                            'delete_my_todo',
+                            'list_my_homeworks',
+                            'set_my_homework_completion',
+                            'list_my_schedules',
+                            'list_my_exams',
+                            'get_my_overview',
+                            'get_my_7days_timeline',
+                            'list_semesters',
+                            'get_current_semester',
+                            'search_courses',
+                            'get_course_by_jw_id',
+                            'search_sections',
+                            'get_section_by_jw_id',
+                            'search_teachers',
+                            'get_teacher_by_id',
+                            'match_section_codes',
+                            'get_my_calendar_subscription',
+                            'subscribe_my_sections_by_codes',
+                            'subscribe_section_by_jw_id',
+                            'unsubscribe_section_by_jw_id',
+                            'list_my_subscribed_sections',
+                            'get_section_calendar_subscription',
+                            'list_homeworks_by_section',
+                            'create_homework_on_section',
+                            'update_homework_on_section',
+                            'list_schedules_by_section',
+                            'list_exams_by_section',
+                            'query_schedules',
+                            'list_my_calendar_events',
+                            'query_bus_timetable',
+                            'list_bus_routes',
+                            'get_bus_route_timetable',
+                        ],
+                    },
+                },
+                'unavailable-tools': {
+                    'title': 'Currently Unavailable MCP Tools',
+                    'mcp': {
+                        'tools': [
+                            'get_public_user_profile',
+                            'list_comments',
+                            'create_comment',
+                            'update_comment',
+                            'delete_comment',
+                            'react_to_comment',
+                            'list_descriptions',
+                            'upsert_description',
+                            'get_my_uploads',
+                            'create_upload_session',
+                            'complete_upload',
+                            'get_upload_download',
+                            'search_dashboard_links',
+                            'pin_dashboard_link',
+                            'unpin_dashboard_link',
+                            'record_dashboard_link_visit',
+                        ],
+                    },
+                },
+            },
+        },
+        'security': {
+            'name': 'Content / Security',
+            'access': {
+                'anon': 'Anonymous comments do not expose real identity to regular users; identity is traceable by admins for governance and security processing.',
+                'user': 'Can post anonymous comments with identity hidden from other users. Uploads and downloads require permission validation. Destructive actions require explicit confirmation.',
+                'admin': 'Can trace anonymous comment identities in governance scenarios. High-risk actions (delete, suspend, hide) must provide explicit feedback.',
+                'agent': 'Must maintain the same permission boundaries and error feedback as web/API.',
+            },
+            'rules': [
+                'Anonymous capability and traceability capability coexist; this is not an either-or design.',
+                'Both uploads and downloads require permission checks; the security boundary must not apply only to the upload entry point.',
+            ],
+            'capabilities': {
+                'anonymous-comment-visibility': {
+                    'title': 'Anonymous Comment Visibility',
+                    'web': {
+                        'notes': ['Anonymous to regular users; traceable on the governance side.'],
+                    },
+                    'rest': {
+                        'notes': ['Implemented jointly through comment and admin endpoints.'],
+                    },
+                    'mcp': {
+                        'notes': ['No comment tools are currently provided.'],
+                    },
+                },
+                'upload-download-access': {
+                    'title': 'Upload / Download Access Control',
+                    'web': {
+                        'notes': ['Both comment attachment upload and download require permission validation.'],
+                    },
+                    'rest': {
+                        'notes': ['Permissions are validated through the upload and download endpoints.'],
+                    },
+                    'mcp': {
+                        'notes': ['No upload tools are currently provided.'],
+                    },
+                },
+                'destructive-action-confirmation': {
+                    'title': 'Destructive Action Confirmation',
+                    'web': {
+                        'notes': [
+                            'Operations requiring confirmation include at minimum: disconnecting an OAuth account, batch section subscription, account deletion, deleting a comment, deleting homework, and unsubscribing in the subscribed sections list.',
+                            'Lightweight operations that typically do not require confirmation include: single subscribe/unsubscribe on the section detail page, homework completion state toggle, todo completion state toggle, comment reactions, and pinning/unpinning links.',
+                        ],
+                    },
+                    'rest': {
+                        'notes': ['Must maintain the same permission boundaries and error feedback as the web.'],
+                    },
+                    'mcp': {
+                        'notes': ['Must maintain the same permission boundaries as web/API.'],
+                    },
+                },
+            },
+        },
+    },
+    'cases': {
+        'semester': {
+            'rules': {
+                'no-current-semester': [
+                    'The home page should display a recoverable empty state.',
+                    'Users should be guided to browse or import sections.',
+                ],
+                'only-non-current-semester-subscriptions': [
+                    'The home page must not pretend to have current learning tasks.',
+                    'Must clearly indicate that no sections are subscribed for the current semester.',
+                ],
+                'cross-semester-browsing': [
+                    'Courses must display semester.',
+                    'Sections must display semester.',
+                    'Homework must display semester.',
+                    'Exams must display semester.',
+                ],
+            },
+            'decisions': [
+                'When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering a misleading empty list.',
+                "When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal.",
+            ],
+        },
+        'disambiguation': {
+            'rules': {
+                'duplicate-course-names': [
+                    'Course code or other disambiguation information should be displayed.',
+                ],
+                'multiple-sections-same-course': [
+                    'Section code and semester should be displayed.',
+                ],
+                'required-disambiguation-contexts': [
+                    'Section search.',
+                    'Child sections in course detail.',
+                    'Batch import results.',
+                ],
+            },
+            'decisions': [
+                'Whenever there is a risk of ambiguity, list views must prioritize displaying fields that help make a selection.',
+                'Courses with the same name and multiple sections under the same course must not display only the course name.',
+                'In cross-semester or multi-section scenarios, semester and section code are mandatory information to retain.',
+            ],
+        },
+        'missing-data': {
+            'rules': {
+                'section-missing-teacher-location-or-exam': [
+                    'A default empty state should be displayed.',
+                    'The entire object must not be hidden.',
+                ],
+                'homework-no-due-date': [
+                    "Does not enter the 'upcoming due' sort.",
+                    'Can still be viewed in the homework list.',
+                ],
+                'ical-no-events': [
+                    'A valid but empty or informational calendar content should be returned.',
+                ],
+            },
+            'decisions': [
+                'When fields are missing, prefer showing a default empty state rather than hiding the entire object.',
+                'Homework with no due date retains visibility but does not mix into upcoming due date sorting.',
+                "When iCal has no events, a valid result should still be returned to prevent clients from failing on 'empty'.",
+            ],
+        },
+        'account': {
+            'rules': {
+                'username-change': [
+                    'The new profile page should be accessible.',
+                    'The old username must not continue to represent the user.',
+                ],
+                'oauth-connection-error': [
+                    'Duplicate OAuth connection should give a clear error response.',
+                    'Disconnecting the last account should give a clear error response.',
+                ],
+                'account-deletion': [
+                    'The user must be required to enter a confirmation word.',
+                    'After successful deletion, the current session should be terminated and the settings page exited.',
+                ],
+            },
+            'decisions': [
+                'After a username change, the new address should immediately become the canonical entry.',
+                'The old username must not continue to represent the user for an extended period to avoid identity confusion.',
+                'Disconnecting the last sign-in account is an error operation that must be blocked, not an ordinary failure-retry scenario.',
+                'Account deletion carries higher risk than ordinary destructive operations; the current implementation requires entering the fixed confirmation word DELETE.',
+            ],
+        },
+        'content-security': {
+            'rules': {
+                'suspended-user': [
+                    'Cannot post new comments.',
+                ],
+                'upload-attachment-download': [
+                    'Access permissions must be validated.',
+                ],
+                'destructive-actions': [
+                    'Deletion must have explicit feedback.',
+                    'Suspension must have explicit feedback.',
+                    'Hiding must have explicit feedback.',
+                ],
+            },
+            'decisions': [
+                'Suspended users cannot post new comments; this restriction must hold at both the product layer and the permission layer.',
+                'Upload attachment download must re-validate access permissions; it must not assume that having the link is sufficient to download.',
+                'High-risk operations use explicit feedback mechanisms.',
+            ],
+        },
+    },
+    'audit': {
+        'fields': {
+            'id': {
+                'type': 'String (cuid)',
+                'note': 'Primary key',
+            },
+            'action': {
+                'type': 'AuditAction',
+                'note': 'Enum value (see below)',
+            },
+            'userId': {
+                'type': 'String',
+                'note': 'Actor who performed the action',
+            },
+            'targetId': {
+                'type': 'String?',
+                'note': 'ID of the affected object',
+            },
+            'targetType': {
+                'type': 'String?',
+                'note': '"comment", "description", "upload", "user"',
+            },
+            'metadata': {
+                'type': 'Json?',
+                'note': 'Extra context (body snippet, reason, etc.)',
+            },
+            'ipAddress': {
+                'type': 'String?',
+                'note': 'From x-forwarded-for / x-real-ip',
+            },
+            'userAgent': {
+                'type': 'String?',
+                'note': 'From user-agent header',
+            },
+            'createdAt': {
+                'type': 'DateTime',
+                'note': 'When the action occurred',
+            },
+        },
+        'actions': {
+            'comment_create': 'POST /api/comments',
+            'comment_edit': 'PATCH /api/comments/[id]',
+            'comment_delete': 'DELETE /api/comments/[id]',
+            'comment_react': 'POST /api/comments/[id]/reactions',
+            'description_edit': 'POST /api/descriptions (content changed)',
+            'upload_delete': 'DELETE /api/uploads/[id]',
+            'admin_user_suspend': 'POST /api/admin/suspensions',
+            'admin_user_unsuspend': 'PATCH /api/admin/suspensions/[id]',
+            'admin_comment_moderate': 'PATCH /api/admin/comments/[id]',
+            'admin_description_moderate': 'Reserved for future admin description actions',
+        },
+        'writer': 'writeAuditLog in src/lib/audit/write-audit-log.ts writes a record. Calls are fire-and-forget (.catch(() => {})) so audit failures never block the main request.',
+    },
+}
+
+output = yaml.dump(
+    data,
+    Dumper=BlockDumper,
+    default_flow_style=False,
+    allow_unicode=True,
+    sort_keys=False,
+    indent=2,
+    width=120,
+)
+
+with open('docs/features.yml', 'w', encoding='utf-8') as f:
+    f.write('# schema: ./features.schema.json\n')
+    f.write(output)
+
+print('Written docs/features.yml successfully.')
