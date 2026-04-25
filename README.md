@@ -1,6 +1,6 @@
 # Life@USTC
 
-- [docs/features.md](./docs/features.md)
+- [docs/features.yml](./docs/features.yml)
 
 ## 快速开始
 

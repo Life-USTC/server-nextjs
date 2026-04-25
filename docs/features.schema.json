@@ -4,38 +4,49 @@
   "title": "Life@USTC Features",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "version",
-    "meta",
-    "product",
-    "models",
-    "ui",
-    "modules",
-    "cases",
-    "audit"
-  ],
+  "required": ["meta", "product", "models", "ui", "modules", "cases", "audit"],
   "properties": {
-    "version": {
-      "type": "integer",
-      "minimum": 1
-    },
     "meta": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "language", "file", "query"],
       "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "language": { "type": "string", "minLength": 1 },
-        "file": { "type": "string", "const": "docs/features.yml" },
-        "query": { "type": "string", "enum": ["yq"] }
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1
+        },
+        "file": {
+          "type": "string",
+          "const": "docs/features.yml"
+        },
+        "query": {
+          "type": "string",
+          "enum": ["yq"]
+        },
+        "queries": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "product": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["priority", "surfaces", "terms", "workflow"],
+      "required": ["priority", "surfaces", "roles", "terms", "workflow"],
       "properties": {
-        "priority": { "$ref": "#/$defs/stringList" },
+        "priority": {
+          "$ref": "#/$defs/stringList"
+        },
         "surfaces": {
           "type": "array",
           "items": {
@@ -43,23 +54,62 @@
             "enum": ["web", "rest", "mcp"]
           }
         },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["anon", "user", "admin", "agent"],
+          "properties": {
+            "anon": {
+              "type": "string",
+              "minLength": 1
+            },
+            "user": {
+              "type": "string",
+              "minLength": 1
+            },
+            "admin": {
+              "type": "string",
+              "minLength": 1
+            },
+            "agent": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
         "terms": {
           "type": "object",
-          "propertyNames": { "minLength": 1 },
-          "additionalProperties": { "type": "string", "minLength": 1 }
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
         },
-        "workflow": { "$ref": "#/$defs/stringList" }
+        "workflow": {
+          "$ref": "#/$defs/stringList"
+        }
       }
     },
     "models": {
       "type": "object",
-      "propertyNames": { "minLength": 1 },
-      "additionalProperties": { "$ref": "#/$defs/model" }
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/model"
+      }
     },
     "ui": {
       "type": "object",
-      "propertyNames": { "minLength": 1 },
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "propertyNames": {
+        "minLength": 1
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "modules": {
       "type": "object",
@@ -67,35 +117,175 @@
         "type": "string",
         "pattern": "^[a-z0-9-]+$"
       },
-      "additionalProperties": { "$ref": "#/$defs/module" }
+      "additionalProperties": {
+        "$ref": "#/$defs/module"
+      }
     },
     "cases": {
       "type": "object",
-      "propertyNames": { "minLength": 1 },
-      "additionalProperties": { "$ref": "#/$defs/case" }
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/case"
+      }
     },
-    "audit": { "$ref": "#/$defs/audit" }
+    "audit": {
+      "$ref": "#/$defs/audit"
+    }
   },
   "$defs": {
     "stringList": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "stringMap": {
       "type": "object",
-      "propertyNames": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
-      "additionalProperties": { "$ref": "#/$defs/stringList" }
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/stringList"
+      }
+    },
+    "ruleMap": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "authLevel": {
+      "type": "string",
+      "enum": ["anon", "user", "admin"]
+    },
+    "surfaceStatus": {
+      "type": "string",
+      "enum": ["stable", "planned", "unavailable"]
+    },
+    "routeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+        },
+        "returns": {
+          "type": "string",
+          "minLength": 1
+        },
+        "auth": {
+          "$ref": "#/$defs/authLevel"
+        },
+        "notes": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "toolEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        "auth": {
+          "$ref": "#/$defs/authLevel"
+        },
+        "returns": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rest_equivalent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "modelRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": ["primary", "context"]
+        }
+      }
+    },
+    "toolGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "tools"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tools": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
     },
     "surface": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "pages": { "$ref": "#/$defs/stringList" },
-        "routes": { "$ref": "#/$defs/stringList" },
-        "ops": { "$ref": "#/$defs/stringList" },
-        "tools": { "$ref": "#/$defs/stringList" },
-        "notes": { "$ref": "#/$defs/stringList" }
+        "status": {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        "pages": {
+          "$ref": "#/$defs/stringList"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/routeEntry"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/toolEntry"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/toolGroup"
+          }
+        },
+        "notes": {
+          "$ref": "#/$defs/stringList"
+        }
       }
     },
     "links": {
@@ -103,8 +293,15 @@
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "models": { "$ref": "#/$defs/stringList" },
-        "ui": { "$ref": "#/$defs/stringList" }
+        "models": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/modelRef"
+          }
+        },
+        "ui": {
+          "$ref": "#/$defs/stringList"
+        }
       }
     },
     "capability": {
@@ -112,12 +309,28 @@
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
-        "title": { "type": "string", "minLength": 1 },
-        "links": { "$ref": "#/$defs/links" },
-        "rules": { "$ref": "#/$defs/stringList" },
-        "web": { "$ref": "#/$defs/surface" },
-        "rest": { "$ref": "#/$defs/surface" },
-        "mcp": { "$ref": "#/$defs/surface" }
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "auth": {
+          "$ref": "#/$defs/authLevel"
+        },
+        "links": {
+          "$ref": "#/$defs/links"
+        },
+        "rules": {
+          "$ref": "#/$defs/ruleMap"
+        },
+        "web": {
+          "$ref": "#/$defs/surface"
+        },
+        "rest": {
+          "$ref": "#/$defs/surface"
+        },
+        "mcp": {
+          "$ref": "#/$defs/surface"
+        }
       }
     },
     "model": {
@@ -125,27 +338,86 @@
       "additionalProperties": false,
       "required": ["fields"],
       "properties": {
-        "notes": { "$ref": "#/$defs/stringList" },
-        "fields": { "$ref": "#/$defs/stringMap" }
+        "notes": {
+          "$ref": "#/$defs/stringList"
+        },
+        "fields": {
+          "$ref": "#/$defs/stringMap"
+        },
+        "types": {
+          "type": "object",
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "moduleAccess": {
       "type": "object",
-      "propertyNames": { "minLength": 1 },
-      "additionalProperties": { "type": "string", "minLength": 1 }
+      "additionalProperties": false,
+      "required": ["anon", "user", "admin", "agent"],
+      "properties": {
+        "anon": {
+          "type": "string",
+          "minLength": 1
+        },
+        "user": {
+          "type": "string",
+          "minLength": 1
+        },
+        "admin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "module": {
       "type": "object",
       "additionalProperties": false,
       "required": ["name", "access", "rules", "capabilities"],
       "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "access": { "$ref": "#/$defs/moduleAccess" },
-        "rules": { "$ref": "#/$defs/stringList" },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "access": {
+          "$ref": "#/$defs/moduleAccess"
+        },
+        "rules": {
+          "$ref": "#/$defs/ruleMap"
+        },
         "capabilities": {
           "type": "object",
-          "propertyNames": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
-          "additionalProperties": { "$ref": "#/$defs/capability" }
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/capability"
+          }
+        }
+      }
+    },
+    "caseAffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module"],
+      "properties": {
+        "module": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -154,12 +426,40 @@
       "additionalProperties": false,
       "required": ["rules", "decisions"],
       "properties": {
+        "affects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/caseAffects"
+          }
+        },
         "rules": {
           "type": "object",
-          "propertyNames": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
-          "additionalProperties": { "$ref": "#/$defs/stringList" }
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/stringList"
+          }
         },
-        "decisions": { "$ref": "#/$defs/stringList" }
+        "decisions": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "auditAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trigger"],
+      "properties": {
+        "trigger": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "auditField": {
@@ -167,8 +467,14 @@
       "additionalProperties": false,
       "required": ["type", "note"],
       "properties": {
-        "type": { "type": "string", "minLength": 1 },
-        "note": { "type": "string", "minLength": 1 }
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "audit": {
@@ -178,15 +484,26 @@
       "properties": {
         "fields": {
           "type": "object",
-          "propertyNames": { "minLength": 1 },
-          "additionalProperties": { "$ref": "#/$defs/auditField" }
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/auditField"
+          }
         },
         "actions": {
           "type": "object",
-          "propertyNames": { "minLength": 1 },
-          "additionalProperties": { "type": "string", "minLength": 1 }
+          "propertyNames": {
+            "minLength": 1
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/auditAction"
+          }
         },
-        "writer": { "type": "string", "minLength": 1 }
+        "writer": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     }
   }

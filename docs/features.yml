@@ -1,10 +1,22 @@
 # schema: ./features.schema.json
-version: 1
 meta:
   name: Life@USTC
   language: en
   file: docs/features.yml
   query: yq
+  queries:
+    list_modules: "yq '.modules | keys' docs/features.yml"
+    list_models: "yq '.models | keys' docs/features.yml"
+    list_mcp_tools_stable: "yq '[.modules[].capabilities[].mcp.tools[]? | select((.status // \"stable\") != \"unavailable\") | .name]' docs/features.yml"
+    list_mcp_tools_unavailable: "yq '[.modules[].capabilities[].mcp.tools[]? | select(.status == \"unavailable\") | .name]' docs/features.yml"
+    list_rest_routes: "yq '[.modules[].capabilities[].rest.routes[]?.path] | unique' docs/features.yml"
+    capabilities_by_auth: "yq '[.modules | to_entries[] | {\"module\": .key, \"restricted\": [.value.capabilities | to_entries[] | select(.value.auth != null) | .key]}]' docs/features.yml"
+    tool_rest_map: "yq '[.modules[].capabilities[].mcp.tools[]? | select(.rest_equivalent) | {\"tool\": .name, \"rest\": .rest_equivalent}]' docs/features.yml"
+    rest_returns_map: "yq '[.modules[].capabilities[].rest.routes[]? | select(.returns) | {\"path\": .path, \"method\": (.method // \"GET\"), \"returns\": .returns}]' docs/features.yml"
+    capabilities_no_rest: "yq '[.modules | to_entries[] | .value.capabilities | to_entries[] | select(.value.rest.status == \"unavailable\" or (.value.rest | not)) | {\"module\": .key, \"cap\": .key, \"title\": .value.title}]' docs/features.yml"
+    capabilities_planned: "yq '[.modules | to_entries[] | .value.capabilities | to_entries[] | select(.value.rest.status == \"planned\" or .value.mcp.status == \"planned\") | {\"module\": .key, \"cap\": .key}]' docs/features.yml"
+    rules_by_module: "yq '.modules | to_entries[] | {\"module\": .key, \"rule_ids\": (.value.rules | keys)}' docs/features.yml"
+    model_types: "yq '.models | to_entries[] | {\"model\": .key, \"types\": .value.types}' docs/features.yml"
 product:
   priority:
   - student learning workspace
@@ -15,6 +27,11 @@ product:
   - web
   - rest
   - mcp
+  roles:
+    anon: Unauthenticated visitor; can browse all public information.
+    user: Authenticated, non-suspended user; can manage personal state and perform social actions.
+    admin: Platform administrator; has governance, moderation, and maintenance capabilities.
+    agent: OAuth-authorized third-party client or MCP caller; inherits user permissions after authorization; does not inherit admin by default.
   terms:
     sectionSubscription: In-app follow relationship; not equivalent to official course enrollment.
     homework: Class-attached learning task; completion state is tracked per user independently.
@@ -35,6 +52,13 @@ models:
       - semester.nameCn
       - semester.startDate
       - semester.endDate
+    types:
+      semester.id: String (cuid)
+      semester.jwId: String
+      semester.code: String
+      semester.nameCn: String
+      semester.startDate: Date
+      semester.endDate: Date
   CourseSummary:
     fields:
       identity:
@@ -51,6 +75,18 @@ models:
       - course.classify?.namePrimary
       - course.gradation?.namePrimary
       - course.type?.namePrimary
+    types:
+      course.id: String (cuid)
+      course.jwId: String
+      course.code: String
+      course.namePrimary: String
+      course.nameSecondary: String?
+      course.educationLevel?.namePrimary: String?
+      course.category?.namePrimary: String?
+      course.classType?.namePrimary: String?
+      course.classify?.namePrimary: String?
+      course.gradation?.namePrimary: String?
+      course.type?.namePrimary: String?
   CourseDetail:
     notes:
     - Inherits CourseSummary
@@ -63,6 +99,14 @@ models:
       - course.sections[].teachers[].namePrimary
       - course.sections[].stdCount
       - course.sections[].limitCount
+    types:
+      course.sections[].jwId: String
+      course.sections[].code: String
+      course.sections[].semester?.nameCn: String?
+      course.sections[].campus?.namePrimary: String?
+      course.sections[].teachers[].namePrimary: String[]
+      course.sections[].stdCount: Int?
+      course.sections[].limitCount: Int?
   SectionSummary:
     fields:
       identity:
@@ -80,6 +124,19 @@ models:
       - section.limitCount
       - section.campus?.namePrimary
       - section.openDepartment?.namePrimary
+    types:
+      section.id: String (cuid)
+      section.jwId: String
+      section.code: String
+      section.course.namePrimary: String
+      section.course.nameSecondary: String?
+      section.semester?.nameCn: String?
+      section.teachers[].namePrimary: String[]
+      section.credits: Float?
+      section.stdCount: Int?
+      section.limitCount: Int?
+      section.campus?.namePrimary: String?
+      section.openDepartment?.namePrimary: String?
   SectionDetail:
     notes:
     - Inherits SectionSummary
@@ -97,6 +154,17 @@ models:
       - section.schedules[]
       - section.scheduleGroups[]
       - section.exams[]
+    types:
+      section.examMode?.namePrimary: String?
+      section.teachLanguage?.namePrimary: String?
+      section.roomType?.namePrimary: String?
+      section.adminClasses[]: String[]
+      section.teachers[].id: String (cuid)
+      section.teachers[].namePrimary: String
+      section.teachers[].department?.namePrimary: String?
+      section.schedules[]: ScheduleEntry[]
+      section.scheduleGroups[]: ScheduleGroupEntry[]
+      section.exams[]: ExamEntry[]
   TeacherSummary:
     fields:
       identity:
@@ -110,6 +178,15 @@ models:
       - teacher.teacherTitle?.namePrimary
       - teacher.email
       - teacher._count.sections
+    types:
+      teacher.id: String (cuid)
+      teacher.code: String
+      teacher.namePrimary: String
+      teacher.nameSecondary: String?
+      teacher.department?.namePrimary: String?
+      teacher.teacherTitle?.namePrimary: String?
+      teacher.email: String?
+      teacher._count.sections: Int
   TeacherDetail:
     notes:
     - Inherits TeacherSummary
@@ -123,6 +200,15 @@ models:
       - teacher.sections[].course.namePrimary
       - teacher.sections[].semester?.nameCn
       - teacher.sections[].credits
+    types:
+      teacher.telephone: String?
+      teacher.mobile: String?
+      teacher.address: String?
+      teacher.sections[].jwId: String
+      teacher.sections[].code: String
+      teacher.sections[].course.namePrimary: String
+      teacher.sections[].semester?.nameCn: String?
+      teacher.sections[].credits: Float?
   CalendarSubscription:
     fields:
       user-and-note:
@@ -133,6 +219,12 @@ models:
       export:
       - subscription.calendarPath
       - subscription.calendarUrl
+    types:
+      subscription.userId: String (cuid)
+      subscription.note: String?
+      subscription.sections[]: SectionSummary[]
+      subscription.calendarPath: String
+      subscription.calendarUrl: String
   CalendarEvent:
     fields:
       event-envelope:
@@ -146,6 +238,10 @@ models:
       - homework_due
       - exam
       - todo_due
+    types:
+      event.type: schedule | homework_due | exam | todo_due
+      event.at: DateTime
+      event.payload: ScheduleEntry | HomeworkItem | ExamEntry | TodoItem
   ScheduleEntry:
     fields:
       identity:
@@ -165,6 +261,21 @@ models:
       - schedule.room?.building?.campus?.namePrimary
       - schedule.teachers[].namePrimary
       - schedule.scheduleGroup
+    types:
+      schedule.id: String (cuid)
+      schedule.date: Date
+      schedule.weekday: Int (0=Sunday, 6=Saturday)
+      schedule.startTime: String (HH:mm, Shanghai Time)
+      schedule.endTime: String (HH:mm, Shanghai Time)
+      schedule.section.jwId: String
+      schedule.section.code: String
+      schedule.section.course.namePrimary: String
+      schedule.section.semester?.nameCn: String?
+      schedule.room?.namePrimary: String?
+      schedule.room?.building?.namePrimary: String?
+      schedule.room?.building?.campus?.namePrimary: String?
+      schedule.teachers[].namePrimary: String[]
+      schedule.scheduleGroup: ScheduleGroupEntry?
   ScheduleGroupEntry:
     fields:
       identity:
@@ -178,10 +289,17 @@ models:
       - scheduleGroup.actualPeriods
       - scheduleGroup.isDefault
       static-import-constraints:
-      - When the static SQLite snapshot does not provide an official jwId, scheduleGroup.jwId uses a stable site-synthesized
-        value.
-      - For the current production static import scope (recent semesters), preserve existing synthesized values; only fall
-        back to another stable value when full-history imports produce conflicts to ensure uniqueness.
+      - When the static SQLite snapshot does not provide an official jwId, scheduleGroup.jwId uses a stable site-synthesized value.
+      - For the current production static import scope (recent semesters), preserve existing synthesized values; only fall back to another stable value when full-history imports produce conflicts to ensure uniqueness.
+    types:
+      scheduleGroup.id: String (cuid)
+      scheduleGroup.jwId: String
+      scheduleGroup.sectionId: String (cuid)
+      scheduleGroup.no: Int
+      scheduleGroup.limitCount: Int?
+      scheduleGroup.stdCount: Int?
+      scheduleGroup.actualPeriods: Int
+      scheduleGroup.isDefault: Boolean
   ExamEntry:
     fields:
       identity:
@@ -200,6 +318,18 @@ models:
       - exam.examRooms[]
       static-import-constraints:
       - When the static SQLite snapshot does not provide an official jwId, exam.jwId uses a stable site-synthesized value.
+    types:
+      exam.id: String (cuid)
+      exam.jwId: String
+      exam.examDate: Date
+      exam.startTime: String (HH:mm)
+      exam.endTime: String (HH:mm)
+      exam.section.jwId: String
+      exam.section.code: String
+      exam.section.course.namePrimary: String
+      exam.section.semester?.nameCn: String?
+      exam.examBatch: String?
+      exam.examRooms[]: String[]
   HomeworkItem:
     fields:
       identity:
@@ -224,6 +354,25 @@ models:
       - homework.deletedBy
       - homework.completion?.completedAt
       - homework.commentCount
+    types:
+      homework.id: String (cuid)
+      homework.title: String
+      homework.publishedAt: DateTime?
+      homework.submissionStartAt: DateTime?
+      homework.submissionDueAt: DateTime?
+      homework.createdAt: DateTime
+      homework.updatedAt: DateTime
+      homework.deletedAt: DateTime?
+      homework.sectionId: String (cuid)
+      homework.section.code: String
+      homework.section.course.namePrimary: String
+      homework.section.semester?.nameCn: String?
+      homework.description?.content: String?
+      homework.createdBy: String (userId)
+      homework.updatedBy: String?
+      homework.deletedBy: String?
+      homework.completion?.completedAt: DateTime?
+      homework.commentCount: Int
   TodoItem:
     fields:
       identity:
@@ -236,6 +385,15 @@ models:
       - todo.dueAt
       - todo.createdAt
       - todo.updatedAt
+    types:
+      todo.id: String (cuid)
+      todo.title: String
+      todo.content: String?
+      todo.completed: Boolean
+      todo.priority: Int (0=low, 1=medium, 2=high)
+      todo.dueAt: DateTime?
+      todo.createdAt: DateTime
+      todo.updatedAt: DateTime
   OverviewSnapshot:
     fields:
       user-info:
@@ -252,6 +410,18 @@ models:
       - overview.samples.dueTodos[] uses TodoItem
       - overview.samples.dueHomeworks[] uses HomeworkItem
       - overview.samples.upcomingExams[] uses ExamEntry
+    types:
+      overview.user.id: String (cuid)
+      overview.user.name: String?
+      overview.user.image: String?
+      overview.user.isAdmin: Boolean
+      overview.overview.pendingTodosCount: Int
+      overview.overview.pendingHomeworksCount: Int
+      overview.overview.todaySchedulesCount: Int
+      overview.overview.upcomingExamsCount: Int
+      overview.samples.dueTodos[]: TodoItem[]
+      overview.samples.dueHomeworks[]: HomeworkItem[]
+      overview.samples.upcomingExams[]: ExamEntry[]
 ui:
   List Table: |-
     * Used for discovery-type lists such as courses, sections, and teachers.
@@ -276,105 +446,117 @@ modules:
     name: User
     access:
       anon: Can browse all public information; further actions are not available before entering the sign-in flow.
-      user: Can follow sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences,
-        post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.
-      admin: Can review comments, maintain descriptions, manage users, suspend accounts, manage OAuth clients, maintain bus
-        data, and handle user content and platform security issues.
-      agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions by default;
-        REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
+      user: Can follow sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences, post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.
+      admin: Can review comments, maintain descriptions, manage users, suspend accounts, manage OAuth clients, maintain bus data, and handle user content and platform security issues.
+      agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
     rules:
-    - Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and
-      maintenance cost.
-    - On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly,
-      without losing state due to proxy wrapping or container-internal host differences.
-    - New users who have not set a name or username on first login must complete the welcome flow before proceeding.
-    - Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol
-      redirect; the welcome page interceptor must not break the authorization result redirect.
-    - After successful login, the user should be redirected back to the originally requested page whenever possible; if no
-      origin page exists, redirect to the home page.
-    - Public identity defaults to displaying name or username, not internal identifiers.
+      sign-in-providers: Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.
+      oauth-callback-integrity: On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.
+      welcome-flow-required: New users who have not set a name or username on first login must complete the welcome flow before proceeding.
+      auth-callback-not-intercepted: Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.
+      post-login-redirect: After successful login, the user should be redirected back to the originally requested page whenever possible; if no origin page exists, redirect to the home page.
+      public-identity-display: Public identity defaults to displaying name or username, not internal identifiers.
     capabilities:
       sign-in:
         title: Sign In
+        auth: anon
         web:
+          status: stable
           pages:
           - /signin
           notes:
           - Centrally displays OAuth sign-in entries.
         rest:
+          status: stable
           notes:
           - Authentication routes handle sign-in and session creation.
         mcp:
+          status: unavailable
           notes:
           - Does not provide sign-in capabilities.
       first-login-welcome:
         title: First Login & Welcome Page
+        auth: user
         web:
+          status: stable
           pages:
           - /welcome
           notes:
           - The welcome page only handles completing profile information and does not mix in other personalization settings.
           - Usernames must remain short and publicly displayable.
         rest:
+          status: unavailable
           notes:
           - No separate welcome page write endpoint is currently exposed.
         mcp:
+          status: unavailable
           notes:
           - No corresponding write capability is provided.
       post-login-redirect:
         title: Post-Login Redirect
+        auth: anon
         web:
+          status: stable
           notes:
           - After successful login, redirect back to the originally requested page whenever possible.
           - Return to the home page when no specific origin page exists.
         rest:
+          status: unavailable
           notes:
-          - No separate 'post-login redirect' endpoint currently exists.
+          - No separate post-login redirect endpoint currently exists.
       public-profile:
         title: Public Profile
+        auth: anon
         web:
+          status: stable
           pages:
           - /u/$username
           - /u/id/$uid
           notes:
           - /u/id/$uid is an exception entry that can additionally display the user ID.
           - The regular public profile displays avatar, nickname or name, @username, and join date.
-          - The contribution overview displays the number of followed sections, comments, uploads, created homework items,
-            and a contribution graph for the past year.
+          - The contribution overview displays the number of followed sections, comments, uploads, created homework items, and a contribution graph for the past year.
         rest:
+          status: stable
           routes:
-          - /api/me
-          notes:
-          - Returns the authenticated user's core profile fields (id, email, name, image, username, isAdmin).
-          - No separate public profile endpoint for other users is currently exposed.
+          - path: /api/me
+            method: GET
+            returns: "{ id, email, name, image, username, isAdmin }"
+            auth: user
+            notes:
+            - Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed.
         mcp:
+          status: stable
           tools:
-          - get_my_profile
-          notes:
-          - Returns the signed-in user's own core profile fields.
+          - name: get_my_profile
+            auth: user
+            returns: "{ id, email, name, image, username, isAdmin }"
+            rest_equivalent: GET /api/me
+          - name: get_public_user_profile
+            status: unavailable
+            auth: anon
       settings:
         title: Settings
+        auth: user
         web:
+          status: stable
           pages:
           - /settings?tab=profile
           - /settings?tab=accounts
           - /settings?tab=content
           - /settings?tab=danger
           notes:
-          - 'profile: Edit name, username, and avatar.'
-          - 'accounts: View and manage connected OAuth accounts; disconnecting an account is a destructive action that must
-            display a confirmation dialog first; attempting to disconnect the last sign-in account must result in an error.'
-          - 'content: Explains that uploads and comments are object-attached content; no standalone ''my comments / my uploads''
-            settings page; currently provides a next-step entry point to section browsing and the comment guide.'
-          - 'danger: Delete account; deletion is a high-risk operation requiring the user to enter the fixed confirmation
-            word DELETE.'
-          - The settings page currently only uses the ?tab= query parameter as a stable entry point; alias paths such as /settings/profile,
-            /settings/accounts, /settings/content, /settings/danger, /settings/comments, and /settings/uploads are no longer
-            provided.
+          - "profile: Edit name, username, and avatar."
+          - "accounts: View and manage connected OAuth accounts; disconnecting an account is a destructive action that must display a confirmation dialog first; attempting to disconnect the last sign-in account must result in an error."
+          - "content: Explains that uploads and comments are object-attached content; no standalone 'my comments / my uploads' settings page; currently provides a next-step entry point to section browsing and the comment guide."
+          - "danger: Delete account; deletion is a high-risk operation requiring the user to enter the fixed confirmation word DELETE."
+          - The settings page currently only uses the ?tab= query parameter as a stable entry point; alias paths such as /settings/profile, /settings/accounts, /settings/content, /settings/danger, /settings/comments, and /settings/uploads are no longer provided.
         rest:
+          status: unavailable
           notes:
           - No separate settings center aggregation endpoint currently exists.
         mcp:
+          status: unavailable
           notes:
           - No account connection management or account deletion capability is provided.
   semester:
@@ -385,52 +567,65 @@ modules:
       admin: Can read semester information. Does not directly modify semester facts through ordinary pages.
       agent: Can only read existing semester information; no additional write permissions.
     rules:
-    - Semesters are the organizational dimension for courses, sections, schedules, and exams.
-    - The current semester must be determined by explicit business rules, not by rough natural-year inference.
-    - Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester browsing.
+      organizational-dimension: Semesters are the organizational dimension for courses, sections, schedules, and exams.
+      current-semester-by-rules: The current semester must be determined by explicit business rules, not by rough natural-year inference.
+      semester-visible-in-filters: Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester browsing.
     capabilities:
       semester-list:
         title: Semester List
+        auth: anon
         links:
           models:
-          - SemesterSummary
+          - name: SemesterSummary
+            role: primary
         web:
+          status: stable
           notes:
           - Courses, sections, home page, and filter contexts consume semester.nameCn and semester.id.
           - Semester appears in this project as an actual display and disambiguation field.
         rest:
+          status: stable
           routes:
-          - /api/semesters
-          notes:
-          - Returns PaginatedResponse<SemesterSummary>.
+          - path: /api/semesters
+            method: GET
+            returns: "PaginatedResponse<SemesterSummary>"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - list_semesters
-          notes:
-          - Returns a paginated semester list; fields align with SemesterSummary.
+          - name: list_semesters
+            auth: anon
+            returns: "PaginatedResponse<SemesterSummary>"
+            rest_equivalent: GET /api/semesters
       current-semester:
         title: Current Semester
+        auth: anon
         links:
           models:
-          - SemesterSummary
+          - name: SemesterSummary
+            role: primary
         rules:
-        - The current semester is determined by date range; when multiple semester ranges overlap the current date, the semester
-          with the latest startDate is selected to prevent an older range or import residue from shadowing a more specific
-          newer semester.
+          latest-startdate-wins: The current semester is determined by date range; when multiple semester ranges overlap the current date, the semester with the latest startDate is selected to prevent an older range or import residue from shadowing a more specific newer semester.
         web:
+          status: stable
           notes:
-          - The home page and calendar logic consume the current semester object; no separate 'current semester detail page'
-            is shown.
+          - The home page and calendar logic consume the current semester object; no separate 'current semester detail page' is shown.
         rest:
+          status: stable
           routes:
-          - /api/semesters/current
-          notes:
-          - Returns a single SemesterSummary or 404.
+          - path: /api/semesters/current
+            method: GET
+            returns: "SemesterSummary | null"
+            auth: anon
+            notes:
+            - Returns a single SemesterSummary or 404.
         mcp:
+          status: stable
           tools:
-          - get_current_semester
-          notes:
-          - Returns { found, semester }.
+          - name: get_current_semester
+            auth: anon
+            returns: "{ found: Boolean, semester: SemesterSummary? }"
+            rest_equivalent: GET /api/semesters/current
   course:
     name: Course
     access:
@@ -439,17 +634,20 @@ modules:
       admin: Can browse course information. Does not directly modify course facts through ordinary pages.
       agent: Can read course search and detail capabilities.
     rules:
-    - A course is a stable course entity and does not represent a specific semester offering.
-    - jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed in ordinary course UI.
+      stable-entity: A course is a stable course entity and does not represent a specific semester offering.
+      jwid-url-only: jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed in ordinary course UI.
     capabilities:
       course-list:
         title: Course List & Filter
+        auth: anon
         links:
           models:
-          - CourseSummary
+          - name: CourseSummary
+            role: primary
           ui:
           - List Table
         web:
+          status: stable
           pages:
           - /courses
           notes:
@@ -458,240 +656,289 @@ modules:
           - Supports searching by course name, English name, and course code.
           - Supports filtering by category, level, and type.
         rest:
+          status: stable
           routes:
-          - /api/courses
-          notes:
-          - Returns PaginatedResponse<CourseSummary>.
+          - path: /api/courses
+            method: GET
+            returns: "PaginatedResponse<CourseSummary>"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - search_courses
-          notes:
-          - Returns courses[]; each item's fields align with CourseSummary.
+          - name: search_courses
+            auth: anon
+            returns: "CourseSummary[]"
+            rest_equivalent: GET /api/courses
       course-detail:
         title: Course Detail
+        auth: anon
         links:
           models:
-          - CourseDetail
+          - name: CourseDetail
+            role: primary
           ui:
           - Detail Hero
           - Context Tabs
           - Basic Info Card
         web:
+          status: stable
           pages:
           - /courses/[jwId]
           notes:
           - h1 uses course.namePrimary; subtitle uses course.nameSecondary.
           - Breadcrumb current item displays course.code.
           - Basic info card shows course.code, course.educationLevel?.namePrimary, course.category?.namePrimary, course.classType?.namePrimary.
-          - Child sections table shows course.sections[].semester?.nameCn, course.sections[].code, course.sections[].teachers[].namePrimary,
-            course.sections[].campus?.namePrimary, course.sections[].stdCount, course.sections[].limitCount.
+          - Child sections table shows course.sections[].semester?.nameCn, course.sections[].code, course.sections[].teachers[].namePrimary, course.sections[].campus?.namePrimary, course.sections[].stdCount, course.sections[].limitCount.
           - Comments and description are present in the detail page context.
         rest:
+          status: stable
           routes:
-          - /api/courses/[jwId]
-          notes:
-          - Returns CourseDetail.
+          - path: /api/courses/[jwId]
+            method: GET
+            returns: "CourseDetail"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - get_course_by_jw_id
-          notes:
-          - Returns { found, course }; course aligns with CourseDetail.
+          - name: get_course_by_jw_id
+            auth: anon
+            returns: "{ found: Boolean, course: CourseDetail? }"
+            rest_equivalent: GET /api/courses/[jwId]
   section:
     name: Section
     access:
       anon: Can browse public section information.
-      user: Can perform subscription, homework, comment, and description collaborative actions around sections, but cannot
-        modify section fact data.
+      user: Can perform subscription, homework, comment, and description collaborative actions around sections, but cannot modify section fact data.
       admin: Does not directly modify academic section facts through ordinary pages.
       agent: Can read section information and manage personal section-related state through OAuth-authorized REST / MCP endpoints.
     rules:
-    - A section is a specific teaching class for a course in a given semester.
-    - Pages involving subscription actions must clearly state this is not official academic course enrollment.
-    - jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.
+      semester-offering: A section is a specific teaching class for a course in a given semester.
+      subscription-not-enrollment: Pages involving subscription actions must clearly state this is not official academic course enrollment.
+      jwid-url-only: jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.
     capabilities:
       section-list:
         title: Section List & Filter
+        auth: anon
         links:
           models:
-          - SectionSummary
+          - name: SectionSummary
+            role: primary
           ui:
           - List Table
         web:
+          status: stable
           pages:
           - /sections
           notes:
           - In this project, the primary display field for section lists is not a standalone section.name but section.course.namePrimary.
-          - Structured columns display section.semester?.nameCn, section.code, section.teachers[].namePrimary, section.credits,
-            section.stdCount, section.limitCount, section.campus?.namePrimary.
+          - Structured columns display section.semester?.nameCn, section.code, section.teachers[].namePrimary, section.credits, section.stdCount, section.limitCount, section.campus?.namePrimary.
           - Supports search, semester filter, clear filter, and navigation to detail.
         rest:
+          status: stable
           routes:
-          - /api/sections
-          notes:
-          - Returns PaginatedResponse<SectionSummary>.
+          - path: /api/sections
+            method: GET
+            returns: "PaginatedResponse<SectionSummary>"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - search_sections
-          notes:
-          - Returns paginated section results; fields align with SectionSummary.
+          - name: search_sections
+            auth: anon
+            returns: "PaginatedResponse<SectionSummary>"
+            rest_equivalent: GET /api/sections
       section-detail:
         title: Section Detail
+        auth: anon
         links:
           models:
-          - SectionDetail
+          - name: SectionDetail
+            role: primary
           ui:
           - Detail Hero
           - Context Tabs
           - Basic Info Card
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
           - h1 uses section.course.namePrimary, not a standalone section.name.
           - Subtitle displays section.course.nameSecondary and a 'not official enrollment' reminder.
           - Breadcrumb current item displays section.code.
-          - Basic info area shows section.semester?.nameCn, section.code, section.campus?.namePrimary, section.credits, section.teachLanguage?.namePrimary,
-            section.examMode?.namePrimary, section.openDepartment?.namePrimary.
-          - 'The main content area uses three context tabs: homework, calendar, and comments.'
+          - Basic info area shows section.semester?.nameCn, section.code, section.campus?.namePrimary, section.credits, section.teachLanguage?.namePrimary, section.examMode?.namePrimary, section.openDepartment?.namePrimary.
+          - "The main content area uses three context tabs: homework, calendar, and comments."
           - The sidebar displays description, basic info, other teaching sections, and a mini calendar.
         rest:
+          status: stable
           routes:
-          - /api/sections/[jwId]
-          notes:
-          - Returns SectionDetail.
+          - path: /api/sections/[jwId]
+            method: GET
+            returns: "SectionDetail"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - get_section_by_jw_id
-          notes:
-          - Returns { found, section }; section aligns with SectionDetail.
+          - name: get_section_by_jw_id
+            auth: anon
+            returns: "{ found: Boolean, section: SectionDetail? }"
+            rest_equivalent: GET /api/sections/[jwId]
       section-ical:
         title: Section iCal Export
+        auth: anon
         links:
           ui:
           - Calendar Export Dialog
         web:
+          status: stable
           notes:
           - The calendar entry on the section detail page provides a single-section iCal.
         rest:
+          status: stable
           routes:
-          - /api/sections/[jwId]/calendar.ics
-          notes:
-          - Returns text/calendar; content is derived from the section's schedule and exams.
+          - path: /api/sections/[jwId]/calendar.ics
+            method: GET
+            returns: text/calendar
+            auth: anon
+            notes:
+            - Returns text/calendar; content is derived from the section's schedule and exams.
         mcp:
+          status: stable
           tools:
-          - get_section_calendar_subscription
-          notes:
-          - Returns a single-section iCal link and usage instructions.
+          - name: get_section_calendar_subscription
+            auth: anon
+            returns: "{ icalUrl: String, note: String }"
+            rest_equivalent: GET /api/sections/[jwId]/calendar.ics
+            notes:
+            - Returns a single-section iCal link and usage instructions.
   teacher:
     name: Teacher
     access:
       anon: Can browse teacher information.
       user: Can browse teacher information. Cannot modify teacher fact data.
       admin: Can browse teacher information. Does not directly modify teacher facts through ordinary pages.
-      agent: Can directly read teacher lists and details; also indirectly consumes teacher information in course and section
-        results.
+      agent: Can directly read teacher lists and details; also indirectly consumes teacher information in course and section results.
     rules:
-    - Teacher objects are naturally identified by name.
-    - Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.
+      identified-by-name: Teacher objects are naturally identified by name.
+      section-code-auxiliary: Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list.
     capabilities:
       teacher-list:
         title: Teacher List & Filter
+        auth: anon
         links:
           models:
-          - TeacherSummary
+          - name: TeacherSummary
+            role: primary
           ui:
           - List Table
         web:
+          status: stable
           pages:
           - /teachers
           notes:
           - The first visual column uses teacher.namePrimary; in English contexts, teacher.nameSecondary can be appended.
-          - Structured columns display teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email,
-            teacher._count.sections.
+          - Structured columns display teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher._count.sections.
           - Supports searching by name, English name, and teacher code.
           - Supports department filtering and pagination.
         rest:
+          status: stable
           routes:
-          - /api/teachers
-          notes:
-          - Returns PaginatedResponse<TeacherSummary>.
+          - path: /api/teachers
+            method: GET
+            returns: "PaginatedResponse<TeacherSummary>"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - search_teachers
-          notes:
-          - Returns paginated teacher results; fields align with TeacherSummary.
+          - name: search_teachers
+            auth: anon
+            returns: "PaginatedResponse<TeacherSummary>"
+            rest_equivalent: GET /api/teachers
       teacher-detail:
         title: Teacher Detail
+        auth: anon
         links:
           models:
-          - TeacherDetail
+          - name: TeacherDetail
+            role: primary
           ui:
           - Detail Hero
           - Context Tabs
           - Basic Info Card
         web:
+          status: stable
           pages:
           - /teachers/[id]
           notes:
           - h1 uses teacher.namePrimary; in English contexts, teacher.nameSecondary can be appended.
-          - Basic info area shows teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher.telephone,
-            teacher.mobile, teacher.address.
-          - Related sections table shows teacher.sections[].semester?.nameCn, teacher.sections[].course.namePrimary, teacher.sections[].code,
-            teacher.sections[].credits.
+          - Basic info area shows teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher.telephone, teacher.mobile, teacher.address.
+          - Related sections table shows teacher.sections[].semester?.nameCn, teacher.sections[].course.namePrimary, teacher.sections[].code, teacher.sections[].credits.
           - Comments and description are present in the detail page context.
         rest:
+          status: stable
           routes:
-          - /api/teachers/[id]
-          notes:
-          - Returns TeacherDetail.
+          - path: /api/teachers/[id]
+            method: GET
+            returns: "TeacherDetail"
+            auth: anon
         mcp:
+          status: stable
           tools:
-          - get_teacher_by_id
-          notes:
-          - Returns { found, teacher }; teacher aligns with TeacherDetail.
+          - name: get_teacher_by_id
+            auth: anon
+            returns: "{ found: Boolean, teacher: TeacherDetail? }"
+            rest_equivalent: GET /api/teachers/[id]
   subscription:
     name: Subscription
     access:
       anon: Can see the subscription entry but cannot directly create a subscription.
       user: Can only manage their own section subscription relationships.
       admin: Does not manage personal subscriptions on behalf of users through ordinary pages.
-      agent: After OAuth authorization, can manage the current user's own subscription relationships; REST and MCP both support
-        the same semantic operations.
+      agent: After OAuth authorization, can manage the current user's own subscription relationships; REST and MCP both support the same semantic operations.
     rules:
-    - Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.
-    - Subscription relationships belong only to the current user and determine the display scope for home page, calendar,
-      homework, and exam.
+      subscription-language: Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.
+      user-scoped: Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam.
     capabilities:
       subscribe-from-section:
         title: Subscribe from Section Detail
+        auth: user
         links:
           models:
-          - CalendarSubscription
+          - name: CalendarSubscription
+            role: primary
           ui:
           - Detail Hero
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
-          - The individual subscribe/unsubscribe action on the section detail page is a lightweight personal state toggle
-            that takes effect immediately without a confirmation dialog.
+          - The individual subscribe/unsubscribe action on the section detail page is a lightweight personal state toggle that takes effect immediately without a confirmation dialog.
         rest:
+          status: unavailable
           notes:
           - No separate 'single subscribe / unsubscribe' REST route currently exists.
           - Page behavior is handled through server actions; results are converged to the current user's subscription state.
         mcp:
+          status: stable
           tools:
-          - subscribe_section_by_jw_id
-          - unsubscribe_section_by_jw_id
-          notes:
-          - Returns success and subscription; subscription.sections[] uses SectionSummary.
+          - name: subscribe_section_by_jw_id
+            auth: user
+            returns: "{ success: Boolean, subscription: CalendarSubscription }"
+          - name: unsubscribe_section_by_jw_id
+            auth: user
+            returns: "{ success: Boolean, subscription: CalendarSubscription }"
       batch-subscribe-by-codes:
         title: Batch Subscribe by Course Codes
+        auth: user
         links:
           models:
-          - SectionSummary
-          - CalendarSubscription
+          - name: SectionSummary
+            role: context
+          - name: CalendarSubscription
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=subscriptions
           notes:
@@ -699,81 +946,113 @@ modules:
           - Batch import results must distinguish between successful items, failed items, and items awaiting confirmation.
           - Subscription relationships are created only after user confirmation.
         rest:
+          status: stable
           routes:
-          - /api/sections/match-codes
-          - /api/calendar-subscriptions
-          notes:
-          - /api/sections/match-codes returns semester, matchedCodes, unmatchedCodes, and sections[].
-          - /api/calendar-subscriptions returns subscription; sections[] is the user's new set of subscribed sections.
+          - path: /api/sections/match-codes
+            method: POST
+            returns: "{ semester: SemesterSummary, matchedCodes: String[], unmatchedCodes: String[], sections: SectionSummary[] }"
+            auth: user
+          - path: /api/calendar-subscriptions
+            method: POST
+            returns: "{ subscription: CalendarSubscription }"
+            auth: user
+            notes:
+            - subscription.sections[] is the user's new set of subscribed sections.
         mcp:
+          status: stable
           tools:
-          - match_section_codes
-          - subscribe_my_sections_by_codes
-          notes:
-          - match_section_codes returns semester, match results, and sections[].
-          - subscribe_my_sections_by_codes returns matchedCodes, unmatchedCodes, addedCount, and subscription.
+          - name: match_section_codes
+            auth: user
+            returns: "{ semester: SemesterSummary, matchedCodes: String[], unmatchedCodes: String[], sections: SectionSummary[] }"
+            rest_equivalent: POST /api/sections/match-codes
+          - name: subscribe_my_sections_by_codes
+            auth: user
+            returns: "{ matchedCodes: String[], unmatchedCodes: String[], addedCount: Int, subscription: CalendarSubscription }"
+            rest_equivalent: POST /api/calendar-subscriptions
   ical:
     name: Personal Calendar Subscription iCal
     access:
       anon: Can copy a single-section iCal link from the public section detail page.
       user: Can copy their own personal subscription iCal link.
       admin: No additional exclusive iCal capabilities.
-      agent: After authorization, can read the current user's personal calendar subscription information; REST and MCP should
-        both return the same subscription feed information and description.
+      agent: After authorization, can read the current user's personal calendar subscription information; REST and MCP should both return the same subscription feed information and description.
     rules:
-    - iCal links should be presented as copyable links rather than requiring users to manually construct them.
-    - iCal is an export / subscription capability and should not carry a second business model.
-    - Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev;
-      when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned.
+      copyable-links: iCal links should be presented as copyable links rather than requiring users to manually construct them.
+      no-second-model: iCal is an export / subscription capability and should not carry a second business model.
+      static-json-resilient: Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned.
     capabilities:
       section-calendar-dialog:
         title: Section Calendar Dialog
+        auth: anon
         links:
           ui:
           - Calendar Export Dialog
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
           - Exposes both single-section iCal and personal subscription iCal simultaneously; the latter requires sign-in.
         rest:
+          status: stable
           routes:
-          - /api/sections/[jwId]/calendar.ics
-          notes:
-          - Returns text/calendar synthesized from the section's schedule and exams.
+          - path: /api/sections/[jwId]/calendar.ics
+            method: GET
+            returns: text/calendar
+            auth: anon
+            notes:
+            - Returns text/calendar synthesized from the section's schedule and exams.
       personal-calendar-subscription:
         title: Personal Calendar Subscription
+        auth: user
         links:
           models:
-          - CalendarSubscription
+          - name: CalendarSubscription
+            role: primary
           ui:
           - Calendar Export Dialog
         web:
+          status: stable
           pages:
           - /?tab=calendar
           notes:
           - Displays the personal subscription URL as a copyable link.
         rest:
+          status: stable
           routes:
-          - /api/users/[userId]/calendar.ics
-          - /api/calendar-subscriptions/current
-          notes:
-          - Currently returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text.
+          - path: /api/users/[userId]/calendar.ics
+            method: GET
+            returns: text/calendar
+            auth: user
+          - path: /api/calendar-subscriptions/current
+            method: GET
+            returns: "CalendarSubscription"
+            auth: user
+            notes:
+            - Returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text.
         mcp:
+          status: stable
           tools:
-          - get_my_calendar_subscription
-          notes:
-          - Returns subscription.userId, subscription.sections[], subscription.calendarPath, subscription.calendarUrl, subscription.note.
+          - name: get_my_calendar_subscription
+            auth: user
+            returns: "CalendarSubscription"
+            rest_equivalent: GET /api/calendar-subscriptions/current
       multi-section-ical:
         title: Multi-Section iCal Export
+        auth: anon
         web:
+          status: unavailable
           notes:
           - No stable standalone page entry currently exists; this capability is more like a lower-level export endpoint.
         rest:
+          status: stable
           routes:
-          - /api/sections/calendar.ics
-          notes:
-          - Generates a multi-section iCal based on sectionIds.
+          - path: /api/sections/calendar.ics
+            method: GET
+            returns: text/calendar
+            auth: anon
+            notes:
+            - Generates a multi-section iCal based on sectionIds query parameter.
   subscribed-sections:
     name: Subscribed Sections
     access:
@@ -782,18 +1061,22 @@ modules:
       admin: Does not view or edit other users' subscription lists through ordinary pages.
       agent: Can read and manage the subscribed sections list data with the same semantics as the web through REST and MCP.
     rules:
-    - The list is grouped by semester rather than presented as a single flat list.
-    - In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted.
+      grouped-by-semester: The list is grouped by semester rather than presented as a single flat list.
+      section-codes-promoted: In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted.
     capabilities:
       subscribed-sections-tab:
         title: Subscribed Sections Tab
+        auth: user
         links:
           models:
-          - CalendarSubscription
-          - SectionSummary
+          - name: CalendarSubscription
+            role: primary
+          - name: SectionSummary
+            role: context
           ui:
           - List Table
         web:
+          status: stable
           pages:
           - /?tab=subscriptions
           notes:
@@ -802,96 +1085,131 @@ modules:
           - The empty state provides entries for searching sections, browsing courses, and batch import.
           - The unsubscribe action uses a lightweight two-step armed button rather than a modal confirmation dialog.
         rest:
+          status: stable
           routes:
-          - /api/calendar-subscriptions/current
-          notes:
-          - Currently returns the current user's subscribed section details and personal subscription feed information; can
-            directly support the subscribed sections list and personal calendar subscription entry.
+          - path: /api/calendar-subscriptions/current
+            method: GET
+            returns: "CalendarSubscription"
+            auth: user
+            notes:
+            - Returns the current user's subscribed section details and personal subscription feed information; supports the subscribed sections list and personal calendar subscription entry.
         mcp:
+          status: stable
           tools:
-          - list_my_subscribed_sections
-          - get_my_calendar_subscription
-          notes:
-          - list_my_subscribed_sections returns sections[] and note.
-          - get_my_calendar_subscription supplements calendarPath and calendarUrl on the same abstract entry.
+          - name: list_my_subscribed_sections
+            auth: user
+            returns: "{ sections: SectionSummary[], note: String? }"
+            rest_equivalent: GET /api/calendar-subscriptions/current
+          - name: get_my_calendar_subscription
+            auth: user
+            returns: "CalendarSubscription"
+            rest_equivalent: GET /api/calendar-subscriptions/current
+            notes:
+            - Supplements calendarPath and calendarUrl on the same abstract entry.
   schedule:
     name: Schedule
     access:
       anon: Can read public schedule information.
       user: Can read public schedule information. Cannot modify schedule fact data.
       admin: Can read public schedule information. Does not directly modify schedule facts through ordinary pages.
-      agent: Can read schedules for specific sections; current-user schedule aggregation is primarily exposed via MCP; public
-        schedule retrieval is available through REST and MCP.
+      agent: Can read schedules for specific sections; current-user schedule aggregation is primarily exposed via MCP; public schedule retrieval is available through REST and MCP.
     rules:
-    - Schedule refers to a section's class times, locations, and week patterns.
-    - The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding
-      the section context.
-    - The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due
-      dates.
+      schedule-definition: Schedule refers to a section's class times, locations, and week patterns.
+      schedule-as-context: The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding the section context.
+      personal-calendar-integrates: The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates.
     capabilities:
       my-schedule:
         title: My Schedule
+        auth: user
         links:
           models:
-          - ScheduleEntry
+          - name: ScheduleEntry
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=calendar
           notes:
           - The home page calendar consumes schedule data from subscribed sections.
         rest:
+          status: unavailable
           notes:
           - No separate 'current user schedule' REST aggregation endpoint currently exists.
         mcp:
+          status: stable
           tools:
-          - list_my_schedules
-          notes:
-          - Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code,
-            room, teachers[], and scheduleGroup.
+          - name: list_my_schedules
+            auth: user
+            returns: "ScheduleEntry[]"
+            notes:
+            - Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup.
       public-schedule-query:
         title: Public Schedule Query
+        auth: anon
         links:
           models:
-          - ScheduleEntry
+          - name: ScheduleEntry
+            role: primary
         web:
+          status: unavailable
           notes:
-          - No standalone public schedule page currently calls this endpoint directly; pages assemble data more through server-side
-            queries.
+          - No standalone public schedule page currently calls this endpoint directly; pages assemble data more through server-side queries.
         rest:
+          status: stable
           routes:
-          - /api/schedules
-          notes:
-          - Supports filtering public schedules by section, teacher, room, date range, and day of week.
-          - Returns PaginatedResponse<ScheduleEntry>.
+          - path: /api/schedules
+            method: GET
+            returns: "PaginatedResponse<ScheduleEntry>"
+            auth: anon
+            notes:
+            - Supports filtering by section, teacher, room, date range, and day of week.
         mcp:
+          status: stable
           tools:
-          - query_schedules
-          notes:
-          - Returns public schedule results; fields align with ScheduleEntry.
+          - name: query_schedules
+            auth: anon
+            returns: "PaginatedResponse<ScheduleEntry>"
+            rest_equivalent: GET /api/schedules
       section-schedule:
         title: Section Schedule
+        auth: anon
         links:
           models:
-          - ScheduleEntry
+          - name: ScheduleEntry
+            role: primary
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
           - The calendar tab on the section detail page consumes the section's schedule and exam data.
         rest:
+          status: stable
           routes:
-          - /api/sections/[jwId]/schedules
-          - /api/sections/[jwId]/schedule-groups
-          notes:
-          - /api/sections/[jwId]/schedules returns a simplified variant of ScheduleEntry[] for the section.
-          - /api/sections/[jwId]/schedule-groups returns period information aggregated by group.
+          - path: /api/sections/[jwId]/schedules
+            method: GET
+            returns: "ScheduleEntry[]"
+            auth: anon
+            notes:
+            - Returns a simplified variant of ScheduleEntry[] for the section.
+          - path: /api/sections/[jwId]/schedule-groups
+            method: GET
+            returns: "ScheduleGroupEntry[]"
+            auth: anon
+            notes:
+            - Returns period information aggregated by group.
         mcp:
+          status: stable
           tools:
-          - list_schedules_by_section
-          - get_my_7days_timeline
-          notes:
-          - list_schedules_by_section returns a single section's schedule.
-          - get_my_7days_timeline returns schedules as the schedule type within a unified event stream.
+          - name: list_schedules_by_section
+            auth: anon
+            returns: "ScheduleEntry[]"
+            rest_equivalent: GET /api/sections/[jwId]/schedules
+          - name: get_my_7days_timeline
+            auth: user
+            returns: "CalendarEvent[]"
+            notes:
+            - Returns schedules as the schedule type within a unified event stream.
   calendar:
     name: Calendar
     access:
@@ -900,89 +1218,108 @@ modules:
       admin: Has no special calendar view separate from regular users.
       agent: Can read timeline information with the same semantics through OAuth REST and MCP.
     rules:
-    - Currently provides semester, month, and week views simultaneously.
-    - The week view starts on Sunday.
-    - Calendar event cards uniformly carry course, exam, homework, and todo events.
+      views: Currently provides semester, month, and week views simultaneously.
+      week-starts-sunday: The week view starts on Sunday.
+      event-card-types: Calendar event cards uniformly carry course, exam, homework, and todo events.
     capabilities:
       personal-calendar-view:
         title: Personal Calendar View
+        auth: user
         links:
           models:
-          - CalendarEvent
-          - ScheduleEntry
-          - HomeworkItem
-          - ExamEntry
-          - TodoItem
+          - name: CalendarEvent
+            role: primary
+          - name: ScheduleEntry
+            role: context
+          - name: HomeworkItem
+            role: context
+          - name: ExamEntry
+            role: context
+          - name: TodoItem
+            role: context
         web:
+          status: stable
           pages:
           - /?tab=calendar
           notes:
           - Provides semester view, month view, and week view.
         rest:
+          status: unavailable
           notes:
           - No separate unified calendar aggregation endpoint currently exists.
         mcp:
+          status: stable
           tools:
-          - list_my_calendar_events
-          - get_my_7days_timeline
-          - list_my_schedules
-          - list_my_exams
-          notes:
-          - list_my_calendar_events returns course, exam, homework, and todo events unified by date range, directly corresponding
-            to the personal calendar view.
-          - Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry,
-            or TodoItem based on type.
+          - name: list_my_calendar_events
+            auth: user
+            returns: "CalendarEvent[]"
+            notes:
+            - Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.
+            - Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.
+          - name: get_my_7days_timeline
+            auth: user
+            returns: "CalendarEvent[]"
+          - name: list_my_schedules
+            auth: user
+            returns: "ScheduleEntry[]"
+          - name: list_my_exams
+            auth: user
+            returns: "ExamEntry[]"
       section-calendar-view:
         title: Section Calendar View
+        auth: anon
         links:
           ui:
           - Context Tabs
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
-          - The current implementation merges schedule and exams in the same calendar tab rather than splitting them into
-            a separate exam tab.
+          - The current implementation merges schedule and exams in the same calendar tab rather than splitting them into a separate exam tab.
         rest:
+          status: stable
           notes:
           - Currently supported through a combination of schedule, exam, and iCal endpoints.
       event-card:
         title: Event Card
+        auth: anon
         web:
+          status: stable
           notes:
           - Compact cards prioritize displaying title and time.
-          - Location is not expanded in the second row by default; location, teacher, exam batch, and other details appear
-            in a popover / details.
+          - Location is not expanded in the second row by default; location, teacher, exam batch, and other details appear in a popover / details.
           - Cards can navigate to the related section, homework, exam, or home page tab.
-          - The home page calendar and section calendar reuse the same card, hover/popover, and navigation behavior as much
-            as possible.
+          - The home page calendar and section calendar reuse the same card, hover/popover, and navigation behavior as much as possible.
         rest:
+          status: unavailable
           notes:
           - Does not directly expose the 'card' concept; only exposes structured event data.
         mcp:
+          status: unavailable
           notes:
           - Does not directly expose the 'card' concept; only exposes structured results.
   homework:
     name: Homework
     access:
       anon: Can read homework information under public sections, but cannot create, update, or delete.
-      user: When signed in and not suspended, can create and update homework; delete permission is limited to the creator
-        and admins; each user can only manage their own homework completion state.
+      user: When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.
       admin: Can delete homework and participate in governance.
-      agent: After authorization, can read, create, and update homework and set the current user's completion state; both
-        REST and MCP currently provide this capability.
+      agent: After authorization, can read, create, and update homework and set the current user's completion state; both REST and MCP currently provide this capability.
     rules:
-    - Homework is attached to a section, not a personal user todo.
-    - Creating homework does not require the user to be subscribed to the section first.
-    - Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the
-      homework was modified'.
+      attached-to-section: Homework is attached to a section, not a personal user todo.
+      no-subscription-required: Creating homework does not require the user to be subscribed to the section first.
+      entity-and-completion-separated: Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'.
     capabilities:
       cross-section-homework-summary:
         title: Cross-Section Homework Summary
+        auth: user
         links:
           models:
-          - HomeworkItem
+          - name: HomeworkItem
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=homeworks
           notes:
@@ -990,22 +1327,28 @@ modules:
           - Homework cards prioritize displaying due date, title, and course name.
           - Section codes and internal IDs do not enter the main display area by default.
         rest:
+          status: unavailable
           notes:
           - No separate 'current user cross-section homework summary' REST endpoint currently exists.
         mcp:
+          status: stable
           tools:
-          - list_my_homeworks
-          notes:
-          - Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description,
-            and completion.
+          - name: list_my_homeworks
+            auth: user
+            returns: "HomeworkItem[]"
+            notes:
+            - Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion.
       section-homework-tab:
         title: Section Homework Tab
+        auth: anon
         links:
           models:
-          - HomeworkItem
+          - name: HomeworkItem
+            role: primary
           ui:
           - Context Tabs
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
@@ -1013,90 +1356,137 @@ modules:
           - Deleting homework is a high-risk operation that requires confirmation.
           - Homework description is maintained alongside the homework entity; at minimum the last update time is retained.
         rest:
+          status: stable
           routes:
-          - /api/homeworks
-          - /api/homeworks/[id]
-          notes:
-          - /api/homeworks returns viewer, homeworks[], and auditLogs[].
-          - homeworks[] uses HomeworkItem.
+          - path: /api/homeworks
+            method: GET
+            returns: "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
+            auth: anon
+          - path: /api/homeworks
+            method: POST
+            returns: "{ id: String }"
+            auth: user
+          - path: /api/homeworks/[id]
+            method: PATCH
+            returns: "HomeworkItem"
+            auth: user
+          - path: /api/homeworks/[id]
+            method: DELETE
+            returns: "{ success: Boolean }"
+            auth: user
         mcp:
+          status: stable
           tools:
-          - list_homeworks_by_section
-          - create_homework_on_section
-          - update_homework_on_section
+          - name: list_homeworks_by_section
+            auth: anon
+            returns: "HomeworkItem[]"
+            rest_equivalent: GET /api/homeworks
+          - name: create_homework_on_section
+            auth: user
+            returns: "{ id: String }"
+            rest_equivalent: POST /api/homeworks
+          - name: update_homework_on_section
+            auth: user
+            returns: "HomeworkItem"
+            rest_equivalent: PATCH /api/homeworks/[id]
       homework-governance:
         title: Homework Governance
+        auth: admin
         web:
+          status: stable
           notes:
           - No standalone homework governance page currently exists; admin deletion is handled through governance endpoints.
         rest:
+          status: stable
           routes:
-          - /api/admin/homeworks
-          - /api/admin/homeworks/[id]
+          - path: /api/admin/homeworks
+            method: GET
+            returns: "HomeworkItem[]"
+            auth: admin
+          - path: /api/admin/homeworks/[id]
+            method: DELETE
+            returns: "{ success: Boolean }"
+            auth: admin
         mcp:
+          status: unavailable
           notes:
           - No admin homework tools are currently provided.
       homework-completion:
         title: Homework Completion
+        auth: user
         links:
           models:
-          - HomeworkItem
+          - name: HomeworkItem
+            role: context
         web:
+          status: stable
           notes:
           - The home page, homework summary page, and section detail all support toggling the current user's completion state.
         rest:
+          status: stable
           routes:
-          - /api/homeworks/[id]/completion
-          notes:
-          - Returns completed and completedAt.
+          - path: /api/homeworks/[id]/completion
+            method: POST
+            returns: "{ completed: Boolean, completedAt: DateTime? }"
+            auth: user
         mcp:
+          status: stable
           tools:
-          - set_my_homework_completion
-          notes:
-          - Returns completion.homeworkId, completion.completed, completion.completedAt.
+          - name: set_my_homework_completion
+            auth: user
+            returns: "{ homeworkId: String, completed: Boolean, completedAt: DateTime? }"
+            rest_equivalent: POST /api/homeworks/[id]/completion
   todo:
     name: Todo
     access:
       anon: Cannot read or write personal todos.
       user: Can only manage their own todos.
       admin: Has no ordinary page capability to independently manage other users' todos.
-      agent: After authorization, can only read and write the current user's own todos; both REST and MCP currently provide
-        this capability.
+      agent: After authorization, can only read and write the current user's own todos; both REST and MCP currently provide this capability.
     rules:
-    - Todo is a purely personal object and is not bound to any section.
-    - Only incomplete todos with a due date appear in the calendar.
-    - Completed todos retain history but no longer occupy urgent information areas.
+      purely-personal: Todo is a purely personal object and is not bound to any section.
+      due-date-calendar: Only incomplete todos with a due date appear in the calendar.
+      completed-retained: Completed todos retain history but no longer occupy urgent information areas.
     capabilities:
       todo-list:
         title: Todo List & Filter
+        auth: user
         links:
           models:
-          - TodoItem
+          - name: TodoItem
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=todos
           notes:
           - Filter dimensions include all, incomplete, and completed.
           - Cards primarily display todo title; secondary display shows priority and due date.
         rest:
+          status: stable
           routes:
-          - /api/todos
-          - /api/todos/[id]
-          notes:
-          - /api/todos returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and
-            updatedAt.
-          - /api/todos/[id] handles updates and deletions.
+          - path: /api/todos
+            method: GET
+            returns: "TodoItem[]"
+            auth: user
+            notes:
+            - Returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.
         mcp:
+          status: stable
           tools:
-          - list_my_todos
-          notes:
-          - Returns todos[]; fields align with TodoItem.
+          - name: list_my_todos
+            auth: user
+            returns: "TodoItem[]"
+            rest_equivalent: GET /api/todos
       todo-edit:
         title: Todo Edit Sheet
+        auth: user
         links:
           models:
-          - TodoItem
+          - name: TodoItem
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=todos
           - /?tab=overview
@@ -1104,19 +1494,35 @@ modules:
           - Todos are created and edited through a Sheet panel.
           - Deleting a todo currently does not use a destructive confirm dialog.
         rest:
+          status: stable
           routes:
-          - /api/todos
-          - /api/todos/[id]
-          ops:
-          - POST /api/todos returns the new todo id.
+          - path: /api/todos
+            method: POST
+            returns: "{ id: String }"
+            auth: user
+          - path: /api/todos/[id]
+            method: PATCH
+            returns: "TodoItem"
+            auth: user
+          - path: /api/todos/[id]
+            method: DELETE
+            returns: "{ success: Boolean }"
+            auth: user
         mcp:
+          status: stable
           tools:
-          - create_my_todo
-          - update_my_todo
-          - delete_my_todo
-          notes:
-          - create_my_todo returns success and id.
-          - update_my_todo and delete_my_todo return success.
+          - name: create_my_todo
+            auth: user
+            returns: "{ success: Boolean, id: String }"
+            rest_equivalent: POST /api/todos
+          - name: update_my_todo
+            auth: user
+            returns: "{ success: Boolean }"
+            rest_equivalent: PATCH /api/todos/[id]
+          - name: delete_my_todo
+            auth: user
+            returns: "{ success: Boolean }"
+            rest_equivalent: DELETE /api/todos/[id]
   exam:
     name: Exam
     access:
@@ -1125,16 +1531,19 @@ modules:
       admin: Maintains exam data through admin or import flows, not direct edits on ordinary pages.
       agent: After authorization, can read exams relevant to the current user; this capability is primarily exposed via MCP.
     rules:
-    - Exams are attached to sections and are high-priority time events.
-    - Exams are read-only; no ordinary user edit entry point is provided.
-    - Semesters must be explicitly displayed when browsing exams across semesters.
+      attached-to-section: Exams are attached to sections and are high-priority time events.
+      read-only: Exams are read-only; no ordinary user edit entry point is provided.
+      semester-required: Semesters must be explicitly displayed when browsing exams across semesters.
     capabilities:
       cross-section-exam-list:
         title: Cross-Section Exam List
+        auth: user
         links:
           models:
-          - ExamEntry
+          - name: ExamEntry
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=exams
           notes:
@@ -1142,54 +1551,64 @@ modules:
           - Cards primarily display course name; secondary display shows exam room, date/time, and exam mode.
           - Section codes are only promoted in priority when disambiguation is needed.
         rest:
+          status: unavailable
           notes:
           - No standalone exam list endpoint is currently exposed.
         mcp:
+          status: stable
           tools:
-          - list_my_exams
-          notes:
-          - Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate,
-            startTime, endTime, examBatch, and examRooms[].
+          - name: list_my_exams
+            auth: user
+            returns: "ExamEntry[]"
+            notes:
+            - Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].
       section-exam-info:
         title: Section Exam Info
+        auth: anon
         links:
           models:
-          - ExamEntry
+          - name: ExamEntry
+            role: primary
         web:
+          status: stable
           pages:
           - /sections/[jwId]
           notes:
           - The section detail page displays the section's exams in the calendar tab and mini calendar.
         rest:
+          status: unavailable
           notes:
           - Currently provided through a combination of existing public academic objects and calendar capabilities.
         mcp:
+          status: stable
           tools:
-          - list_exams_by_section
-          notes:
-          - Returns a single section's exams[].
+          - name: list_exams_by_section
+            auth: anon
+            returns: "ExamEntry[]"
+            notes:
+            - Returns a single section's exams[].
   overview:
     name: Overview
     access:
       anon: On the home page, can only see the public bus and frequent links views; cannot enter the personal overview.
       user: The home page serves as the personal workspace.
       admin: The home page personal workspace behavior is the same as regular users.
-      agent: Can read overview results with the same semantics as the home page; REST and MCP should return consistent overview
-        information.
+      agent: Can read overview results with the same semantics as the home page; REST and MCP should return consistent overview information.
     rules:
-    - The home page is not a directory page but a decision page for 'what to do next'.
-    - The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content
-      or complete directory information.
-    - Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate
-      in upcoming due date sorting.
-    - Non-current-semester subscribed sections must not be disguised as current learning tasks.
+      decision-page: The home page is not a directory page but a decision page for 'what to do next'.
+      current-semester-priority: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.
+      homework-todo-layered: Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.
+      non-current-not-disguised: Non-current-semester subscribed sections must not be disguised as current learning tasks.
     capabilities:
       authenticated-overview:
         title: Authenticated Homepage Overview
+        auth: user
         links:
           models:
-          - OverviewSnapshot
+          - name: OverviewSnapshot
+            role: primary
         web:
+          status: stable
           pages:
           - /?tab=overview
           - /?tab=calendar
@@ -1200,25 +1619,27 @@ modules:
           - /?tab=bus
           - /?tab=links
           notes:
-          - /
-          - Displays frequent links, today's and tomorrow's schedule, this week's calendar, incomplete homework, and incomplete
-            todos.
+          - Displays frequent links, today's and tomorrow's schedule, this week's calendar, incomplete homework, and incomplete todos.
         rest:
+          status: unavailable
           notes:
           - No standalone overview endpoint is currently exposed.
         mcp:
+          status: stable
           tools:
-          - get_my_overview
-          notes:
-          - overview contains pending todo, homework, today's schedule, and upcoming exam counts.
-          - samples contains dueTodos[], dueHomeworks[], and upcomingExams[].
-          - Returns user, overview, and samples.
+          - name: get_my_overview
+            auth: user
+            returns: "OverviewSnapshot"
+            notes:
+            - overview contains pending todo, homework, today's schedule, and upcoming exam counts.
+            - samples contains dueTodos[], dueHomeworks[], and upcomingExams[].
       anonymous-overview:
         title: Anonymous Homepage
+        auth: anon
         web:
+          status: stable
           notes:
-          - /
-          - 'Retains only the two public tabs: bus and links.'
+          - "Retains only the two public tabs: bus and links."
   permission:
     name: Permission UI / Permission
     access:
@@ -1227,56 +1648,70 @@ modules:
       admin: Has governance entries but this does not change the information hierarchy logic on ordinary detail pages.
       agent: Can receive more structured fields but should not produce a second product model as a result.
     rules:
-    - Users first identify by name, not by code.
-    - Codes, semesters, and numbers primarily serve disambiguation and retrieval.
-    - jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default.
+      name-first: Users first identify by name, not by code.
+      codes-for-disambiguation: Codes, semesters, and numbers primarily serve disambiguation and retrieval.
+      internal-ids-hidden: jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default.
     capabilities:
       list-page:
         title: List Page
+        auth: anon
         web:
+          status: stable
           notes:
           - List pages handle discovery, filtering, and disambiguation.
           - Sufficient disambiguation fields must be retained.
         rest:
+          status: stable
           notes:
           - Can return structured identifier fields for retrieval and consumption.
         mcp:
+          status: stable
           notes:
           - Can return structured identifier fields for retrieval and consumption.
       detail-page:
         title: Detail Page
+        auth: anon
         web:
+          status: stable
           notes:
           - Detail pages handle complete context and object-related operations.
           - Should display complete context and collaborative content.
         rest:
+          status: stable
           notes:
           - Returns structured fields required for details.
         mcp:
+          status: stable
           notes:
           - Returns structured fields required for details.
       card:
         title: Card
+        auth: anon
         web:
+          status: stable
           notes:
           - Cards handle quick scanning and quick action.
           - Prioritizes displaying information needed for the next decision.
           - The home page calendar and section calendar reuse consistent event cards and navigation behavior as much as possible.
           - Both mobile and desktop must avoid overflow, occlusion, and hiding of critical actions.
         rest:
+          status: unavailable
           notes:
           - Does not expose the card format; only exposes data.
         mcp:
+          status: unavailable
           notes:
           - Does not expose the card format; only exposes data.
       auxiliary-pages:
         title: Auxiliary Pages
+        auth: anon
         web:
+          status: stable
           notes:
-          - '/mobile-app: Mobile app onboarding page.'
-          - '/privacy: Privacy policy.'
-          - '/terms: Terms of service.'
-          - '/guides/markdown-support: Markdown support documentation.'
+          - "/mobile-app: Mobile app onboarding page."
+          - "/privacy: Privacy policy."
+          - "/terms: Terms of service."
+          - "/guides/markdown-support: Markdown support documentation."
   comment:
     name: Comment
     access:
@@ -1285,50 +1720,101 @@ modules:
       admin: Can hide, delete, and moderate comments, and handle reports or suspensions.
       agent: No comment read/write capability is currently provided.
     rules:
-    - Comments must be attached to a specific object; no decontextualized public feed entry is provided.
-    - Attached objects include courses, sections, teachers, homework, and section-teacher relationships.
-    - Supports Markdown, math formulas, emoji, tables, replies, and reactions.
-    - Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are
-      traceable by admins in governance scenarios.
+      attached-to-object: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
+      attached-object-types: Attached objects include courses, sections, teachers, homework, and section-teacher relationships.
+      rich-content: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
+      visibility-modes: Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.
     capabilities:
       object-comment-section:
         title: Object Comment Section
+        auth: anon
         web:
+          status: stable
           notes:
           - Comment section in detail pages for objects such as courses, sections, teachers, and homework.
           - Comments and descriptions are placed in the object detail page, not in a standalone community page.
           - Deleting a comment is a high-risk operation that requires confirmation.
         rest:
+          status: stable
           routes:
-          - /api/comments
-          - /api/comments/[id]
-          - /api/comments/[id]/reactions
+          - path: /api/comments
+            method: GET
+            returns: "Comment[]"
+            auth: anon
+          - path: /api/comments
+            method: POST
+            returns: "{ id: String }"
+            auth: user
+          - path: /api/comments/[id]
+            method: PATCH
+            returns: "Comment"
+            auth: user
+          - path: /api/comments/[id]
+            method: DELETE
+            returns: "{ success: Boolean }"
+            auth: user
+          - path: /api/comments/[id]/reactions
+            method: POST
+            returns: "{ success: Boolean }"
+            auth: user
         mcp:
-          notes:
-          - No comment read/write tools are currently provided.
+          status: unavailable
+          tools:
+          - name: list_comments
+            status: unavailable
+            auth: anon
+          - name: create_comment
+            status: unavailable
+            auth: user
+          - name: update_comment
+            status: unavailable
+            auth: user
+          - name: delete_comment
+            status: unavailable
+            auth: user
+          - name: react_to_comment
+            status: unavailable
+            auth: user
       comment-governance:
         title: Comment Governance
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/moderation
         rest:
+          status: stable
           routes:
-          - /api/admin/comments
-          - /api/admin/comments/[id]
-          - /api/admin/suspensions
-          - /api/admin/suspensions/[id]
+          - path: /api/admin/comments
+            method: GET
+            returns: "Comment[]"
+            auth: admin
+          - path: /api/admin/comments/[id]
+            method: PATCH
+            returns: "Comment"
+            auth: admin
+          - path: /api/admin/suspensions
+            method: POST
+            returns: "{ id: String }"
+            auth: admin
+          - path: /api/admin/suspensions/[id]
+            method: PATCH
+            returns: "{ success: Boolean }"
+            auth: admin
         mcp:
+          status: unavailable
           notes:
           - No admin comment tools are currently provided.
       comment-auxiliary-pages:
         title: Comment Auxiliary Pages
+        auth: anon
         web:
+          status: stable
           pages:
           - /comments/[id]
           - /comments/guide
           notes:
-          - The former redirects a single comment back to its original object context; the latter provides comment format
-            documentation.
+          - The former redirects a single comment back to its original object context; the latter provides comment format documentation.
   description:
     name: Description
     access:
@@ -1337,32 +1823,50 @@ modules:
       admin: Can review and maintain descriptions in the admin backend.
       agent: No general description tools are currently provided.
     rules:
-    - Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.
-    - Attached objects include courses, sections, teachers, homework, and similar.
-    - When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information
-      by default.
+      supplement-not-comment: Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.
+      attached-object-types: Attached objects include courses, sections, teachers, homework, and similar.
+      platform-maintained: When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default.
     capabilities:
       object-description-section:
         title: Object Description Section
+        auth: anon
         web:
+          status: stable
           notes:
           - Description area in detail pages for courses, sections, teachers, and homework.
           - Descriptions are displayed as stable supplementary information for objects.
         rest:
+          status: stable
           routes:
-          - /api/descriptions
+          - path: /api/descriptions
+            method: POST
+            returns: "{ success: Boolean }"
+            auth: user
         mcp:
-          notes:
-          - No general object description maintenance tools are currently provided.
+          status: unavailable
+          tools:
+          - name: list_descriptions
+            status: unavailable
+            auth: anon
+          - name: upsert_description
+            status: unavailable
+            auth: user
       description-governance:
         title: Description Governance
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/moderation
         rest:
+          status: stable
           routes:
-          - /api/admin/descriptions
+          - path: /api/admin/descriptions
+            method: GET
+            returns: "Description[]"
+            auth: admin
         mcp:
+          status: unavailable
           notes:
           - No description governance tools are currently provided.
   upload:
@@ -1373,61 +1877,90 @@ modules:
       admin: No standalone public 'upload management console' currently exists.
       agent: No upload capability is currently provided.
     rules:
-    - Uploads serve only comment attachments; they are not an independent file space.
-    - Permission and quota checks are required before upload.
-    - Web comment attachment uploads follow a three-step flow — create upload session on-site → browser direct upload to S3-compatible
-      pre-signed URL generated by AWS SDK → confirm completion on-site; page CSP must allow the signed storage origin actually
-      used by the upload backend, including AWS S3 virtual-hosted / path-style addresses or compatible backend addresses via
-      custom endpoint configuration.
-    - The storage backend operates with AWS SDK S3-compatible configuration; defaults to AWS S3 but allows connecting to compatible
-      backends via custom endpoint.
-    - E2E tests use a local S3-compatible test endpoint by default; external storage is only used when an available S3 environment
-      is explicitly provided.
-    - Downloads must not bypass authorization by obtaining a direct link.
-    - /api/uploads/[id]/download only returns a short-lived signed download URL redirect, not a stable long-reusable object
-      direct link.
+      comment-attachments-only: Uploads serve only comment attachments; they are not an independent file space.
+      permission-and-quota: Permission and quota checks are required before upload.
+      three-step-upload: Web comment attachment uploads follow a three-step flow — create upload session on-site → browser direct upload to S3-compatible pre-signed URL generated by AWS SDK → confirm completion on-site; page CSP must allow the signed storage origin actually used by the upload backend, including AWS S3 virtual-hosted / path-style addresses or compatible backend addresses via custom endpoint configuration.
+      s3-compatible-backend: The storage backend operates with AWS SDK S3-compatible configuration; defaults to AWS S3 but allows connecting to compatible backends via custom endpoint.
+      e2e-local-s3: E2E tests use a local S3-compatible test endpoint by default; external storage is only used when an available S3 environment is explicitly provided.
+      download-auth-required: Downloads must not bypass authorization by obtaining a direct link.
+      download-signed-url: /api/uploads/[id]/download only returns a short-lived signed download URL redirect, not a stable long-reusable object direct link.
     capabilities:
       upload-list:
         title: Upload List
+        auth: user
         web:
+          status: stable
           notes:
-          - No standalone upload management page exists; the comment editor reads the current user's upload quota and upload
-            history on demand and initiates upload sessions from here.
+          - No standalone upload management page exists; the comment editor reads the current user's upload quota and upload history on demand and initiates upload sessions from here.
         rest:
+          status: stable
           routes:
-          - /api/uploads
-          notes:
-          - The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.
+          - path: /api/uploads
+            method: GET
+            returns: "{ quota: UploadQuota, uploads: Upload[] }"
+            auth: user
+            notes:
+            - The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.
         mcp:
-          notes:
-          - No upload tools are currently provided.
+          status: unavailable
+          tools:
+          - name: get_my_uploads
+            status: unavailable
+            auth: user
       comment-attachment-upload:
         title: Comment Attachment Upload
+        auth: user
         web:
+          status: stable
           notes:
           - Attachment flow within the comment editor.
           - No standalone resource browsing entry independent of object context is provided.
         rest:
+          status: stable
           routes:
-          - /api/uploads
-          - /api/uploads/complete
+          - path: /api/uploads
+            method: POST
+            returns: "{ uploadId: String, presignedUrl: String }"
+            auth: user
+          - path: /api/uploads/complete
+            method: POST
+            returns: "{ upload: Upload }"
+            auth: user
         mcp:
-          notes:
-          - No upload tools are currently provided.
+          status: unavailable
+          tools:
+          - name: create_upload_session
+            status: unavailable
+            auth: user
+          - name: complete_upload
+            status: unavailable
+            auth: user
       comment-attachment-download:
         title: Comment Attachment Download
+        auth: user
         web:
+          status: stable
           notes:
           - Comment attachment download entry.
         rest:
+          status: stable
           routes:
-          - /api/uploads/[id]
-          - /api/uploads/[id]/download
-          notes:
-          - The current download implementation validates access permissions based on the upload owner.
+          - path: /api/uploads/[id]
+            method: GET
+            returns: "Upload"
+            auth: user
+          - path: /api/uploads/[id]/download
+            method: GET
+            returns: "302 redirect to signed URL"
+            auth: user
+            notes:
+            - The current download implementation validates access permissions based on the upload owner.
         mcp:
-          notes:
-          - No download tools are currently provided.
+          status: unavailable
+          tools:
+          - name: get_upload_download
+            status: unavailable
+            auth: user
   bus:
     name: Bus
     access:
@@ -1436,56 +1969,67 @@ modules:
       admin: Can maintain bus data.
       agent: Can read bus timetable capabilities.
     rules:
-    - Bus is public campus life information; sign-in should not be a prerequisite.
-    - The dashboard bus page determines weekday/weekend by the user's local time on the client side by default and allows
-      manual switching.
-    - When calculating 'how long until departure', whether a trip has departed, and route ordering, the dashboard client interprets
-      HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.
-    - The dashboard bus page provides only core filters for departure stop, arrival stop, direction reversal, and 'show already-departed
-      trips'; departure and arrival stops use a directly clickable vertical stop column to avoid secondary dropdowns, maintaining
-      clear departure/arrival hierarchy.
-    - The dashboard visual structure should prioritize 'quick scanning of the next trip and route differences'; selected stop,
-      direction, next departure time, and route grouping must be more prominent than decorative cards.
-    - Routes are currently sorted by 'the next boardable time from the selected departure stop'; if a stop has no exact time
-      in the original timetable, the average of adjacent known stop times in the same trip is used as an estimate.
-    - The dashboard main view uses a single merged large table to display all applicable routes, grouped into table sections
-      by route; each section shows the visible trips for that route.
-    - /api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences
-      field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply
-      recommendations, filtering, or sorting.
-    - list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical
-      route IDs outside the current version.
-    - The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
+      public-no-signin: Bus is public campus life information; sign-in should not be a prerequisite.
+      weekday-by-client-time: The dashboard bus page determines weekday/weekend by the user's local time on the client side by default and allows manual switching.
+      shanghai-time-interpretation: When calculating 'how long until departure', whether a trip has departed, and route ordering, the dashboard client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.
+      core-filters-only: The dashboard bus page provides only core filters for departure stop, arrival stop, direction reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.
+      visual-priority: The dashboard visual structure should prioritize 'quick scanning of the next trip and route differences'; selected stop, direction, next departure time, and route grouping must be more prominent than decorative cards.
+      sort-by-next-boardable: Routes are currently sorted by 'the next boardable time from the selected departure stop'; if a stop has no exact time in the original timetable, the average of adjacent known stop times in the same trip is used as an estimate.
+      merged-table-grouped-by-route: The dashboard main view uses a single merged large table to display all applicable routes, grouped into table sections by route; each section shows the visible trips for that route.
+      raw-data-returned: /api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.
+      current-version-only: list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.
+      dashboard-vs-map: The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
     capabilities:
       bus-dashboard:
         title: Bus Dashboard
+        auth: anon
         web:
+          status: stable
           pages:
           - /?tab=bus
           notes:
-          - The dashboard route and trip view supports client-side weekday/weekend switching, vertical departure/arrival stop
-            selection, direction reversal, toggling display of already-departed trips, and displays all applicable routes
-            in a large table grouped by route.
+          - The dashboard route and trip view supports client-side weekday/weekend switching, vertical departure/arrival stop selection, direction reversal, toggling display of already-departed trips, and displays all applicable routes in a large table grouped by route.
         rest:
+          status: stable
           routes:
-          - /api/bus
-          - /api/bus/preferences
+          - path: /api/bus
+            method: GET
+            returns: "{ routes: BusRoute[], preferences: BusPreferences? }"
+            auth: anon
+          - path: /api/bus/preferences
+            method: POST
+            returns: "{ preferences: BusPreferences }"
+            auth: user
         mcp:
+          status: stable
           tools:
-          - query_bus_timetable
-          - list_bus_routes
-          - get_bus_route_timetable
+          - name: query_bus_timetable
+            auth: anon
+            returns: "{ routes: BusRoute[], preferences: BusPreferences? }"
+            rest_equivalent: GET /api/bus
+          - name: list_bus_routes
+            auth: anon
+            returns: "BusRoute[]"
+            rest_equivalent: GET /api/bus
+          - name: get_bus_route_timetable
+            auth: anon
+            returns: "BusRoute"
+            rest_equivalent: GET /api/bus
       bus-map:
         title: Bus Route Map
+        auth: anon
         web:
+          status: stable
           pages:
           - /bus-map
           notes:
           - Bus route map.
         rest:
+          status: unavailable
           notes:
           - No standalone map REST entry currently exists.
         mcp:
+          status: unavailable
           notes:
           - No map view capability is provided.
   dashboard-link:
@@ -1496,38 +2040,62 @@ modules:
       admin: Has no dedicated link management interface separate from regular users.
       agent: No frequent link management capability is currently provided.
     rules:
-    - Frequent links are a navigation capability, not a content feed.
-    - Search supports Chinese, pinyin, and whitespace-tolerant matching.
-    - Links are for navigation; buttons are for actions.
-    - Currently a maximum of 5 links can be pinned; exceeding this displaces the earliest pinned link.
-    - When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes.
+      navigation-not-feed: Frequent links are a navigation capability, not a content feed.
+      search-fuzzy: Search supports Chinese, pinyin, and whitespace-tolerant matching.
+      links-vs-buttons: Links are for navigation; buttons are for actions.
+      pin-limit: Currently a maximum of 5 links can be pinned; exceeding this displaces the earliest pinned link.
+      pin-error-clear: When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes.
     capabilities:
       link-browse:
         title: Link Browse & Search
+        auth: anon
         web:
+          status: stable
           pages:
           - /?tab=links
           - /?tab=overview
           notes:
           - The home page provides frequent links to internal and external campus systems; unsigned-in users can only browse.
         rest:
+          status: unavailable
           notes:
           - No standalone 'search links' endpoint currently exists.
         mcp:
-          notes:
-          - No frequent link tools are currently provided.
+          status: unavailable
+          tools:
+          - name: search_dashboard_links
+            status: unavailable
+            auth: anon
       link-pin-and-visit:
         title: Link Pin & Visit
+        auth: user
         web:
+          status: stable
           notes:
           - Signed-in users can pin, unpin, and record link visits.
         rest:
+          status: stable
           routes:
-          - /api/dashboard-links/pin
-          - /api/dashboard-links/visit
+          - path: /api/dashboard-links/pin
+            method: POST
+            returns: "{ success: Boolean, pinnedLinks: DashboardLink[] }"
+            auth: user
+          - path: /api/dashboard-links/visit
+            method: POST
+            returns: "{ success: Boolean }"
+            auth: user
         mcp:
-          notes:
-          - No corresponding capability is currently provided.
+          status: unavailable
+          tools:
+          - name: pin_dashboard_link
+            status: unavailable
+            auth: user
+          - name: unpin_dashboard_link
+            status: unavailable
+            auth: user
+          - name: record_dashboard_link_visit
+            status: unavailable
+            auth: user
   admin:
     name: Admin
     access:
@@ -1536,80 +2104,121 @@ modules:
       admin: Can access governance pages for moderation, users, OAuth, bus, and more.
       agent: No admin tools are currently provided.
     rules:
-    - The admin backend is divided by governance responsibility, not all actions on one page.
-    - Comment and description governance are currently centralized on the moderation page.
-    - High-risk admin actions such as delete, suspend, and hide must have clear feedback.
+      divided-by-responsibility: The admin backend is divided by governance responsibility, not all actions on one page.
+      moderation-centralized: Comment and description governance are currently centralized on the moderation page.
+      high-risk-feedback: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
     capabilities:
       admin-home:
         title: Admin Home
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin
           notes:
           - Entry aggregation page.
       moderation:
         title: Moderation
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/moderation
           notes:
           - Hosts both comment and description governance simultaneously.
         rest:
+          status: stable
           routes:
-          - /api/admin/comments
-          - /api/admin/comments/[id]
-          - /api/admin/descriptions
-          - /api/admin/suspensions
-          - /api/admin/suspensions/[id]
-          - /api/admin/homeworks
-          - /api/admin/homeworks/[id]
+          - path: /api/admin/comments
+            method: GET
+            returns: "Comment[]"
+            auth: admin
+          - path: /api/admin/comments/[id]
+            method: PATCH
+            returns: "Comment"
+            auth: admin
+          - path: /api/admin/descriptions
+            method: GET
+            returns: "Description[]"
+            auth: admin
+          - path: /api/admin/suspensions
+            method: GET
+            returns: "Suspension[]"
+            auth: admin
+          - path: /api/admin/suspensions/[id]
+            method: PATCH
+            returns: "Suspension"
+            auth: admin
+          - path: /api/admin/homeworks
+            method: GET
+            returns: "HomeworkItem[]"
+            auth: admin
+          - path: /api/admin/homeworks/[id]
+            method: DELETE
+            returns: "{ success: Boolean }"
+            auth: admin
         mcp:
+          status: unavailable
           notes:
           - No standalone admin tools are currently provided.
       user-management:
         title: User Management
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/users
         rest:
+          status: stable
           routes:
-          - /api/admin/users
-          - /api/admin/users/[id]
+          - path: /api/admin/users
+            method: GET
+            returns: "User[]"
+            auth: admin
+          - path: /api/admin/users/[id]
+            method: PATCH
+            returns: "User"
+            auth: admin
         mcp:
+          status: unavailable
           notes:
           - No standalone admin tools are currently provided.
       oauth-client-management:
         title: OAuth Client Management
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/oauth
           notes:
-          - 'The admin home should first explain client modes: first-party / internal applications prefer creating confidential
-            clients; CLI, native apps, and MCP tools prefer creating public PKCE clients.'
-          - The page should separate 'how to select client type' from 'existing client overview', prioritizing reduction of
-            the admin's cognitive load.
+          - "The admin home should first explain client modes: first-party / internal applications prefer creating confidential clients; CLI, native apps, and MCP tools prefer creating public PKCE clients."
+          - The page should separate 'how to select client type' from 'existing client overview', prioritizing reduction of the admin's cognitive load.
         rest:
+          status: unavailable
           notes:
           - No standalone REST admin interface currently exists.
           - Backend creation and deletion are handled through server actions.
         mcp:
+          status: unavailable
           notes:
           - No standalone admin tools are currently provided.
       bus-management:
         title: Bus Management
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/bus
           notes:
-          - When manually importing static bus data in the admin backend, data should be read directly from https://static.life-ustc.tiankaima.dev;
-            local clone, paths outside the working directory, or git commands must not be used.
-          - Deleting an inactive timetable version must use the in-app destructive confirm dialog; browser-native confirm
-            dialogs must not be used.
+          - When manually importing static bus data in the admin backend, data should be read directly from https://static.life-ustc.tiankaima.dev; local clone, paths outside the working directory, or git commands must not be used.
+          - Deleting an inactive timetable version must use the in-app destructive confirm dialog; browser-native confirm dialogs must not be used.
         rest:
+          status: unavailable
           notes:
           - No standalone admin REST management interface currently exists.
           - Version import, activation, and deletion are handled through server actions.
         mcp:
+          status: unavailable
           notes:
           - No standalone admin tools are currently provided.
   oauth:
@@ -1620,100 +2229,102 @@ modules:
       admin: Can manage OAuth clients in the admin backend.
       agent: Accesses restricted capabilities after obtaining a token through the standard authorization flow.
     rules:
-    - The authorization page must clearly display the application name, requested permissions, approve action, and reject
-      action.
-    - Users see 'what this app wants and whether I allow it', not technical protocol details.
-    - Dynamic client registration is handled by the standard /oauth2/register path of the Better Auth OAuth provider; the
-      project no longer maintains a parallel hand-written DCR persistence logic.
-    - Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided
-      by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer.
-    - First-party / internal applications prefer using trusted OAuth clients created in the admin backend; such clients can
-      skip consent and can further be incorporated into the Better Auth provider's trusted / cached client scheme when needed,
-      rather than relying on public DCR.
-    - Public MCP / CLI / native clients use public + PKCE mode; admin copy and grouping should explicitly separate trusted
-      first-party from external/public to reduce admin misconfiguration probability.
-    - When creating clients in the admin backend, redirect URI and client metadata validation should preferentially reuse
-      the rules of the Better Auth OAuth provider, no longer maintaining a local forked rule document.
-    - For public native clients with loopback redirect URIs, the server should accommodate the hostname alias difference between
-      127.0.0.1 and localhost to avoid DCR registration and authorization requests failing solely due to these two local loopback
-      representations; beyond this, strict matching is maintained for path, query, scheme, and non-loopback host rules.
-    - The device authorization flow is currently still implemented by the project as a custom implementation, because the
-      existing Better Auth device-authorization plugin returns a session token rather than the OAuth bearer-token / refresh-token
-      semantics of this project; it should not be forcibly replaced until the provider natively supports the OAuth device
-      grant.
-    - Local development and preview deployments without fixed hostnames can reuse the production site's registered provider
-      callback address through an OAuth proxy; after the preview/local instance shares the proxy encryption key with the production
-      instance, the production site completes the provider callback and sends the encrypted user profile back to the current
-      instance to establish a local session.
-    - For OAuth issuers with a path (currently /api/auth), the canonical entry for authorization server metadata should be
-      /.well-known/oauth-authorization-server/api/auth; the root-level /.well-known/oauth-authorization-server serves only
-      as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the issuer
-      at the root level.
-    - For OpenID issuers with a path (currently /api/auth), the canonical entry for OIDC Discovery should be /api/auth/.well-known/openid-configuration,
-      with /.well-known/openid-configuration/api/auth also provided as an RFC 8414 compatible path; the root-level /.well-known/openid-configuration
-      serves only as a compatibility alias redirect to the canonical address.
-    - For protected resources with a path (currently MCP resource /api/mcp), the canonical entry per RFC 9728 should be /.well-known/oauth-protected-resource/api/mcp;
-      the root-level /.well-known/oauth-protected-resource serves only as a compatibility alias redirect to the canonical
-      address, to avoid returning metadata inconsistent with the resource field.
-    - Compatibility aliases should use redirects rather than redundantly returning a JSON that "looks usable but is inconsistent
-      with issuer/resource validation", so that clients ultimately complete metadata validation at the canonical address.
-    - 'Discovery metadata should support cross-origin reading: at minimum return Access-Control-Allow-Origin: * for OpenID
-      discovery, and keep the CORS behavior of authorization server metadata and protected resource metadata consistent, reducing
-      compatibility risks for browser-type clients and debugging tools.'
+      auth-page-clarity: The authorization page must clearly display the application name, requested permissions, approve action, and reject action.
+      user-consent-framing: Users see 'what this app wants and whether I allow it', not technical protocol details.
+      dcr-via-provider: Dynamic client registration is handled by the standard /oauth2/register path of the Better Auth OAuth provider; the project no longer maintains a parallel hand-written DCR persistence logic.
+      dcr-rules-from-provider: Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer.
+      trusted-clients-admin-backend: First-party / internal applications prefer using trusted OAuth clients created in the admin backend; such clients can skip consent and can further be incorporated into the Better Auth provider's trusted / cached client scheme when needed, rather than relying on public DCR.
+      public-clients-pkce: Public MCP / CLI / native clients use public + PKCE mode; admin copy and grouping should explicitly separate trusted first-party from external/public to reduce admin misconfiguration probability.
+      client-validation-from-provider: When creating clients in the admin backend, redirect URI and client metadata validation should preferentially reuse the rules of the Better Auth OAuth provider, no longer maintaining a local forked rule document.
+      loopback-redirect-tolerance: For public native clients with loopback redirect URIs, the server should accommodate the hostname alias difference between 127.0.0.1 and localhost to avoid DCR registration and authorization requests failing solely due to these two local loopback representations; beyond this, strict matching is maintained for path, query, scheme, and non-loopback host rules.
+      device-grant-custom: The device authorization flow is currently still implemented by the project as a custom implementation, because the existing Better Auth device-authorization plugin returns a session token rather than the OAuth bearer-token / refresh-token semantics of this project; it should not be forcibly replaced until the provider natively supports the OAuth device grant.
+      oauth-proxy-for-dev: Local development and preview deployments without fixed hostnames can reuse the production site's registered provider callback address through an OAuth proxy; after the preview/local instance shares the proxy encryption key with the production instance, the production site completes the provider callback and sends the encrypted user profile back to the current instance to establish a local session.
+      as-metadata-canonical-path: For OAuth issuers with a path (currently /api/auth), the canonical entry for authorization server metadata should be /.well-known/oauth-authorization-server/api/auth; the root-level /.well-known/oauth-authorization-server serves only as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the issuer at the root level.
+      oidc-discovery-canonical-path: For OpenID issuers with a path (currently /api/auth), the canonical entry for OIDC Discovery should be /api/auth/.well-known/openid-configuration, with /.well-known/openid-configuration/api/auth also provided as an RFC 8414 compatible path; the root-level /.well-known/openid-configuration serves only as a compatibility alias redirect to the canonical address.
+      protected-resource-canonical-path: For protected resources with a path (currently MCP resource /api/mcp), the canonical entry per RFC 9728 should be /.well-known/oauth-protected-resource/api/mcp; the root-level /.well-known/oauth-protected-resource serves only as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the resource field.
+      aliases-use-redirect: Compatibility aliases should use redirects rather than redundantly returning a JSON that looks usable but is inconsistent with issuer/resource validation, so that clients ultimately complete metadata validation at the canonical address.
+      discovery-cors: "Discovery metadata should support cross-origin reading; at minimum return Access-Control-Allow-Origin: * for OpenID discovery, and keep the CORS behavior of authorization server metadata and protected resource metadata consistent, reducing compatibility risks for browser-type clients and debugging tools."
     capabilities:
       authorization:
         title: Authorization
+        auth: anon
         web:
+          status: stable
           pages:
           - /oauth/authorize
           notes:
           - Displays client name and requested scopes.
         rest:
+          status: stable
           notes:
           - The authorization protocol is handled by authentication routes.
       client-registration:
         title: Client Registration & Discovery
+        auth: admin
         web:
+          status: stable
           pages:
           - /admin/oauth
           notes:
           - The admin backend displays OAuth client management capabilities.
         rest:
+          status: stable
           routes:
-          - /api/auth/.well-known/openid-configuration
-          - /api/auth/oauth2/register
-          - /.well-known/oauth-authorization-server/api/auth
-          - /.well-known/openid-configuration/api/auth
-          - /.well-known/oauth-protected-resource/api/mcp
+          - path: /api/auth/.well-known/openid-configuration
+            method: GET
+            returns: "OIDCDiscoveryDocument"
+            auth: anon
+          - path: /api/auth/oauth2/register
+            method: POST
+            returns: "OAuthClientRegistration"
+            auth: anon
+          - path: /.well-known/oauth-authorization-server/api/auth
+            method: GET
+            returns: "OAuthAuthorizationServerMetadata"
+            auth: anon
+          - path: /.well-known/openid-configuration/api/auth
+            method: GET
+            returns: "OIDCDiscoveryDocument"
+            auth: anon
+          - path: /.well-known/oauth-protected-resource/api/mcp
+            method: GET
+            returns: "OAuthProtectedResourceMetadata"
+            auth: anon
         mcp:
+          status: unavailable
           notes:
           - No OAuth management capability is provided.
       device-authorization-grant:
         title: Device Authorization Grant (RFC 8628)
+        auth: anon
         web:
+          status: stable
           pages:
           - /oauth/device
           notes:
-          - Users enter the device code (user_code) on this page; upon confirmation, they approve or reject the device sign-in
-            request.
-          - When unsigned-in users access this page, they are first directed to the sign-in page and automatically return
-            to the device verification page after signing in.
+          - Users enter the device code (user_code) on this page; upon confirmation, they approve or reject the device sign-in request.
+          - When unsigned-in users access this page, they are first directed to the sign-in page and automatically return to the device verification page after signing in.
           - Supports pre-filling the device code via the code query parameter in verification_uri_complete.
         rest:
-          ops:
-          - POST /api/auth/oauth2/device-authorization
-          - POST /api/auth/oauth2/token
-          notes:
-          - 'Request body is application/x-www-form-urlencoded; parameters:'
-          - 'Returns JSON:'
-          - 'Supports CORS (Access-Control-Allow-Origin: *).'
-          - The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to
-            obtain an access token.
-          - During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on
-            state.
-          - .well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code
-            in grant_types_supported.
+          status: stable
+          routes:
+          - path: /api/auth/oauth2/device-authorization
+            method: POST
+            returns: "{ device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval }"
+            auth: anon
+            notes:
+            - Request body is application/x-www-form-urlencoded.
+            - "Supports CORS (Access-Control-Allow-Origin: *)."
+            - .well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported.
+          - path: /api/auth/oauth2/token
+            method: POST
+            returns: "{ access_token, token_type, expires_in, refresh_token? } | { error }"
+            auth: anon
+            notes:
+            - The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.
+            - During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on state.
         mcp:
+          status: unavailable
           notes:
           - Not applicable; the device authorization flow completes before MCP establishes a connection.
   webhook-login:
@@ -1724,222 +2335,246 @@ modules:
       admin: Must hold the WEBHOOK_SECRET environment variable value.
       agent: Not applicable.
     rules:
-    - Only available when the server is configured with the WEBHOOK_SECRET environment variable; all requests return 403 when
-      not configured.
-    - Used for passwordless login in production debugging scenarios; not a regular user sign-in entry point.
-    - Locates the target user by email or userId and establishes a session via Better Auth session primitives; no longer hand-writes
-      session cookie signing.
+      requires-secret: Only available when the server is configured with the WEBHOOK_SECRET environment variable; all requests return 403 when not configured.
+      debug-only: Used for passwordless login in production debugging scenarios; not a regular user sign-in entry point.
+      session-via-betterauth: Locates the target user by email or userId and establishes a session via Better Auth session primitives; no longer hand-writes session cookie signing.
     capabilities:
       webhook-login:
         title: Webhook Login
+        auth: admin
         web:
+          status: unavailable
           notes:
           - Not applicable; no corresponding web entry.
         rest:
-          ops:
-          - POST /api/auth/webhook/login
-          notes:
-          - 'Request body is JSON:'
-          - 'Returns JSON on success: ok, userId, email, sessionToken, expires.'
-          - Also sets the better-auth.session_token cookie.
+          status: stable
+          routes:
+          - path: /api/auth/webhook/login
+            method: POST
+            returns: "{ ok: Boolean, userId: String, email: String, sessionToken: String, expires: DateTime }"
+            auth: admin
+            notes:
+            - Request body is JSON.
+            - Also sets the better-auth.session_token cookie.
   openapi:
     name: REST / OpenAPI
     access:
       anon: Can browse API documentation and public REST capabilities.
       user: When signed in, can call their own restricted REST capabilities.
       admin: Calls governance capabilities through the corresponding admin endpoints.
-      agent: Can call public REST capabilities and, after OAuth authorization, can call restricted REST and MCP capabilities;
-        both share the same authorization boundary by default.
+      agent: Can call public REST capabilities and, after OAuth authorization, can call restricted REST and MCP capabilities; both share the same authorization boundary by default.
     rules:
-    - The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.
-    - Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate
-      'developer-specific business model'.
-    - Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens;
-      bearer-token access is no longer limited to MCP.
-    - The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST
-      and MCP; differences mainly appear in interaction form and serialization level.
+      aligned-with-web: The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.
+      no-developer-model: Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.
+      session-and-bearer: Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.
+      rest-mcp-consistent: The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level.
     capabilities:
       api-docs-page:
         title: API Docs Page
+        auth: anon
         web:
+          status: stable
           pages:
           - /api-docs
           notes:
           - Swagger documentation entry.
       openapi-spec:
         title: OpenAPI Spec
+        auth: anon
         web:
+          status: stable
           notes:
           - The /api-docs page consumes this document.
         rest:
+          status: stable
           routes:
-          - /api/openapi
+          - path: /api/openapi
+            method: GET
+            returns: "OpenAPI 3.x JSON"
+            auth: anon
       business-rest-routes:
         title: Business REST Routes
+        auth: anon
         web:
+          status: stable
           notes:
           - Page behavior is implemented through corresponding /api/* route calls.
         rest:
+          status: stable
           notes:
           - Domain-specific REST endpoints under /api/*.
           - Current user-side protected endpoints support both in-site session from the request cookie and OAuth bearer tokens.
       platform-utility-routes:
         title: Platform Utility Routes
+        auth: anon
         rest:
-          notes:
-          - '/api/metadata: Returns filter dictionaries (education level, course category, campus, etc.).'
-          - '/api/locale: Sets the user language preference cookie.'
+          status: stable
+          routes:
+          - path: /api/metadata
+            method: GET
+            returns: "{ educationLevels, courseCategories, campuses, ... }"
+            auth: anon
+            notes:
+            - Returns filter dictionaries (education level, course category, campus, etc.).
+          - path: /api/locale
+            method: POST
+            returns: "{ success: Boolean }"
+            auth: anon
+            notes:
+            - Sets the user language preference cookie.
   mcp:
     name: MCP
     access:
       anon: Cannot call MCP tools that require user context.
       user: After authorization, can call personal workspace-related tools.
       admin: Currently does not automatically gain additional MCP admin tools due to admin status.
-      agent: MCP is one of the protocol entry points alongside REST, covering capabilities aligned with the web by default
-        and sharing the same OAuth permission boundary.
+      agent: MCP is one of the protocol entry points alongside REST, covering capabilities aligned with the web by default and sharing the same OAuth permission boundary.
     rules:
-    - MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities;
-      admin capabilities are not exposed by default.
-    - Current tool output is uniformly text-formatted JSON.
-    - 'Output mode has three levels: summary, default, full.'
-    - MCP currently covers core query tools for courses, sections, teachers, semesters, subscriptions, schedules, and unified
-      calendar events; comment, upload, description governance, link management, and admin capabilities do not yet have corresponding
-      tools.
+      personal-workspace-focus: MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities; admin capabilities are not exposed by default.
+      text-formatted-json: Current tool output is uniformly text-formatted JSON.
+      output-modes: "Output mode has three levels: summary, default, full."
+      coverage: MCP currently covers core query tools for courses, sections, teachers, semesters, subscriptions, schedules, and unified calendar events; comment, upload, description governance, link management, and admin capabilities do not yet have corresponding tools.
     capabilities:
       protocol-endpoint:
         title: Protocol Endpoint
+        auth: anon
         web:
+          status: unavailable
           notes:
           - No standalone MCP Web UI currently exists; the documentation entry remains at /api-docs.
         rest:
+          status: stable
           routes:
-          - /api/mcp
-        mcp:
-          notes:
-          - All tool calls are handled through this endpoint.
+          - path: /api/mcp
+            method: POST
+            returns: MCP JSON-RPC response
+            auth: anon
+            notes:
+            - All tool calls are handled through this endpoint.
       tool-groups:
         title: Tool Groups
+        auth: anon
         mcp:
-          notes:
-          - Profile / Todo
-          - Course / Section
-          - Calendar / Timeline
-          - Homework / Exam / Schedule
-          - Bus
-      available-tools:
-        title: Currently Available MCP Tools
-        mcp:
-          tools:
-          - get_my_profile
-          - list_my_todos
-          - create_my_todo
-          - update_my_todo
-          - delete_my_todo
-          - list_my_homeworks
-          - set_my_homework_completion
-          - list_my_schedules
-          - list_my_exams
-          - get_my_overview
-          - get_my_7days_timeline
-          - list_semesters
-          - get_current_semester
-          - search_courses
-          - get_course_by_jw_id
-          - search_sections
-          - get_section_by_jw_id
-          - search_teachers
-          - get_teacher_by_id
-          - match_section_codes
-          - get_my_calendar_subscription
-          - subscribe_my_sections_by_codes
-          - subscribe_section_by_jw_id
-          - unsubscribe_section_by_jw_id
-          - list_my_subscribed_sections
-          - get_section_calendar_subscription
-          - list_homeworks_by_section
-          - create_homework_on_section
-          - update_homework_on_section
-          - list_schedules_by_section
-          - list_exams_by_section
-          - query_schedules
-          - list_my_calendar_events
-          - query_bus_timetable
-          - list_bus_routes
-          - get_bus_route_timetable
-      unavailable-tools:
-        title: Currently Unavailable MCP Tools
-        mcp:
-          tools:
-          - get_public_user_profile
-          - list_comments
-          - create_comment
-          - update_comment
-          - delete_comment
-          - react_to_comment
-          - list_descriptions
-          - upsert_description
-          - get_my_uploads
-          - create_upload_session
-          - complete_upload
-          - get_upload_download
-          - search_dashboard_links
-          - pin_dashboard_link
-          - unpin_dashboard_link
-          - record_dashboard_link_visit
+          status: stable
+          groups:
+          - name: Profile & Todo
+            tools:
+            - get_my_profile
+            - list_my_todos
+            - create_my_todo
+            - update_my_todo
+            - delete_my_todo
+          - name: Course & Section
+            tools:
+            - search_courses
+            - get_course_by_jw_id
+            - search_sections
+            - get_section_by_jw_id
+            - search_teachers
+            - get_teacher_by_id
+          - name: Calendar & Timeline
+            tools:
+            - list_my_calendar_events
+            - get_my_7days_timeline
+            - get_my_calendar_subscription
+          - name: Homework & Exam
+            tools:
+            - list_my_homeworks
+            - set_my_homework_completion
+            - list_my_exams
+            - list_homeworks_by_section
+            - create_homework_on_section
+            - update_homework_on_section
+            - list_exams_by_section
+          - name: Schedule & Subscription
+            tools:
+            - list_my_schedules
+            - list_schedules_by_section
+            - query_schedules
+            - match_section_codes
+            - subscribe_my_sections_by_codes
+            - subscribe_section_by_jw_id
+            - unsubscribe_section_by_jw_id
+            - list_my_subscribed_sections
+            - get_section_calendar_subscription
+          - name: Semester & Metadata
+            tools:
+            - list_semesters
+            - get_current_semester
+          - name: Bus
+            tools:
+            - query_bus_timetable
+            - list_bus_routes
+            - get_bus_route_timetable
+          - name: Overview
+            tools:
+            - get_my_overview
   security:
     name: Content / Security
     access:
-      anon: Anonymous comments do not expose real identity to regular users; identity is traceable by admins for governance
-        and security processing.
-      user: Can post anonymous comments with identity hidden from other users. Uploads and downloads require permission validation.
-        Destructive actions require explicit confirmation.
-      admin: Can trace anonymous comment identities in governance scenarios. High-risk actions (delete, suspend, hide) must
-        provide explicit feedback.
+      anon: Anonymous comments do not expose real identity to regular users; identity is traceable by admins for governance and security processing.
+      user: Can post anonymous comments with identity hidden from other users. Uploads and downloads require permission validation. Destructive actions require explicit confirmation.
+      admin: Can trace anonymous comment identities in governance scenarios. High-risk actions (delete, suspend, hide) must provide explicit feedback.
       agent: Must maintain the same permission boundaries and error feedback as web/API.
     rules:
-    - Anonymous capability and traceability capability coexist; this is not an either-or design.
-    - Both uploads and downloads require permission checks; the security boundary must not apply only to the upload entry
-      point.
+      anonymous-and-traceable: Anonymous capability and traceability capability coexist; this is not an either-or design.
+      upload-download-both-checked: Both uploads and downloads require permission checks; the security boundary must not apply only to the upload entry point.
     capabilities:
       anonymous-comment-visibility:
         title: Anonymous Comment Visibility
+        auth: anon
         web:
+          status: stable
           notes:
           - Anonymous to regular users; traceable on the governance side.
         rest:
+          status: stable
           notes:
           - Implemented jointly through comment and admin endpoints.
         mcp:
+          status: unavailable
           notes:
           - No comment tools are currently provided.
       upload-download-access:
         title: Upload / Download Access Control
+        auth: user
         web:
+          status: stable
           notes:
           - Both comment attachment upload and download require permission validation.
         rest:
+          status: stable
           notes:
           - Permissions are validated through the upload and download endpoints.
         mcp:
+          status: unavailable
           notes:
           - No upload tools are currently provided.
       destructive-action-confirmation:
         title: Destructive Action Confirmation
+        auth: user
         web:
+          status: stable
           notes:
-          - 'Operations requiring confirmation include at minimum: disconnecting an OAuth account, batch section subscription,
-            account deletion, deleting a comment, deleting homework, and unsubscribing in the subscribed sections list.'
-          - 'Lightweight operations that typically do not require confirmation include: single subscribe/unsubscribe on the
-            section detail page, homework completion state toggle, todo completion state toggle, comment reactions, and pinning/unpinning
-            links.'
+          - "Operations requiring confirmation include at minimum: disconnecting an OAuth account, batch section subscription, account deletion, deleting a comment, deleting homework, and unsubscribing in the subscribed sections list."
+          - "Lightweight operations that typically do not require confirmation include: single subscribe/unsubscribe on the section detail page, homework completion state toggle, todo completion state toggle, comment reactions, and pinning/unpinning links."
         rest:
+          status: stable
           notes:
           - Must maintain the same permission boundaries and error feedback as the web.
         mcp:
+          status: stable
           notes:
           - Must maintain the same permission boundaries as web/API.
 cases:
   semester:
+    affects:
+    - module: overview
+      capability: authenticated-overview
+    - module: subscription
+      capability: batch-subscribe-by-codes
+    - module: subscribed-sections
+      capability: subscribed-sections-tab
     rules:
       no-current-semester:
       - The home page should display a recoverable empty state.
@@ -1953,11 +2588,16 @@ cases:
       - Homework must display semester.
       - Exams must display semester.
     decisions:
-    - When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering
-      a misleading empty list.
-    - When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the
-      current semester' rather than pretending everything is normal.
+    - When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering a misleading empty list.
+    - When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal.
   disambiguation:
+    affects:
+    - module: course
+      capability: course-list
+    - module: section
+      capability: section-list
+    - module: subscription
+      capability: batch-subscribe-by-codes
     rules:
       duplicate-course-names:
       - Course code or other disambiguation information should be displayed.
@@ -1972,6 +2612,14 @@ cases:
     - Courses with the same name and multiple sections under the same course must not display only the course name.
     - In cross-semester or multi-section scenarios, semester and section code are mandatory information to retain.
   missing-data:
+    affects:
+    - module: schedule
+      capability: section-schedule
+    - module: exam
+      capability: section-exam-info
+    - module: homework
+      capability: section-homework-tab
+    - module: ical
     rules:
       section-missing-teacher-location-or-exam:
       - A default empty state should be displayed.
@@ -1986,6 +2634,11 @@ cases:
     - Homework with no due date retains visibility but does not mix into upcoming due date sorting.
     - When iCal has no events, a valid result should still be returned to prevent clients from failing on 'empty'.
   account:
+    affects:
+    - module: user
+      capability: settings
+    - module: user
+      capability: public-profile
     rules:
       username-change:
       - The new profile page should be accessible.
@@ -2000,9 +2653,15 @@ cases:
     - After a username change, the new address should immediately become the canonical entry.
     - The old username must not continue to represent the user for an extended period to avoid identity confusion.
     - Disconnecting the last sign-in account is an error operation that must be blocked, not an ordinary failure-retry scenario.
-    - Account deletion carries higher risk than ordinary destructive operations; the current implementation requires entering
-      the fixed confirmation word DELETE.
+    - Account deletion carries higher risk than ordinary destructive operations; the current implementation requires entering the fixed confirmation word DELETE.
   content-security:
+    affects:
+    - module: comment
+      capability: object-comment-section
+    - module: upload
+      capability: comment-attachment-download
+    - module: security
+      capability: destructive-action-confirmation
     rules:
       suspended-user:
       - Cannot post new comments.
@@ -2014,8 +2673,7 @@ cases:
       - Hiding must have explicit feedback.
     decisions:
     - Suspended users cannot post new comments; this restriction must hold at both the product layer and the permission layer.
-    - Upload attachment download must re-validate access permissions; it must not assume that having the link is sufficient
-      to download.
+    - Upload attachment download must re-validate access permissions; it must not assume that having the link is sufficient to download.
     - High-risk operations use explicit feedback mechanisms.
 audit:
   fields:
@@ -2047,15 +2705,34 @@ audit:
       type: DateTime
       note: When the action occurred
   actions:
-    comment_create: POST /api/comments
-    comment_edit: PATCH /api/comments/[id]
-    comment_delete: DELETE /api/comments/[id]
-    comment_react: POST /api/comments/[id]/reactions
-    description_edit: POST /api/descriptions (content changed)
-    upload_delete: DELETE /api/uploads/[id]
-    admin_user_suspend: POST /api/admin/suspensions
-    admin_user_unsuspend: PATCH /api/admin/suspensions/[id]
-    admin_comment_moderate: PATCH /api/admin/comments/[id]
-    admin_description_moderate: Reserved for future admin description actions
-  writer: writeAuditLog in src/lib/audit/write-audit-log.ts writes a record. Calls are fire-and-forget (.catch(() => {}))
-    so audit failures never block the main request.
+    comment_create:
+      trigger: POST /api/comments
+      description: User creates a new comment on an object.
+    comment_edit:
+      trigger: PATCH /api/comments/[id]
+      description: User edits their own comment.
+    comment_delete:
+      trigger: DELETE /api/comments/[id]
+      description: User or admin deletes a comment.
+    comment_react:
+      trigger: POST /api/comments/[id]/reactions
+      description: User adds or removes a reaction on a comment.
+    description_edit:
+      trigger: POST /api/descriptions
+      description: User updates an object description (content changed).
+    upload_delete:
+      trigger: DELETE /api/uploads/[id]
+      description: User or admin deletes an upload.
+    admin_user_suspend:
+      trigger: POST /api/admin/suspensions
+      description: Admin suspends a user account.
+    admin_user_unsuspend:
+      trigger: PATCH /api/admin/suspensions/[id]
+      description: Admin lifts a user suspension.
+    admin_comment_moderate:
+      trigger: PATCH /api/admin/comments/[id]
+      description: Admin hides or moderates a comment.
+    admin_description_moderate:
+      trigger: Reserved
+      description: Reserved for future admin description moderation actions.
+  writer: writeAuditLog in src/lib/audit/write-audit-log.ts writes a record. Calls are fire-and-forget (.catch(() => {})) so audit failures never block the main request.

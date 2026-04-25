@@ -1,6 +1,6 @@
 # Build stage
-# Use official Bun image for faster install/runtime
-FROM oven/bun:1 AS base
+# Use the repo-pinned Bun release for consistent local/CI/runtime behavior.
+FROM oven/bun:1.3.13 AS base
 WORKDIR /usr/src/app
 
 # Install all dependencies (dev) in a temp dir for caching

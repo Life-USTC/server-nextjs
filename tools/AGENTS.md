@@ -1,16 +1,20 @@
 # tools/
 
-- Scope
-  - Development scripts, import scripts, generated-artifact helpers and convention checks
-  - Not request-time app code
-  - `shared/`: helper code used by tool scripts
-  - `build/openapi/`: build-time OpenAPI generation, postprocessing and type shim scripts
-  - `dev/check/`: local convention and diagnostic checks
-  - `dev/benchmark/`: local benchmark scripts
-  - `dev/util/`: local development utilities
-  - `dev/seed/`: development seed data, reset and E2E scenario scripts
-  - `production/load/`: production import/load scripts
-  - `production/util/`: production maintenance utilities
+## Scope
+
+```yaml
+paths:
+  - tools/**
+subtrees:
+  shared: helper code used by tool scripts
+  build/openapi: build-time OpenAPI generation and postprocessing
+  dev/check: local convention and diagnostic checks
+  dev/benchmark: local benchmark scripts
+  dev/util: local development utilities
+  dev/seed: development seed data, reset, and E2E scenario scripts
+  production/load: production import/load scripts
+  production/util: production maintenance utilities
+```
 
 - Runtime
   - Use `bun` / `bunx` only
