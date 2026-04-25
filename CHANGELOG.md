@@ -1,3 +1,10 @@
+## [1.25.12](https://github.com/Life-USTC/server-nextjs/compare/v1.25.11...v1.25.12) (2026-04-25)
+
+
+### Bug Fixes
+
+* **auth:** update GithubProfile.email type to string | null for better-auth 1.6.9 ([363f7d0](https://github.com/Life-USTC/server-nextjs/commit/363f7d02b2a874e060cf2d56a2b12465d7dffeea))
+
 ## [1.25.11](https://github.com/Life-USTC/server-nextjs/compare/v1.25.10...v1.25.11) (2026-04-24)
 
 
