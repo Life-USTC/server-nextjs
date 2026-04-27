@@ -1,32 +1,33 @@
-# schema: ./features.schema.json
 meta:
   name: Life@USTC
   language: en
   file: docs/features.yml
   query: yq
   queries:
-    list_modules: "yq '.modules | keys' docs/features.yml"
-    list_models: "yq '.models | keys' docs/features.yml"
-    list_mcp_tools_stable: "yq '[.modules[].capabilities[].mcp.tools[]? | select((.status // \"stable\") != \"unavailable\") | .name]' docs/features.yml"
-    list_mcp_tools_unavailable: "yq '[.modules[].capabilities[].mcp.tools[]? | select(.status == \"unavailable\") | .name]' docs/features.yml"
-    list_rest_routes: "yq '[.modules[].capabilities[].rest.routes[]?.path] | unique' docs/features.yml"
-    capabilities_by_auth: "yq '[.modules | to_entries[] | {\"module\": .key, \"restricted\": [.value.capabilities | to_entries[] | select(.value.auth != null) | .key]}]' docs/features.yml"
-    tool_rest_map: "yq '[.modules[].capabilities[].mcp.tools[]? | select(.rest_equivalent) | {\"tool\": .name, \"rest\": .rest_equivalent}]' docs/features.yml"
-    rest_returns_map: "yq '[.modules[].capabilities[].rest.routes[]? | select(.returns) | {\"path\": .path, \"method\": (.method // \"GET\"), \"returns\": .returns}]' docs/features.yml"
-    capabilities_no_rest: "yq '[.modules | to_entries[] | .value.capabilities | to_entries[] | select(.value.rest.status == \"unavailable\" or (.value.rest | not)) | {\"module\": .key, \"cap\": .key, \"title\": .value.title}]' docs/features.yml"
-    capabilities_planned: "yq '[.modules | to_entries[] | .value.capabilities | to_entries[] | select(.value.rest.status == \"planned\" or .value.mcp.status == \"planned\") | {\"module\": .key, \"cap\": .key}]' docs/features.yml"
+    list_modules: yq '.modules | keys' docs/features.yml
+    list_models: yq '.models | keys' docs/features.yml
+    list_enums: yq '.enums | keys' docs/features.yml
+    list_mcp_tools_stable: yq '[.modules[].capabilities[].mcp | select(type == "!!map") | .tools[]? | .name] | unique' docs/features.yml
+    list_mcp_tools_unavailable: "yq '[.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | select(.value.mcp == \"unavailable\" or .value.mcp.status == \"unavailable\") | {\"module\": $m.key, \"capability\": .key}]' docs/features.yml"
+    list_rest_routes: yq '[.modules[].capabilities[].rest | select(type == "!!map") | .routes[]?.path] | unique' docs/features.yml
+    capabilities_by_auth: "yq '[.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | {\"module\": $m.key, \"capability\": .key, \"auth\": .value.auth}]' docs/features.yml"
+    tool_rest_map: "yq '[.modules[].capabilities[].mcp | select(type == \"!!map\") | .tools[]? | select(.rest_equivalent) | {\"tool\": .name, \"rest\": .rest_equivalent}]' docs/features.yml"
+    rest_returns_map: "yq '[.modules[].capabilities[].rest | select(type == \"!!map\") | .routes[]? | select(.returns) | {\"path\": .path, \"method\": (.method // \"GET\"), \"returns\": .returns}]' docs/features.yml"
+    capabilities_no_rest: "yq '[.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | select(.value.rest == \"unavailable\" or .value.rest.status == \"unavailable\" or (.value.rest | not)) | {\"module\": $m.key, \"capability\": .key, \"title\": .value.title}]' docs/features.yml"
+    capabilities_planned: "yq '[.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | select(.value.rest == \"planned\" or .value.rest.status == \"planned\" or .value.mcp == \"planned\" or .value.mcp.status == \"planned\") | {\"module\": $m.key, \"capability\": .key}]' docs/features.yml"
     rules_by_module: "yq '.modules | to_entries[] | {\"module\": .key, \"rule_ids\": (.value.rules | keys)}' docs/features.yml"
-    model_types: "yq '.models | to_entries[] | {\"model\": .key, \"types\": .value.types}' docs/features.yml"
+    model_fields: "yq '.models | to_entries[] | {\"model\": .key, \"fields\": (.value.fields | keys)}' docs/features.yml"
+  version: 1.0.0
 product:
   priority:
-  - student learning workspace
-  - public campus info browser
-  - controlled REST / MCP surface
-  - admin maintenance surface
+    - student learning workspace
+    - public campus info browser
+    - controlled REST / MCP surface
+    - admin maintenance surface
   surfaces:
-  - web
-  - rest
-  - mcp
+    - web
+    - rest
+    - mcp
   roles:
     anon: Unauthenticated visitor; can browse all public information.
     user: Authenticated, non-suspended user; can manage personal state and perform social actions.
@@ -37,391 +38,1113 @@ product:
     homework: Class-attached learning task; completion state is tracked per user independently.
     todo: Personal user task; not attached to any class.
   workflow:
-  - Edit docs/features.yml first.
-  - Use yq to inspect the affected semantic blocks while editing.
-  - Implement the behavior change in code.
-  - Reconcile the YAML if implementation scope changed.
+    - Edit docs/features.yml first.
+    - Use yq to inspect the affected semantic blocks while editing.
+    - Implement the behavior change in code.
+    - Reconcile the YAML if implementation scope changed.
+  display_conventions:
+    real-models-only: models mirrors prisma/schema.prisma model fields; API return DTO names stay in returns only.
+    compact-surfaces: surface status defaults to stable; use unavailable/planned/stable string shorthand when no page, route, tool, or group is listed.
+    inherited-auth: route and tool auth inherit capability auth unless explicitly overridden.
+    compact-display: display uses fields and filters only; keep field lists short and user-visible.
 models:
-  SemesterSummary:
+  AdminClass:
     fields:
-      identity:
-      - semester.id
-      - semester.jwId
-      - semester.code
-      name-and-dates:
-      - semester.nameCn
-      - semester.startDate
-      - semester.endDate
-    types:
-      semester.id: String (cuid)
-      semester.jwId: String
-      semester.code: String
-      semester.nameCn: String
-      semester.startDate: Date
-      semester.endDate: Date
-  CourseSummary:
+      id: Int @id @default(autoincrement())
+      jwId: Int? @unique
+      code: String?
+      grade: String?
+      nameCn: String @unique
+      nameEn: String?
+      stdCount: Int?
+      planCount: Int?
+      enabled: Boolean?
+      abbrZh: String?
+      abbrEn: String?
+      sections: Section[] @relation("SectionAdminClasses")
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([code])"
+      - "@@index([nameCn])"
+  Building:
     fields:
-      identity:
-      - course.id
-      - course.jwId
-      - course.code
-      primary-display:
-      - course.namePrimary
-      - course.nameSecondary
-      classification:
-      - course.educationLevel?.namePrimary
-      - course.category?.namePrimary
-      - course.classType?.namePrimary
-      - course.classify?.namePrimary
-      - course.gradation?.namePrimary
-      - course.type?.namePrimary
-    types:
-      course.id: String (cuid)
-      course.jwId: String
-      course.code: String
-      course.namePrimary: String
-      course.nameSecondary: String?
-      course.educationLevel?.namePrimary: String?
-      course.category?.namePrimary: String?
-      course.classType?.namePrimary: String?
-      course.classify?.namePrimary: String?
-      course.gradation?.namePrimary: String?
-      course.type?.namePrimary: String?
-  CourseDetail:
-    notes:
-    - Inherits CourseSummary
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      nameCn: String
+      nameEn: String?
+      code: String
+      campusId: Int?
+      campus: "Campus? @relation(fields: [campusId], references: [id])"
+      rooms: Room[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+      - "@@index([campusId])"
+  Campus:
     fields:
-      child-sections:
-      - course.sections[].jwId
-      - course.sections[].code
-      - course.sections[].semester?.nameCn
-      - course.sections[].campus?.namePrimary
-      - course.sections[].teachers[].namePrimary
-      - course.sections[].stdCount
-      - course.sections[].limitCount
-    types:
-      course.sections[].jwId: String
-      course.sections[].code: String
-      course.sections[].semester?.nameCn: String?
-      course.sections[].campus?.namePrimary: String?
-      course.sections[].teachers[].namePrimary: String[]
-      course.sections[].stdCount: Int?
-      course.sections[].limitCount: Int?
-  SectionSummary:
+      id: Int @id @default(autoincrement())
+      jwId: Int? @unique
+      nameCn: String @unique
+      nameEn: String?
+      code: String?
+      buildings: Building[]
+      sections: Section[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([code])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  ClassType:
     fields:
-      identity:
-      - section.id
-      - section.jwId
-      - section.code
-      primary-display:
-      - section.course.namePrimary
-      - section.course.nameSecondary
-      disambiguation:
-      - section.semester?.nameCn
-      - section.teachers[].namePrimary
-      - section.credits
-      - section.stdCount
-      - section.limitCount
-      - section.campus?.namePrimary
-      - section.openDepartment?.namePrimary
-    types:
-      section.id: String (cuid)
-      section.jwId: String
-      section.code: String
-      section.course.namePrimary: String
-      section.course.nameSecondary: String?
-      section.semester?.nameCn: String?
-      section.teachers[].namePrimary: String[]
-      section.credits: Float?
-      section.stdCount: Int?
-      section.limitCount: Int?
-      section.campus?.namePrimary: String?
-      section.openDepartment?.namePrimary: String?
-  SectionDetail:
-    notes:
-    - Inherits SectionSummary
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      courses: Course[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  Course:
     fields:
-      detail-extension:
-      - section.examMode?.namePrimary
-      - section.teachLanguage?.namePrimary
-      - section.roomType?.namePrimary
-      - section.adminClasses[]
-      teacher-and-comment-context:
-      - section.teachers[].id
-      - section.teachers[].namePrimary
-      - section.teachers[].department?.namePrimary
-      schedule-and-exam:
-      - section.schedules[]
-      - section.scheduleGroups[]
-      - section.exams[]
-    types:
-      section.examMode?.namePrimary: String?
-      section.teachLanguage?.namePrimary: String?
-      section.roomType?.namePrimary: String?
-      section.adminClasses[]: String[]
-      section.teachers[].id: String (cuid)
-      section.teachers[].namePrimary: String
-      section.teachers[].department?.namePrimary: String?
-      section.schedules[]: ScheduleEntry[]
-      section.scheduleGroups[]: ScheduleGroupEntry[]
-      section.exams[]: ExamEntry[]
-  TeacherSummary:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      code: String
+      nameCn: String
+      nameEn: String?
+      categoryId: Int?
+      classTypeId: Int?
+      classifyId: Int?
+      educationLevelId: Int?
+      gradationId: Int?
+      typeId: Int?
+      category: "CourseCategory? @relation(fields: [categoryId], references: [id])"
+      classType: "ClassType? @relation(fields: [classTypeId], references: [id])"
+      classify: "CourseClassify? @relation(fields: [classifyId], references: [id])"
+      educationLevel: "EducationLevel? @relation(fields: [educationLevelId], references: [id])"
+      gradation: "CourseGradation? @relation(fields: [gradationId], references: [id])"
+      type: "CourseType? @relation(fields: [typeId], references: [id])"
+      sections: Section[]
+      comments: Comment[]
+      description: Description?
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([code])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+      - "@@index([categoryId])"
+      - "@@index([classTypeId])"
+      - "@@index([classifyId])"
+      - "@@index([educationLevelId])"
+      - "@@index([gradationId])"
+      - "@@index([typeId])"
+  CourseCategory:
     fields:
-      identity:
-      - teacher.id
-      - teacher.code
-      primary-display:
-      - teacher.namePrimary
-      - teacher.nameSecondary
-      auxiliary:
-      - teacher.department?.namePrimary
-      - teacher.teacherTitle?.namePrimary
-      - teacher.email
-      - teacher._count.sections
-    types:
-      teacher.id: String (cuid)
-      teacher.code: String
-      teacher.namePrimary: String
-      teacher.nameSecondary: String?
-      teacher.department?.namePrimary: String?
-      teacher.teacherTitle?.namePrimary: String?
-      teacher.email: String?
-      teacher._count.sections: Int
-  TeacherDetail:
-    notes:
-    - Inherits TeacherSummary
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      courses: Course[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  CourseClassify:
     fields:
-      detail-extension:
-      - teacher.telephone
-      - teacher.mobile
-      - teacher.address
-      - teacher.sections[].jwId
-      - teacher.sections[].code
-      - teacher.sections[].course.namePrimary
-      - teacher.sections[].semester?.nameCn
-      - teacher.sections[].credits
-    types:
-      teacher.telephone: String?
-      teacher.mobile: String?
-      teacher.address: String?
-      teacher.sections[].jwId: String
-      teacher.sections[].code: String
-      teacher.sections[].course.namePrimary: String
-      teacher.sections[].semester?.nameCn: String?
-      teacher.sections[].credits: Float?
-  CalendarSubscription:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      courses: Course[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  CourseGradation:
     fields:
-      user-and-note:
-      - subscription.userId
-      - subscription.note
-      section-detail:
-      - subscription.sections[] uses SectionSummary
-      export:
-      - subscription.calendarPath
-      - subscription.calendarUrl
-    types:
-      subscription.userId: String (cuid)
-      subscription.note: String?
-      subscription.sections[]: SectionSummary[]
-      subscription.calendarPath: String
-      subscription.calendarUrl: String
-  CalendarEvent:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      courses: Course[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  CourseType:
     fields:
-      event-envelope:
-      - event.type
-      - event.at
-      event-payload:
-      - event.payload
-      - event.payload shape depends on type
-      event-types:
-      - schedule
-      - homework_due
-      - exam
-      - todo_due
-    types:
-      event.type: schedule | homework_due | exam | todo_due
-      event.at: DateTime
-      event.payload: ScheduleEntry | HomeworkItem | ExamEntry | TodoItem
-  ScheduleEntry:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      courses: Course[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  Department:
     fields:
-      identity:
-      - schedule.id
-      - schedule.date
-      - schedule.weekday
-      - schedule.startTime
-      - schedule.endTime
-      parent-object:
-      - schedule.section.jwId
-      - schedule.section.code
-      - schedule.section.course.namePrimary
-      - schedule.section.semester?.nameCn
-      location-and-teacher:
-      - schedule.room?.namePrimary
-      - schedule.room?.building?.namePrimary
-      - schedule.room?.building?.campus?.namePrimary
-      - schedule.teachers[].namePrimary
-      - schedule.scheduleGroup
-    types:
-      schedule.id: String (cuid)
-      schedule.date: Date
-      schedule.weekday: Int (0=Sunday, 6=Saturday)
-      schedule.startTime: String (HH:mm, Shanghai Time)
-      schedule.endTime: String (HH:mm, Shanghai Time)
-      schedule.section.jwId: String
-      schedule.section.code: String
-      schedule.section.course.namePrimary: String
-      schedule.section.semester?.nameCn: String?
-      schedule.room?.namePrimary: String?
-      schedule.room?.building?.namePrimary: String?
-      schedule.room?.building?.campus?.namePrimary: String?
-      schedule.teachers[].namePrimary: String[]
-      schedule.scheduleGroup: ScheduleGroupEntry?
-  ScheduleGroupEntry:
+      id: Int @id @default(autoincrement())
+      code: String @unique
+      nameCn: String
+      nameEn: String?
+      isCollege: Boolean?
+      sections: Section[]
+      teachers: Teacher[]
+    constraints:
+      - "@@index([code])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  EducationLevel:
     fields:
-      identity:
-      - scheduleGroup.id
-      - scheduleGroup.jwId
-      - scheduleGroup.sectionId
-      group-fields:
-      - scheduleGroup.no
-      - scheduleGroup.limitCount
-      - scheduleGroup.stdCount
-      - scheduleGroup.actualPeriods
-      - scheduleGroup.isDefault
-      static-import-constraints:
-      - When the static SQLite snapshot does not provide an official jwId, scheduleGroup.jwId uses a stable site-synthesized value.
-      - For the current production static import scope (recent semesters), preserve existing synthesized values; only fall back to another stable value when full-history imports produce conflicts to ensure uniqueness.
-    types:
-      scheduleGroup.id: String (cuid)
-      scheduleGroup.jwId: String
-      scheduleGroup.sectionId: String (cuid)
-      scheduleGroup.no: Int
-      scheduleGroup.limitCount: Int?
-      scheduleGroup.stdCount: Int?
-      scheduleGroup.actualPeriods: Int
-      scheduleGroup.isDefault: Boolean
-  ExamEntry:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      courses: Course[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  ExamMode:
     fields:
-      identity:
-      - exam.id
-      - exam.jwId
-      - exam.examDate
-      - exam.startTime
-      - exam.endTime
-      parent-object:
-      - exam.section.jwId
-      - exam.section.code
-      - exam.section.course.namePrimary
-      - exam.section.semester?.nameCn
-      exam-info:
-      - exam.examBatch
-      - exam.examRooms[]
-      static-import-constraints:
-      - When the static SQLite snapshot does not provide an official jwId, exam.jwId uses a stable site-synthesized value.
-    types:
-      exam.id: String (cuid)
-      exam.jwId: String
-      exam.examDate: Date
-      exam.startTime: String (HH:mm)
-      exam.endTime: String (HH:mm)
-      exam.section.jwId: String
-      exam.section.code: String
-      exam.section.course.namePrimary: String
-      exam.section.semester?.nameCn: String?
-      exam.examBatch: String?
-      exam.examRooms[]: String[]
-  HomeworkItem:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      sections: Section[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  Room:
     fields:
-      identity:
-      - homework.id
-      - homework.title
-      timestamps:
-      - homework.publishedAt
-      - homework.submissionStartAt
-      - homework.submissionDueAt
-      - homework.createdAt
-      - homework.updatedAt
-      - homework.deletedAt
-      parent-object:
-      - homework.sectionId
-      - homework.section.code
-      - homework.section.course.namePrimary
-      - homework.section.semester?.nameCn
-      collaboration-and-personal-state:
-      - homework.description?.content
-      - homework.createdBy
-      - homework.updatedBy
-      - homework.deletedBy
-      - homework.completion?.completedAt
-      - homework.commentCount
-    types:
-      homework.id: String (cuid)
-      homework.title: String
-      homework.publishedAt: DateTime?
-      homework.submissionStartAt: DateTime?
-      homework.submissionDueAt: DateTime?
-      homework.createdAt: DateTime
-      homework.updatedAt: DateTime
-      homework.deletedAt: DateTime?
-      homework.sectionId: String (cuid)
-      homework.section.code: String
-      homework.section.course.namePrimary: String
-      homework.section.semester?.nameCn: String?
-      homework.description?.content: String?
-      homework.createdBy: String (userId)
-      homework.updatedBy: String?
-      homework.deletedBy: String?
-      homework.completion?.completedAt: DateTime?
-      homework.commentCount: Int
-  TodoItem:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      nameCn: String
+      nameEn: String?
+      code: String
+      floor: Int?
+      virtual: Boolean
+      seatsForSection: Int
+      remark: String?
+      seats: Int
+      buildingId: Int?
+      roomTypeId: Int?
+      building: "Building? @relation(fields: [buildingId], references: [id])"
+      roomType: "RoomType? @relation(fields: [roomTypeId], references: [id])"
+      schedules: Schedule[]
+    constraints:
+      - "@@unique([buildingId, code])"
+      - "@@index([jwId])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  RoomType:
     fields:
-      identity:
-      - todo.id
-      - todo.title
-      - todo.content
-      status:
-      - todo.completed
-      - todo.priority
-      - todo.dueAt
-      - todo.createdAt
-      - todo.updatedAt
-    types:
-      todo.id: String (cuid)
-      todo.title: String
-      todo.content: String?
-      todo.completed: Boolean
-      todo.priority: Int (0=low, 1=medium, 2=high)
-      todo.dueAt: DateTime?
-      todo.createdAt: DateTime
-      todo.updatedAt: DateTime
-  OverviewSnapshot:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      nameCn: String
+      nameEn: String?
+      code: String
+      rooms: Room[]
+      sections: Section[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  Schedule:
     fields:
-      user-info:
-      - overview.user.id
-      - overview.user.name
-      - overview.user.image
-      - overview.user.isAdmin
-      counts:
-      - overview.overview.pendingTodosCount
-      - overview.overview.pendingHomeworksCount
-      - overview.overview.todaySchedulesCount
-      - overview.overview.upcomingExamsCount
-      samples:
-      - overview.samples.dueTodos[] uses TodoItem
-      - overview.samples.dueHomeworks[] uses HomeworkItem
-      - overview.samples.upcomingExams[] uses ExamEntry
-    types:
-      overview.user.id: String (cuid)
-      overview.user.name: String?
-      overview.user.image: String?
-      overview.user.isAdmin: Boolean
-      overview.overview.pendingTodosCount: Int
-      overview.overview.pendingHomeworksCount: Int
-      overview.overview.todaySchedulesCount: Int
-      overview.overview.upcomingExamsCount: Int
-      overview.samples.dueTodos[]: TodoItem[]
-      overview.samples.dueHomeworks[]: HomeworkItem[]
-      overview.samples.upcomingExams[]: ExamEntry[]
+      id: Int @id @default(autoincrement())
+      periods: Int
+      date: DateTime? @db.Date
+      weekday: Int
+      startTime: Int
+      endTime: Int
+      experiment: String?
+      customPlace: String?
+      lessonType: String?
+      weekIndex: Int
+      exerciseClass: Boolean?
+      startUnit: Int
+      endUnit: Int
+      roomId: Int?
+      sectionId: Int
+      scheduleGroupId: Int
+      room: "Room? @relation(fields: [roomId], references: [id])"
+      section: "Section @relation(fields: [sectionId], references: [id])"
+      scheduleGroup: "ScheduleGroup @relation(fields: [scheduleGroupId], references: [id])"
+      teachers: Teacher[] @relation("ScheduleTeachers")
+    constraints:
+      - "@@index([date])"
+      - "@@index([roomId])"
+      - "@@index([sectionId])"
+      - "@@index([scheduleGroupId])"
+  ScheduleGroup:
+    fields:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      no: Int
+      limitCount: Int
+      stdCount: Int
+      actualPeriods: Int
+      isDefault: Boolean
+      sectionId: Int
+      section: "Section @relation(fields: [sectionId], references: [id])"
+      schedules: Schedule[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([sectionId])"
+  Section:
+    fields:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      code: String
+      bizTypeId: Int?
+      credits: Float?
+      period: Int?
+      periodsPerWeek: Int?
+      timesPerWeek: Int?
+      stdCount: Int?
+      limitCount: Int?
+      graduateAndPostgraduate: Boolean?
+      dateTimePlaceText: String?
+      dateTimePlacePersonText: Json?
+      actualPeriods: Int?
+      theoryPeriods: Float?
+      practicePeriods: Float?
+      experimentPeriods: Float?
+      machinePeriods: Float?
+      designPeriods: Float?
+      testPeriods: Float?
+      scheduleState: String?
+      suggestScheduleWeeks: Json?
+      suggestScheduleWeekInfo: String?
+      scheduleJsonParams: Json?
+      selectedStdCount: Int?
+      remark: String?
+      scheduleRemark: String?
+      courseId: Int
+      semesterId: Int?
+      campusId: Int?
+      examModeId: Int?
+      openDepartmentId: Int?
+      teachLanguageId: Int?
+      roomTypeId: Int?
+      course: "Course @relation(fields: [courseId], references: [id])"
+      semester: "Semester? @relation(fields: [semesterId], references: [id])"
+      campus: "Campus? @relation(fields: [campusId], references: [id])"
+      examMode: "ExamMode? @relation(fields: [examModeId], references: [id])"
+      openDepartment: "Department? @relation(fields: [openDepartmentId], references: [id])"
+      teachLanguage: "TeachLanguage? @relation(fields: [teachLanguageId], references: [id])"
+      roomType: "RoomType? @relation(fields: [roomTypeId], references: [id])"
+      schedules: Schedule[]
+      scheduleGroups: ScheduleGroup[]
+      adminClasses: AdminClass[] @relation("SectionAdminClasses")
+      teachers: Teacher[] @relation("SectionTeachers")
+      sectionTeachers: SectionTeacher[]
+      teacherAssignments: TeacherAssignment[]
+      exams: Exam[]
+      subscribedUsers: User[] @relation("UserCalendarSections")
+      comments: Comment[]
+      description: Description?
+      homeworks: Homework[]
+      homeworkAuditLogs: HomeworkAuditLog[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([code])"
+      - "@@index([bizTypeId])"
+      - "@@index([period])"
+      - "@@index([graduateAndPostgraduate])"
+      - "@@index([courseId])"
+      - "@@index([semesterId])"
+      - "@@index([examModeId])"
+      - "@@index([campusId])"
+      - "@@index([openDepartmentId])"
+      - "@@index([roomTypeId])"
+      - "@@index([teachLanguageId])"
+  Exam:
+    fields:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      examType: Int?
+      startTime: Int?
+      endTime: Int?
+      examDate: DateTime? @db.Date
+      examTakeCount: Int?
+      examMode: String?
+      examBatchId: Int?
+      sectionId: Int
+      examBatch: "ExamBatch? @relation(fields: [examBatchId], references: [id], onDelete: Cascade)"
+      section: "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)"
+      examRooms: ExamRoom[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([examType])"
+      - "@@index([examDate])"
+      - "@@index([examBatchId])"
+      - "@@index([sectionId])"
+  ExamBatch:
+    fields:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      exams: Exam[]
+    constraints:
+      - "@@index([nameCn])"
+  ExamRoom:
+    fields:
+      id: Int @id @default(autoincrement())
+      room: String
+      count: Int
+      examId: Int
+      exam: "Exam @relation(fields: [examId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@index([examId])"
+      - "@@index([room])"
+  Semester:
+    fields:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      nameCn: String
+      code: String
+      startDate: DateTime? @db.Date
+      endDate: DateTime? @db.Date
+      sections: Section[]
+    constraints:
+      - "@@index([jwId])"
+  Teacher:
+    fields:
+      id: Int @id @default(autoincrement())
+      personId: Int? @unique
+      teacherId: Int? @unique
+      code: String? @unique
+      nameCn: String
+      nameEn: String?
+      age: Int?
+      email: String?
+      telephone: String?
+      mobile: String?
+      address: String?
+      postcode: String?
+      qq: String?
+      wechat: String?
+      departmentId: Int?
+      teacherTitleId: Int?
+      department: "Department? @relation(fields: [departmentId], references: [id])"
+      teacherTitle: "TeacherTitle? @relation(fields: [teacherTitleId], references: [id])"
+      sections: Section[] @relation("SectionTeachers")
+      sectionTeachers: SectionTeacher[]
+      teacherAssignments: TeacherAssignment[]
+      schedules: Schedule[] @relation("ScheduleTeachers")
+      comments: Comment[]
+      description: Description?
+    constraints:
+      - "@@unique([nameCn, departmentId])"
+      - "@@index([code])"
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+      - "@@index([teacherTitleId])"
+      - "@@index([departmentId])"
+  Description:
+    fields:
+      id: String @id @default(cuid())
+      content: String @default("")
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      lastEditedAt: DateTime?
+      lastEditedById: String?
+      lastEditedBy: 'User? @relation("DescriptionLastEditor", fields: [lastEditedById], references: [id], onDelete: SetNull)'
+      sectionId: Int? @unique
+      courseId: Int? @unique
+      teacherId: Int? @unique
+      homeworkId: String? @unique
+      section: "Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)"
+      course: "Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)"
+      teacher: "Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)"
+      homework: "Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)"
+      edits: DescriptionEdit[]
+    constraints:
+      - "@@index([lastEditedById])"
+      - "@@index([homeworkId])"
+  Homework:
+    fields:
+      id: String @id @default(cuid())
+      title: String
+      isMajor: Boolean @default(false)
+      requiresTeam: Boolean @default(false)
+      publishedAt: DateTime?
+      submissionStartAt: DateTime?
+      submissionDueAt: DateTime?
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      deletedAt: DateTime?
+      sectionId: Int
+      section: "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)"
+      createdById: String?
+      createdBy: 'User? @relation("HomeworkCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)'
+      updatedById: String?
+      updatedBy: 'User? @relation("HomeworkUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)'
+      deletedById: String?
+      deletedBy: 'User? @relation("HomeworkDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)'
+      description: Description?
+      comments: Comment[]
+      auditLogs: HomeworkAuditLog[]
+      homeworkCompletions: HomeworkCompletion[]
+    constraints:
+      - "@@index([sectionId])"
+      - "@@index([publishedAt])"
+      - "@@index([submissionDueAt])"
+      - "@@index([deletedAt])"
+      - "@@index([createdById])"
+      - "@@index([sectionId, deletedAt])"
+      - "@@index([sectionId, submissionDueAt])"
+  HomeworkCompletion:
+    fields:
+      userId: String
+      homeworkId: String
+      completedAt: DateTime @default(now())
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      homework: "Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@id([userId, homeworkId])"
+      - "@@index([homeworkId])"
+      - "@@index([userId])"
+  HomeworkAuditLog:
+    fields:
+      id: String @id @default(cuid())
+      action: HomeworkAuditAction
+      titleSnapshot: String
+      createdAt: DateTime @default(now())
+      sectionId: Int
+      section: "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)"
+      homeworkId: String?
+      homework: "Homework? @relation(fields: [homeworkId], references: [id], onDelete: SetNull)"
+      actorId: String?
+      actor: 'User? @relation("HomeworkAuditActor", fields: [actorId], references: [id], onDelete: SetNull)'
+    constraints:
+      - "@@index([sectionId])"
+      - "@@index([homeworkId])"
+      - "@@index([actorId])"
+      - "@@index([createdAt])"
+      - "@@index([sectionId, createdAt])"
+  AuditLog:
+    fields:
+      id: String @id @default(cuid())
+      action: AuditAction
+      userId: String
+      user: "User @relation(fields: [userId], references: [id])"
+      targetId: String?
+      targetType: String?
+      metadata: Json?
+      createdAt: DateTime @default(now())
+      ipAddress: String?
+      userAgent: String?
+    constraints:
+      - "@@index([userId])"
+      - "@@index([action])"
+      - "@@index([createdAt])"
+  DescriptionEdit:
+    fields:
+      id: String @id @default(cuid())
+      descriptionId: String
+      description: "Description @relation(fields: [descriptionId], references: [id], onDelete: Cascade)"
+      editorId: String?
+      editor: 'User? @relation("DescriptionEdits", fields: [editorId], references: [id], onDelete: SetNull)'
+      previousContent: String?
+      nextContent: String
+      createdAt: DateTime @default(now())
+    constraints:
+      - "@@index([descriptionId])"
+      - "@@index([editorId])"
+      - "@@index([createdAt])"
+      - "@@index([descriptionId, createdAt])"
+  SectionTeacher:
+    fields:
+      id: Int @id @default(autoincrement())
+      sectionId: Int
+      teacherId: Int
+      section: "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)"
+      teacher: "Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)"
+      comments: Comment[]
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+    constraints:
+      - "@@unique([sectionId, teacherId])"
+      - "@@index([sectionId])"
+      - "@@index([teacherId])"
+  TeachLanguage:
+    fields:
+      id: Int @id @default(autoincrement())
+      nameCn: String @unique
+      nameEn: String?
+      sections: Section[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  TeacherTitle:
+    fields:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      nameCn: String @unique
+      nameEn: String?
+      code: String
+      enabled: Boolean?
+      teachers: Teacher[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([nameCn])"
+  TeacherLessonType:
+    fields:
+      id: Int @id @default(autoincrement())
+      jwId: Int @unique
+      nameCn: String
+      nameEn: String?
+      code: String
+      role: String?
+      enabled: Boolean?
+      teacherAssignments: TeacherAssignment[]
+    constraints:
+      - "@@index([jwId])"
+      - "@@index([nameCn])"
+  TeacherAssignment:
+    fields:
+      id: Int @id @default(autoincrement())
+      teacherId: Int
+      sectionId: Int
+      role: String?
+      period: Int?
+      weekIndices: Json?
+      weekIndicesMsg: String?
+      teacherLessonTypeId: Int?
+      teacher: "Teacher @relation(fields: [teacherId], references: [id])"
+      section: "Section @relation(fields: [sectionId], references: [id])"
+      teacherLessonType: "TeacherLessonType? @relation(fields: [teacherLessonTypeId], references: [id])"
+    constraints:
+      - "@@unique([teacherId, sectionId])"
+      - "@@index([teacherId])"
+      - "@@index([sectionId])"
+      - "@@index([teacherLessonTypeId])"
+  User:
+    fields:
+      id: String @id @default(cuid())
+      email: String @unique
+      emailVerified: Boolean @default(false)
+      name: String @default("")
+      username: String? @unique
+      image: String?
+      profilePictures: String[] @default([])
+      isAdmin: Boolean @default(false)
+      calendarFeedToken: String? @unique
+      accounts: Account[]
+      sessions: Session[]
+      Authenticator: Authenticator[]
+      verifiedEmails: VerifiedEmail[]
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      subscribedSections: Section[] @relation("UserCalendarSections")
+      uploads: Upload[]
+      uploadPendings: UploadPending[]
+      comments: Comment[]
+      moderatedComments: Comment[] @relation("ModeratedComments")
+      commentReactions: CommentReaction[]
+      suspensions: UserSuspension[] @relation("SuspendedUser")
+      suspensionsIssued: UserSuspension[] @relation("SuspensionCreatedBy")
+      suspensionsLifted: UserSuspension[] @relation("SuspensionLiftedBy")
+      descriptionEdits: DescriptionEdit[] @relation("DescriptionEdits")
+      descriptionLastEdits: Description[] @relation("DescriptionLastEditor")
+      homeworksCreated: Homework[] @relation("HomeworkCreatedBy")
+      homeworksUpdated: Homework[] @relation("HomeworkUpdatedBy")
+      homeworksDeleted: Homework[] @relation("HomeworkDeletedBy")
+      homeworkAuditLogs: HomeworkAuditLog[] @relation("HomeworkAuditActor")
+      auditLogs: AuditLog[]
+      homeworkCompletions: HomeworkCompletion[]
+      dashboardLinkClicks: DashboardLinkClick[]
+      dashboardLinkPins: DashboardLinkPin[]
+      todos: Todo[]
+      busPreference: BusUserPreference?
+      oauthClients: OAuthClient[]
+      oauthAccessTokens: OAuthAccessToken[]
+      oauthRefreshTokens: OAuthRefreshToken[]
+      oauthConsents: OAuthConsent[]
+      deviceCodes: DeviceCode[]
+  DashboardLinkClick:
+    fields:
+      id: String @id @default(cuid())
+      userId: String
+      slug: String
+      count: Int @default(0)
+      lastClickedAt: DateTime @default(now())
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([userId, slug])"
+      - "@@index([userId])"
+      - "@@index([slug])"
+  DashboardLinkPin:
+    fields:
+      id: String @id @default(cuid())
+      userId: String
+      slug: String
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([userId, slug])"
+      - "@@index([userId])"
+      - "@@index([slug])"
+  Upload:
+    fields:
+      id: String @id @default(cuid())
+      key: String @unique
+      filename: String
+      contentType: String?
+      size: Int
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      userId: String
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      commentAttachments: CommentAttachment[]
+    constraints:
+      - "@@index([userId])"
+      - "@@index([userId, createdAt])"
+  Comment:
+    fields:
+      id: String @id @default(cuid())
+      body: String
+      visibility: CommentVisibility @default(public)
+      status: CommentStatus @default(active)
+      isAnonymous: Boolean @default(false)
+      authorName: String?
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      deletedAt: DateTime?
+      moderatedAt: DateTime?
+      moderationNote: String?
+      userId: String?
+      user: "User? @relation(fields: [userId], references: [id], onDelete: SetNull)"
+      moderatedById: String?
+      moderatedBy: 'User? @relation("ModeratedComments", fields: [moderatedById], references: [id], onDelete: SetNull)'
+      parentId: String?
+      parent: 'Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)'
+      replies: Comment[] @relation("CommentReplies")
+      rootId: String?
+      root: 'Comment? @relation("CommentRoot", fields: [rootId], references: [id], onDelete: Cascade)'
+      thread: Comment[] @relation("CommentRoot")
+      sectionId: Int?
+      courseId: Int?
+      teacherId: Int?
+      sectionTeacherId: Int?
+      homeworkId: String?
+      section: "Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)"
+      course: "Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)"
+      teacher: "Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)"
+      sectionTeacher: "SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)"
+      homework: "Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)"
+      attachments: CommentAttachment[]
+      reactions: CommentReaction[]
+    constraints:
+      - "@@index([userId])"
+      - "@@index([parentId])"
+      - "@@index([rootId])"
+      - "@@index([sectionId])"
+      - "@@index([courseId])"
+      - "@@index([teacherId])"
+      - "@@index([sectionTeacherId])"
+      - "@@index([homeworkId])"
+      - "@@index([status])"
+      - "@@index([visibility])"
+      - "@@index([userId, status])"
+      - "@@index([sectionId, status])"
+      - "@@index([courseId, status])"
+      - "@@index([teacherId, status])"
+      - "@@index([status, createdAt])"
+      - "@@index([rootId, createdAt])"
+  CommentAttachment:
+    fields:
+      id: String @id @default(cuid())
+      commentId: String
+      uploadId: String
+      createdAt: DateTime @default(now())
+      comment: "Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)"
+      upload: "Upload @relation(fields: [uploadId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([commentId, uploadId])"
+      - "@@index([uploadId])"
+  CommentReaction:
+    fields:
+      id: String @id @default(cuid())
+      type: CommentReactionType
+      createdAt: DateTime @default(now())
+      commentId: String
+      userId: String
+      comment: "Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)"
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([commentId, userId, type])"
+      - "@@index([userId])"
+      - "@@index([commentId])"
+  UserSuspension:
+    fields:
+      id: String @id @default(cuid())
+      userId: String
+      createdById: String
+      createdAt: DateTime @default(now())
+      reason: String?
+      note: String?
+      expiresAt: DateTime?
+      liftedAt: DateTime?
+      liftedById: String?
+      user: 'User @relation("SuspendedUser", fields: [userId], references: [id], onDelete: Cascade)'
+      createdBy: 'User @relation("SuspensionCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)'
+      liftedBy: 'User? @relation("SuspensionLiftedBy", fields: [liftedById], references: [id], onDelete: SetNull)'
+    constraints:
+      - "@@index([userId])"
+      - "@@index([createdById])"
+      - "@@index([liftedAt])"
+      - "@@index([expiresAt])"
+      - "@@index([userId, liftedAt])"
+  UploadPending:
+    fields:
+      id: String @id @default(cuid())
+      key: String @unique
+      filename: String
+      contentType: String?
+      size: Int
+      expiresAt: DateTime
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      userId: String
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@index([userId])"
+      - "@@index([expiresAt])"
+      - "@@index([userId, expiresAt])"
+  VerifiedEmail:
+    fields:
+      id: Int @id @default(autoincrement())
+      email: String
+      provider: String
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      userId: String
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([provider, email])"
+      - "@@index([userId])"
+  Account:
+    fields:
+      id: String @id @default(cuid())
+      userId: String
+      type: String @default("oauth")
+      provider: String
+      providerAccountId: String
+      refresh_token: String?
+      access_token: String?
+      expires_at: Int?
+      token_type: String?
+      scope: String?
+      id_token: String?
+      session_state: String?
+      accessTokenExpiresAt: DateTime?
+      refreshTokenExpiresAt: DateTime?
+      password: String?
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([provider, providerAccountId])"
+      - "@@index([userId])"
+      - "@@index([provider])"
+  Session:
+    fields:
+      id: String @id @default(cuid())
+      sessionToken: String @unique
+      userId: String
+      expires: DateTime
+      ipAddress: String?
+      userAgent: String?
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      oauthAccessTokens: OAuthAccessToken[]
+      oauthRefreshTokens: OAuthRefreshToken[]
+    constraints:
+      - "@@index([userId])"
+  VerificationToken:
+    fields:
+      id: String @id @default(cuid())
+      identifier: String
+      token: String
+      expires: DateTime
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+    constraints:
+      - "@@unique([identifier, token])"
+      - "@@index([identifier])"
+      - "@@index([expires])"
+  Authenticator:
+    fields:
+      credentialID: String @unique
+      userId: String
+      providerAccountId: String
+      credentialPublicKey: String
+      counter: Int
+      credentialDeviceType: String
+      credentialBackedUp: Boolean
+      transports: String?
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@id([userId, credentialID])"
+  Todo:
+    fields:
+      id: String @id @default(cuid())
+      title: String
+      content: String?
+      completed: Boolean @default(false)
+      priority: TodoPriority @default(medium)
+      dueAt: DateTime?
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      userId: String
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@index([userId])"
+      - "@@index([userId, completed])"
+      - "@@index([dueAt])"
+      - "@@index([userId, completed, dueAt])"
+  BusCampus:
+    fields:
+      id: Int @id
+      nameCn: String @unique
+      nameEn: String?
+      latitude: Float
+      longitude: Float
+      routeStops: BusRouteStop[]
+      preferredByOriginUsers: BusUserPreference[] @relation("BusPreferenceOrigin")
+      preferredByDestinationUsers: BusUserPreference[] @relation("BusPreferenceDestination")
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  BusRoute:
+    fields:
+      id: Int @id
+      nameCn: String
+      nameEn: String?
+      stops: BusRouteStop[]
+      trips: BusTrip[]
+    constraints:
+      - "@@index([nameCn])"
+      - "@@index([nameEn])"
+  BusRouteStop:
+    fields:
+      id: Int @id @default(autoincrement())
+      routeId: Int
+      campusId: Int
+      stopOrder: Int
+      route: "BusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)"
+      campus: "BusCampus @relation(fields: [campusId], references: [id])"
+    constraints:
+      - "@@unique([routeId, stopOrder])"
+      - "@@index([campusId])"
+  BusScheduleVersion:
+    fields:
+      id: Int @id @default(autoincrement())
+      key: String @unique
+      title: String
+      checksum: String @unique
+      sourceMessage: String?
+      sourceUrl: String?
+      rawJson: Json
+      effectiveFrom: DateTime? @db.Date
+      effectiveUntil: DateTime? @db.Date
+      isEnabled: Boolean @default(true)
+      importedAt: DateTime @default(now())
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      trips: BusTrip[]
+    constraints:
+      - "@@index([isEnabled, effectiveFrom, effectiveUntil])"
+  BusTrip:
+    fields:
+      id: Int @id @default(autoincrement())
+      versionId: Int
+      routeId: Int
+      dayType: BusScheduleDayType
+      position: Int
+      stopTimes: Json
+      version: "BusScheduleVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)"
+      route: "BusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)"
+    constraints:
+      - "@@unique([versionId, dayType, routeId, position])"
+      - "@@index([dayType, routeId])"
+      - "@@index([versionId])"
+  BusUserPreference:
+    fields:
+      userId: String @id
+      preferredOriginCampusId: Int?
+      preferredDestinationCampusId: Int?
+      favoriteCampusIds: Int[] @default([])
+      favoriteRouteIds: Int[] @default([])
+      showDepartedTrips: Boolean @default(false)
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      preferredOriginCampus: 'BusCampus? @relation("BusPreferenceOrigin", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)'
+      preferredDestinationCampus: 'BusCampus? @relation("BusPreferenceDestination", fields: [preferredDestinationCampusId], references: [id], onDelete: SetNull)'
+    constraints:
+      - "@@index([preferredOriginCampusId])"
+      - "@@index([preferredDestinationCampusId])"
+  OAuthClient:
+    fields:
+      id: String @id @default(cuid())
+      clientId: String @unique
+      clientSecret: String?
+      disabled: Boolean @default(false)
+      skipConsent: Boolean?
+      enableEndSession: Boolean?
+      subjectType: String?
+      scopes: String[] @default([])
+      userId: String?
+      user: "User? @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+      name: String?
+      uri: String?
+      icon: String?
+      contacts: String[] @default([])
+      tos: String?
+      policy: String?
+      softwareId: String?
+      softwareVersion: String?
+      softwareStatement: String?
+      redirectUris: String[]
+      postLogoutRedirectUris: String[] @default([])
+      tokenEndpointAuthMethod: String?
+      grantTypes: String[] @default([])
+      responseTypes: String[] @default([])
+      public: Boolean?
+      type: String?
+      requirePKCE: Boolean?
+      referenceId: String?
+      metadata: Json?
+      accessTokens: OAuthAccessToken[]
+      refreshTokens: OAuthRefreshToken[]
+      consents: OAuthConsent[]
+      deviceCodes: DeviceCode[]
+    constraints:
+      - "@@index([userId])"
+  DeviceCode:
+    fields:
+      id: String @id @default(cuid())
+      deviceCode: String @unique
+      userCode: String @unique
+      scopes: String[] @default([])
+      clientId: String
+      client: "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)"
+      userId: String?
+      user: "User? @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      status: String @default("pending") // pending, approved, denied
+      lastPolledAt: DateTime?
+      expiresAt: DateTime
+      createdAt: DateTime @default(now())
+    constraints:
+      - "@@index([deviceCode])"
+      - "@@index([userCode])"
+      - "@@index([clientId])"
+      - "@@index([userId])"
+      - "@@index([expiresAt])"
+  OAuthRefreshToken:
+    fields:
+      id: String @id @default(cuid())
+      token: String @unique
+      clientId: String
+      client: "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)"
+      sessionId: String?
+      session: "Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)"
+      userId: String
+      user: "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      referenceId: String?
+      expiresAt: DateTime
+      createdAt: DateTime @default(now())
+      revoked: DateTime?
+      authTime: DateTime?
+      scopes: String[] @default([])
+      accessTokens: OAuthAccessToken[]
+    constraints:
+      - "@@index([clientId])"
+      - "@@index([sessionId])"
+      - "@@index([userId])"
+      - "@@index([expiresAt])"
+  OAuthAccessToken:
+    fields:
+      id: String @id @default(cuid())
+      token: String @unique
+      clientId: String
+      client: "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)"
+      sessionId: String?
+      session: "Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)"
+      userId: String?
+      user: "User? @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      referenceId: String?
+      refreshId: String?
+      refresh: "OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)"
+      expiresAt: DateTime
+      createdAt: DateTime @default(now())
+      scopes: String[] @default([])
+    constraints:
+      - "@@index([clientId])"
+      - "@@index([sessionId])"
+      - "@@index([userId])"
+      - "@@index([refreshId])"
+      - "@@index([expiresAt])"
+  OAuthConsent:
+    fields:
+      id: String @id @default(cuid())
+      clientId: String
+      client: "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)"
+      userId: String?
+      user: "User? @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      referenceId: String?
+      scopes: String[] @default([])
+      createdAt: DateTime @default(now())
+      updatedAt: DateTime @updatedAt
+    constraints:
+      - "@@index([clientId])"
+      - "@@index([userId])"
+  Jwks:
+    fields:
+      id: String @id @default(cuid())
+      publicKey: String
+      privateKey: String
+      createdAt: DateTime @default(now())
+      expiresAt: DateTime?
+enums:
+  CommentVisibility:
+    - public
+    - logged_in_only
+    - anonymous
+  CommentStatus:
+    - active
+    - softbanned
+    - deleted
+  CommentReactionType:
+    - upvote
+    - downvote
+    - heart
+    - laugh
+    - hooray
+    - confused
+    - rocket
+    - eyes
+  HomeworkAuditAction:
+    - created
+    - deleted
+  AuditAction:
+    - comment_create
+    - comment_edit
+    - comment_delete
+    - comment_react
+    - description_edit
+    - upload_delete
+    - admin_user_suspend
+    - admin_user_unsuspend
+    - admin_comment_moderate
+    - admin_description_moderate
+  TodoPriority:
+    - low
+    - medium
+    - high
+  BusScheduleDayType:
+    - weekday
+    - weekend
 ui:
   List Table: |-
     * Used for discovery-type lists such as courses, sections, and teachers.
@@ -461,104 +1184,106 @@ modules:
         title: Sign In
         auth: anon
         web:
-          status: stable
           pages:
-          - /signin
-          notes:
-          - Centrally displays OAuth sign-in entries.
-        rest:
-          status: stable
-          notes:
-          - Authentication routes handle sign-in and session creation.
-        mcp:
-          status: unavailable
-          notes:
-          - Does not provide sign-in capabilities.
+            - /signin
+        rest: stable
+        mcp: unavailable
+        display:
+          fields:
+            - "OAuth provider buttons: GitHub, Google, OIDC/USTC"
+            - Error message (if login fails)
+            - Terms and privacy links
       first-login-welcome:
         title: First Login & Welcome Page
         auth: user
         web:
-          status: stable
           pages:
-          - /welcome
-          notes:
-          - The welcome page only handles completing profile information and does not mix in other personalization settings.
-          - Usernames must remain short and publicly displayable.
-        rest:
-          status: unavailable
-          notes:
-          - No separate welcome page write endpoint is currently exposed.
-        mcp:
-          status: unavailable
-          notes:
-          - No corresponding write capability is provided.
+            - /welcome
+        rest: unavailable
+        mcp: unavailable
+        links:
+          models:
+            - User
+        display:
+          fields:
+            - user.name (Current value display)
+            - user.username (Current value display)
+            - user.image (Current avatar)
+            - user.profilePictures[] (Avatar selector grid)
+            - semesters[] (Semester dropdown options)
+            - defaultSemesterId (Preselected semester)
       post-login-redirect:
         title: Post-Login Redirect
         auth: anon
-        web:
-          status: stable
-          notes:
-          - After successful login, redirect back to the originally requested page whenever possible.
-          - Return to the home page when no specific origin page exists.
-        rest:
-          status: unavailable
-          notes:
-          - No separate post-login redirect endpoint currently exists.
+        web: stable
+        rest: unavailable
+        display:
+          fields:
+            - callbackUrl query parameter (origin page)
+            - Fallback to home page if no origin
       public-profile:
         title: Public Profile
         auth: anon
         web:
-          status: stable
           pages:
-          - /u/$username
-          - /u/id/$uid
-          notes:
-          - /u/id/$uid is an exception entry that can additionally display the user ID.
-          - The regular public profile displays avatar, nickname or name, @username, and join date.
-          - The contribution overview displays the number of followed sections, comments, uploads, created homework items, and a contribution graph for the past year.
+            - /u/$username
+            - /u/id/$uid
         rest:
-          status: stable
           routes:
-          - path: /api/me
-            method: GET
-            returns: "{ id, email, name, image, username, isAdmin }"
-            auth: user
-            notes:
-            - Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed.
+            - path: /api/me
+              returns: "{ id, email, name, image, username, isAdmin }"
+              auth: user
+              notes:
+                - Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed.
         mcp:
-          status: stable
           tools:
-          - name: get_my_profile
-            auth: user
-            returns: "{ id, email, name, image, username, isAdmin }"
-            rest_equivalent: GET /api/me
-          - name: get_public_user_profile
-            status: unavailable
-            auth: anon
+            - name: get_my_profile
+              auth: user
+              returns: "{ id, username, name, image, isAdmin, createdAt, updatedAt }"
+              rest_equivalent: GET /api/me
+            - name: get_public_user_profile
+              status: unavailable
+        links:
+          models:
+            - User
+        display:
+          fields:
+            - user.id (ID profile route only)
+            - user.image (Avatar)
+            - user.name (Display name)
+            - user.username (@username)
+            - user.createdAt (Join date)
+            - sectionCount (Subscribed sections)
+            - user._count.comments (Total comments)
+            - user._count.uploads (Total uploads)
+            - user._count.homeworksCreated (Homeworks created)
+            - weeks[].date (YYYY-MM-DD)
+            - weeks[].count (Contribution count)
+            - totalContributions (Aggregate)
       settings:
         title: Settings
         auth: user
         web:
-          status: stable
           pages:
-          - /settings?tab=profile
-          - /settings?tab=accounts
-          - /settings?tab=content
-          - /settings?tab=danger
-          notes:
-          - "profile: Edit name, username, and avatar."
-          - "accounts: View and manage connected OAuth accounts; disconnecting an account is a destructive action that must display a confirmation dialog first; attempting to disconnect the last sign-in account must result in an error."
-          - "content: Explains that uploads and comments are object-attached content; no standalone 'my comments / my uploads' settings page; currently provides a next-step entry point to section browsing and the comment guide."
-          - "danger: Delete account; deletion is a high-risk operation requiring the user to enter the fixed confirmation word DELETE."
-          - The settings page currently only uses the ?tab= query parameter as a stable entry point; alias paths such as /settings/profile, /settings/accounts, /settings/content, /settings/danger, /settings/comments, and /settings/uploads are no longer provided.
-        rest:
-          status: unavailable
-          notes:
-          - No separate settings center aggregation endpoint currently exists.
-        mcp:
-          status: unavailable
-          notes:
-          - No account connection management or account deletion capability is provided.
+            - /settings?tab=profile
+            - /settings?tab=accounts
+            - /settings?tab=content
+            - /settings?tab=danger
+        rest: unavailable
+        mcp: unavailable
+        links:
+          models:
+            - User
+        display:
+          fields:
+            - user.profilePictures[] (Avatar options)
+            - user.image (Current avatar)
+            - user.name (Display name)
+            - user.username (Username)
+            - user.accounts[].provider (github, google, oidc)
+            - canDisconnect (Boolean - requires min 2 accounts)
+            - Navigation links to sections and comment guide
+            - Account deletion confirmation interface
   semester:
     name: Semester
     access:
@@ -576,56 +1301,53 @@ modules:
         auth: anon
         links:
           models:
-          - name: SemesterSummary
-            role: primary
-        web:
-          status: stable
-          notes:
-          - Courses, sections, home page, and filter contexts consume semester.nameCn and semester.id.
-          - Semester appears in this project as an actual display and disambiguation field.
+            - Semester
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/semesters
-            method: GET
-            returns: "PaginatedResponse<SemesterSummary>"
-            auth: anon
+            - path: /api/semesters
+              returns: PaginatedResponse<SemesterSummary>
         mcp:
-          status: stable
           tools:
-          - name: list_semesters
-            auth: anon
-            returns: "PaginatedResponse<SemesterSummary>"
-            rest_equivalent: GET /api/semesters
+            - name: list_semesters
+              returns: PaginatedResponse<SemesterSummary>
+              rest_equivalent: GET /api/semesters
+        display:
+          fields:
+            - semester.id
+            - semester.jwId
+            - semester.code
+            - semester.nameCn
+            - semester.startDate
+            - semester.endDate
       current-semester:
         title: Current Semester
         auth: anon
         links:
           models:
-          - name: SemesterSummary
-            role: primary
+            - Semester
         rules:
           latest-startdate-wins: The current semester is determined by date range; when multiple semester ranges overlap the current date, the semester with the latest startDate is selected to prevent an older range or import residue from shadowing a more specific newer semester.
-        web:
-          status: stable
-          notes:
-          - The home page and calendar logic consume the current semester object; no separate 'current semester detail page' is shown.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/semesters/current
-            method: GET
-            returns: "SemesterSummary | null"
-            auth: anon
-            notes:
-            - Returns a single SemesterSummary or 404.
+            - path: /api/semesters/current
+              returns: Semester | 404
+              notes:
+                - Returns the current semester or 404 when none is found.
         mcp:
-          status: stable
           tools:
-          - name: get_current_semester
-            auth: anon
-            returns: "{ found: Boolean, semester: SemesterSummary? }"
-            rest_equivalent: GET /api/semesters/current
+            - name: get_current_semester
+              returns: "{ found: Boolean, semester: SemesterSummary? }"
+              rest_equivalent: GET /api/semesters/current
+        display:
+          fields:
+            - semester.id
+            - semester.jwId
+            - semester.nameCn
+            - semester.startDate
+            - semester.endDate
+            - semester.code
   course:
     name: Course
     access:
@@ -642,68 +1364,70 @@ modules:
         auth: anon
         links:
           models:
-          - name: CourseSummary
-            role: primary
+            - Course
           ui:
-          - List Table
+            - List Table
         web:
-          status: stable
           pages:
-          - /courses
-          notes:
-          - The first visual column uses course.namePrimary; the secondary line uses course.nameSecondary.
-          - Structured columns display course.code, course.educationLevel?.namePrimary, course.category?.namePrimary, course.classType?.namePrimary.
-          - Supports searching by course name, English name, and course code.
-          - Supports filtering by category, level, and type.
+            - /courses
         rest:
-          status: stable
           routes:
-          - path: /api/courses
-            method: GET
-            returns: "PaginatedResponse<CourseSummary>"
-            auth: anon
+            - path: /api/courses
+              returns: PaginatedResponse<Course>
         mcp:
-          status: stable
           tools:
-          - name: search_courses
-            auth: anon
-            returns: "CourseSummary[]"
-            rest_equivalent: GET /api/courses
+            - name: search_courses
+              returns: "{ courses: Course[] }"
+              rest_equivalent: GET /api/courses
+        display:
+          fields:
+            - course.code
+            - course.namePrimary
+            - course.nameSecondary (locale-dependent)
+            - course.educationLevel.namePrimary
+            - course.category.namePrimary
+            - course.classType.namePrimary
+          filters:
+            - search
+            - educationLevelId
+            - categoryId
+            - classTypeId
       course-detail:
         title: Course Detail
         auth: anon
         links:
           models:
-          - name: CourseDetail
-            role: primary
+            - Course
           ui:
-          - Detail Hero
-          - Context Tabs
-          - Basic Info Card
+            - Detail Hero
+            - Context Tabs
+            - Basic Info Card
         web:
-          status: stable
           pages:
-          - /courses/[jwId]
-          notes:
-          - h1 uses course.namePrimary; subtitle uses course.nameSecondary.
-          - Breadcrumb current item displays course.code.
-          - Basic info card shows course.code, course.educationLevel?.namePrimary, course.category?.namePrimary, course.classType?.namePrimary.
-          - Child sections table shows course.sections[].semester?.nameCn, course.sections[].code, course.sections[].teachers[].namePrimary, course.sections[].campus?.namePrimary, course.sections[].stdCount, course.sections[].limitCount.
-          - Comments and description are present in the detail page context.
+            - /courses/[jwId]
         rest:
-          status: stable
           routes:
-          - path: /api/courses/[jwId]
-            method: GET
-            returns: "CourseDetail"
-            auth: anon
+            - path: /api/courses/[jwId]
+              returns: CourseDetail
         mcp:
-          status: stable
           tools:
-          - name: get_course_by_jw_id
-            auth: anon
-            returns: "{ found: Boolean, course: CourseDetail? }"
-            rest_equivalent: GET /api/courses/[jwId]
+            - name: get_course_by_jw_id
+              returns: "{ found: Boolean, course: CourseDetail? }"
+              rest_equivalent: GET /api/courses/[jwId]
+        display:
+          fields:
+            - course.namePrimary (h1 title)
+            - course.nameSecondary (Locale-dependent subtitle)
+            - course.code (Monospace badge)
+            - course.educationLevel.namePrimary
+            - course.category.namePrimary
+            - course.classType.namePrimary
+            - section.semester.nameCn (Semester column)
+            - section.code (Section code badge)
+            - section.teachers[].namePrimary + nameSecondary (Teachers)
+            - section.campus.namePrimary (Campus)
+            - section.stdCount / section.limitCount (Capacity)
+            - description.content (Markdown-rendered via DescriptionLoader)
   section:
     name: Section
     access:
@@ -721,96 +1445,132 @@ modules:
         auth: anon
         links:
           models:
-          - name: SectionSummary
-            role: primary
+            - Section
           ui:
-          - List Table
+            - List Table
         web:
-          status: stable
           pages:
-          - /sections
-          notes:
-          - In this project, the primary display field for section lists is not a standalone section.name but section.course.namePrimary.
-          - Structured columns display section.semester?.nameCn, section.code, section.teachers[].namePrimary, section.credits, section.stdCount, section.limitCount, section.campus?.namePrimary.
-          - Supports search, semester filter, clear filter, and navigation to detail.
+            - /sections
         rest:
-          status: stable
           routes:
-          - path: /api/sections
-            method: GET
-            returns: "PaginatedResponse<SectionSummary>"
-            auth: anon
+            - path: /api/sections
+              returns: PaginatedResponse<SectionSummary>
         mcp:
-          status: stable
           tools:
-          - name: search_sections
-            auth: anon
-            returns: "PaginatedResponse<SectionSummary>"
-            rest_equivalent: GET /api/sections
+            - name: search_sections
+              returns: PaginatedResponse<SectionSummary>
+              rest_equivalent: GET /api/sections
+        display:
+          fields:
+            - section.semester.nameCn
+            - section.code
+            - section.course.namePrimary
+            - section.teachers[].namePrimary
+            - section.campus.namePrimary
+            - section.credits
+            - section.stdCount / section.limitCount (capacity)
+          filters:
+            - Semester selector
+            - Generic search
+            - "REST/MCP: campusId, departmentId, teacherId, ids, advanced search syntax"
       section-detail:
         title: Section Detail
         auth: anon
         links:
           models:
-          - name: SectionDetail
-            role: primary
+            - Section
           ui:
-          - Detail Hero
-          - Context Tabs
-          - Basic Info Card
+            - Detail Hero
+            - Context Tabs
+            - Basic Info Card
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - h1 uses section.course.namePrimary, not a standalone section.name.
-          - Subtitle displays section.course.nameSecondary and a 'not official enrollment' reminder.
-          - Breadcrumb current item displays section.code.
-          - Basic info area shows section.semester?.nameCn, section.code, section.campus?.namePrimary, section.credits, section.teachLanguage?.namePrimary, section.examMode?.namePrimary, section.openDepartment?.namePrimary.
-          - "The main content area uses three context tabs: homework, calendar, and comments."
-          - The sidebar displays description, basic info, other teaching sections, and a mini calendar.
+            - /sections/[jwId]
         rest:
-          status: stable
           routes:
-          - path: /api/sections/[jwId]
-            method: GET
-            returns: "SectionDetail"
-            auth: anon
+            - path: /api/sections/[jwId]
+              returns: SectionDetail (schedules without room/teacher expansion)
         mcp:
-          status: stable
           tools:
-          - name: get_section_by_jw_id
-            auth: anon
-            returns: "{ found: Boolean, section: SectionDetail? }"
-            rest_equivalent: GET /api/sections/[jwId]
+            - name: get_section_by_jw_id
+              returns: "{ found: Boolean, section: Section? }"
+              rest_equivalent: GET /api/sections/[jwId]
+        display:
+          fields:
+            - section.course.namePrimary (h1)
+            - section.course.nameSecondary (Locale subtitle)
+            - section.semester.nameCn
+            - section.code (Monospace)
+            - section.campus.namePrimary + nameSecondary
+            - section.graduateAndPostgraduate (yes/no)
+            - section.credits
+            - section.period + actualPeriods (if different)
+            - section.examMode.namePrimary
+            - section.remark (Whitespace-preserved)
+            - section.teachers[] (Linked badge list)
+            - section.adminClasses[] (Collapsible details)
+            - section.timesPerWeek
+            - section.periodsPerWeek
+            - section.theoryPeriods
+            - section.practicePeriods
+            - section.experimentPeriods
+            - section.machinePeriods
+            - section.designPeriods
+            - section.testPeriods
+            - section.teachLanguage.namePrimary
+            - section.roomType.namePrimary
+            - scheduleDateKeys (Set<string> YYYY-MM-DD)
+            - examDateKeys (Set<string> YYYY-MM-DD)
+            - todayKey (Current date marker)
+            - schedule.date (ISO)
+            - schedule.startTime, endTime
+            - schedule.startUnit, endUnit
+            - schedule.weekIndex
+            - schedule.room.namePrimary
+            - schedule.room.building.namePrimary
+            - schedule.room.building.campus.namePrimary
+            - schedule.teachers[].namePrimary
+            - exam.examDate
+            - exam.startTime, endTime
+            - exam.examMode
+            - exam.examTakeCount
+            - exam.examRooms[]
+            - homework.title
+            - homework.submissionDueAt
+            - homework.description.content
+            - section.course.namePrimary (Context)
+            - completionStatus (per user)
+            - comment.id
+            - comment.author.name
+            - comment.author.image (Avatar)
+            - comment.body (Markdown)
+            - comment.createdAt
+            - comment.status (non-active states shown)
+            - comment.reactions[]
       section-ical:
         title: Section iCal Export
         auth: anon
         links:
           ui:
-          - Calendar Export Dialog
-        web:
-          status: stable
-          notes:
-          - The calendar entry on the section detail page provides a single-section iCal.
+            - Calendar Export Dialog
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/sections/[jwId]/calendar.ics
-            method: GET
-            returns: text/calendar
-            auth: anon
-            notes:
-            - Returns text/calendar; content is derived from the section's schedule and exams.
+            - path: /api/sections/[jwId]/calendar.ics
+              returns: text/calendar
+              notes:
+                - Returns text/calendar; content is derived from the section's schedule and exams.
         mcp:
-          status: stable
           tools:
-          - name: get_section_calendar_subscription
-            auth: anon
-            returns: "{ icalUrl: String, note: String }"
-            rest_equivalent: GET /api/sections/[jwId]/calendar.ics
-            notes:
-            - Returns a single-section iCal link and usage instructions.
+            - name: get_section_calendar_subscription
+              returns: "{ found: Boolean, section: Section?, calendarPath: String, calendarUrl: String }"
+              rest_equivalent: GET /api/sections/[jwId]/calendar.ics
+              notes:
+                - Returns a single-section iCal link and usage instructions.
+        display:
+          fields:
+            - iCalendar URL (copyable)
+            - Export format indicator
   teacher:
     name: Teacher
     access:
@@ -827,67 +1587,74 @@ modules:
         auth: anon
         links:
           models:
-          - name: TeacherSummary
-            role: primary
+            - Teacher
           ui:
-          - List Table
+            - List Table
         web:
-          status: stable
           pages:
-          - /teachers
-          notes:
-          - The first visual column uses teacher.namePrimary; in English contexts, teacher.nameSecondary can be appended.
-          - Structured columns display teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher._count.sections.
-          - Supports searching by name, English name, and teacher code.
-          - Supports department filtering and pagination.
+            - /teachers
         rest:
-          status: stable
           routes:
-          - path: /api/teachers
-            method: GET
-            returns: "PaginatedResponse<TeacherSummary>"
-            auth: anon
+            - path: /api/teachers
+              returns: PaginatedResponse<TeacherSummary>
         mcp:
-          status: stable
           tools:
-          - name: search_teachers
-            auth: anon
-            returns: "PaginatedResponse<TeacherSummary>"
-            rest_equivalent: GET /api/teachers
+            - name: search_teachers
+              returns: PaginatedResponse<TeacherSummary>
+              rest_equivalent: GET /api/teachers
+        display:
+          fields:
+            - teacher.namePrimary
+            - teacher.nameSecondary (locale-dependent)
+            - teacher.department.namePrimary
+            - teacher.teacherTitle.namePrimary
+            - teacher.email
+            - teacher._count.sections
+          filters:
+            - search
+            - departmentId
       teacher-detail:
         title: Teacher Detail
         auth: anon
         links:
           models:
-          - name: TeacherDetail
-            role: primary
+            - Teacher
           ui:
-          - Detail Hero
-          - Context Tabs
-          - Basic Info Card
+            - Detail Hero
+            - Context Tabs
+            - Basic Info Card
         web:
-          status: stable
           pages:
-          - /teachers/[id]
-          notes:
-          - h1 uses teacher.namePrimary; in English contexts, teacher.nameSecondary can be appended.
-          - Basic info area shows teacher.department?.namePrimary, teacher.teacherTitle?.namePrimary, teacher.email, teacher.telephone, teacher.mobile, teacher.address.
-          - Related sections table shows teacher.sections[].semester?.nameCn, teacher.sections[].course.namePrimary, teacher.sections[].code, teacher.sections[].credits.
-          - Comments and description are present in the detail page context.
+            - /teachers/[id]
         rest:
-          status: stable
           routes:
-          - path: /api/teachers/[id]
-            method: GET
-            returns: "TeacherDetail"
-            auth: anon
+            - path: /api/teachers/[id]
+              returns: TeacherDetail
         mcp:
-          status: stable
           tools:
-          - name: get_teacher_by_id
-            auth: anon
-            returns: "{ found: Boolean, teacher: TeacherDetail? }"
-            rest_equivalent: GET /api/teachers/[id]
+            - name: get_teacher_by_id
+              returns: "{ found: Boolean, teacher: TeacherDetail? }"
+              rest_equivalent: GET /api/teachers/[id]
+        display:
+          fields:
+            - teacher.namePrimary (h1)
+            - teacher.nameSecondary (Locale subtitle)
+            - teacher.department.namePrimary
+            - teacher.teacherTitle.namePrimary
+            - teacher.email (if not null)
+            - teacher.telephone (if not null)
+            - teacher.mobile (if not null)
+            - teacher.address (if not null)
+            - section.semester.nameCn (Badge)
+            - section.course.namePrimary + nameSecondary
+            - section.code (Badge, monospace)
+            - section.credits (or empty)
+            - comment.id
+            - comment.author.name
+            - comment.author.image
+            - comment.body
+            - comment.createdAt
+            - description.content (Markdown-rendered via DescriptionLoader)
   subscription:
     name: Subscription
     access:
@@ -904,71 +1671,58 @@ modules:
         auth: user
         links:
           models:
-          - name: CalendarSubscription
-            role: primary
+            - User
+            - Section
           ui:
-          - Detail Hero
+            - Detail Hero
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - The individual subscribe/unsubscribe action on the section detail page is a lightweight personal state toggle that takes effect immediately without a confirmation dialog.
-        rest:
-          status: unavailable
-          notes:
-          - No separate 'single subscribe / unsubscribe' REST route currently exists.
-          - Page behavior is handled through server actions; results are converged to the current user's subscription state.
+            - /sections/[jwId]
+        rest: unavailable
         mcp:
-          status: stable
           tools:
-          - name: subscribe_section_by_jw_id
-            auth: user
-            returns: "{ success: Boolean, subscription: CalendarSubscription }"
-          - name: unsubscribe_section_by_jw_id
-            auth: user
-            returns: "{ success: Boolean, subscription: CalendarSubscription }"
+            - name: subscribe_section_by_jw_id
+              returns: "{ success: Boolean, subscription: CalendarSubscription }"
+            - name: unsubscribe_section_by_jw_id
+              returns: "{ success: Boolean, subscription: CalendarSubscription }"
+        display:
+          fields:
+            - Subscribe/unsubscribe icon button state
+            - Subscription disclaimer copy
       batch-subscribe-by-codes:
         title: Batch Subscribe by Course Codes
         auth: user
         links:
           models:
-          - name: SectionSummary
-            role: context
-          - name: CalendarSubscription
-            role: primary
+            - Section
+            - User
         web:
-          status: stable
           pages:
-          - /?tab=subscriptions
-          notes:
-          - Home page empty state.
-          - Batch import results must distinguish between successful items, failed items, and items awaiting confirmation.
-          - Subscription relationships are created only after user confirmation.
+            - /?tab=subscriptions
         rest:
-          status: stable
           routes:
-          - path: /api/sections/match-codes
-            method: POST
-            returns: "{ semester: SemesterSummary, matchedCodes: String[], unmatchedCodes: String[], sections: SectionSummary[] }"
-            auth: user
-          - path: /api/calendar-subscriptions
-            method: POST
-            returns: "{ subscription: CalendarSubscription }"
-            auth: user
-            notes:
-            - subscription.sections[] is the user's new set of subscribed sections.
+            - path: /api/sections/match-codes
+              method: POST
+              returns: "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], sections: Section[], total: Int }"
+            - path: /api/calendar-subscriptions
+              method: POST
+              returns: "{ subscription: CalendarSubscription }"
+              notes:
+                - subscription.sections[] is the user's new set of subscribed sections.
         mcp:
-          status: stable
           tools:
-          - name: match_section_codes
-            auth: user
-            returns: "{ semester: SemesterSummary, matchedCodes: String[], unmatchedCodes: String[], sections: SectionSummary[] }"
-            rest_equivalent: POST /api/sections/match-codes
-          - name: subscribe_my_sections_by_codes
-            auth: user
-            returns: "{ matchedCodes: String[], unmatchedCodes: String[], addedCount: Int, subscription: CalendarSubscription }"
-            rest_equivalent: POST /api/calendar-subscriptions
+            - name: match_section_codes
+              returns: "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], sections: Section[], total: Int }"
+              rest_equivalent: POST /api/sections/match-codes
+            - name: subscribe_my_sections_by_codes
+              returns: "{ success: Boolean, semester: Semester, matchedCodes: String[], unmatchedCodes: String[], addedCount: Int, subscription: { userId, sections, note } }"
+              rest_equivalent: POST /api/calendar-subscriptions
+        display:
+          fields:
+            - Course/section code input
+            - Bulk subscribe button
+            - Matched section cards with course, code, semester, campus, teachers
+            - Unmatched codes
   ical:
     name: Personal Calendar Subscription iCal
     access:
@@ -986,73 +1740,60 @@ modules:
         auth: anon
         links:
           ui:
-          - Calendar Export Dialog
+            - Calendar Export Dialog
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - Exposes both single-section iCal and personal subscription iCal simultaneously; the latter requires sign-in.
+            - /sections/[jwId]
         rest:
-          status: stable
           routes:
-          - path: /api/sections/[jwId]/calendar.ics
-            method: GET
-            returns: text/calendar
-            auth: anon
-            notes:
-            - Returns text/calendar synthesized from the section's schedule and exams.
+            - path: /api/sections/[jwId]/calendar.ics
+              returns: text/calendar
+              notes:
+                - Returns text/calendar synthesized from the section's schedule and exams.
+        display:
+          fields:
+            - iCalendar URL (copyable)
+            - section.code (context)
+            - "Export format: .ics"
+            - Copy button
       personal-calendar-subscription:
         title: Personal Calendar Subscription
         auth: user
         links:
           models:
-          - name: CalendarSubscription
-            role: primary
+            - User
+            - Section
           ui:
-          - Calendar Export Dialog
+            - Calendar Export Dialog
         web:
-          status: stable
           pages:
-          - /?tab=calendar
-          notes:
-          - Displays the personal subscription URL as a copyable link.
+            - /?tab=calendar
         rest:
-          status: stable
           routes:
-          - path: /api/users/[userId]/calendar.ics
-            method: GET
-            returns: text/calendar
-            auth: user
-          - path: /api/calendar-subscriptions/current
-            method: GET
-            returns: "CalendarSubscription"
-            auth: user
-            notes:
-            - Returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text.
+            - path: /api/users/[userId]/calendar.ics
+              returns: text/calendar
+            - path: /api/calendar-subscriptions/current
+              returns: "{ subscription: CalendarSubscription | null }"
+              notes:
+                - Returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text.
         mcp:
-          status: stable
           tools:
-          - name: get_my_calendar_subscription
-            auth: user
-            returns: "CalendarSubscription"
-            rest_equivalent: GET /api/calendar-subscriptions/current
+            - name: get_my_calendar_subscription
+              returns: "{ success: Boolean, subscription?: CalendarSubscription, message?: String }"
+              rest_equivalent: GET /api/calendar-subscriptions/current
+        display:
+          fields:
+            - iCalendar URL copy button
       multi-section-ical:
         title: Multi-Section iCal Export
         auth: anon
-        web:
-          status: unavailable
-          notes:
-          - No stable standalone page entry currently exists; this capability is more like a lower-level export endpoint.
+        web: unavailable
         rest:
-          status: stable
           routes:
-          - path: /api/sections/calendar.ics
-            method: GET
-            returns: text/calendar
-            auth: anon
-            notes:
-            - Generates a multi-section iCal based on sectionIds query parameter.
+            - path: /api/sections/calendar.ics
+              returns: text/calendar
+              notes:
+                - Generates a multi-section iCal based on sectionIds query parameter.
   subscribed-sections:
     name: Subscribed Sections
     access:
@@ -1069,43 +1810,37 @@ modules:
         auth: user
         links:
           models:
-          - name: CalendarSubscription
-            role: primary
-          - name: SectionSummary
-            role: context
+            - User
+            - Section
           ui:
-          - List Table
+            - List Table
         web:
-          status: stable
           pages:
-          - /?tab=subscriptions
-          notes:
-          - A section table grouped by semester.
-          - Inline fields currently retain section code, course name, teacher, and credits.
-          - The empty state provides entries for searching sections, browsing courses, and batch import.
-          - The unsubscribe action uses a lightweight two-step armed button rather than a modal confirmation dialog.
+            - /?tab=subscriptions
         rest:
-          status: stable
           routes:
-          - path: /api/calendar-subscriptions/current
-            method: GET
-            returns: "CalendarSubscription"
-            auth: user
-            notes:
-            - Returns the current user's subscribed section details and personal subscription feed information; supports the subscribed sections list and personal calendar subscription entry.
+            - path: /api/calendar-subscriptions/current
+              returns: "{ subscription: CalendarSubscription | null }"
+              notes:
+                - Returns the current user's subscribed section details and personal subscription feed information; supports the subscribed sections list and personal calendar subscription entry.
         mcp:
-          status: stable
           tools:
-          - name: list_my_subscribed_sections
-            auth: user
-            returns: "{ sections: SectionSummary[], note: String? }"
-            rest_equivalent: GET /api/calendar-subscriptions/current
-          - name: get_my_calendar_subscription
-            auth: user
-            returns: "CalendarSubscription"
-            rest_equivalent: GET /api/calendar-subscriptions/current
-            notes:
-            - Supplements calendarPath and calendarUrl on the same abstract entry.
+            - name: list_my_subscribed_sections
+              returns: "{ success: Boolean, sections: Section[], note: String }"
+              rest_equivalent: GET /api/calendar-subscriptions/current
+            - name: get_my_calendar_subscription
+              returns: "{ success: Boolean, subscription?: CalendarSubscription, message?: String }"
+              rest_equivalent: GET /api/calendar-subscriptions/current
+              notes:
+                - Supplements calendarPath and calendarUrl on the same abstract entry.
+        display:
+          fields:
+            - semester group label and count
+            - subscription.sections[].code
+            - subscription.sections[].course.namePrimary
+            - section.teachers[]
+            - section.credits
+            - Unsubscribe button per section
   schedule:
     name: Schedule
     access:
@@ -1123,93 +1858,89 @@ modules:
         auth: user
         links:
           models:
-          - name: ScheduleEntry
-            role: primary
+            - Schedule
         web:
-          status: stable
           pages:
-          - /?tab=calendar
-          notes:
-          - The home page calendar consumes schedule data from subscribed sections.
-        rest:
-          status: unavailable
-          notes:
-          - No separate 'current user schedule' REST aggregation endpoint currently exists.
+            - /?tab=calendar
+        rest: unavailable
         mcp:
-          status: stable
           tools:
-          - name: list_my_schedules
-            auth: user
-            returns: "ScheduleEntry[]"
-            notes:
-            - Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup.
+            - name: list_my_schedules
+              returns: "{ schedules: ScheduleEntry[] }"
+              notes:
+                - Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup.
+        display:
+          fields:
+            - 7-day grid (Sun-Sat)
+            - Today highlight
+            - schedule.date
+            - schedule.startTime - endTime
+            - schedule.room.namePrimary
+            - section.course.namePrimary
+            - teacher names
+          filters:
+            - Previous/next semester links
       public-schedule-query:
         title: Public Schedule Query
         auth: anon
         links:
           models:
-          - name: ScheduleEntry
-            role: primary
-        web:
-          status: unavailable
-          notes:
-          - No standalone public schedule page currently calls this endpoint directly; pages assemble data more through server-side queries.
+            - Schedule
+        web: unavailable
         rest:
-          status: stable
           routes:
-          - path: /api/schedules
-            method: GET
-            returns: "PaginatedResponse<ScheduleEntry>"
-            auth: anon
-            notes:
-            - Supports filtering by section, teacher, room, date range, and day of week.
+            - path: /api/schedules
+              returns: PaginatedResponse<ScheduleEntry>
+              notes:
+                - Supports filtering by section, teacher, room, date range, and day of week.
         mcp:
-          status: stable
           tools:
-          - name: query_schedules
-            auth: anon
-            returns: "PaginatedResponse<ScheduleEntry>"
-            rest_equivalent: GET /api/schedules
+            - name: query_schedules
+              returns: PaginatedResponse<ScheduleEntry>
+              rest_equivalent: GET /api/schedules
+        display:
+          filters:
+            - sectionId
+            - teacherId
+            - roomId
+            - dateFrom/dateTo
+            - weekday
       section-schedule:
         title: Section Schedule
         auth: anon
         links:
           models:
-          - name: ScheduleEntry
-            role: primary
+            - Schedule
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - The calendar tab on the section detail page consumes the section's schedule and exam data.
+            - /sections/[jwId]
         rest:
-          status: stable
           routes:
-          - path: /api/sections/[jwId]/schedules
-            method: GET
-            returns: "ScheduleEntry[]"
-            auth: anon
-            notes:
-            - Returns a simplified variant of ScheduleEntry[] for the section.
-          - path: /api/sections/[jwId]/schedule-groups
-            method: GET
-            returns: "ScheduleGroupEntry[]"
-            auth: anon
-            notes:
-            - Returns period information aggregated by group.
+            - path: /api/sections/[jwId]/schedules
+              returns: ScheduleEntry[]
+              notes:
+                - Returns a simplified variant of ScheduleEntry[] for the section.
+            - path: /api/sections/[jwId]/schedule-groups
+              returns: ScheduleGroupEntry[] (with schedules)
+              notes:
+                - Returns schedule groups with schedules, not separate aggregated period summaries.
         mcp:
-          status: stable
           tools:
-          - name: list_schedules_by_section
-            auth: anon
-            returns: "ScheduleEntry[]"
-            rest_equivalent: GET /api/sections/[jwId]/schedules
-          - name: get_my_7days_timeline
-            auth: user
-            returns: "CalendarEvent[]"
-            notes:
-            - Returns schedules as the schedule type within a unified event stream.
+            - name: list_schedules_by_section
+              returns: "{ found: Boolean, section: Section?, schedules: ScheduleEntry[] }"
+              rest_equivalent: GET /api/sections/[jwId]/schedules
+            - name: get_my_7days_timeline
+              auth: user
+              returns: CalendarEvent[]
+              notes:
+                - Returns schedules as the schedule type within a unified event stream.
+        display:
+          fields:
+            - schedule.date
+            - schedule.startTime - endTime
+            - schedule.room (with building/campus)
+            - schedule.weekday (0=Sunday)
+            - schedule.teachers[] names
   calendar:
     name: Calendar
     access:
@@ -1227,78 +1958,73 @@ modules:
         auth: user
         links:
           models:
-          - name: CalendarEvent
-            role: primary
-          - name: ScheduleEntry
-            role: context
-          - name: HomeworkItem
-            role: context
-          - name: ExamEntry
-            role: context
-          - name: TodoItem
-            role: context
+            - Schedule
+            - Homework
+            - Exam
+            - Todo
         web:
-          status: stable
           pages:
-          - /?tab=calendar
-          notes:
-          - Provides semester view, month view, and week view.
-        rest:
-          status: unavailable
-          notes:
-          - No separate unified calendar aggregation endpoint currently exists.
+            - /?tab=calendar
+        rest: unavailable
         mcp:
-          status: stable
           tools:
-          - name: list_my_calendar_events
-            auth: user
-            returns: "CalendarEvent[]"
-            notes:
-            - Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.
-            - Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.
-          - name: get_my_7days_timeline
-            auth: user
-            returns: "CalendarEvent[]"
-          - name: list_my_schedules
-            auth: user
-            returns: "ScheduleEntry[]"
-          - name: list_my_exams
-            auth: user
-            returns: "ExamEntry[]"
+            - name: list_my_calendar_events
+              returns: "{ events: CalendarEvent[] }"
+              notes:
+                - Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.
+                - Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.
+            - name: get_my_7days_timeline
+              returns: "{ events: CalendarEvent[] }"
+            - name: list_my_schedules
+              returns: "{ schedules: ScheduleEntry[] }"
+            - name: list_my_exams
+              returns: "{ exams: ExamEntry[] }"
+        display:
+          fields:
+            - calendarEvents (schedules + exams + homeworks + todos)
+            - schedule.date, startTime, endTime
+            - exam.examDate, startTime, endTime, examMode, examRooms
+            - homework.submissionDueAt
+            - todo.dueAt
+            - Week numbers
+            - Weekday labels (Sun-Sat)
+          filters:
+            - View tabs
+            - Previous/next semester controls
       section-calendar-view:
         title: Section Calendar View
         auth: anon
         links:
           ui:
-          - Context Tabs
+            - Context Tabs
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - The current implementation merges schedule and exams in the same calendar tab rather than splitting them into a separate exam tab.
-        rest:
-          status: stable
-          notes:
-          - Currently supported through a combination of schedule, exam, and iCal endpoints.
+            - /sections/[jwId]
+        rest: stable
+        display:
+          fields:
+            - calendarMonthStart (Month view)
+            - calendarEvents[]
+            - schedule.date, startTime, endTime
+            - schedule.room (with building/campus)
+            - schedule.teachers[].namePrimary
+            - exam.examDate, startTime, endTime
+            - exam.examRooms[]
+            - weekLabelTemplate (Week numbers)
+            - weekdayLabels (Sun-Sat)
+            - todayKey (Today highlight)
       event-card:
         title: Event Card
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Compact cards prioritize displaying title and time.
-          - Location is not expanded in the second row by default; location, teacher, exam batch, and other details appear in a popover / details.
-          - Cards can navigate to the related section, homework, exam, or home page tab.
-          - The home page calendar and section calendar reuse the same card, hover/popover, and navigation behavior as much as possible.
-        rest:
-          status: unavailable
-          notes:
-          - Does not directly expose the 'card' concept; only exposes structured event data.
-        mcp:
-          status: unavailable
-          notes:
-          - Does not directly expose the 'card' concept; only exposes structured results.
+        web: stable
+        rest: unavailable
+        mcp: unavailable
+        display:
+          fields:
+            - Event type (schedule/exam/homework/todo)
+            - event.title or section.course.namePrimary
+            - event.time or first metadata segment
+            - Details/popover may show location
   homework:
     name: Homework
     access:
@@ -1316,139 +2042,133 @@ modules:
         auth: user
         links:
           models:
-          - name: HomeworkItem
-            role: primary
+            - Homework
         web:
-          status: stable
           pages:
-          - /?tab=homeworks
-          notes:
-          - The homework summary page handles scanning across sections.
-          - Homework cards prioritize displaying due date, title, and course name.
-          - Section codes and internal IDs do not enter the main display area by default.
+            - /?tab=homeworks
         rest:
-          status: stable
           routes:
-          - path: /api/me/subscriptions/homeworks
-            method: GET
-            returns: "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[], sectionIds: String[] }"
-            auth: user
-            notes:
-            - Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context.
+            - path: /api/me/subscriptions/homeworks
+              returns: "{ viewer, homeworks: HomeworkItem[], auditLogs: AuditLog[], sectionIds: Int[] }"
+              notes:
+                - Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context.
         mcp:
-          status: stable
           tools:
-          - name: list_my_homeworks
-            auth: user
-            returns: "HomeworkItem[]"
-            notes:
-            - Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion.
+            - name: list_my_homeworks
+              returns: "{ homeworks: HomeworkItem[] }"
+              notes:
+                - Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion.
+        display:
+          fields:
+            - homework.title
+            - homework.description.content
+            - homework.submissionDueAt (with ETA label)
+            - section.course.namePrimary
+            - homework.isMajor badge
+            - homework.requiresTeam badge
+            - completionStatus (completed/pending)
+            - "filter: incomplete/completed/all"
       section-homework-tab:
         title: Section Homework Tab
         auth: anon
         links:
           models:
-          - name: HomeworkItem
-            role: primary
+            - Homework
           ui:
-          - Context Tabs
+            - Context Tabs
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - Provides full entries for create, edit, delete, and description maintenance.
-          - Deleting homework is a high-risk operation that requires confirmation.
-          - Homework description is maintained alongside the homework entity; at minimum the last update time is retained.
+            - /sections/[jwId]
         rest:
-          status: stable
           routes:
-          - path: /api/homeworks
-            method: GET
-            returns: "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
-            auth: anon
-          - path: /api/homeworks
-            method: POST
-            returns: "{ id: String }"
-            auth: user
-          - path: /api/homeworks/[id]
-            method: PATCH
-            returns: "HomeworkItem"
-            auth: user
-          - path: /api/homeworks/[id]
-            method: DELETE
-            returns: "{ success: Boolean }"
-            auth: user
+            - path: /api/homeworks
+              returns: "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
+            - path: /api/homeworks
+              method: POST
+              returns: "{ id: String }"
+              auth: user
+            - path: /api/homeworks/[id]
+              method: PATCH
+              returns: "{ success: Boolean }"
+              auth: user
+            - path: /api/homeworks/[id]
+              method: DELETE
+              returns: "{ success: Boolean }"
+              auth: user
         mcp:
-          status: stable
           tools:
-          - name: list_homeworks_by_section
-            auth: anon
-            returns: "HomeworkItem[]"
-            rest_equivalent: GET /api/homeworks
-          - name: create_homework_on_section
-            auth: user
-            returns: "{ id: String }"
-            rest_equivalent: POST /api/homeworks
-          - name: update_homework_on_section
-            auth: user
-            returns: "HomeworkItem"
-            rest_equivalent: PATCH /api/homeworks/[id]
+            - name: list_homeworks_by_section
+              returns: "{ found: Boolean, section: Section?, homeworks: HomeworkItem[] }"
+              rest_equivalent: GET /api/homeworks
+            - name: create_homework_on_section
+              auth: user
+              returns: "{ success: Boolean, id: String }"
+              rest_equivalent: POST /api/homeworks
+            - name: update_homework_on_section
+              auth: user
+              returns: "{ success: Boolean }"
+              rest_equivalent: PATCH /api/homeworks/[id]
+        display:
+          fields:
+            - homework.title
+            - homework.description.content
+            - homework.submissionDueAt
+            - homework.createdAt
+            - homework.submissionStartAt
+            - homework.publishedAt
+            - commentCount / comments action
+            - user completion status
+            - edit action
       homework-governance:
         title: Homework Governance
         auth: admin
-        web:
-          status: stable
-          notes:
-          - No standalone homework governance page currently exists; admin deletion is handled through governance endpoints.
+        web: unavailable
         rest:
-          status: stable
           routes:
-          - path: /api/admin/homeworks
-            method: GET
-            returns: "HomeworkItem[]"
-            auth: admin
-          - path: /api/admin/homeworks/[id]
-            method: DELETE
-            returns: "{ success: Boolean }"
-            auth: admin
-        mcp:
-          status: unavailable
-          notes:
-          - No admin homework tools are currently provided.
+            - path: /api/admin/homeworks
+              returns: "{ homeworks: HomeworkItem[] }"
+            - path: /api/admin/homeworks/[id]
+              method: DELETE
+              returns: "{ success: Boolean }"
+        mcp: unavailable
+        display:
+          fields:
+            - homework.title
+            - homework.section.code
+            - creator
+            - creation timestamp
+            - "Action: delete"
+            - "Status: active/deleted"
       homework-completion:
         title: Homework Completion
         auth: user
         links:
           models:
-          - name: HomeworkItem
-            role: context
-        web:
-          status: stable
-          notes:
-          - The home page, homework summary page, and section detail all support toggling the current user's completion state.
+            - Homework
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/homeworks/[id]/completion
-            method: PUT
-            returns: "{ completed: Boolean, completedAt: DateTime? }"
-            auth: user
+            - path: /api/homeworks/[id]/completion
+              method: PUT
+              returns: "{ completed: Boolean, completedAt: DateTime? }"
         mcp:
-          status: stable
           tools:
-          - name: set_my_homework_completion
-            auth: user
-            returns: "{ homeworkId: String, completed: Boolean, completedAt: DateTime? }"
-            rest_equivalent: PUT /api/homeworks/[id]/completion
-            notes:
-            - Pass completed=true to mark as done, completed=false to revert to incomplete.
-          - name: unset_my_homework_completion
-            auth: user
-            returns: "{ homeworkId: String, completed: Boolean, completedAt: DateTime? }"
-            rest_equivalent: PUT /api/homeworks/[id]/completion
-            notes:
-            - Dedicated tool to revert a completed homework back to incomplete; equivalent to set_my_homework_completion with completed=false.
+            - name: set_my_homework_completion
+              returns: "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }"
+              rest_equivalent: PUT /api/homeworks/[id]/completion
+              notes:
+                - Pass completed=true to mark as done, completed=false to revert to incomplete.
+            - name: unset_my_homework_completion
+              returns: "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }"
+              rest_equivalent: PUT /api/homeworks/[id]/completion
+              notes:
+                - Dedicated tool to revert a completed homework back to incomplete; equivalent to set_my_homework_completion with completed=false.
+        display:
+          fields:
+            - homework.title
+            - homework.submissionDueAt
+            - completion action button
+            - completion status
   todo:
     name: Todo
     access:
@@ -1466,76 +2186,69 @@ modules:
         auth: user
         links:
           models:
-          - name: TodoItem
-            role: primary
+            - Todo
         web:
-          status: stable
           pages:
-          - /?tab=todos
-          notes:
-          - Filter dimensions include all, incomplete, and completed.
-          - Cards primarily display todo title; secondary display shows priority and due date.
+            - /?tab=todos
         rest:
-          status: stable
           routes:
-          - path: /api/todos
-            method: GET
-            returns: "TodoItem[]"
-            auth: user
-            notes:
-            - Returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.
+            - path: /api/todos
+              returns: "{ todos: TodoItem[] }"
+              notes:
+                - Returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt.
         mcp:
-          status: stable
           tools:
-          - name: list_my_todos
-            auth: user
-            returns: "TodoItem[]"
-            rest_equivalent: GET /api/todos
+            - name: list_my_todos
+              returns: "{ todos: TodoItem[] }"
+              rest_equivalent: GET /api/todos
+        display:
+          fields:
+            - todo.title
+            - todo.content (description)
+            - todo.priority
+            - todo.dueAt
+            - completed status action button
+            - "filter: incomplete/completed/all"
       todo-edit:
         title: Todo Edit Sheet
         auth: user
         links:
           models:
-          - name: TodoItem
-            role: primary
+            - Todo
         web:
-          status: stable
           pages:
-          - /?tab=todos
-          - /?tab=overview
-          notes:
-          - Todos are created and edited through a Sheet panel.
-          - Deleting a todo currently does not use a destructive confirm dialog.
+            - /?tab=todos
         rest:
-          status: stable
           routes:
-          - path: /api/todos
-            method: POST
-            returns: "{ id: String }"
-            auth: user
-          - path: /api/todos/[id]
-            method: PATCH
-            returns: "TodoItem"
-            auth: user
-          - path: /api/todos/[id]
-            method: DELETE
-            returns: "{ success: Boolean }"
-            auth: user
+            - path: /api/todos
+              method: POST
+              returns: "{ id: String }"
+            - path: /api/todos/[id]
+              method: PATCH
+              returns: "{ success: Boolean }"
+            - path: /api/todos/[id]
+              method: DELETE
+              returns: "{ success: Boolean }"
         mcp:
-          status: stable
           tools:
-          - name: create_my_todo
-            auth: user
-            returns: "{ success: Boolean, id: String }"
-            rest_equivalent: POST /api/todos
-          - name: update_my_todo
-            auth: user
-            returns: "{ success: Boolean }"
-            rest_equivalent: PATCH /api/todos/[id]
-          - name: delete_my_todo
-            auth: user
-            returns: "{ success: Boolean }"
-            rest_equivalent: DELETE /api/todos/[id]
+            - name: create_my_todo
+              returns: "{ success: Boolean, id: String }"
+              rest_equivalent: POST /api/todos
+            - name: update_my_todo
+              returns: "{ success: Boolean }"
+              rest_equivalent: PATCH /api/todos/[id]
+            - name: delete_my_todo
+              returns: "{ success: Boolean }"
+              rest_equivalent: DELETE /api/todos/[id]
+        display:
+          fields:
+            - todo.title (text input)
+            - todo.content (text/markdown input)
+            - todo.priority (select)
+            - todo.dueAt (date/time picker)
+            - Save button
+            - Delete button (edit mode)
+            - Cancel button
   exam:
     name: Exam
     access:
@@ -1553,53 +2266,48 @@ modules:
         auth: user
         links:
           models:
-          - name: ExamEntry
-            role: primary
+            - Exam
         web:
-          status: stable
           pages:
-          - /?tab=exams
-          notes:
-          - The home page exam tab provides a cross-section exam list.
-          - Cards primarily display course name; secondary display shows exam room, date/time, and exam mode.
-          - Section codes are only promoted in priority when disambiguation is needed.
-        rest:
-          status: unavailable
-          notes:
-          - No standalone exam list endpoint is currently exposed.
+            - /?tab=exams
+        rest: unavailable
         mcp:
-          status: stable
           tools:
-          - name: list_my_exams
-            auth: user
-            returns: "ExamEntry[]"
-            notes:
-            - Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].
+            - name: list_my_exams
+              returns: "{ exams: ExamEntry[] }"
+              notes:
+                - Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[].
+        display:
+          fields:
+            - exam.examDate
+            - exam.startTime - endTime
+            - exam.examMode
+            - exam.examRooms[] (locations)
+            - section.course.namePrimary
+            - "completion filter: incomplete/completed/all"
       section-exam-info:
         title: Section Exam Info
         auth: anon
         links:
           models:
-          - name: ExamEntry
-            role: primary
+            - Exam
         web:
-          status: stable
           pages:
-          - /sections/[jwId]
-          notes:
-          - The section detail page displays the section's exams in the calendar tab and mini calendar.
-        rest:
-          status: unavailable
-          notes:
-          - Currently provided through a combination of existing public academic objects and calendar capabilities.
+            - /sections/[jwId]
+        rest: unavailable
         mcp:
-          status: stable
           tools:
-          - name: list_exams_by_section
-            auth: anon
-            returns: "ExamEntry[]"
-            notes:
-            - Returns a single section's exams[].
+            - name: list_exams_by_section
+              returns: "{ found: Boolean, section: Section?, exams: ExamEntry[] }"
+              notes:
+                - Returns a single section's exams[].
+        display:
+          fields:
+            - exam.examDate
+            - exam.startTime - endTime
+            - exam.examMode
+            - exam.examBatch.namePrimary
+            - exam.examRooms[]
   overview:
     name: Overview
     access:
@@ -1618,41 +2326,55 @@ modules:
         auth: user
         links:
           models:
-          - name: OverviewSnapshot
-            role: primary
+            - User
+            - Section
+            - Homework
+            - Todo
+            - Exam
         web:
-          status: stable
           pages:
-          - /?tab=overview
-          - /?tab=calendar
-          - /?tab=subscriptions
-          - /?tab=exams
-          - /?tab=homeworks
-          - /?tab=todos
-          - /?tab=bus
-          - /?tab=links
-          notes:
-          - Displays frequent links, today's and tomorrow's schedule, this week's calendar, incomplete homework, and incomplete todos.
-        rest:
-          status: unavailable
-          notes:
-          - No standalone overview endpoint is currently exposed.
+            - /?tab=overview
+            - /?tab=calendar
+            - /?tab=subscriptions
+            - /?tab=exams
+            - /?tab=homeworks
+            - /?tab=todos
+            - /?tab=bus
+            - /?tab=links
+        rest: unavailable
         mcp:
-          status: stable
           tools:
-          - name: get_my_overview
-            auth: user
-            returns: "OverviewSnapshot"
-            notes:
-            - overview contains pending todo, homework, today's schedule, and upcoming exam counts.
-            - samples contains dueTodos[], dueHomeworks[], and upcomingExams[].
+            - name: get_my_overview
+              returns: "{ user, overview, samples }"
+              notes:
+                - overview contains pending todo, homework, today's schedule, and upcoming exam counts.
+                - samples contains dueTodos[], dueHomeworks[], and upcomingExams[].
+        display:
+          fields:
+            - pendingHomeworksCount
+            - upcomingExamsCount
+            - pendingTodosCount
+            - todaySchedulesCount
+            - Today highlight
+            - 7-day week grid
+            - Schedule events per day
+            - Pending homeworks (sorted by submissionDueAt)
+            - Tomorrow schedule section
+            - homework due today/due soon/all badges
+            - todo due today/due soon/all badges
+            - Pending todos
+            - Tab icons and counts
       anonymous-overview:
         title: Anonymous Homepage
         auth: anon
-        web:
-          status: stable
-          notes:
-          - "Retains only the two public tabs: bus and links."
+        web: stable
+        display:
+          fields:
+            - Public bus tab
+            - Public dashboard links tab
+            - link.title
+            - link.description
+            - link.icon
   permission:
     name: Permission UI / Permission
     access:
@@ -1668,63 +2390,27 @@ modules:
       list-page:
         title: List Page
         auth: anon
-        web:
-          status: stable
-          notes:
-          - List pages handle discovery, filtering, and disambiguation.
-          - Sufficient disambiguation fields must be retained.
-        rest:
-          status: stable
-          notes:
-          - Can return structured identifier fields for retrieval and consumption.
-        mcp:
-          status: stable
-          notes:
-          - Can return structured identifier fields for retrieval and consumption.
+        web: unavailable
+        rest: unavailable
+        mcp: unavailable
       detail-page:
         title: Detail Page
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Detail pages handle complete context and object-related operations.
-          - Should display complete context and collaborative content.
-        rest:
-          status: stable
-          notes:
-          - Returns structured fields required for details.
-        mcp:
-          status: stable
-          notes:
-          - Returns structured fields required for details.
+        web: unavailable
+        rest: unavailable
+        mcp: unavailable
       card:
         title: Card
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Cards handle quick scanning and quick action.
-          - Prioritizes displaying information needed for the next decision.
-          - The home page calendar and section calendar reuse consistent event cards and navigation behavior as much as possible.
-          - Both mobile and desktop must avoid overflow, occlusion, and hiding of critical actions.
-        rest:
-          status: unavailable
-          notes:
-          - Does not expose the card format; only exposes data.
-        mcp:
-          status: unavailable
-          notes:
-          - Does not expose the card format; only exposes data.
+        web: unavailable
+        rest: unavailable
+        mcp: unavailable
       auxiliary-pages:
         title: Auxiliary Pages
         auth: anon
-        web:
-          status: stable
-          notes:
-          - "/mobile-app: Mobile app onboarding page."
-          - "/privacy: Privacy policy."
-          - "/terms: Terms of service."
-          - "/guides/markdown-support: Markdown support documentation."
+        web: unavailable
+        rest: unavailable
+        mcp: unavailable
   comment:
     name: Comment
     access:
@@ -1741,93 +2427,89 @@ modules:
       object-comment-section:
         title: Object Comment Section
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Comment section in detail pages for objects such as courses, sections, teachers, and homework.
-          - Comments and descriptions are placed in the object detail page, not in a standalone community page.
-          - Deleting a comment is a high-risk operation that requires confirmation.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/comments
-            method: GET
-            returns: "Comment[]"
-            auth: anon
-          - path: /api/comments
-            method: POST
-            returns: "{ id: String }"
-            auth: user
-          - path: /api/comments/[id]
-            method: PATCH
-            returns: "Comment"
-            auth: user
-          - path: /api/comments/[id]
-            method: DELETE
-            returns: "{ success: Boolean }"
-            auth: user
-          - path: /api/comments/[id]/reactions
-            method: POST
-            returns: "{ success: Boolean }"
-            auth: user
-        mcp:
-          status: unavailable
-          tools:
-          - name: list_comments
-            status: unavailable
-            auth: anon
-          - name: create_comment
-            status: unavailable
-            auth: user
-          - name: update_comment
-            status: unavailable
-            auth: user
-          - name: delete_comment
-            status: unavailable
-            auth: user
-          - name: react_to_comment
-            status: unavailable
-            auth: user
+            - path: /api/comments
+              returns: "{ comments: Comment[], hiddenCount: Int, viewer, target }"
+            - path: /api/comments
+              method: POST
+              returns: "{ id: String }"
+              auth: user
+            - path: /api/comments/[id]
+              method: PATCH
+              returns: "{ success: Boolean, comment: Comment }"
+              auth: user
+            - path: /api/comments/[id]
+              method: DELETE
+              returns: "{ success: Boolean }"
+              auth: user
+            - path: /api/comments/[id]/reactions
+              method: POST
+              returns: "{ success: Boolean }"
+              auth: user
+            - path: /api/comments/[id]
+              returns: "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }"
+            - path: /api/comments/[id]/reactions
+              method: DELETE
+              returns: "{ success: Boolean }"
+              auth: user
+        mcp: unavailable
+        display:
+          fields:
+            - comment.id
+            - comment.author.name
+            - comment.author.image (avatar)
+            - comment.body (markdown-rendered)
+            - comment.createdAt (timestamp)
+            - comment.updatedAt / edited timestamp
+            - comment.visibility badges
+            - comment.status (non-active states)
+            - comment.reactions[] (counts per reaction type)
+            - comment.replies[] (threaded)
+            - comment.attachments[] filename/open action
+            - canReply/canEdit/canModerate actions
+            - Copy link action
       comment-governance:
         title: Comment Governance
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/moderation
+            - /admin/moderation
         rest:
-          status: stable
           routes:
-          - path: /api/admin/comments
-            method: GET
-            returns: "Comment[]"
-            auth: admin
-          - path: /api/admin/comments/[id]
-            method: PATCH
-            returns: "Comment"
-            auth: admin
-          - path: /api/admin/suspensions
-            method: POST
-            returns: "{ id: String }"
-            auth: admin
-          - path: /api/admin/suspensions/[id]
-            method: PATCH
-            returns: "{ success: Boolean }"
-            auth: admin
-        mcp:
-          status: unavailable
-          notes:
-          - No admin comment tools are currently provided.
+            - path: /api/admin/comments
+              returns: "{ comments: Comment[] }"
+            - path: /api/admin/comments/[id]
+              method: PATCH
+              returns: "{ comment: Comment }"
+            - path: /api/admin/suspensions
+              method: POST
+              returns: "{ suspension: Suspension }"
+            - path: /api/admin/suspensions/[id]
+              method: PATCH
+              returns: "{ suspension: Suspension }"
+        mcp: unavailable
+        display:
+          fields:
+            - comment.body/content preview
+            - comment.author.name
+            - target object
+            - creation timestamp
+            - "Status: active/softbanned/deleted"
+            - Suspended filter
+            - Status radio + confirm action
+            - Suspension controls
       comment-auxiliary-pages:
         title: Comment Auxiliary Pages
         auth: anon
         web:
-          status: stable
           pages:
-          - /comments/[id]
-          - /comments/guide
-          notes:
-          - The former redirects a single comment back to its original object context; the latter provides comment format documentation.
+            - /comments/[id]
+            - /comments/guide
+        display:
+          fields:
+            - Comment guidelines/help pages
   description:
     name: Description
     access:
@@ -1843,45 +2525,42 @@ modules:
       object-description-section:
         title: Object Description Section
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Description area in detail pages for courses, sections, teachers, and homework.
-          - Descriptions are displayed as stable supplementary information for objects.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/descriptions
-            method: POST
-            returns: "{ success: Boolean }"
-            auth: user
-        mcp:
-          status: unavailable
-          tools:
-          - name: list_descriptions
-            status: unavailable
-            auth: anon
-          - name: upsert_description
-            status: unavailable
-            auth: user
+            - path: /api/descriptions
+              returns: "{ description, history, viewer }"
+            - path: /api/descriptions
+              method: POST
+              returns: "{ id: String, updated: Boolean }"
+              auth: user
+        mcp: unavailable
+        display:
+          fields:
+            - description.content (markdown-rendered)
+            - description.lastEditedBy.name
+            - description.lastEditedAt / updatedAt
+            - Edit button (if authorized)
+            - history count
+            - history editor
+            - previous/updated diff content
       description-governance:
         title: Description Governance
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/moderation
+            - /admin/moderation
         rest:
-          status: stable
           routes:
-          - path: /api/admin/descriptions
-            method: GET
-            returns: "Description[]"
-            auth: admin
-        mcp:
-          status: unavailable
-          notes:
-          - No description governance tools are currently provided.
+            - path: /api/admin/descriptions
+              returns: "{ descriptions: Description[] }"
+        mcp: unavailable
+        display:
+          fields:
+            - description.content / preview
+            - object target
+            - lastEditedBy name
+            - timestamp
   upload:
     name: Upload
     access:
@@ -1901,79 +2580,56 @@ modules:
       upload-list:
         title: Upload List
         auth: user
-        web:
-          status: stable
-          notes:
-          - No standalone upload management page exists; the comment editor reads the current user's upload quota and upload history on demand and initiates upload sessions from here.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/uploads
-            method: GET
-            returns: "{ quota: UploadQuota, uploads: Upload[] }"
-            auth: user
-            notes:
-            - The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.
-        mcp:
-          status: unavailable
-          tools:
-          - name: get_my_uploads
-            status: unavailable
-            auth: user
+            - path: /api/uploads
+              returns: "{ maxFileSizeBytes, quotaBytes, uploads: Upload[], usedBytes }"
+              notes:
+                - The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities.
+        mcp: unavailable
+        display:
+          fields:
+            - upload.filename
+            - upload.size (formatted bytes)
+            - upload.createdAt
+            - usedBytes
+            - quotaBytes
+            - maxFileSizeBytes
       comment-attachment-upload:
         title: Comment Attachment Upload
         auth: user
-        web:
-          status: stable
-          notes:
-          - Attachment flow within the comment editor.
-          - No standalone resource browsing entry independent of object context is provided.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/uploads
-            method: POST
-            returns: "{ uploadId: String, presignedUrl: String }"
-            auth: user
-          - path: /api/uploads/complete
-            method: POST
-            returns: "{ upload: Upload }"
-            auth: user
-        mcp:
-          status: unavailable
-          tools:
-          - name: create_upload_session
-            status: unavailable
-            auth: user
-          - name: complete_upload
-            status: unavailable
-            auth: user
+            - path: /api/uploads
+              method: POST
+              returns: "{ key: String, url: String, maxFileSizeBytes: Int, quotaBytes: Int, usedBytes: Int }"
+            - path: /api/uploads/complete
+              method: POST
+              returns: "{ upload: Upload, usedBytes: Int, quotaBytes: Int }"
+        mcp: unavailable
+        display:
+          fields:
+            - File input
+            - File preview
+            - upload progress indicator
+            - Cancel button
       comment-attachment-download:
         title: Comment Attachment Download
         auth: user
-        web:
-          status: stable
-          notes:
-          - Comment attachment download entry.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/uploads/[id]
-            method: GET
-            returns: "Upload"
-            auth: user
-          - path: /api/uploads/[id]/download
-            method: GET
-            returns: "302 redirect to signed URL"
-            auth: user
-            notes:
-            - The current download implementation validates access permissions based on the upload owner.
-        mcp:
-          status: unavailable
-          tools:
-          - name: get_upload_download
-            status: unavailable
-            auth: user
+            - path: /api/uploads/[id]/download
+              returns: 302 redirect to signed URL
+              notes:
+                - Validates access permissions before redirecting to a short-lived signed URL.
+        mcp: unavailable
+        display:
+          fields:
+            - attachment filename
+            - Open/download button
   bus:
     name: Bus
     access:
@@ -1997,54 +2653,55 @@ modules:
         title: Bus Dashboard
         auth: anon
         web:
-          status: stable
           pages:
-          - /?tab=bus
-          notes:
-          - The dashboard route and trip view supports client-side weekday/weekend switching, vertical departure/arrival stop selection, direction reversal, toggling display of already-departed trips, and displays all applicable routes in a large table grouped by route.
+            - /?tab=bus
         rest:
-          status: stable
           routes:
-          - path: /api/bus
-            method: GET
-            returns: "{ routes: BusRoute[], preferences: BusPreferences? }"
-            auth: anon
-          - path: /api/bus/preferences
-            method: POST
-            returns: "{ preferences: BusPreferences }"
-            auth: user
+            - path: /api/bus
+              returns: "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }"
+            - path: /api/bus/preferences
+              method: POST
+              returns: "{ preference: BusPreferences }"
+              auth: user
+            - path: /api/bus/preferences
+              returns: "{ preference: BusPreferences }"
+              auth: user
         mcp:
-          status: stable
           tools:
-          - name: query_bus_timetable
-            auth: anon
-            returns: "{ routes: BusRoute[], preferences: BusPreferences? }"
-            rest_equivalent: GET /api/bus
-          - name: list_bus_routes
-            auth: anon
-            returns: "BusRoute[]"
-            rest_equivalent: GET /api/bus
-          - name: get_bus_route_timetable
-            auth: anon
-            returns: "BusRoute"
-            rest_equivalent: GET /api/bus
+            - name: query_bus_timetable
+              returns: "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }"
+              rest_equivalent: GET /api/bus
+            - name: list_bus_routes
+              returns: "{ routes: BusRoute[], campuses: BusCampus[] }"
+              rest_equivalent: GET /api/bus
+            - name: get_bus_route_timetable
+              returns: "{ route: BusRoute, weekday, weekend, alternateRoutes }"
+              rest_equivalent: GET /api/bus
+        display:
+          fields:
+            - route.descriptionPrimary
+            - next departure times
+            - campus stop columns
+            - route schedules
+            - day type control
+            - departure/arrival campus controls
+            - reverse direction control
+            - show-departed toggle
       bus-map:
         title: Bus Route Map
         auth: anon
         web:
-          status: stable
           pages:
-          - /bus-map
-          notes:
-          - Bus route map.
-        rest:
-          status: unavailable
-          notes:
-          - No standalone map REST entry currently exists.
-        mcp:
-          status: unavailable
-          notes:
-          - No map view capability is provided.
+            - /bus-map
+        rest: unavailable
+        mcp: unavailable
+        display:
+          fields:
+            - Bus routes (polylines on map)
+            - Bus stops/stations (markers)
+            - Active trips derived from timetable times
+            - Campus locations reference
+            - Interactive map controls
   dashboard-link:
     name: Dashboard Link
     access:
@@ -2063,52 +2720,40 @@ modules:
         title: Link Browse & Search
         auth: anon
         web:
-          status: stable
           pages:
-          - /?tab=links
-          - /?tab=overview
-          notes:
-          - The home page provides frequent links to internal and external campus systems; unsigned-in users can only browse.
-        rest:
-          status: unavailable
-          notes:
-          - No standalone 'search links' endpoint currently exists.
-        mcp:
-          status: unavailable
-          tools:
-          - name: search_dashboard_links
-            status: unavailable
-            auth: anon
+            - /?tab=links
+            - /?tab=overview
+        rest: unavailable
+        mcp: unavailable
+        display:
+          fields:
+            - link.title
+            - link.description
+            - link.icon
+            - link.slug visit action
+            - link.group
+            - link.isPinned (if authenticated)
+            - Search input/query
       link-pin-and-visit:
         title: Link Pin & Visit
         auth: user
-        web:
-          status: stable
-          notes:
-          - Signed-in users can pin, unpin, and record link visits.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/dashboard-links/pin
-            method: POST
-            returns: "{ success: Boolean, pinnedLinks: DashboardLink[] }"
-            auth: user
-          - path: /api/dashboard-links/visit
-            method: POST
-            returns: "{ success: Boolean }"
-            auth: user
-        mcp:
-          status: unavailable
-          tools:
-          - name: pin_dashboard_link
-            status: unavailable
-            auth: user
-          - name: unpin_dashboard_link
-            status: unavailable
-            auth: user
-          - name: record_dashboard_link_visit
-            status: unavailable
-            auth: user
+            - path: /api/dashboard-links/pin
+              method: POST
+              returns: "{ pinnedSlugs: String[], maxPinnedLinks: Int, error?: String }"
+            - path: /api/dashboard-links/visit
+              method: POST
+              returns: 303 redirect
+            - path: /api/dashboard-links/visit
+              returns: 303 redirect
+        mcp: unavailable
+        display:
+          fields:
+            - link.slug visit action
+            - Pin/unpin button
+            - Pinned indicator
   admin:
     name: Admin
     access:
@@ -2125,115 +2770,106 @@ modules:
         title: Admin Home
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin
-          notes:
-          - Entry aggregation page.
+            - /admin
+        display:
+          fields:
+            - Navigation to moderation queues
+            - User management
+            - OAuth client management
+            - Bus data management
       moderation:
         title: Moderation
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/moderation
-          notes:
-          - Hosts both comment and description governance simultaneously.
+            - /admin/moderation
         rest:
-          status: stable
           routes:
-          - path: /api/admin/comments
-            method: GET
-            returns: "Comment[]"
-            auth: admin
-          - path: /api/admin/comments/[id]
-            method: PATCH
-            returns: "Comment"
-            auth: admin
-          - path: /api/admin/descriptions
-            method: GET
-            returns: "Description[]"
-            auth: admin
-          - path: /api/admin/suspensions
-            method: GET
-            returns: "Suspension[]"
-            auth: admin
-          - path: /api/admin/suspensions/[id]
-            method: PATCH
-            returns: "Suspension"
-            auth: admin
-          - path: /api/admin/homeworks
-            method: GET
-            returns: "HomeworkItem[]"
-            auth: admin
-          - path: /api/admin/homeworks/[id]
-            method: DELETE
-            returns: "{ success: Boolean }"
-            auth: admin
-        mcp:
-          status: unavailable
-          notes:
-          - No standalone admin tools are currently provided.
+            - path: /api/admin/comments
+              returns: "{ comments: Comment[] }"
+            - path: /api/admin/comments/[id]
+              method: PATCH
+              returns: "{ comment: Comment }"
+            - path: /api/admin/descriptions
+              returns: "{ descriptions: Description[] }"
+            - path: /api/admin/suspensions
+              returns: "{ suspensions: Suspension[] }"
+            - path: /api/admin/suspensions/[id]
+              method: PATCH
+              returns: "{ suspension: Suspension }"
+            - path: /api/admin/homeworks
+              returns: "{ homeworks: HomeworkItem[] }"
+            - path: /api/admin/homeworks/[id]
+              method: DELETE
+              returns: "{ success: Boolean }"
+        mcp: unavailable
+        display:
+          fields:
+            - Comment moderation table
+            - Description moderation table
+            - content/descriptionPreview
+            - author / lastEditedBy
+            - postedIn target
+            - timestamp
+            - comment status
+            - detail dialog controls
       user-management:
         title: User Management
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/users
+            - /admin/users
         rest:
-          status: stable
           routes:
-          - path: /api/admin/users
-            method: GET
-            returns: "User[]"
-            auth: admin
-          - path: /api/admin/users/[id]
-            method: PATCH
-            returns: "User"
-            auth: admin
-        mcp:
-          status: unavailable
-          notes:
-          - No standalone admin tools are currently provided.
+            - path: /api/admin/users
+              returns: "{ data: User[], pagination }"
+            - path: /api/admin/users/[id]
+              method: PATCH
+              returns: "{ user: User }"
+        mcp: unavailable
+        display:
+          fields:
+            - user.email
+            - user.name
+            - user.username
+            - user.createdAt
+            - Is admin checkbox
+            - "Actions: edit profile/admin state, suspend/unsuspend"
       oauth-client-management:
         title: OAuth Client Management
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/oauth
-          notes:
-          - "The admin home should first explain client modes: first-party / internal applications prefer creating confidential clients; CLI, native apps, and MCP tools prefer creating public PKCE clients."
-          - The page should separate 'how to select client type' from 'existing client overview', prioritizing reduction of the admin's cognitive load.
-        rest:
-          status: unavailable
-          notes:
-          - No standalone REST admin interface currently exists.
-          - Backend creation and deletion are handled through server actions.
-        mcp:
-          status: unavailable
-          notes:
-          - No standalone admin tools are currently provided.
+            - /admin/oauth
+        rest: unavailable
+        mcp: unavailable
+        display:
+          fields:
+            - client.name
+            - client.clientId
+            - client.redirectUris[]
+            - client.scopes[]
+            - client.tokenEndpointAuthMethod
+            - client.isTrusted
+            - "Action: delete"
       bus-management:
         title: Bus Management
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/bus
-          notes:
-          - When manually importing static bus data in the admin backend, data should be read directly from https://static.life-ustc.tiankaima.dev; local clone, paths outside the working directory, or git commands must not be used.
-          - Deleting an inactive timetable version must use the in-app destructive confirm dialog; browser-native confirm dialogs must not be used.
-        rest:
-          status: unavailable
-          notes:
-          - No standalone admin REST management interface currently exists.
-          - Version import, activation, and deletion are handled through server actions.
-        mcp:
-          status: unavailable
-          notes:
-          - No standalone admin tools are currently provided.
+            - /admin/bus
+        rest: unavailable
+        mcp: unavailable
+        display:
+          fields:
+            - Bus schedule version title
+            - version key
+            - tripCount
+            - importedAt
+            - effective range
+            - enabled status
+            - "Actions: import, activate, delete"
   oauth:
     name: OAuth
     access:
@@ -2262,84 +2898,73 @@ modules:
         title: Authorization
         auth: anon
         web:
-          status: stable
           pages:
-          - /oauth/authorize
-          notes:
-          - Displays client name and requested scopes.
-        rest:
-          status: stable
-          notes:
-          - The authorization protocol is handled by authentication routes.
+            - /oauth/authorize
+        rest: stable
+        display:
+          fields:
+            - client.name (which app is requesting)
+            - Requested scopes[] (human-readable)
+            - Approve/Deny buttons
       client-registration:
         title: Client Registration & Discovery
         auth: admin
         web:
-          status: stable
           pages:
-          - /admin/oauth
-          notes:
-          - The admin backend displays OAuth client management capabilities.
+            - /admin/oauth
         rest:
-          status: stable
           routes:
-          - path: /api/auth/.well-known/openid-configuration
-            method: GET
-            returns: "OIDCDiscoveryDocument"
-            auth: anon
-          - path: /api/auth/oauth2/register
-            method: POST
-            returns: "OAuthClientRegistration"
-            auth: anon
-          - path: /.well-known/oauth-authorization-server/api/auth
-            method: GET
-            returns: "OAuthAuthorizationServerMetadata"
-            auth: anon
-          - path: /.well-known/openid-configuration/api/auth
-            method: GET
-            returns: "OIDCDiscoveryDocument"
-            auth: anon
-          - path: /.well-known/oauth-protected-resource/api/mcp
-            method: GET
-            returns: "OAuthProtectedResourceMetadata"
-            auth: anon
-        mcp:
-          status: unavailable
-          notes:
-          - No OAuth management capability is provided.
+            - path: /api/auth/.well-known/openid-configuration
+              returns: OIDCDiscoveryDocument
+              auth: anon
+            - path: /api/auth/{nextauth}
+              method: POST
+              returns: Better Auth OAuth provider response
+              auth: anon
+            - path: /.well-known/oauth-authorization-server/api/auth
+              returns: OAuthAuthorizationServerMetadata
+              auth: anon
+            - path: /.well-known/openid-configuration/api/auth
+              returns: OIDCDiscoveryDocument
+              auth: anon
+            - path: /.well-known/oauth-protected-resource/api/mcp
+              returns: OAuthProtectedResourceMetadata
+              auth: anon
+        mcp: unavailable
+        display:
+          fields:
+            - client.name (text input)
+            - client.redirectUris[] (multi-input)
+            - client.scopes[] (checkboxes)
+            - tokenEndpointAuthMethod (radio)
+            - Register button
       device-authorization-grant:
         title: Device Authorization Grant (RFC 8628)
         auth: anon
         web:
-          status: stable
           pages:
-          - /oauth/device
-          notes:
-          - Users enter the device code (user_code) on this page; upon confirmation, they approve or reject the device sign-in request.
-          - When unsigned-in users access this page, they are first directed to the sign-in page and automatically return to the device verification page after signing in.
-          - Supports pre-filling the device code via the code query parameter in verification_uri_complete.
+            - /oauth/device
         rest:
-          status: stable
           routes:
-          - path: /api/auth/oauth2/device-authorization
-            method: POST
-            returns: "{ device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval }"
-            auth: anon
-            notes:
-            - Request body is application/x-www-form-urlencoded.
-            - "Supports CORS (Access-Control-Allow-Origin: *)."
-            - .well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported.
-          - path: /api/auth/oauth2/token
-            method: POST
-            returns: "{ access_token, token_type, expires_in, refresh_token? } | { error }"
-            auth: anon
-            notes:
-            - The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.
-            - During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on state.
-        mcp:
-          status: unavailable
-          notes:
-          - Not applicable; the device authorization flow completes before MCP establishes a connection.
+            - path: /api/auth/oauth2/device-authorization
+              method: POST
+              returns: "{ device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval }"
+              notes:
+                - Request body is application/x-www-form-urlencoded.
+                - "Supports CORS (Access-Control-Allow-Origin: *)."
+                - .well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported.
+            - path: /api/auth/oauth2/token
+              method: POST
+              returns: "{ access_token, token_type, expires_in, refresh_token?, scope? } | { error }"
+              notes:
+                - The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.
+                - During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on state.
+        mcp: unavailable
+        display:
+          fields:
+            - User code entry form
+            - Approval/result screens
+            - device_auth status (pending/approved/denied)
   webhook-login:
     name: Webhook Login
     access:
@@ -2355,20 +2980,20 @@ modules:
       webhook-login:
         title: Webhook Login
         auth: admin
-        web:
-          status: unavailable
-          notes:
-          - Not applicable; no corresponding web entry.
+        web: unavailable
         rest:
-          status: stable
           routes:
-          - path: /api/auth/webhook/login
-            method: POST
-            returns: "{ ok: Boolean, userId: String, email: String, sessionToken: String, expires: DateTime }"
-            auth: admin
-            notes:
-            - Request body is JSON.
-            - Also sets the better-auth.session_token cookie.
+            - path: /api/auth/{nextauth}
+              method: POST
+              returns: "{ ok, userId, email, sessionToken, expires } | { error }"
+              notes:
+                - Request body is JSON.
+                - Also sets the better-auth.session_token cookie.
+        display:
+          fields:
+            - Webhook URL handled through Better Auth catch-all
+            - User info payload
+            - Session creation JSON response
   openapi:
     name: REST / OpenAPI
     access:
@@ -2386,55 +3011,56 @@ modules:
         title: API Docs Page
         auth: anon
         web:
-          status: stable
           pages:
-          - /api-docs
-          notes:
-          - Swagger documentation entry.
+            - /api-docs
+        display:
+          fields:
+            - REST endpoints generated by annotations
+            - Endpoint path, method, parameters
+            - Request/response schemas where annotated
+            - Try-it-out interface
       openapi-spec:
         title: OpenAPI Spec
         auth: anon
-        web:
-          status: stable
-          notes:
-          - The /api-docs page consumes this document.
+        web: stable
         rest:
-          status: stable
           routes:
-          - path: /api/openapi
-            method: GET
-            returns: "OpenAPI 3.x JSON"
-            auth: anon
+            - path: /api/openapi
+              returns: OpenAPI 3.x JSON
+        display:
+          fields:
+            - OpenAPI 3.x JSON
+            - Annotated routes with schemas
+            - Some protocol routes without detailed schemas
       business-rest-routes:
         title: Business REST Routes
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Page behavior is implemented through corresponding /api/* route calls.
-        rest:
-          status: stable
-          notes:
-          - Domain-specific REST endpoints under /api/*.
-          - Current user-side protected endpoints support both in-site session from the request cookie and OAuth bearer tokens.
+        web: stable
+        rest: stable
+        display:
+          fields:
+            - REST routes for business logic
+            - Each with path, method, request/response types where annotated
       platform-utility-routes:
         title: Platform Utility Routes
         auth: anon
         rest:
-          status: stable
           routes:
-          - path: /api/metadata
-            method: GET
-            returns: "{ educationLevels, courseCategories, campuses, ... }"
-            auth: anon
-            notes:
-            - Returns filter dictionaries (education level, course category, campus, etc.).
-          - path: /api/locale
-            method: POST
-            returns: "{ success: Boolean }"
-            auth: anon
-            notes:
-            - Sets the user language preference cookie.
+            - path: /api/metadata
+              returns: "{ educationLevels, courseCategories, campuses, ... }"
+              notes:
+                - Returns filter dictionaries (education level, course category, campus, etc.).
+            - path: /api/locale
+              method: POST
+              returns: "{ success: Boolean }"
+              notes:
+                - Sets the user language preference cookie.
+        display:
+          fields:
+            - Metadata endpoint
+            - Locale endpoint
+            - OAuth/provider catch-all endpoints
+            - Webhook endpoint via Better Auth catch-all
   mcp:
     name: MCP
     access:
@@ -2451,78 +3077,90 @@ modules:
       protocol-endpoint:
         title: Protocol Endpoint
         auth: anon
-        web:
-          status: unavailable
-          notes:
-          - No standalone MCP Web UI currently exists; the documentation entry remains at /api-docs.
+        web: unavailable
         rest:
-          status: stable
           routes:
-          - path: /api/mcp
-            method: POST
-            returns: MCP JSON-RPC response
-            auth: anon
-            notes:
-            - All tool calls are handled through this endpoint.
+            - path: /api/mcp
+              method: POST
+              returns: MCP JSON-RPC response
+              notes:
+                - All tool calls are handled through this endpoint.
+            - path: /api/mcp
+              returns: MCP transport response
+            - path: /api/mcp
+              method: DELETE
+              returns: MCP transport response
+        display:
+          fields:
+            - MCP protocol server endpoint
+            - GET/POST/DELETE transport methods
+            - Returns JSON-RPC or transport responses
       tool-groups:
         title: Tool Groups
         auth: anon
         mcp:
-          status: stable
           groups:
-          - name: Profile & Todo
-            tools:
-            - get_my_profile
-            - list_my_todos
-            - create_my_todo
-            - update_my_todo
-            - delete_my_todo
-          - name: Course & Section
-            tools:
-            - search_courses
-            - get_course_by_jw_id
-            - search_sections
-            - get_section_by_jw_id
-            - search_teachers
-            - get_teacher_by_id
-          - name: Calendar & Timeline
-            tools:
-            - list_my_calendar_events
-            - get_my_7days_timeline
-            - get_my_calendar_subscription
-          - name: Homework & Exam
-            tools:
-            - list_my_homeworks
-            - set_my_homework_completion
-            - unset_my_homework_completion
-            - list_my_exams
-            - list_homeworks_by_section
-            - create_homework_on_section
-            - update_homework_on_section
-            - list_exams_by_section
-          - name: Schedule & Subscription
-            tools:
-            - list_my_schedules
-            - list_schedules_by_section
-            - query_schedules
-            - match_section_codes
-            - subscribe_my_sections_by_codes
-            - subscribe_section_by_jw_id
-            - unsubscribe_section_by_jw_id
-            - list_my_subscribed_sections
-            - get_section_calendar_subscription
-          - name: Semester & Metadata
-            tools:
-            - list_semesters
-            - get_current_semester
-          - name: Bus
-            tools:
-            - query_bus_timetable
-            - list_bus_routes
-            - get_bus_route_timetable
-          - name: Overview
-            tools:
-            - get_my_overview
+            - name: Profile & Todo
+              tools:
+                - get_my_profile
+                - list_my_todos
+                - create_my_todo
+                - update_my_todo
+                - delete_my_todo
+            - name: Course & Section
+              tools:
+                - search_courses
+                - get_course_by_jw_id
+                - search_sections
+                - get_section_by_jw_id
+                - search_teachers
+                - get_teacher_by_id
+            - name: Calendar & Timeline
+              tools:
+                - list_my_calendar_events
+                - get_my_7days_timeline
+                - get_my_calendar_subscription
+            - name: Homework & Exam
+              tools:
+                - list_my_homeworks
+                - set_my_homework_completion
+                - unset_my_homework_completion
+                - list_my_exams
+                - list_homeworks_by_section
+                - create_homework_on_section
+                - update_homework_on_section
+                - list_exams_by_section
+            - name: Schedule & Subscription
+              tools:
+                - list_my_schedules
+                - list_schedules_by_section
+                - query_schedules
+                - match_section_codes
+                - subscribe_my_sections_by_codes
+                - subscribe_section_by_jw_id
+                - unsubscribe_section_by_jw_id
+                - list_my_subscribed_sections
+                - get_section_calendar_subscription
+            - name: Semester & Metadata
+              tools:
+                - list_semesters
+                - get_current_semester
+            - name: Bus
+              tools:
+                - query_bus_timetable
+                - list_bus_routes
+                - get_bus_route_timetable
+            - name: Overview
+              tools:
+                - get_my_overview
+        display:
+          fields:
+            - Schedule tools
+            - Homework tools
+            - Section tools
+            - Tool name
+            - Tool description
+            - Input schema
   security:
     name: Content / Security
     access:
@@ -2537,158 +3175,146 @@ modules:
       anonymous-comment-visibility:
         title: Anonymous Comment Visibility
         auth: anon
-        web:
-          status: stable
-          notes:
-          - Anonymous to regular users; traceable on the governance side.
-        rest:
-          status: stable
-          notes:
-          - Implemented jointly through comment and admin endpoints.
-        mcp:
-          status: unavailable
-          notes:
-          - No comment tools are currently provided.
+        web: stable
+        rest: stable
+        mcp: unavailable
+        display:
+          fields:
+            - comment.visibility (public/logged_in_only)
+            - comment.isAnonymous
+            - Anonymous author badge / hidden identity UI
       upload-download-access:
         title: Upload / Download Access Control
         auth: user
-        web:
-          status: stable
-          notes:
-          - Both comment attachment upload and download require permission validation.
-        rest:
-          status: stable
-          notes:
-          - Permissions are validated through the upload and download endpoints.
-        mcp:
-          status: unavailable
-          notes:
-          - No upload tools are currently provided.
+        web: stable
+        rest: stable
+        mcp: unavailable
+        display:
+          fields:
+            - Both upload and download require permission checks
+            - Security boundary not at upload entry point only
       destructive-action-confirmation:
         title: Destructive Action Confirmation
         auth: user
-        web:
-          status: stable
-          notes:
-          - "Operations requiring confirmation include at minimum: disconnecting an OAuth account, batch section subscription, account deletion, deleting a comment, deleting homework, and unsubscribing in the subscribed sections list."
-          - "Lightweight operations that typically do not require confirmation include: single subscribe/unsubscribe on the section detail page, homework completion state toggle, todo completion state toggle, comment reactions, and pinning/unpinning links."
-        rest:
-          status: stable
-          notes:
-          - Must maintain the same permission boundaries and error feedback as the web.
-        mcp:
-          status: stable
-          notes:
-          - Must maintain the same permission boundaries as web/API.
+        web: stable
+        rest: unavailable
+        mcp: unavailable
+        display:
+          fields:
+            - Account deletion confirmation word DELETE
+            - Comment/upload delete confirm dialog
+            - Warning text
+            - Confirm button
+            - Cancel button
 cases:
   semester:
     affects:
-    - module: overview
-      capability: authenticated-overview
-    - module: subscription
-      capability: batch-subscribe-by-codes
-    - module: subscribed-sections
-      capability: subscribed-sections-tab
+      - module: overview
+        capability: authenticated-overview
+      - module: subscription
+        capability: batch-subscribe-by-codes
+      - module: subscribed-sections
+        capability: subscribed-sections-tab
     rules:
       no-current-semester:
-      - The home page should display a recoverable empty state.
-      - Users should be guided to browse or import sections.
+        - The home page should display a recoverable empty state.
+        - Users should be guided to browse or import sections.
       only-non-current-semester-subscriptions:
-      - The home page must not pretend to have current learning tasks.
-      - Must clearly indicate that no sections are subscribed for the current semester.
+        - The home page must not pretend to have current learning tasks.
+        - Must clearly indicate that no sections are subscribed for the current semester.
       cross-semester-browsing:
-      - Courses must display semester.
-      - Sections must display semester.
-      - Homework must display semester.
-      - Exams must display semester.
+        - Courses must display semester.
+        - Sections must display semester.
+        - Homework must display semester.
+        - Exams must display semester.
     decisions:
-    - When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering a misleading empty list.
-    - When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal.
+      - When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering a misleading empty list.
+      - When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal.
   disambiguation:
     affects:
-    - module: course
-      capability: course-list
-    - module: section
-      capability: section-list
-    - module: subscription
-      capability: batch-subscribe-by-codes
+      - module: course
+        capability: course-list
+      - module: section
+        capability: section-list
+      - module: subscription
+        capability: batch-subscribe-by-codes
     rules:
       duplicate-course-names:
-      - Course code or other disambiguation information should be displayed.
+        - Course code or other disambiguation information should be displayed.
       multiple-sections-same-course:
-      - Section code and semester should be displayed.
+        - Section code and semester should be displayed.
       required-disambiguation-contexts:
-      - Section search.
-      - Child sections in course detail.
-      - Batch import results.
+        - Section search.
+        - Child sections in course detail.
+        - Batch import results.
     decisions:
-    - Whenever there is a risk of ambiguity, list views must prioritize displaying fields that help make a selection.
-    - Courses with the same name and multiple sections under the same course must not display only the course name.
-    - In cross-semester or multi-section scenarios, semester and section code are mandatory information to retain.
+      - Whenever there is a risk of ambiguity, list views must prioritize displaying fields that help make a selection.
+      - Courses with the same name and multiple sections under the same course must not display only the course name.
+      - In cross-semester or multi-section scenarios, semester and section code are mandatory information to retain.
   missing-data:
     affects:
-    - module: schedule
-      capability: section-schedule
-    - module: exam
-      capability: section-exam-info
-    - module: homework
-      capability: section-homework-tab
-    - module: ical
+      - module: schedule
+        capability: section-schedule
+      - module: exam
+        capability: section-exam-info
+      - module: homework
+        capability: section-homework-tab
+      - module: ical
     rules:
       section-missing-teacher-location-or-exam:
-      - A default empty state should be displayed.
-      - The entire object must not be hidden.
+        - A default empty state should be displayed.
+        - The entire object must not be hidden.
       homework-no-due-date:
-      - Does not enter the 'upcoming due' sort.
-      - Can still be viewed in the homework list.
+        - Does not enter the 'upcoming due' sort.
+        - Can still be viewed in the homework list.
       ical-no-events:
-      - A valid but empty or informational calendar content should be returned.
+        - A valid but empty or informational calendar content should be returned.
     decisions:
-    - When fields are missing, prefer showing a default empty state rather than hiding the entire object.
-    - Homework with no due date retains visibility but does not mix into upcoming due date sorting.
-    - When iCal has no events, a valid result should still be returned to prevent clients from failing on 'empty'.
+      - When fields are missing, prefer showing a default empty state rather than hiding the entire object.
+      - Homework with no due date retains visibility but does not mix into upcoming due date sorting.
+      - When iCal has no events, a valid result should still be returned to prevent clients from failing on 'empty'.
   account:
     affects:
-    - module: user
-      capability: settings
-    - module: user
-      capability: public-profile
+      - module: user
+        capability: settings
+      - module: user
+        capability: public-profile
     rules:
       username-change:
-      - The new profile page should be accessible.
-      - The old username must not continue to represent the user.
+        - The new profile page should be accessible.
+        - The old username must not continue to represent the user.
       oauth-connection-error:
-      - Duplicate OAuth connection should give a clear error response.
-      - Disconnecting the last account should give a clear error response.
+        - Duplicate OAuth connection should give a clear error response.
+        - Disconnecting the last account should give a clear error response.
       account-deletion:
-      - The user must be required to enter a confirmation word.
-      - After successful deletion, the current session should be terminated and the settings page exited.
+        - The user must be required to enter a confirmation word.
+        - After successful deletion, the current session should be terminated and the settings page exited.
     decisions:
-    - After a username change, the new address should immediately become the canonical entry.
-    - The old username must not continue to represent the user for an extended period to avoid identity confusion.
-    - Disconnecting the last sign-in account is an error operation that must be blocked, not an ordinary failure-retry scenario.
-    - Account deletion carries higher risk than ordinary destructive operations; the current implementation requires entering the fixed confirmation word DELETE.
+      - After a username change, the new address should immediately become the canonical entry.
+      - The old username must not continue to represent the user for an extended period to avoid identity confusion.
+      - Disconnecting the last sign-in account is an error operation that must be blocked, not an ordinary failure-retry scenario.
+      - Account deletion carries higher risk than ordinary destructive operations; the current implementation requires entering the fixed confirmation word DELETE.
   content-security:
     affects:
-    - module: comment
-      capability: object-comment-section
-    - module: upload
-      capability: comment-attachment-download
-    - module: security
-      capability: destructive-action-confirmation
+      - module: comment
+        capability: object-comment-section
+      - module: upload
+        capability: comment-attachment-download
+      - module: security
+        capability: destructive-action-confirmation
     rules:
       suspended-user:
-      - Cannot post new comments.
+        - Cannot post new comments.
       upload-attachment-download:
-      - Access permissions must be validated.
+        - Access permissions must be validated.
       destructive-actions:
-      - Deletion must have explicit feedback.
-      - Suspension must have explicit feedback.
-      - Hiding must have explicit feedback.
+        - Deletion must have explicit feedback.
+        - Suspension must have explicit feedback.
+        - Hiding must have explicit feedback.
     decisions:
-    - Suspended users cannot post new comments; this restriction must hold at both the product layer and the permission layer.
-    - Upload attachment download must re-validate access permissions; it must not assume that having the link is sufficient to download.
-    - High-risk operations use explicit feedback mechanisms.
+      - Suspended users cannot post new comments; this restriction must hold at both the product layer and the permission layer.
+      - Upload attachment download must re-validate access permissions; it must not assume that having the link is sufficient to download.
+      - High-risk operations use explicit feedback mechanisms.
 audit:
   fields:
     id:

@@ -117,8 +117,7 @@ async function resolveRealSections(count: number) {
 
 async function setupBenchmarkUser(sectionIds: number[]) {
   const email =
-    process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() ||
-    "dev-user@debug.local";
+    process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() || "dev-user@debug.local";
   const password =
     process.env.DEV_DEBUG_PASSWORD?.trim() || "dev-debug-password";
 
@@ -183,9 +182,9 @@ async function setupBenchmarkUser(sectionIds: number[]) {
 
 async function getSessionCookie(): Promise<string> {
   const email =
-    process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() ||
-    "dev-user@debug.local";
-  const password = process.env.DEV_DEBUG_PASSWORD?.trim() || "dev-debug-password";
+    process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() || "dev-user@debug.local";
+  const password =
+    process.env.DEV_DEBUG_PASSWORD?.trim() || "dev-debug-password";
 
   const res = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
     method: "POST",
@@ -255,7 +254,8 @@ function stats(samples: Sample[]) {
   if (ms.length === 0) {
     return { ok: 0, total: samples.length, min: 0, p50: 0, p95: 0, max: 0 };
   }
-  const p = (pct: number) => ms[Math.min(Math.floor(ms.length * pct), ms.length - 1)];
+  const p = (pct: number) =>
+    ms[Math.min(Math.floor(ms.length * pct), ms.length - 1)];
   return {
     ok: ok.length,
     total: samples.length,
@@ -301,7 +301,12 @@ const ROUTES: RouteSpec[] = [
     path: (ctx) => `/sections/${ctx.sectionJwId}`,
     auth: false,
   },
-  { group: "page/public", label: "courses list", path: "/courses", auth: false },
+  {
+    group: "page/public",
+    label: "courses list",
+    path: "/courses",
+    auth: false,
+  },
   {
     group: "page/public",
     label: "teachers list",
@@ -446,8 +451,7 @@ const ROUTES: RouteSpec[] = [
   {
     group: "api/auth",
     label: "GET /api/homeworks (subscribed sections)",
-    path: (ctx) =>
-      `/api/homeworks?sectionIds=${ctx.sectionId}`,
+    path: (ctx) => `/api/homeworks?sectionIds=${ctx.sectionId}`,
     auth: true,
   },
   {
@@ -499,7 +503,9 @@ async function main() {
   // 2. Setup DB
   const realSections = await resolveRealSections(SUBSCRIPTION_COUNT);
   if (realSections.length === 0) {
-    console.error("[route-perf] No real sections found. Run load:static first.");
+    console.error(
+      "[route-perf] No real sections found. Run load:static first.",
+    );
     process.exitCode = 1;
     return;
   }
@@ -579,9 +585,7 @@ async function main() {
     const url = `${BASE_URL}${path}`;
     const sessionCookie = route.auth ? cookie : undefined;
 
-    process.stdout.write(
-      `  [${route.group}] ${route.label.padEnd(52)} `,
-    );
+    process.stdout.write(`  [${route.group}] ${route.label.padEnd(52)} `);
 
     const { samples } = await measureRoute(url, sessionCookie);
     const s = stats(samples);
@@ -617,7 +621,7 @@ async function main() {
       lastGroupPrint = r.group;
     }
     console.log(
-      `${r.label.padEnd(52)} ${r.group.padEnd(16)} ${ r.auth ? " ✓  " : "    "}` +
+      `${r.label.padEnd(52)} ${r.group.padEnd(16)} ${r.auth ? " ✓  " : "    "}` +
         ` ${String(r.p50).padStart(7)} ${String(r.p95).padStart(7)} ${String(r.max).padStart(7)} ${r.ok}/${r.total}`,
     );
   }

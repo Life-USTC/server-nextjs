@@ -4,20 +4,31 @@
   "title": "Life@USTC Features",
   "type": "object",
   "additionalProperties": false,
-  "required": ["meta", "product", "models", "ui", "modules", "cases", "audit"],
+  "required": [
+    "meta",
+    "product",
+    "models",
+    "enums",
+    "ui",
+    "modules",
+    "cases",
+    "audit"
+  ],
   "properties": {
     "meta": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "language", "file", "query"],
+      "required": ["name", "version", "language", "file", "query", "queries"],
       "properties": {
         "name": {
+          "$ref": "#/$defs/shortText"
+        },
+        "version": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         },
         "language": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/shortText"
         },
         "file": {
           "type": "string",
@@ -29,12 +40,16 @@
         },
         "queries": {
           "type": "object",
+          "minProperties": 1,
+          "maxProperties": 32,
           "propertyNames": {
             "pattern": "^[a-z][a-z0-9_]*$"
           },
           "additionalProperties": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 700,
+            "pattern": "^yq .+ docs/features\\.yml$"
           }
         }
       }
@@ -42,13 +57,23 @@
     "product": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["priority", "surfaces", "roles", "terms", "workflow"],
+      "required": [
+        "priority",
+        "surfaces",
+        "roles",
+        "terms",
+        "workflow",
+        "display_conventions"
+      ],
       "properties": {
         "priority": {
-          "$ref": "#/$defs/stringList"
+          "$ref": "#/$defs/compactStringList"
         },
         "surfaces": {
           "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "uniqueItems": true,
           "items": {
             "type": "string",
             "enum": ["web", "rest", "mcp"]
@@ -60,62 +85,85 @@
           "required": ["anon", "user", "admin", "agent"],
           "properties": {
             "anon": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/roleDefinition"
             },
             "user": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/roleDefinition"
             },
             "admin": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/roleDefinition"
             },
             "agent": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/roleDefinition"
             }
           }
         },
         "terms": {
           "type": "object",
+          "minProperties": 1,
+          "maxProperties": 24,
           "propertyNames": {
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 48
           },
           "additionalProperties": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "#/$defs/text"
           }
         },
         "workflow": {
-          "$ref": "#/$defs/stringList"
+          "$ref": "#/$defs/compactStringList"
+        },
+        "display_conventions": {
+          "$ref": "#/$defs/ruleMap"
         }
       }
     },
     "models": {
       "type": "object",
+      "minProperties": 1,
       "propertyNames": {
-        "minLength": 1
+        "pattern": "^[A-Z][A-Za-z0-9]*$"
       },
       "additionalProperties": {
-        "$ref": "#/$defs/model"
+        "$ref": "#/$defs/prismaModel"
+      }
+    },
+    "enums": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Z][A-Za-z0-9]*$"
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 64,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]*$",
+          "maxLength": 64
+        }
       }
     },
     "ui": {
       "type": "object",
+      "minProperties": 1,
+      "maxProperties": 24,
       "propertyNames": {
-        "minLength": 1
+        "minLength": 1,
+        "maxLength": 64
       },
       "additionalProperties": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "maxLength": 700
       }
     },
     "modules": {
       "type": "object",
+      "minProperties": 1,
       "propertyNames": {
-        "type": "string",
-        "pattern": "^[a-z0-9-]+$"
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
       },
       "additionalProperties": {
         "$ref": "#/$defs/module"
@@ -124,7 +172,6 @@
     "cases": {
       "type": "object",
       "propertyNames": {
-        "type": "string",
         "pattern": "^[a-z0-9][a-z0-9-]*$"
       },
       "additionalProperties": {
@@ -136,33 +183,112 @@
     }
   },
   "$defs": {
-    "stringList": {
-      "type": "array",
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+    "shortText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
     },
-    "stringMap": {
-      "type": "object",
-      "propertyNames": {
-        "type": "string",
-        "pattern": "^[a-z0-9][a-z0-9-]*$"
-      },
-      "additionalProperties": {
-        "$ref": "#/$defs/stringList"
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 520
+    },
+    "compactStringList": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 60,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/text"
       }
     },
     "ruleMap": {
       "type": "object",
+      "minProperties": 1,
+      "maxProperties": 24,
       "propertyNames": {
-        "type": "string",
         "pattern": "^[a-z0-9][a-z0-9-]*$"
       },
       "additionalProperties": {
-        "type": "string",
-        "minLength": 1
+        "$ref": "#/$defs/text"
       }
+    },
+    "permission": {
+      "type": "string",
+      "enum": ["read", "write", "update", "delete", "moderate", "manage"]
+    },
+    "roleDefinition": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "base_permissions"],
+          "properties": {
+            "description": {
+              "$ref": "#/$defs/text"
+            },
+            "base_permissions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/permission"
+              }
+            },
+            "scope": {
+              "$ref": "#/$defs/text"
+            },
+            "inherits": {
+              "$ref": "#/$defs/shortText"
+            },
+            "notes": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        }
+      ]
+    },
+    "accessEntry": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/permission"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["permissions"],
+          "properties": {
+            "permissions": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 6,
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/$defs/permission"
+              }
+            },
+            "scope": {
+              "$ref": "#/$defs/text"
+            },
+            "notes": {
+              "$ref": "#/$defs/text"
+            }
+          }
+        }
+      ]
     },
     "authLevel": {
       "type": "string",
@@ -172,6 +298,37 @@
       "type": "string",
       "enum": ["stable", "planned", "unavailable"]
     },
+    "prismaModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fields"],
+      "properties": {
+        "fields": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 220
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 180,
+            "pattern": "^@@(id|unique|index)\\("
+          }
+        }
+      }
+    },
     "routeEntry": {
       "type": "object",
       "additionalProperties": false,
@@ -179,21 +336,37 @@
       "properties": {
         "path": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^/",
+          "maxLength": 160
         },
         "method": {
           "type": "string",
-          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"]
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+          "default": "GET"
+        },
+        "description": {
+          "$ref": "#/$defs/text"
         },
         "returns": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 180
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
         },
         "auth": {
           "$ref": "#/$defs/authLevel"
         },
         "notes": {
-          "$ref": "#/$defs/stringList"
+          "$ref": "#/$defs/notes"
         }
       }
     },
@@ -204,7 +377,11 @@
       "properties": {
         "name": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 80
+        },
+        "description": {
+          "$ref": "#/$defs/text"
         },
         "status": {
           "$ref": "#/$defs/surfaceStatus"
@@ -214,31 +391,70 @@
         },
         "returns": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 220
         },
         "rest_equivalent": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^(GET|POST|PUT|PATCH|DELETE) /",
+          "maxLength": 180
         },
         "notes": {
-          "$ref": "#/$defs/stringList"
+          "$ref": "#/$defs/notes"
+        }
+      },
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unavailable"
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": ["returns"]
+            },
+            {
+              "required": ["rest_equivalent"]
+            }
+          ]
         }
       }
     },
-    "modelRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "role": {
-          "type": "string",
-          "enum": ["primary", "context"]
-        }
+    "notes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/text"
       }
+    },
+    "modelRef": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z0-9]*$"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Z][A-Za-z0-9]*$"
+            },
+            "role": {
+              "type": "string",
+              "enum": ["primary", "context"]
+            }
+          }
+        }
+      ]
     },
     "toolGroup": {
       "type": "object",
@@ -246,45 +462,18 @@
       "required": ["name", "tools"],
       "properties": {
         "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "tools": {
-          "$ref": "#/$defs/stringList"
-        }
-      }
-    },
-    "surface": {
-      "type": "object",
-      "additionalProperties": false,
-      "minProperties": 1,
-      "properties": {
-        "status": {
-          "$ref": "#/$defs/surfaceStatus"
-        },
-        "pages": {
-          "$ref": "#/$defs/stringList"
-        },
-        "routes": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/routeEntry"
-          }
+          "$ref": "#/$defs/shortText"
         },
         "tools": {
           "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "uniqueItems": true,
           "items": {
-            "$ref": "#/$defs/toolEntry"
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "maxLength": 80
           }
-        },
-        "groups": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/toolGroup"
-          }
-        },
-        "notes": {
-          "$ref": "#/$defs/stringList"
         }
       }
     },
@@ -295,23 +484,137 @@
       "properties": {
         "models": {
           "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/modelRef"
           }
         },
         "ui": {
-          "$ref": "#/$defs/stringList"
+          "$ref": "#/$defs/compactStringList"
         }
       }
     },
-    "capability": {
+    "display": {
       "type": "object",
       "additionalProperties": false,
       "minProperties": 1,
       "properties": {
+        "fields": {
+          "$ref": "#/$defs/compactStringList"
+        },
+        "filters": {
+          "$ref": "#/$defs/compactStringList"
+        }
+      }
+    },
+    "webSurface": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pages"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["stable", "planned"]
+            },
+            "pages": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^/",
+                "maxLength": 160
+              }
+            }
+          }
+        }
+      ]
+    },
+    "restSurface": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["routes"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["stable", "planned"]
+            },
+            "routes": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "$ref": "#/$defs/routeEntry"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mcpSurface": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/surfaceStatus"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "anyOf": [
+            {
+              "required": ["tools"]
+            },
+            {
+              "required": ["groups"]
+            }
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["stable", "planned"]
+            },
+            "tools": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "$ref": "#/$defs/toolEntry"
+              }
+            },
+            "groups": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 16,
+              "items": {
+                "$ref": "#/$defs/toolGroup"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "auth"],
+      "properties": {
         "title": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/shortText"
+        },
+        "description": {
+          "$ref": "#/$defs/text"
         },
         "auth": {
           "$ref": "#/$defs/authLevel"
@@ -319,40 +622,20 @@
         "links": {
           "$ref": "#/$defs/links"
         },
+        "display": {
+          "$ref": "#/$defs/display"
+        },
         "rules": {
           "$ref": "#/$defs/ruleMap"
         },
         "web": {
-          "$ref": "#/$defs/surface"
+          "$ref": "#/$defs/webSurface"
         },
         "rest": {
-          "$ref": "#/$defs/surface"
+          "$ref": "#/$defs/restSurface"
         },
         "mcp": {
-          "$ref": "#/$defs/surface"
-        }
-      }
-    },
-    "model": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["fields"],
-      "properties": {
-        "notes": {
-          "$ref": "#/$defs/stringList"
-        },
-        "fields": {
-          "$ref": "#/$defs/stringMap"
-        },
-        "types": {
-          "type": "object",
-          "propertyNames": {
-            "minLength": 1
-          },
-          "additionalProperties": {
-            "type": "string",
-            "minLength": 1
-          }
+          "$ref": "#/$defs/mcpSurface"
         }
       }
     },
@@ -362,20 +645,16 @@
       "required": ["anon", "user", "admin", "agent"],
       "properties": {
         "anon": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/accessEntry"
         },
         "user": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/accessEntry"
         },
         "admin": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/accessEntry"
         },
         "agent": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/accessEntry"
         }
       }
     },
@@ -385,8 +664,7 @@
       "required": ["name", "access", "rules", "capabilities"],
       "properties": {
         "name": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/shortText"
         },
         "access": {
           "$ref": "#/$defs/moduleAccess"
@@ -396,8 +674,8 @@
         },
         "capabilities": {
           "type": "object",
+          "minProperties": 1,
           "propertyNames": {
-            "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]*$"
           },
           "additionalProperties": {
@@ -413,11 +691,11 @@
       "properties": {
         "module": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
         },
         "capability": {
           "type": "string",
-          "minLength": 1
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
         }
       }
     },
@@ -428,24 +706,39 @@
       "properties": {
         "affects": {
           "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
           "items": {
             "$ref": "#/$defs/caseAffects"
           }
         },
         "rules": {
           "type": "object",
+          "minProperties": 1,
+          "maxProperties": 16,
           "propertyNames": {
-            "type": "string",
             "pattern": "^[a-z0-9][a-z0-9-]*$"
           },
           "additionalProperties": {
-            "$ref": "#/$defs/stringList"
+            "$ref": "#/$defs/compactStringList"
           }
         },
         "decisions": {
-          "$ref": "#/$defs/stringList"
+          "$ref": "#/$defs/compactStringList"
         }
       }
+    },
+    "auditTrigger": {
+      "type": "string",
+      "oneOf": [
+        {
+          "pattern": "^(GET|POST|PUT|PATCH|DELETE) /"
+        },
+        {
+          "const": "Reserved"
+        }
+      ],
+      "maxLength": 180
     },
     "auditAction": {
       "type": "object",
@@ -453,12 +746,10 @@
       "required": ["trigger"],
       "properties": {
         "trigger": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/auditTrigger"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/text"
         }
       }
     },
@@ -469,11 +760,11 @@
       "properties": {
         "type": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 120
         },
         "note": {
-          "type": "string",
-          "minLength": 1
+          "$ref": "#/$defs/text"
         }
       }
     },
@@ -484,8 +775,10 @@
       "properties": {
         "fields": {
           "type": "object",
+          "minProperties": 1,
+          "maxProperties": 32,
           "propertyNames": {
-            "minLength": 1
+            "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
           },
           "additionalProperties": {
             "$ref": "#/$defs/auditField"
@@ -493,8 +786,10 @@
         },
         "actions": {
           "type": "object",
+          "minProperties": 1,
+          "maxProperties": 32,
           "propertyNames": {
-            "minLength": 1
+            "pattern": "^[a-z][a-z0-9_]*$"
           },
           "additionalProperties": {
             "$ref": "#/$defs/auditAction"
@@ -502,7 +797,8 @@
         },
         "writer": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "maxLength": 320
         }
       }
     }
