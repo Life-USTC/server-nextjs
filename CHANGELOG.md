@@ -1,3 +1,15 @@
+# [1.27.0](https://github.com/Life-USTC/server-nextjs/compare/v1.26.0...v1.27.0) (2026-04-27)
+
+
+### Features
+
+* **tools:** add route-perf benchmark script ([be6ed84](https://github.com/Life-USTC/server-nextjs/commit/be6ed84fc6975b00c913cd7502fb925137596fb7))
+
+
+### Performance Improvements
+
+* **db:** eliminate sequential DB round-trips on section/calendar/dashboard routes ([a0a316e](https://github.com/Life-USTC/server-nextjs/commit/a0a316e31806d1b5c1ed5f966ef30ae637fb7903))
+
 # [1.26.0](https://github.com/Life-USTC/server-nextjs/compare/v1.25.12...v1.26.0) (2026-04-25)
 
 
