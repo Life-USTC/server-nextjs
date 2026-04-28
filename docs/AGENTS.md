@@ -8,6 +8,14 @@ schema: docs/features.schema.json
 query_tool: yq
 ```
 
+## Change order
+
+For capability, API, MCP, parameter, or output changes:
+
+1. Update `docs/features.yml` first.
+2. Implement the project change.
+3. Check `docs/features.yml`, `AGENTS.md`, and code/tests for consistency before finishing.
+
 ## Common queries
 
 ```bash

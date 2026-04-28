@@ -490,4 +490,131 @@ describe("compactMcpPayload", () => {
       expect(result).toEqual({ unknownField: "value", anotherField: 42 });
     });
   });
+
+  describe("bus timetables", () => {
+    it("preserves stopTimes for raw trip arrays", () => {
+      const input = {
+        trips: [
+          {
+            id: 1,
+            routeId: 10,
+            dayType: "weekday",
+            position: 2,
+            departureTime: "07:30",
+            arrivalTime: "08:10",
+            stopTimes: [
+              {
+                stopOrder: 0,
+                campusId: 1,
+                campusName: "East Campus",
+                time: "07:30",
+                minutesSinceMidnight: 450,
+                isPassThrough: false,
+              },
+              {
+                stopOrder: 1,
+                campusId: 4,
+                campusName: "West Campus",
+                time: "08:10",
+                minutesSinceMidnight: 490,
+                isPassThrough: false,
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = compactMcpPayload(input) as Record<string, unknown>;
+      expect((result.trips as Array<Record<string, unknown>>)[0]).toEqual(
+        expect.objectContaining({
+          routeId: 10,
+          dayType: "weekday",
+          stopTimes: [
+            expect.objectContaining({
+              stopOrder: 0,
+              campusId: 1,
+              time: "07:30",
+            }),
+            expect.objectContaining({
+              stopOrder: 1,
+              campusId: 4,
+              time: "08:10",
+            }),
+          ],
+        }),
+      );
+    });
+
+    it("preserves per-stop timetable slots for single-route schedules", () => {
+      const input = {
+        weekday: [
+          {
+            position: 1,
+            stopTimes: [
+              { stopOrder: 0, time: "07:30" },
+              { stopOrder: 1, time: "08:10" },
+            ],
+          },
+        ],
+        weekend: [
+          {
+            position: 1,
+            stopTimes: [
+              { stopOrder: 0, time: "09:00" },
+              { stopOrder: 1, time: "09:40" },
+            ],
+          },
+        ],
+      };
+
+      const result = compactMcpPayload(input) as Record<string, unknown>;
+      expect(result.weekday).toEqual([
+        {
+          position: 1,
+          stopTimes: [
+            { stopOrder: 0, time: "07:30" },
+            { stopOrder: 1, time: "08:10" },
+          ],
+        },
+      ]);
+      expect(result.weekend).toEqual([
+        {
+          position: 1,
+          stopTimes: [
+            { stopOrder: 0, time: "09:00" },
+            { stopOrder: 1, time: "09:40" },
+          ],
+        },
+      ]);
+    });
+  });
+
+  describe("calendar subscriptions", () => {
+    it("preserves summary subscription fields instead of coercing them into raw shape", () => {
+      const input = {
+        success: true,
+        subscription: {
+          userId: "user-1",
+          sectionCount: 2,
+          currentSemesterSectionCount: 1,
+          currentSemesterSections: [{ id: 1, code: "CS101.01" }],
+          calendarPath: "/api/users/user-1/calendar.ics?token=secret",
+          calendarUrl:
+            "https://life.example/api/users/user-1/calendar.ics?token=secret",
+          note: "summary",
+        },
+      };
+
+      const result = compactMcpPayload(input) as Record<string, unknown>;
+      expect(result.subscription).toEqual(
+        expect.objectContaining({
+          userId: "user-1",
+          sectionCount: 2,
+          currentSemesterSectionCount: 1,
+          currentSemesterSections: [{ id: 1, code: "CS101.01" }],
+          note: "summary",
+        }),
+      );
+    });
+  });
 });

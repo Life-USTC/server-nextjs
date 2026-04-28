@@ -45,34 +45,62 @@ export function registerProfileTools(server: McpServer) {
     "list_my_todos",
     {
       description:
-        "List todos for the authenticated Life@USTC user in due-date order.",
+        "List todos for the authenticated Life@USTC user with incomplete items first by default.",
       inputSchema: {
+        includeCompleted: z.boolean().default(false),
+        limit: z.number().int().min(1).max(200).default(50),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ mode }, extra) => {
+    async ({ includeCompleted, limit, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
-      const todos = await prisma.todo.findMany({
-        where: { userId },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-          priority: true,
-          dueAt: true,
-          completed: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        orderBy: [
-          { completed: "asc" },
-          { dueAt: "asc" },
-          { createdAt: "desc" },
-        ],
-      });
-
+      const [incompleteCount, completedCount, overdueCount, todos] =
+        await Promise.all([
+          prisma.todo.count({
+            where: { userId, completed: false },
+          }),
+          prisma.todo.count({
+            where: { userId, completed: true },
+          }),
+          prisma.todo.count({
+            where: {
+              userId,
+              completed: false,
+              dueAt: { lt: new Date() },
+            },
+          }),
+          prisma.todo.findMany({
+            where: {
+              userId,
+              ...(includeCompleted ? {} : { completed: false }),
+            },
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              priority: true,
+              dueAt: true,
+              completed: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            orderBy: [
+              { completed: "asc" },
+              { dueAt: "asc" },
+              { createdAt: "desc" },
+            ],
+            take: limit,
+          }),
+        ]);
       return jsonToolResult(
-        { todos },
+        {
+          counts: {
+            incomplete: incompleteCount,
+            completed: completedCount,
+            overdue: overdueCount,
+          },
+          todos,
+        },
         {
           mode: resolveMcpMode(mode),
         },

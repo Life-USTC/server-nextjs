@@ -22,6 +22,7 @@ import {
   resolveMcpMode,
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
+import { summarizeCalendarSubscription } from "@/lib/mcp/tools/calendar-summary";
 import { sectionCompactInclude } from "@/lib/query-helpers";
 import { getPublicOrigin } from "@/lib/site-url";
 
@@ -45,6 +46,16 @@ export function registerCalendarTools(server: McpServer) {
           success: false,
           message: "User not found",
         });
+      }
+
+      if (resolvedMode === "summary") {
+        return jsonToolResult(
+          {
+            success: true,
+            subscription: summarizeCalendarSubscription(subscription),
+          },
+          { mode: "default" },
+        );
       }
 
       return jsonToolResult(

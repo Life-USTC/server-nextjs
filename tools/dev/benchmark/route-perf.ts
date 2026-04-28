@@ -608,7 +608,7 @@ async function main() {
   }
 
   // 5. Summary table
-  console.log("\n" + "─".repeat(100));
+  console.log(`\n${"─".repeat(100)}`);
   console.log(
     `${"Route".padEnd(52)} ${"Group".padEnd(16)} ${"auth"} ${"p50 ms".padStart(7)} ${"p95 ms".padStart(7)} ${"max ms".padStart(7)} ok/n`,
   );

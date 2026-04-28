@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import { findClosestMatches } from "@/lib/fuzzy-match";
 import {
   buildSectionSearchWhere,
   courseDetailInclude,
@@ -37,6 +38,7 @@ type MatchedSectionCodes = {
   };
   matchedCodes: string[];
   unmatchedCodes: string[];
+  suggestions: Record<string, string[]>;
   sections: Prisma.SectionGetPayload<{
     include: typeof sectionCompactInclude;
   }>[];
@@ -266,16 +268,57 @@ export async function findSectionCodeMatches(
     orderBy: [{ code: "asc" }, { jwId: "asc" }],
   });
 
+  const matchedCodes = sections.map((section) => section.code);
+  const unmatchedCodes = codes.filter((code) => !matchedCodes.includes(code));
+  const normalizedChunks = (value: string) =>
+    value
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .match(/[A-Z0-9]+/g) ?? [];
+
+  const prefixes = Array.from(
+    new Set(
+      unmatchedCodes
+        .flatMap((code) => normalizedChunks(code))
+        .map((chunk) => chunk.slice(0, Math.min(6, Math.max(3, chunk.length))))
+        .filter((chunk) => chunk.length >= 3),
+    ),
+  );
+  const limitedPrefixes = prefixes.slice(0, 40);
+
+  const semesterCodes =
+    limitedPrefixes.length > 0
+      ? (
+          await prisma.section.findMany({
+            where: {
+              semesterId: semester.id,
+              OR: limitedPrefixes.map((prefix) => ({
+                code: ilike(prefix),
+              })),
+            },
+            select: { code: true },
+            orderBy: [{ code: "asc" }],
+            take: 1500,
+          })
+        ).map((section) => section.code)
+      : [];
+
+  const suggestions = Object.fromEntries(
+    unmatchedCodes
+      .map((code) => [code, findClosestMatches(code, semesterCodes)] as const)
+      .filter(([, matches]) => matches.length > 0),
+  );
+
   return {
     semester: {
       id: semester.id,
       nameCn: semester.nameCn,
       code: semester.code,
     },
-    matchedCodes: sections.map((section) => section.code),
-    unmatchedCodes: codes.filter(
-      (code) => !sections.some((section) => section.code === code),
-    ),
+    matchedCodes,
+    unmatchedCodes,
+    suggestions,
     sections,
     total: sections.length,
   };

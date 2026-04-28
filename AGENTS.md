@@ -40,6 +40,12 @@ Workflows live in `.github/workflows/`. See `.github/workflows/AGENTS.md` for fu
   - `public/openapi.generated.json`
   - `src/generated/openapi.ts`
 
+## Documentation Order
+
+- When behavior, capability, API, MCP surface, parameters, or outputs change, update `docs/features.yml` first.
+- Then implement the project change.
+- Then check `docs/features.yml`, relevant `AGENTS.md` files, and the code/tests for consistency before concluding.
+
 ## Scoped AGENTS.md Files
 
 ```yaml

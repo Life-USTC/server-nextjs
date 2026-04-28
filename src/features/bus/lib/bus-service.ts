@@ -29,6 +29,31 @@ type RouteRecord = {
   stops: BusRouteStopSummary[];
 };
 
+type BusComputedStopTime = BusTripStopTime & {
+  displayTime: string | null;
+  displayMinutes: number | null;
+  isEstimated: boolean;
+};
+
+type BusApplicableTrip = {
+  trip: BusTripSummary;
+  route: BusRouteSummary;
+  startStop: BusRouteStopSummary;
+  endStop: BusRouteStopSummary;
+  startTime: BusComputedStopTime;
+  endTime: BusComputedStopTime;
+  status: "upcoming" | "departed";
+  minutesUntilDeparture: number | null;
+};
+
+type BusApplicableRoute = {
+  route: BusRouteSummary;
+  startStop: BusRouteStopSummary;
+  endStop: BusRouteStopSummary;
+  visibleTrips: BusApplicableTrip[];
+  upcomingTrips: BusApplicableTrip[];
+};
+
 function hhmmToMinutes(value: string | null) {
   if (!value) return null;
   const [hourText, minuteText] = value.split(":");
@@ -36,6 +61,14 @@ function hhmmToMinutes(value: string | null) {
   const minute = Number.parseInt(minuteText ?? "", 10);
   if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
   return hour * 60 + minute;
+}
+
+function formatMinutesAsTime(minutes: number) {
+  const hour = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const minute = (minutes % 60).toString().padStart(2, "0");
+  return `${hour}:${minute}`;
 }
 
 function resolveBusDayType(
@@ -305,6 +338,179 @@ function buildTripSummary(
   };
 }
 
+function estimateStopMinutes(
+  stopTimes: BusTripStopTime[],
+  stopIndex: number,
+): { minutes: number | null; isEstimated: boolean } {
+  const exact = stopTimes[stopIndex]?.minutesSinceMidnight ?? null;
+  if (exact != null) {
+    return { minutes: exact, isEstimated: false };
+  }
+
+  let previous: number | null = null;
+  for (let index = stopIndex - 1; index >= 0; index -= 1) {
+    const minutes = stopTimes[index]?.minutesSinceMidnight ?? null;
+    if (minutes != null) {
+      previous = minutes;
+      break;
+    }
+  }
+
+  let next: number | null = null;
+  for (let index = stopIndex + 1; index < stopTimes.length; index += 1) {
+    const minutes = stopTimes[index]?.minutesSinceMidnight ?? null;
+    if (minutes != null) {
+      next = minutes;
+      break;
+    }
+  }
+
+  if (previous != null && next != null) {
+    return {
+      minutes: Math.round((previous + next) / 2),
+      isEstimated: true,
+    };
+  }
+
+  if (previous != null || next != null) {
+    return {
+      minutes: previous ?? next,
+      isEstimated: true,
+    };
+  }
+
+  return { minutes: null, isEstimated: false };
+}
+
+function buildComputedStopTime(
+  stopTimes: BusTripStopTime[],
+  stopIndex: number,
+): BusComputedStopTime {
+  const stopTime = stopTimes[stopIndex];
+  const estimated = estimateStopMinutes(stopTimes, stopIndex);
+  const displayMinutes = estimated.minutes;
+  const displayTime =
+    stopTime?.time ??
+    (displayMinutes != null ? formatMinutesAsTime(displayMinutes) : null);
+
+  return {
+    ...stopTime,
+    displayTime,
+    displayMinutes,
+    isEstimated: estimated.isEstimated,
+  };
+}
+
+function getShanghaiMinutesSinceMidnight(now: Date | string) {
+  const shanghaiNow = shanghaiDayjs(now);
+  return shanghaiNow.hour() * 60 + shanghaiNow.minute();
+}
+
+function buildApplicableBusRoutes(input: {
+  data: BusTimetableData;
+  dayType: "weekday" | "weekend";
+  originCampusId: number;
+  destinationCampusId: number;
+  showDepartedTrips: boolean;
+  now: Date;
+}): BusApplicableRoute[] {
+  const {
+    data,
+    dayType,
+    originCampusId,
+    destinationCampusId,
+    showDepartedTrips,
+    now,
+  } = input;
+  const nowMinutes = getShanghaiMinutesSinceMidnight(now);
+
+  return data.routes
+    .flatMap<BusApplicableRoute>((route) => {
+      const startStop = route.stops.find(
+        (stop) => stop.campus.id === originCampusId,
+      );
+      const endStop = route.stops.find(
+        (stop) => stop.campus.id === destinationCampusId,
+      );
+
+      if (!startStop || !endStop || startStop.stopOrder >= endStop.stopOrder) {
+        return [];
+      }
+
+      const startIndex = route.stops.findIndex(
+        (stop) => stop.stopOrder === startStop.stopOrder,
+      );
+      const endIndex = route.stops.findIndex(
+        (stop) => stop.stopOrder === endStop.stopOrder,
+      );
+
+      const allTrips = data.trips
+        .filter((trip) => trip.routeId === route.id && trip.dayType === dayType)
+        .map<BusApplicableTrip>((trip) => {
+          const stopTimes = trip.stopTimes.map((_, index) =>
+            buildComputedStopTime(trip.stopTimes, index),
+          );
+          const startTime = stopTimes[startIndex];
+          const endTime = stopTimes[endIndex];
+          const status =
+            startTime.displayMinutes == null ||
+            startTime.displayMinutes >= nowMinutes
+              ? "upcoming"
+              : "departed";
+
+          return {
+            trip,
+            route,
+            startStop,
+            endStop,
+            startTime,
+            endTime,
+            status,
+            minutesUntilDeparture:
+              startTime.displayMinutes == null
+                ? null
+                : startTime.displayMinutes - nowMinutes,
+          };
+        })
+        .sort((left, right) => {
+          const leftMinutes =
+            left.startTime.displayMinutes ?? Number.MAX_SAFE_INTEGER;
+          const rightMinutes =
+            right.startTime.displayMinutes ?? Number.MAX_SAFE_INTEGER;
+          if (leftMinutes !== rightMinutes) {
+            return leftMinutes - rightMinutes;
+          }
+          return left.trip.position - right.trip.position;
+        });
+
+      const upcomingTrips = allTrips.filter(
+        (trip) => trip.status === "upcoming",
+      );
+
+      return [
+        {
+          route,
+          startStop,
+          endStop,
+          visibleTrips: showDepartedTrips ? allTrips : upcomingTrips,
+          upcomingTrips,
+        },
+      ];
+    })
+    .sort((left, right) => {
+      const leftMinutes =
+        left.upcomingTrips[0]?.startTime.displayMinutes ??
+        Number.MAX_SAFE_INTEGER;
+      const rightMinutes =
+        right.upcomingTrips[0]?.startTime.displayMinutes ??
+        Number.MAX_SAFE_INTEGER;
+      if (leftMinutes !== rightMinutes) {
+        return leftMinutes - rightMinutes;
+      }
+      return left.route.id - right.route.id;
+    });
+}
+
 export async function getBusTimetableData(
   input: BusTimetableInput,
 ): Promise<BusTimetableData | null> {
@@ -390,6 +596,183 @@ export async function getBusDashboardSnapshot(
 
   return {
     data,
+  };
+}
+
+export function buildNextBusDeparturesFromData(
+  data: BusTimetableData,
+  input: {
+    originCampusId: number;
+    destinationCampusId: number;
+    atTime?: string;
+    dayType?: BusResolvedDayType;
+    limit?: number;
+    includeDeparted?: boolean;
+  },
+) {
+  const now = input.atTime ? shanghaiDayjs(input.atTime) : shanghaiDayjs();
+  const dayType = resolveBusDayType(input.dayType, now);
+  const originCampus =
+    data.campuses.find((campus) => campus.id === input.originCampusId) ?? null;
+  const destinationCampus =
+    data.campuses.find((campus) => campus.id === input.destinationCampusId) ??
+    null;
+
+  const applicableRoutes = buildApplicableBusRoutes({
+    data,
+    dayType,
+    originCampusId: input.originCampusId,
+    destinationCampusId: input.destinationCampusId,
+    showDepartedTrips: input.includeDeparted ?? false,
+    now: now.toDate(),
+  });
+
+  const departures = applicableRoutes
+    .flatMap((route) =>
+      route.visibleTrips.map((trip) => ({
+        tripId: trip.trip.id,
+        routeId: route.route.id,
+        route: {
+          id: route.route.id,
+          nameCn: route.route.nameCn,
+          nameEn: route.route.nameEn,
+          descriptionPrimary: route.route.descriptionPrimary,
+          descriptionSecondary: route.route.descriptionSecondary,
+        },
+        originCampus,
+        destinationCampus,
+        departureTime: trip.startTime.displayTime,
+        arrivalTime: trip.endTime.displayTime,
+        departureEstimated: trip.startTime.isEstimated,
+        arrivalEstimated: trip.endTime.isEstimated,
+        minutesUntilDeparture: trip.minutesUntilDeparture,
+        dayType: trip.trip.dayType,
+        status: trip.status,
+      })),
+    )
+    .sort((left, right) => {
+      const leftMinutes = left.minutesUntilDeparture ?? Number.MAX_SAFE_INTEGER;
+      const rightMinutes =
+        right.minutesUntilDeparture ?? Number.MAX_SAFE_INTEGER;
+      if (leftMinutes !== rightMinutes) {
+        return leftMinutes - rightMinutes;
+      }
+      return left.routeId - right.routeId;
+    })
+    .slice(0, input.limit ?? 5);
+
+  return {
+    originCampus,
+    destinationCampus,
+    atTime: now.toISOString(),
+    dayType,
+    totalRoutes: applicableRoutes.length,
+    departures,
+  };
+}
+
+export async function getNextBusDepartures(input: {
+  locale: AppLocale;
+  originCampusId: number;
+  destinationCampusId: number;
+  atTime?: string;
+  dayType?: BusResolvedDayType;
+  limit?: number;
+  includeDeparted?: boolean;
+  versionKey?: string | null;
+  userId?: string | null;
+}) {
+  const now = input.atTime ? shanghaiDayjs(input.atTime) : shanghaiDayjs();
+  const data = await getBusTimetableData({
+    locale: input.locale,
+    now: now.toISOString(),
+    versionKey: input.versionKey,
+    userId: input.userId,
+  });
+  if (!data) return null;
+
+  return buildNextBusDeparturesFromData(data, {
+    originCampusId: input.originCampusId,
+    destinationCampusId: input.destinationCampusId,
+    atTime: now.toISOString(),
+    dayType: input.dayType,
+    limit: input.limit,
+    includeDeparted: input.includeDeparted,
+  });
+}
+
+export async function searchBusRoutes(input: {
+  locale: AppLocale;
+  originCampusId?: number;
+  destinationCampusId?: number;
+  versionKey?: string | null;
+}) {
+  const data = await getBusTimetableData({
+    locale: input.locale,
+    versionKey: input.versionKey,
+  });
+  if (!data) return null;
+
+  const tripCounts = new Map<number, { weekday: number; weekend: number }>();
+  for (const trip of data.trips) {
+    const count = tripCounts.get(trip.routeId) ?? { weekday: 0, weekend: 0 };
+    count[trip.dayType] += 1;
+    tripCounts.set(trip.routeId, count);
+  }
+
+  const routes = data.routes
+    .filter((route) => {
+      const stopIds = route.stops.map((stop) => stop.campus.id);
+      const hasOrigin =
+        input.originCampusId == null || stopIds.includes(input.originCampusId);
+      const hasDestination =
+        input.destinationCampusId == null ||
+        stopIds.includes(input.destinationCampusId);
+      if (!hasOrigin || !hasDestination) return false;
+      if (
+        input.originCampusId != null &&
+        input.destinationCampusId != null &&
+        input.originCampusId !== input.destinationCampusId
+      ) {
+        const originIndex = route.stops.findIndex(
+          (stop) => stop.campus.id === input.originCampusId,
+        );
+        const destinationIndex = route.stops.findIndex(
+          (stop) => stop.campus.id === input.destinationCampusId,
+        );
+        return originIndex >= 0 && destinationIndex > originIndex;
+      }
+      return true;
+    })
+    .map((route) => ({
+      id: route.id,
+      nameCn: route.nameCn,
+      nameEn: route.nameEn,
+      descriptionPrimary: route.descriptionPrimary,
+      descriptionSecondary: route.descriptionSecondary,
+      originCampus: route.stops[0]?.campus ?? null,
+      destinationCampus: route.stops[route.stops.length - 1]?.campus ?? null,
+      stopCount: route.stops.length,
+      weekdayTrips: tripCounts.get(route.id)?.weekday ?? 0,
+      weekendTrips: tripCounts.get(route.id)?.weekend ?? 0,
+      stops: route.stops,
+    }))
+    .sort((left, right) => left.id - right.id);
+
+  return {
+    originCampus:
+      input.originCampusId != null
+        ? (data.campuses.find((campus) => campus.id === input.originCampusId) ??
+          null)
+        : null,
+    destinationCampus:
+      input.destinationCampusId != null
+        ? (data.campuses.find(
+            (campus) => campus.id === input.destinationCampusId,
+          ) ?? null)
+        : null,
+    total: routes.length,
+    routes,
   };
 }
 

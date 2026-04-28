@@ -348,6 +348,9 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "create_my_todo",
           "update_my_todo",
           "delete_my_todo",
+          "get_my_dashboard",
+          "get_next_class",
+          "get_upcoming_deadlines",
           "list_my_homeworks",
           "set_my_homework_completion",
           "unset_my_homework_completion",
@@ -366,6 +369,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "query_bus_timetable",
           "list_bus_routes",
           "get_bus_route_timetable",
+          "search_bus_routes",
+          "get_next_buses",
         ]),
       );
       expect(tools.tools.map((tool) => tool.name)).not.toEqual(
@@ -395,8 +400,11 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         arguments: {},
       });
       const todosPayload = parseTextContent(todosResult) as {
+        counts?: { incomplete?: number; completed?: number; overdue?: number };
         todos?: Array<{ title?: string; completed?: boolean }>;
       };
+      expect(typeof todosPayload.counts?.incomplete).toBe("number");
+      expect(typeof todosPayload.counts?.completed).toBe("number");
       expect(
         todosPayload.todos?.some(
           (todo) =>
@@ -404,6 +412,13 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
             todo.completed === false,
         ),
       ).toBe(true);
+      expect(
+        todosPayload.todos?.some(
+          (todo) =>
+            todo.title === DEV_SEED.todos.completedTitle &&
+            todo.completed === true,
+        ),
+      ).toBe(false);
 
       const coursesResult = await mcpClient.callTool({
         name: "search_courses",
@@ -639,6 +654,63 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         "number",
       );
 
+      const dashboardResult = await mcpClient.callTool({
+        name: "get_my_dashboard",
+        arguments: {
+          locale: "zh-cn",
+        },
+      });
+      const dashboardPayload = parseTextContent(dashboardResult) as {
+        currentSemester?: { code?: string | null };
+        subscriptions?: { currentSemesterCount?: number };
+        todos?: { incompleteCount?: number };
+        bus?: { nextDeparture?: { routeId?: number | null } | null };
+      };
+      expect(dashboardPayload.currentSemester?.code).toBeDefined();
+      expect(typeof dashboardPayload.subscriptions?.currentSemesterCount).toBe(
+        "number",
+      );
+      expect(typeof dashboardPayload.todos?.incompleteCount).toBe("number");
+      const nextDeparture = dashboardPayload.bus?.nextDeparture ?? null;
+      if (nextDeparture) {
+        expect(typeof nextDeparture.routeId).toBe("number");
+      } else {
+        expect(nextDeparture).toBeNull();
+      }
+
+      const nextClassResult = await mcpClient.callTool({
+        name: "get_next_class",
+        arguments: {
+          locale: "zh-cn",
+        },
+      });
+      const nextClassPayload = parseTextContent(nextClassResult) as {
+        found?: boolean;
+        nextClass?: { type?: string; at?: string | null };
+      };
+      expect(typeof nextClassPayload.found).toBe("boolean");
+      if (nextClassPayload.found) {
+        expect(nextClassPayload.nextClass?.type).toBe("schedule");
+      }
+
+      const deadlinesResult = await mcpClient.callTool({
+        name: "get_upcoming_deadlines",
+        arguments: {
+          locale: "zh-cn",
+          dayLimit: 7,
+        },
+      });
+      const deadlinesPayload = parseTextContent(deadlinesResult) as {
+        total?: number;
+        deadlines?: Array<{ type?: string }>;
+      };
+      expect(typeof deadlinesPayload.total).toBe("number");
+      expect(
+        deadlinesPayload.deadlines?.every((event) =>
+          ["homework_due", "exam", "todo_due"].includes(event.type ?? ""),
+        ),
+      ).toBe(true);
+
       const timelineResult = await mcpClient.callTool({
         name: "get_my_7days_timeline",
         arguments: {
@@ -680,6 +752,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         success?: boolean;
         matchedCodes?: string[];
         unmatchedCodes?: string[];
+        suggestions?: Record<string, string[]>;
       };
       expect(matchSectionCodesPayload.success).toBe(true);
       expect(matchSectionCodesPayload.matchedCodes).toContain(
@@ -687,6 +760,22 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       );
       expect(matchSectionCodesPayload.unmatchedCodes).toContain(
         "NOT-EXIST-CODE",
+      );
+
+      const fuzzyMatchSectionCodesResult = await mcpClient.callTool({
+        name: "match_section_codes",
+        arguments: {
+          codes: ["DEV-CS201.0"],
+          locale: "zh-cn",
+        },
+      });
+      const fuzzyMatchPayload = parseTextContent(
+        fuzzyMatchSectionCodesResult,
+      ) as {
+        suggestions?: Record<string, string[]>;
+      };
+      expect(fuzzyMatchPayload.suggestions?.["DEV-CS201.0"]).toContain(
+        DEV_SEED.section.code,
       );
 
       const busResult = await mcpClient.callTool({
@@ -699,7 +788,10 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         fetchedAt?: string;
         version?: { title?: string | null };
         routes?: Array<{ id?: number | null }>;
-        trips?: Array<{ dayType?: string }>;
+        trips?: Array<{
+          dayType?: string;
+          stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+        }>;
         preferences?: {
           preferredOriginCampusId?: number | null;
           preferredDestinationCampusId?: number | null;
@@ -716,9 +808,41 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           (trip) => trip.dayType === "weekday" || trip.dayType === "weekend",
         ),
       ).toBe(true);
+      expect(
+        busPayload.trips?.some(
+          (trip) =>
+            Array.isArray(trip.stopTimes) &&
+            trip.stopTimes.some(
+              (stopTime) => typeof stopTime.stopOrder === "number",
+            ),
+        ),
+      ).toBe(true);
       expect(busPayload.preferences?.preferredOriginCampusId).toBe(1);
       expect(busPayload.preferences?.preferredDestinationCampusId).toBe(4);
       expect(busPayload.preferences?.showDepartedTrips).toBe(true);
+
+      const busSummaryResult = await mcpClient.callTool({
+        name: "query_bus_timetable",
+        arguments: {
+          locale: "zh-cn",
+          mode: "summary",
+        },
+      });
+      const busSummaryPayload = parseTextContent(busSummaryResult) as {
+        counts?: {
+          routes?: number;
+          weekdayTrips?: number;
+          weekendTrips?: number;
+        };
+        nextDepartures?: Array<{
+          routeId?: number;
+          departureTime?: string | null;
+        }>;
+      };
+      expect(typeof busSummaryPayload.counts?.routes).toBe("number");
+      expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
+      expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
+      expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
 
       // list_bus_routes — lightweight route catalog
       const listRoutesResult = await mcpClient.callTool({
@@ -763,14 +887,69 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       });
       const timetablePayload = parseTextContent(timetableResult) as {
         route?: { id?: number };
-        weekday?: Array<{ position?: number }>;
-        weekend?: Array<{ position?: number }>;
+        weekday?: Array<{
+          position?: number;
+          stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+        }>;
+        weekend?: Array<{
+          position?: number;
+          stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+        }>;
         alternateRoutes?: Array<{ id?: number }>;
       };
       expect(timetablePayload.route?.id).toBe(DEV_SEED.bus.routeId);
       expect(Array.isArray(timetablePayload.weekday)).toBe(true);
       expect(Array.isArray(timetablePayload.weekend)).toBe(true);
       expect(Array.isArray(timetablePayload.alternateRoutes)).toBe(true);
+      expect(
+        timetablePayload.weekday?.some(
+          (trip) =>
+            Array.isArray(trip.stopTimes) &&
+            trip.stopTimes.some(
+              (stopTime) => typeof stopTime.stopOrder === "number",
+            ),
+        ),
+      ).toBe(true);
+
+      const searchRoutesResult = await mcpClient.callTool({
+        name: "search_bus_routes",
+        arguments: {
+          locale: "zh-cn",
+          originCampusId: DEV_SEED.bus.originCampusId,
+          destinationCampusId: DEV_SEED.bus.destinationCampusId,
+        },
+      });
+      const searchRoutesPayload = parseTextContent(searchRoutesResult) as {
+        total?: number;
+        routes?: Array<{ id?: number }>;
+      };
+      expect(searchRoutesPayload.total).toBeGreaterThan(0);
+      expect(
+        searchRoutesPayload.routes?.some(
+          (route) => route.id === DEV_SEED.bus.recommendedRouteId,
+        ),
+      ).toBe(true);
+
+      const nextBusesResult = await mcpClient.callTool({
+        name: "get_next_buses",
+        arguments: {
+          locale: "zh-cn",
+          originCampusId: DEV_SEED.bus.originCampusId,
+          destinationCampusId: DEV_SEED.bus.destinationCampusId,
+        },
+      });
+      const nextBusesPayload = parseTextContent(nextBusesResult) as {
+        totalRoutes?: number;
+        departures?: Array<{ routeId?: number; departureTime?: string | null }>;
+      };
+      expect(nextBusesPayload.totalRoutes).toBeGreaterThan(0);
+      expect(
+        nextBusesPayload.departures?.every(
+          (departure) =>
+            typeof departure.routeId === "number" &&
+            typeof departure.departureTime === "string",
+        ),
+      ).toBe(true);
 
       // get_bus_route_timetable — invalid route returns error message
       const invalidTimetableResult = await mcpClient.callTool({
@@ -850,6 +1029,29 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(calendarSubscriptionPayload.subscription?.calendarPath).toContain(
         "/api/users/",
       );
+
+      const calendarSubscriptionSummaryResult = await mcpClient.callTool({
+        name: "get_my_calendar_subscription",
+        arguments: {
+          locale: "zh-cn",
+          mode: "summary",
+        },
+      });
+      const calendarSubscriptionSummaryPayload = parseTextContent(
+        calendarSubscriptionSummaryResult,
+      ) as {
+        subscription?: {
+          sectionCount?: number;
+          currentSemesterSectionCount?: number;
+          calendarPath?: string;
+        };
+      };
+      expect(
+        calendarSubscriptionSummaryPayload.subscription?.sectionCount,
+      ).toBeGreaterThan(0);
+      expect(
+        calendarSubscriptionSummaryPayload.subscription?.calendarPath,
+      ).toContain("[redacted]");
 
       const subscribeResult = await mcpClient.callTool({
         name: "subscribe_my_sections_by_codes",

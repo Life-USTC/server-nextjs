@@ -38,10 +38,10 @@ product:
     homework: Class-attached learning task; completion state is tracked per user independently.
     todo: Personal user task; not attached to any class.
   workflow:
-    - Edit docs/features.yml first.
+    - Update docs/features.yml first whenever capabilities, tool surfaces, parameters, or outputs change.
     - Use yq to inspect the affected semantic blocks while editing.
     - Implement the behavior change in code.
-    - Reconcile the YAML if implementation scope changed.
+    - Check docs/features.yml, AGENTS.md, and implementation for consistency before concluding.
   display_conventions:
     real-models-only: models mirrors prisma/schema.prisma model fields; API return DTO names stay in returns only.
     compact-surfaces: surface status defaults to stable; use unavailable/planned/stable string shorthand when no page, route, tool, or group is listed.
@@ -1712,11 +1712,17 @@ modules:
         mcp:
           tools:
             - name: match_section_codes
-              returns: "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], sections: Section[], total: Int }"
+              returns: "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions?: Record<String, String[]>, sections: Section[], total: Int }"
               rest_equivalent: POST /api/sections/match-codes
+              notes:
+                - Returns suggestions for unmatched inputs when close section codes exist in the selected semester.
+                - Prefer this read-only preview before subscribe_my_sections_by_codes when the caller needs confirmation or typo recovery.
             - name: subscribe_my_sections_by_codes
               returns: "{ success: Boolean, semester: Semester, matchedCodes: String[], unmatchedCodes: String[], addedCount: Int, subscription: { userId, sections, note } }"
               rest_equivalent: POST /api/calendar-subscriptions
+              notes:
+                - Convenience mutation that combines matching with subscription update.
+                - Use match_section_codes first when the caller needs a dry-run style preview.
         display:
           fields:
             - Course/section code input
@@ -1781,6 +1787,8 @@ modules:
             - name: get_my_calendar_subscription
               returns: "{ success: Boolean, subscription?: CalendarSubscription, message?: String }"
               rest_equivalent: GET /api/calendar-subscriptions/current
+              notes:
+                - In summary/default MCP output, token-bearing calendarPath and calendarUrl may be redacted for privacy; request full mode only when the raw feed location is explicitly needed.
         display:
           fields:
             - iCalendar URL copy button
@@ -2199,8 +2207,11 @@ modules:
         mcp:
           tools:
             - name: list_my_todos
-              returns: "{ todos: TodoItem[] }"
+              returns: "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }"
               rest_equivalent: GET /api/todos
+              notes:
+                - "Default parameters: includeCompleted=false, limit=50."
+                - Incomplete items are returned first; completed items are excluded unless includeCompleted=true.
         display:
           fields:
             - todo.title
@@ -2320,6 +2331,8 @@ modules:
       current-semester-priority: The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.
       homework-todo-layered: Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.
       non-current-not-disguised: Non-current-semester subscribed sections must not be disguised as current learning tasks.
+      aggregate-first-for-assistants: Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.
+      focused-extracts-share-window: Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot.
     capabilities:
       authenticated-overview:
         title: Authenticated Homepage Overview
@@ -2349,6 +2362,7 @@ modules:
               notes:
                 - overview contains pending todo, homework, today's schedule, and upcoming exam counts.
                 - samples contains dueTodos[], dueHomeworks[], and upcomingExams[].
+                - Count-and-sample oriented tool; use get_my_dashboard for a richer single-call assistant snapshot.
         display:
           fields:
             - pendingHomeworksCount
@@ -2364,6 +2378,42 @@ modules:
             - todo due today/due soon/all badges
             - Pending todos
             - Tab icons and counts
+      assistant-dashboard-snapshot:
+        title: Assistant Dashboard Snapshot & Focused Extracts
+        auth: user
+        links:
+          models:
+            - User
+            - Section
+            - Homework
+            - Todo
+            - Exam
+        web: unavailable
+        rest: unavailable
+        mcp:
+          tools:
+            - name: get_my_dashboard
+              returns: "{ user, currentSemester, subscriptions, nextClass, upcomingDeadlines, upcomingEvents, todos, bus }"
+              notes:
+                - Preferred single-call snapshot for assistant workflows.
+                - Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures.
+            - name: get_next_class
+              returns: "{ found: Boolean, nextClass, currentSemester }"
+              notes:
+                - Focused extract for 'what is my next class?' prompts.
+            - name: get_upcoming_deadlines
+              returns: "{ total: Int, deadlines: TimelineEvent[] }"
+              notes:
+                - dayLimit defaults to 7.
+                - Merges homework_due, exam, and todo_due entries into one ordered list.
+        display:
+          fields:
+            - currentSemester
+            - subscriptions.currentSemesterCount
+            - nextClass
+            - upcomingDeadlines
+            - todos.incompleteCount
+            - bus.nextDeparture
       anonymous-overview:
         title: Anonymous Homepage
         auth: anon
@@ -2648,6 +2698,8 @@ modules:
       raw-data-returned: /api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.
       current-version-only: list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.
       dashboard-vs-map: The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.
+      task-oriented-tool-hierarchy: Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, and get_next_buses for immediate departure answers.
+      summary-mode-compact: query_bus_timetable summary mode should return compact counts, route/campus summaries, and only a few relevant departures rather than the full trip dataset.
     capabilities:
       bus-dashboard:
         title: Bus Dashboard
@@ -2671,12 +2723,18 @@ modules:
             - name: query_bus_timetable
               returns: "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }"
               rest_equivalent: GET /api/bus
+              notes:
+                - summary mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes, and only a few nextDepartures instead of the full trip dataset.
             - name: list_bus_routes
               returns: "{ routes: BusRoute[], campuses: BusCampus[] }"
               rest_equivalent: GET /api/bus
+              notes:
+                - Use this for full current-version route discovery before fetching one route timetable.
             - name: get_bus_route_timetable
               returns: "{ route: BusRoute, weekday, weekend, alternateRoutes }"
               rest_equivalent: GET /api/bus
+              notes:
+                - Single-route raw timetable tool; use get_next_buses when the caller only needs the next few departures.
         display:
           fields:
             - route.descriptionPrimary
@@ -2687,6 +2745,46 @@ modules:
             - departure/arrival campus controls
             - reverse direction control
             - show-departed toggle
+      bus-route-search:
+        title: Bus Route Search
+        auth: anon
+        web: unavailable
+        rest: unavailable
+        mcp:
+          tools:
+            - name: search_bus_routes
+              returns: "{ originCampus?, destinationCampus?, total: Int, routes: BusRouteSearchResult[] }"
+              notes:
+                - Filtered discovery helper for origin/destination prompts.
+                - Use list_bus_routes when the caller needs the entire current route catalog.
+        display:
+          fields:
+            - originCampus
+            - destinationCampus
+            - filtered route list
+            - route stop order
+            - weekday/weekend trip counts
+      bus-next-departures:
+        title: Bus Next Departures
+        auth: user
+        web: unavailable
+        rest: unavailable
+        mcp:
+          tools:
+            - name: get_next_buses
+              returns: "{ originCampus, destinationCampus, atTime, dayType, totalRoutes: Int, departures: BusDeparture[] }"
+              notes:
+                - Task-oriented convenience tool for 'when is the next bus?' prompts.
+                - "Default parameters: dayType=auto, includeDeparted=false, limit=5."
+        display:
+          fields:
+            - originCampus
+            - destinationCampus
+            - dayType
+            - departureTime
+            - arrivalTime
+            - minutesUntilDeparture
+            - route description
       bus-map:
         title: Bus Route Map
         auth: anon
@@ -3072,7 +3170,9 @@ modules:
       personal-workspace-focus: MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities; admin capabilities are not exposed by default.
       text-formatted-json: Current tool output is uniformly text-formatted JSON.
       output-modes: "Output mode has three levels: summary, default, full."
-      coverage: MCP currently covers core query tools for courses, sections, teachers, semesters, subscriptions, schedules, and unified calendar events; comment, upload, description governance, link management, and admin capabilities do not yet have corresponding tools.
+      coverage: MCP currently covers profile, todos, courses, sections, teachers, semesters, subscriptions, schedules, calendar events, assistant dashboard snapshots, and bus discovery/next-trip queries; comment, upload, description governance, link management, and admin capabilities do not yet have corresponding tools.
+      aggregate-before-fanout: Prefer assistant-oriented aggregate or filtered tools first; raw dataset tools remain available for power clients that need local post-processing.
+      privacy-safe-summary: Summary/default outputs may omit repeated low-value nested objects and redact token-bearing URLs or other sensitive strings; full mode is the escape hatch when exact raw values are required.
     capabilities:
       protocol-endpoint:
         title: Protocol Endpoint
@@ -3107,52 +3207,53 @@ modules:
                 - create_my_todo
                 - update_my_todo
                 - delete_my_todo
-            - name: Course & Section
+            - name: Dashboard & Overview
               tools:
+                - get_my_dashboard
+                - get_my_overview
+                - get_next_class
+                - get_upcoming_deadlines
+            - name: Course, Section & Semester
+              tools:
+                - list_semesters
+                - get_current_semester
                 - search_courses
                 - get_course_by_jw_id
                 - search_sections
                 - get_section_by_jw_id
                 - search_teachers
                 - get_teacher_by_id
-            - name: Calendar & Timeline
+                - match_section_codes
+            - name: Calendar & Subscription
               tools:
                 - list_my_calendar_events
                 - get_my_7days_timeline
                 - get_my_calendar_subscription
-            - name: Homework & Exam
+                - list_my_subscribed_sections
+                - subscribe_section_by_jw_id
+                - unsubscribe_section_by_jw_id
+                - get_section_calendar_subscription
+                - subscribe_my_sections_by_codes
+            - name: Homework, Schedule & Exam
               tools:
                 - list_my_homeworks
                 - set_my_homework_completion
                 - unset_my_homework_completion
+                - list_my_schedules
                 - list_my_exams
                 - list_homeworks_by_section
                 - create_homework_on_section
                 - update_homework_on_section
-                - list_exams_by_section
-            - name: Schedule & Subscription
-              tools:
-                - list_my_schedules
-                - list_schedules_by_section
                 - query_schedules
-                - match_section_codes
-                - subscribe_my_sections_by_codes
-                - subscribe_section_by_jw_id
-                - unsubscribe_section_by_jw_id
-                - list_my_subscribed_sections
-                - get_section_calendar_subscription
-            - name: Semester & Metadata
-              tools:
-                - list_semesters
-                - get_current_semester
+                - list_schedules_by_section
+                - list_exams_by_section
             - name: Bus
               tools:
                 - query_bus_timetable
                 - list_bus_routes
                 - get_bus_route_timetable
-            - name: Overview
-              tools:
-                - get_my_overview
+                - search_bus_routes
+                - get_next_buses
         display:
           fields:
             - Schedule tools
@@ -3161,6 +3262,7 @@ modules:
             - Tool name
             - Tool description
             - Input schema
+            - Preferred tool for common prompts
   security:
     name: Content / Security
     access:
@@ -3207,6 +3309,36 @@ modules:
             - Confirm button
             - Cancel button
 cases:
+  mcp-assistant-workflows:
+    affects:
+      - module: mcp
+        capability: tool-groups
+      - module: overview
+        capability: assistant-dashboard-snapshot
+      - module: subscription
+        capability: batch-subscribe-by-codes
+      - module: ical
+        capability: personal-calendar-subscription
+      - module: todo
+        capability: todo-list
+      - module: bus
+        capability: bus-dashboard
+      - module: bus
+        capability: bus-route-search
+      - module: bus
+        capability: bus-next-departures
+    rules:
+      aggregate-first:
+        - Prefer get_my_dashboard or other task-oriented aggregate tools before stitching together multiple lower-level tool calls.
+      preview-before-write:
+        - Batch or fuzzy write flows should offer a read-only preview tool before the mutation tool.
+      focused-over-raw-for-common-questions:
+        - For prompts such as 'what is my next class?' or 'when is the next bus?', use focused extract tools instead of raw dataset mirrors.
+      summary-privacy-default:
+        - Summary/default outputs should stay compact and redact token-bearing URLs or repeated low-value nested objects.
+    decisions:
+      - Assistant-oriented MCP additions should land as aggregate snapshots or filtered convenience tools, not only as raw dataset mirrors.
+      - Tool documentation should call out the preferred first tool, focused alternative, default parameters, and privacy redaction behavior for common prompts.
   semester:
     affects:
       - module: overview

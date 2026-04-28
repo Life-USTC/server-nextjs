@@ -345,6 +345,7 @@ export function registerCourseTools(server: McpServer) {
           semester: matches.semester,
           matchedCodes: matches.matchedCodes,
           unmatchedCodes: matches.unmatchedCodes,
+          suggestions: matches.suggestions,
           sections: matches.sections,
           total: matches.total,
           note: SECTION_SUBSCRIPTION_NOTE,
