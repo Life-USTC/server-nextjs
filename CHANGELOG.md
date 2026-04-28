@@ -1,3 +1,10 @@
+## [1.27.1](https://github.com/Life-USTC/server-nextjs/compare/v1.27.0...v1.27.1) (2026-04-28)
+
+
+### Bug Fixes
+
+* **mcp:** preserve raw bus and calendar summaries ([5bdf4b7](https://github.com/Life-USTC/server-nextjs/commit/5bdf4b7dbe486c04ba5ef57a0b9356ddffc6297d))
+
 # [1.27.0](https://github.com/Life-USTC/server-nextjs/compare/v1.26.0...v1.27.0) (2026-04-27)
 
 
