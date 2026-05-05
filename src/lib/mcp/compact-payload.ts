@@ -210,6 +210,8 @@ function compactHomework(value: unknown) {
     }
   }
   if (Object.hasOwn(value, "completion")) out.completion = value.completion;
+  if (Object.hasOwn(value, "commentCount"))
+    out.commentCount = value.commentCount;
   if (Object.hasOwn(value, "homeworkCompletions")) {
     out.homeworkCompletions = value.homeworkCompletions;
   }
@@ -440,6 +442,35 @@ function looksLikeSemester(value: Record<string, unknown>) {
   );
 }
 
+function looksLikeHomework(value: Record<string, unknown>) {
+  return (
+    Object.hasOwn(value, "title") &&
+    Object.hasOwn(value, "submissionDueAt") &&
+    (Object.hasOwn(value, "sectionId") ||
+      Object.hasOwn(value, "requiresTeam") ||
+      Object.hasOwn(value, "isMajor"))
+  );
+}
+
+function looksLikeSchedule(value: Record<string, unknown>) {
+  return (
+    Object.hasOwn(value, "date") &&
+    Object.hasOwn(value, "weekday") &&
+    Object.hasOwn(value, "startTime") &&
+    Object.hasOwn(value, "endTime") &&
+    (Object.hasOwn(value, "sectionId") || Object.hasOwn(value, "weekIndex"))
+  );
+}
+
+function looksLikeExam(value: Record<string, unknown>) {
+  return (
+    Object.hasOwn(value, "sectionId") &&
+    (Object.hasOwn(value, "examDate") ||
+      Object.hasOwn(value, "examBatch") ||
+      Object.hasOwn(value, "examRooms"))
+  );
+}
+
 function looksLikeBusCampus(value: Record<string, unknown>) {
   return (
     Object.hasOwn(value, "nameCn") &&
@@ -507,6 +538,9 @@ export function compactMcpPayload(value: unknown): unknown {
   if (looksLikeSection(value)) return compactSection(value);
   if (looksLikeCourse(value)) return compactCourse(value);
   if (looksLikeSemester(value)) return compactSemester(value);
+  if (looksLikeHomework(value)) return compactHomework(value);
+  if (looksLikeSchedule(value)) return compactSchedule(value);
+  if (looksLikeExam(value)) return compactExam(value);
   if (Object.hasOwn(value, "completed") && Object.hasOwn(value, "priority")) {
     return compactTodo(value);
   }

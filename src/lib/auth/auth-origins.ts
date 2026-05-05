@@ -36,6 +36,41 @@ export function getAuthAllowedHosts(): string[] {
   );
 }
 
+function isWildcardOriginPattern(origin: string) {
+  return origin.includes("://*.");
+}
+
+function matchesTrustedOrigin(origin: string, trustedOrigin: string) {
+  if (!isWildcardOriginPattern(trustedOrigin)) {
+    return origin === trustedOrigin;
+  }
+
+  const protocolSeparator = trustedOrigin.indexOf("://");
+  const trustedProtocol = trustedOrigin.slice(0, protocolSeparator);
+  const trustedHostPattern = trustedOrigin.slice(protocolSeparator + 3);
+  const trustedHostSuffix = trustedHostPattern.slice(1);
+
+  const url = new URL(origin);
+  return (
+    url.protocol === `${trustedProtocol}:` &&
+    url.hostname.endsWith(trustedHostSuffix) &&
+    url.hostname.length > trustedHostSuffix.length
+  );
+}
+
+export function isTrustedAuthOrigin(origin: string): boolean {
+  let normalizedOrigin: string;
+  try {
+    normalizedOrigin = new URL(origin).origin;
+  } catch {
+    return false;
+  }
+
+  return getAuthTrustedOrigins().some((trustedOrigin) =>
+    matchesTrustedOrigin(normalizedOrigin, trustedOrigin),
+  );
+}
+
 export function getOAuthProxyProductionUrl(): string {
   return getCanonicalOrigin();
 }

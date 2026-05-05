@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: true,
   turbopack: {},
+  allowedDevOrigins: ["127.0.0.1"],
   productionBrowserSourceMaps: false,
   serverExternalPackages: [
     "@prisma/client",

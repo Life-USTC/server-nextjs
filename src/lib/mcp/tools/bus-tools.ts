@@ -15,6 +15,7 @@ import {
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
+import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary";
 
 const busDayTypeSchema = z.enum(["auto", "weekday", "weekend"]).default("auto");
 
@@ -38,6 +39,13 @@ function summarizeBusTimetable(
           limit: 3,
         }).departures
       : [];
+  const nextDeparturesMessage =
+    result.preferences?.preferredOriginCampusId == null ||
+    result.preferences?.preferredDestinationCampusId == null
+      ? "Save preferred origin and destination campuses or call get_next_buses for a specific route query."
+      : nextDepartures.length === 0
+        ? "No immediate departures are available for the saved campus preference."
+        : null;
 
   return {
     locale: result.locale,
@@ -70,8 +78,40 @@ function summarizeBusTimetable(
     })),
     preferences: result.preferences,
     nextDepartures,
+    nextDeparturesMessage,
     notice: result.notice?.message ? { message: result.notice.message } : null,
   };
+}
+
+function summarizeBusTimetableBrief(
+  result: NonNullable<Awaited<ReturnType<typeof getBusTimetableData>>>,
+) {
+  const compact = summarizeBusTimetable(result);
+  return {
+    locale: compact.locale,
+    fetchedAt: compact.fetchedAt,
+    version: compact.version,
+    counts: compact.counts,
+    preferences: compact.preferences,
+    nextDepartures: compact.nextDepartures,
+    nextDeparturesMessage: compact.nextDeparturesMessage,
+    notice: compact.notice,
+  };
+}
+
+function omitRepeatedCampusesFromDepartures<
+  T extends {
+    originCampus?: unknown;
+    destinationCampus?: unknown;
+  },
+>(departures: T[]) {
+  return departures.map(
+    ({
+      originCampus: _originCampus,
+      destinationCampus: _destinationCampus,
+      ...departure
+    }) => departure,
+  );
 }
 
 export function registerBusTools(server: McpServer) {
@@ -95,6 +135,12 @@ export function registerBusTools(server: McpServer) {
       });
 
       if (result && resolvedMode === "summary") {
+        return jsonToolResult(summarizeBusTimetableBrief(result), {
+          mode: "default",
+        });
+      }
+
+      if (result && resolvedMode === "default") {
         return jsonToolResult(summarizeBusTimetable(result), {
           mode: "default",
         });
@@ -227,6 +273,7 @@ export function registerBusTools(server: McpServer) {
       },
       extra,
     ) => {
+      const resolvedMode = resolveMcpMode(mode);
       const result = await getNextBusDepartures({
         locale,
         originCampusId,
@@ -239,12 +286,25 @@ export function registerBusTools(server: McpServer) {
         userId: getUserId(extra.authInfo),
       });
 
+      if (result && resolvedMode !== "full") {
+        return jsonToolResult(
+          {
+            ...result,
+            departures: omitRepeatedCampusesFromDepartures(result.departures),
+            nextAvailableDeparture: result.nextAvailableDeparture
+              ? summarizeBusDeparture(result.nextAvailableDeparture)
+              : null,
+          },
+          { mode: resolvedMode },
+        );
+      }
+
       return jsonToolResult(
         result ?? {
           hasData: false,
           message: "No bus schedule data available",
         },
-        { mode: resolveMcpMode(mode) },
+        { mode: resolvedMode },
       );
     },
   );

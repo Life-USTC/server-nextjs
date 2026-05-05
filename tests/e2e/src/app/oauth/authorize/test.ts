@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { type APIRequestContext, expect, test } from "@playwright/test";
+import {
+  type APIRequestContext,
+  expect,
+  type Page,
+  test,
+} from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { PLAYWRIGHT_BASE_URL } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
@@ -39,6 +44,38 @@ function buildAuthorizeApiUrl(params: Record<string, string>) {
   return `/api/auth/oauth2/authorize?${new URLSearchParams(params).toString()}`;
 }
 
+async function resumeConsentIfSignInPage(page: Page) {
+  const allowButton = page.getByRole("button", { name: /允许|Allow/i });
+  const debugSignInButton = page
+    .getByRole("button", {
+      name: /Sign in with Debug User \(Dev\)|调试用户（开发）/i,
+    })
+    .first();
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const visibleTarget = await Promise.race([
+      allowButton
+        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
+        .then(() => "allow" as const)
+        .catch(() => null),
+      debugSignInButton
+        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
+        .then(() => "signin" as const)
+        .catch(() => null),
+    ]);
+
+    if (visibleTarget === "allow") {
+      return;
+    }
+    if (visibleTarget === "signin") {
+      await debugSignInButton.click();
+      await page.waitForURL(/\/oauth\/authorize\?/);
+    }
+  }
+
+  await allowButton.waitFor({ state: "visible" });
+}
+
 test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, testInfo) => {
   const clientId = await registerPublicClient(page.request);
 
@@ -58,6 +95,33 @@ test("/oauth/authorize 未登录时重定向到登录页", async ({ page }, test
 
   await expect(page).toHaveURL(/\/signin\?/);
   await captureStepScreenshot(page, testInfo, "oauth-authorize-redirect");
+});
+
+test("/oauth/authorize 登录后恢复原授权请求", async ({ page }, testInfo) => {
+  const clientId = await registerPublicClient(page.request);
+
+  await gotoAndWaitForReady(
+    page,
+    buildAuthorizeApiUrl({
+      ...OAUTH_E2E_PKCE,
+      client_id: clientId,
+      redirect_uri: REDIRECT_URI,
+      response_type: "code",
+      scope: "openid profile",
+      state: "resume-state",
+      prompt: "consent",
+    }),
+    { expectMainContent: false },
+  );
+
+  await expect(page).toHaveURL(/\/signin\?/);
+  await page
+    .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/oauth\/authorize\?/);
+  await expect(page.getByRole("button", { name: /允许|Allow/i })).toBeVisible();
+  await captureStepScreenshot(page, testInfo, "oauth-authorize-resumed");
 });
 
 test("/oauth/authorize 无效客户端展示错误", async ({ page }, testInfo) => {
@@ -101,6 +165,7 @@ test("/oauth/authorize 拒绝授权时带 error 回跳", async ({ page }, testIn
   expect(consentLocation).toContain("/oauth/authorize?");
 
   await gotoAndWaitForReady(page, consentLocation, { waitUntil: "load" });
+  await resumeConsentIfSignInPage(page);
 
   await page.getByRole("button", { name: /拒绝|Deny/i }).click();
   await expect(page).toHaveURL(/\/e2e\/oauth\/callback\?/);
@@ -132,6 +197,7 @@ test("/oauth/authorize 允许授权时带 code 回跳", async ({ page }, testInf
   expect(consentLocation).toContain("/oauth/authorize?");
 
   await gotoAndWaitForReady(page, consentLocation, { waitUntil: "load" });
+  await resumeConsentIfSignInPage(page);
 
   await page.getByRole("button", { name: /允许|Allow/i }).click();
   await expect(page).toHaveURL(/\/e2e\/oauth\/callback\?/);

@@ -5,13 +5,17 @@
  *   - Requires an OAuth 2.0 Bearer token with the `mcp:tools` scope.
  *   - Returns a 401 with `WWW-Authenticate: Bearer` when no token is present.
  *   - Returns a 403 `insufficient_scope` when the token lacks `mcp:tools`.
+ *   - Supports trusted browser-origin CORS preflight and transport headers.
+ *   - Rejects foreign Origin headers before auth/tool handling.
  *   - Once authenticated, exposes 20+ tools via MCP protocol (homeworks, todos, buses, etc.).
  *
  * Tests exercise:
  *   1. Unauthenticated request → 401 Bearer challenge.
- *   2. Token without `mcp:tools` scope → 403 insufficient_scope.
- *   3. Opaque access-token (no resource indicator) → successful MCP session.
- *   4. Full PKCE flow with resource indicator → MCP session + calls every seeded tool.
+ *   2. Trusted browser-origin preflight + transport headers.
+ *   3. Foreign Origin header → rejected.
+ *   4. Token without `mcp:tools` scope → 403 insufficient_scope.
+ *   5. Opaque access-token (no resource indicator) → rejected by MCP resource binding.
+ *   6. Full PKCE flow with resource indicator → MCP session + calls every seeded tool.
  */
 import { createHash } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -29,6 +33,41 @@ function generateCodeChallenge(codeVerifier: string) {
 }
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
+const TRUSTED_BROWSER_ORIGIN = PLAYWRIGHT_BASE_URL.includes("127.0.0.1")
+  ? PLAYWRIGHT_BASE_URL.replace("127.0.0.1", "localhost")
+  : PLAYWRIGHT_BASE_URL.replace("localhost", "127.0.0.1");
+
+async function resumeConsentIfSignInPage(page: Page) {
+  const allowButton = page.getByRole("button", { name: /允许|Allow/i });
+  const debugSignInButton = page
+    .getByRole("button", {
+      name: /Sign in with Debug User \(Dev\)|调试用户（开发）/i,
+    })
+    .first();
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const visibleTarget = await Promise.race([
+      allowButton
+        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
+        .then(() => "allow" as const)
+        .catch(() => null),
+      debugSignInButton
+        .waitFor({ state: "visible", timeout: attempt === 0 ? 5_000 : 1_500 })
+        .then(() => "signin" as const)
+        .catch(() => null),
+    ]);
+
+    if (visibleTarget === "allow") {
+      return;
+    }
+    if (visibleTarget === "signin") {
+      await debugSignInButton.click();
+      await page.waitForURL(/\/oauth\/authorize\?/);
+    }
+  }
+
+  await allowButton.waitFor({ state: "visible" });
+}
 
 async function registerPublicClient(request: Page["request"], scope: string) {
   const response = await request.post("/api/auth/oauth2/register", {
@@ -84,7 +123,8 @@ async function authorizeAndGetCode(
   expect(consentLocation).toContain("/oauth/authorize?");
 
   await page.goto(consentLocation);
-  await page.getByRole("button", { name: /allow/i }).click();
+  await resumeConsentIfSignInPage(page);
+  await page.getByRole("button", { name: /允许|Allow/i }).click();
   await page.waitForURL("**/e2e/oauth/callback**");
 
   const callbackUrl = new URL(page.url());
@@ -145,14 +185,45 @@ async function issueAccessToken(
   };
 }
 
-function parseTextContent(result: {
+function getTextContent(result: {
   content: Array<{ type: string; text?: string }>;
 }) {
   const textContent = result.content.find(
     (item): item is { type: "text"; text: string } => item.type === "text",
   );
   expect(textContent).toBeDefined();
-  return JSON.parse(textContent?.text ?? "{}") as Record<string, unknown>;
+  return textContent?.text ?? "{}";
+}
+
+function parseTextContent(result: {
+  content: Array<{ type: string; text?: string }>;
+}) {
+  return JSON.parse(getTextContent(result)) as Record<string, unknown>;
+}
+
+function expectMcpCorsHeaders(
+  headers: Record<string, string>,
+  expectedOrigin = "*",
+) {
+  const allowHeaders =
+    headers["access-control-allow-headers"]?.toLowerCase() ?? "";
+  const allowMethods =
+    headers["access-control-allow-methods"]?.toLowerCase() ?? "";
+  const exposeHeaders =
+    headers["access-control-expose-headers"]?.toLowerCase() ?? "";
+
+  expect(headers["access-control-allow-origin"]).toBe(expectedOrigin);
+  expect(allowMethods).toContain("get");
+  expect(allowMethods).toContain("post");
+  expect(allowMethods).toContain("delete");
+  expect(allowMethods).toContain("options");
+  expect(allowHeaders).toContain("authorization");
+  expect(allowHeaders).toContain("content-type");
+  expect(allowHeaders).toContain("mcp-protocol-version");
+  expect(allowHeaders).toContain("mcp-session-id");
+  expect(allowHeaders).toContain("last-event-id");
+  expect(exposeHeaders).toContain("mcp-session-id");
+  expect(exposeHeaders).toContain("www-authenticate");
 }
 
 async function resetBusPreference(request: Page["request"]) {
@@ -191,6 +262,125 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       "resource_metadata=",
     );
     await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
+  });
+
+  test("/api/mcp 支持受信任浏览器来源的预检和 transport CORS headers", async ({
+    page,
+    request,
+  }) => {
+    const origin = TRUSTED_BROWSER_ORIGIN;
+    const initializePayload = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientInfo: {
+          name: "browser-cors-e2e-client",
+          version: "1.0.0",
+        },
+      },
+    };
+
+    const preflight = await request.fetch("/api/mcp", {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers":
+          "authorization,content-type,mcp-protocol-version,mcp-session-id,last-event-id",
+      },
+    });
+    expect(preflight.status()).toBe(204);
+    expectMcpCorsHeaders(preflight.headers(), origin);
+
+    const unauthenticatedResponse = await request.post("/api/mcp", {
+      data: initializePayload,
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Origin: origin,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+    expect(unauthenticatedResponse.status()).toBe(401);
+    expectMcpCorsHeaders(unauthenticatedResponse.headers(), origin);
+    expect(unauthenticatedResponse.headers()["www-authenticate"]).toContain(
+      "resource_metadata=",
+    );
+
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    await signInAsDebugUser(page, "/");
+    const { accessToken } = await issueAccessToken(page, request, {
+      scope: "openid profile mcp:tools",
+      clientScopes: ["openid", "profile", "mcp:tools"],
+      resource,
+    });
+
+    const authenticatedResponse = await request.post("/api/mcp", {
+      data: initializePayload,
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Origin: origin,
+        Authorization: `Bearer ${accessToken}`,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+    expect(authenticatedResponse.status()).toBe(200);
+    expectMcpCorsHeaders(authenticatedResponse.headers(), origin);
+  });
+
+  test("/api/mcp 拒绝外部 Origin header", async ({ page, request }) => {
+    const origin = "https://evil.example";
+    const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
+    const initializePayload = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2025-03-26",
+        capabilities: {},
+        clientInfo: {
+          name: "foreign-origin-e2e-client",
+          version: "1.0.0",
+        },
+      },
+    };
+
+    await signInAsDebugUser(page, "/");
+    const { accessToken } = await issueAccessToken(page, request, {
+      scope: "openid profile mcp:tools",
+      clientScopes: ["openid", "profile", "mcp:tools"],
+      resource,
+    });
+
+    const preflight = await request.fetch("/api/mcp", {
+      method: "OPTIONS",
+      headers: {
+        Origin: origin,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers":
+          "authorization,content-type,mcp-protocol-version",
+      },
+    });
+    expect(preflight.status()).toBe(403);
+    expect(preflight.headers()["access-control-allow-origin"]).toBeUndefined();
+    await expect(preflight.json()).resolves.toEqual({
+      error: "invalid_origin",
+    });
+
+    const response = await request.post("/api/mcp", {
+      data: initializePayload,
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Origin: origin,
+        Authorization: `Bearer ${accessToken}`,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
+    });
+    expect(response.status()).toBe(403);
+    expect(response.headers()["access-control-allow-origin"]).toBeUndefined();
+    await expect(response.json()).resolves.toEqual({ error: "invalid_origin" });
   });
 
   test("/api/mcp 缺少 mcp:tools scope 时返回 insufficient_scope", async ({
@@ -238,7 +428,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     });
   });
 
-  test("opaque access token (no resource on token exchange) can connect to /api/mcp", async ({
+  test("opaque access token (no resource on token exchange) is rejected by /api/mcp", async ({
     page,
     request,
   }) => {
@@ -254,25 +444,35 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
 
     expect(accessToken.split(".").length).toBeLessThan(3);
 
-    const transport = new StreamableHTTPClientTransport(new URL(resource), {
-      requestInit: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+    const response = await request.post("/api/mcp", {
+      data: {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: {
+            name: "opaque-token-e2e-client",
+            version: "1.0.0",
+          },
         },
       },
-    });
-    const mcpClient = new Client({
-      name: "opaque-token-e2e-client",
-      version: "1.0.0",
+      headers: {
+        Accept: "application/json, text/event-stream",
+        Authorization: `Bearer ${accessToken}`,
+        "MCP-Protocol-Version": "2025-03-26",
+      },
     });
 
-    try {
-      await mcpClient.connect(transport);
-      const tools = await mcpClient.listTools();
-      expect(tools.tools.some((t) => t.name === "get_my_profile")).toBe(true);
-    } finally {
-      await transport.close();
-    }
+    expect(response.status()).toBe(401);
+    expect(response.headers()["www-authenticate"]).toContain(
+      'error="invalid_token"',
+    );
+    expect(response.headers()["www-authenticate"]).toContain(
+      "resource_metadata=",
+    );
+    await expect(response.json()).resolves.toEqual({ error: "invalid_token" });
   });
 
   test("opaque MCP access token is rejected by protected REST routes", async ({
@@ -468,6 +668,30 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         DEV_SEED.course.nameCn,
       );
 
+      const filteredSectionsResult = await mcpClient.callTool({
+        name: "search_sections",
+        arguments: {
+          courseJwId: DEV_SEED.course.jwId,
+          semesterJwId: DEV_SEED.semesterJwId,
+          teacherCode: DEV_SEED.teacher.code,
+          jwIds: [DEV_SEED.section.jwId],
+          locale: "zh-cn",
+        },
+      });
+      const filteredSectionsPayload = parseTextContent(
+        filteredSectionsResult,
+      ) as {
+        data?: Array<{ jwId?: number; code?: string | null }>;
+        pagination?: { total?: number };
+      };
+      expect(filteredSectionsPayload.pagination?.total).toBe(1);
+      expect(filteredSectionsPayload.data?.[0]?.jwId).toBe(
+        DEV_SEED.section.jwId,
+      );
+      expect(filteredSectionsPayload.data?.[0]?.code).toBe(
+        DEV_SEED.section.code,
+      );
+
       const homeworksResult = await mcpClient.callTool({
         name: "list_homeworks_by_section",
         arguments: {
@@ -479,13 +703,28 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       const homeworksPayload = parseTextContent(homeworksResult) as {
         found?: boolean;
         section?: { jwId?: number };
-        homeworks?: Array<{ title?: string }>;
+        homeworks?: Array<{
+          title?: string;
+          section?: { jwId?: number };
+          createdBy?: unknown;
+          completion?: { completedAt?: string } | null;
+          commentCount?: number;
+        }>;
       };
       expect(homeworksPayload.found).toBe(true);
       expect(homeworksPayload.section?.jwId).toBe(DEV_SEED.section.jwId);
       expect(
         homeworksPayload.homeworks?.some(
           (homework) => homework.title === DEV_SEED.homeworks.title,
+        ),
+      ).toBe(true);
+      expect(
+        homeworksPayload.homeworks?.every(
+          (homework) =>
+            !Object.hasOwn(homework, "section") &&
+            !Object.hasOwn(homework, "createdBy") &&
+            typeof homework.commentCount === "number" &&
+            Object.hasOwn(homework, "completion"),
         ),
       ).toBe(true);
 
@@ -500,11 +739,49 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       const schedulesPayload = parseTextContent(schedulesResult) as {
         found?: boolean;
         section?: { jwId?: number };
-        schedules?: Array<{ id?: number }>;
+        schedules?: Array<{ id?: number; section?: unknown }>;
       };
       expect(schedulesPayload.found).toBe(true);
       expect(schedulesPayload.section?.jwId).toBe(DEV_SEED.section.jwId);
       expect((schedulesPayload.schedules?.length ?? 0) > 0).toBe(true);
+      expect(
+        schedulesPayload.schedules?.every(
+          (schedule) => !Object.hasOwn(schedule, "section"),
+        ),
+      ).toBe(true);
+
+      const queriedSchedulesResult = await mcpClient.callTool({
+        name: "query_schedules",
+        arguments: {
+          sectionCode: DEV_SEED.section.code,
+          teacherCode: DEV_SEED.teacher.code,
+          roomJwId: 9910031,
+          dateFrom: "2026-04-29T00:00:00+08:00",
+          dateTo: "2026-05-10T23:59:59+08:00",
+          locale: "zh-cn",
+        },
+      });
+      const queriedSchedulesPayload = parseTextContent(
+        queriedSchedulesResult,
+      ) as {
+        data?: Array<{
+          section?: { jwId?: number; code?: string | null };
+          room?: { jwId?: number | null };
+          teachers?: Array<{ code?: string | null }>;
+        }>;
+        pagination?: { total?: number };
+      };
+      expect((queriedSchedulesPayload.pagination?.total ?? 0) > 0).toBe(true);
+      expect(
+        queriedSchedulesPayload.data?.every(
+          (schedule) =>
+            schedule.section?.code === DEV_SEED.section.code &&
+            schedule.room?.jwId === 9910031 &&
+            schedule.teachers?.some(
+              (teacher) => teacher.code === DEV_SEED.teacher.code,
+            ) === true,
+        ),
+      ).toBe(true);
 
       const examsResult = await mcpClient.callTool({
         name: "list_exams_by_section",
@@ -531,11 +808,23 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         },
       });
       const myHomeworksPayload = parseTextContent(myHomeworksResult) as {
-        homeworks?: Array<{ id?: string; title?: string }>;
+        homeworks?: Array<{
+          id?: string;
+          title?: string;
+          completion?: { completedAt?: string } | null;
+          commentCount?: number;
+        }>;
       };
       expect(
         myHomeworksPayload.homeworks?.some(
           (homework) => homework.title === DEV_SEED.homeworks.title,
+        ),
+      ).toBe(true);
+      expect(
+        myHomeworksPayload.homeworks?.some(
+          (homework) =>
+            typeof homework.commentCount === "number" &&
+            Object.hasOwn(homework, "completion"),
         ),
       ).toBe(true);
       const firstHomeworkId = myHomeworksPayload.homeworks?.[0]?.id;
@@ -653,6 +942,31 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       expect(typeof overviewPayload.overview?.upcomingExamsCount).toBe(
         "number",
       );
+      const overviewSummaryResult = await mcpClient.callTool({
+        name: "get_my_overview",
+        arguments: {
+          locale: "zh-cn",
+          mode: "summary",
+        },
+      });
+      const overviewSummaryPayload = parseTextContent(
+        overviewSummaryResult,
+      ) as {
+        samples?: {
+          dueTodos?: { total?: number; items?: Array<{ id?: string }> };
+          dueHomeworks?: { total?: number; items?: Array<{ id?: string }> };
+          upcomingExams?: { total?: number; items?: Array<{ id?: number }> };
+        };
+      };
+      expect(getTextContent(overviewSummaryResult).length).toBeLessThan(
+        getTextContent(overviewResult).length,
+      );
+      expect(typeof overviewSummaryPayload.samples?.dueTodos?.total).toBe(
+        "number",
+      );
+      expect(
+        (overviewSummaryPayload.samples?.dueTodos?.items?.length ?? 0) <= 3,
+      ).toBe(true);
 
       const dashboardResult = await mcpClient.callTool({
         name: "get_my_dashboard",
@@ -662,21 +976,77 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       });
       const dashboardPayload = parseTextContent(dashboardResult) as {
         currentSemester?: { code?: string | null };
-        subscriptions?: { currentSemesterCount?: number };
-        todos?: { incompleteCount?: number };
-        bus?: { nextDeparture?: { routeId?: number | null } | null };
+        subscriptions?: {
+          currentSemesterCount?: number;
+          currentSemesterSectionsTotal?: number;
+          currentSemesterSections?: Array<{ jwId?: number }>;
+        };
+        nextClass?: {
+          payload?: { scheduleGroup?: unknown; roomType?: unknown };
+        };
+        upcomingDeadlines?: {
+          total?: number;
+          items?: Array<{ type?: string }>;
+        };
+        todos?: { incompleteCount?: number; items?: Array<{ id?: string }> };
+        bus?: {
+          nextDeparture?: { routeId?: number | null } | null;
+          departures?: Array<{ routeId?: number | null }>;
+        };
       };
       expect(dashboardPayload.currentSemester?.code).toBeDefined();
       expect(typeof dashboardPayload.subscriptions?.currentSemesterCount).toBe(
         "number",
       );
+      expect(
+        dashboardPayload.subscriptions?.currentSemesterSectionsTotal,
+      ).toBeGreaterThan(0);
+      if (dashboardPayload.nextClass?.payload) {
+        expect(dashboardPayload.nextClass.payload).not.toHaveProperty(
+          "scheduleGroup",
+        );
+        expect(dashboardPayload.nextClass.payload).not.toHaveProperty(
+          "roomType",
+        );
+      }
       expect(typeof dashboardPayload.todos?.incompleteCount).toBe("number");
+      expect(typeof dashboardPayload.upcomingDeadlines?.total).toBe("number");
       const nextDeparture = dashboardPayload.bus?.nextDeparture ?? null;
       if (nextDeparture) {
         expect(typeof nextDeparture.routeId).toBe("number");
       } else {
         expect(nextDeparture).toBeNull();
       }
+      const dashboardSummaryResult = await mcpClient.callTool({
+        name: "get_my_dashboard",
+        arguments: {
+          locale: "zh-cn",
+          mode: "summary",
+        },
+      });
+      const dashboardSummaryPayload = parseTextContent(
+        dashboardSummaryResult,
+      ) as {
+        subscriptions?: {
+          currentSemesterSections?: unknown;
+          currentSemesterSectionsTotal?: number;
+        };
+        upcomingDeadlines?: {
+          total?: number;
+          items?: Array<{ type?: string }>;
+        };
+        todos?: { incompleteCount?: number; items?: unknown };
+      };
+      expect(getTextContent(dashboardSummaryResult).length).toBeLessThan(
+        getTextContent(dashboardResult).length,
+      );
+      expect(
+        dashboardSummaryPayload.subscriptions?.currentSemesterSections,
+      ).toBeUndefined();
+      expect(
+        (dashboardSummaryPayload.upcomingDeadlines?.items?.length ?? 0) <= 3,
+      ).toBe(true);
+      expect(dashboardSummaryPayload.todos?.items).toBeUndefined();
 
       const nextClassResult = await mcpClient.callTool({
         name: "get_next_class",
@@ -738,6 +1108,73 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           ),
         ),
       ).toBe(true);
+      const timelineSummaryResult = await mcpClient.callTool({
+        name: "get_my_7days_timeline",
+        arguments: {
+          locale: "zh-cn",
+          mode: "summary",
+        },
+      });
+      const timelineSummaryPayload = parseTextContent(
+        timelineSummaryResult,
+      ) as {
+        total?: number;
+        events?: {
+          total?: number;
+          byType?: { schedule?: number };
+          days?: Array<{ date?: string; total?: number }>;
+          items?: Array<{ type?: string }>;
+        };
+      };
+      expect(getTextContent(timelineSummaryResult).length).toBeLessThan(
+        getTextContent(timelineResult).length,
+      );
+      expect(timelineSummaryPayload.events?.total).toBe(
+        timelineSummaryPayload.total,
+      );
+      expect(typeof timelineSummaryPayload.events?.byType?.schedule).toBe(
+        "number",
+      );
+      expect((timelineSummaryPayload.events?.days?.length ?? 0) > 0).toBe(true);
+
+      const calendarEventsResult = await mcpClient.callTool({
+        name: "list_my_calendar_events",
+        arguments: {
+          dateFrom: "2026-04-29T00:00:00+08:00",
+          dateTo: "2026-05-10T23:59:59+08:00",
+          locale: "zh-cn",
+        },
+      });
+      const calendarEventsPayload = parseTextContent(calendarEventsResult) as {
+        events?: Array<{ type?: string; at?: string | null }>;
+      };
+      expect((calendarEventsPayload.events?.length ?? 0) > 0).toBe(true);
+
+      const calendarEventsSummaryResult = await mcpClient.callTool({
+        name: "list_my_calendar_events",
+        arguments: {
+          dateFrom: "2026-04-29T00:00:00+08:00",
+          dateTo: "2026-05-10T23:59:59+08:00",
+          locale: "zh-cn",
+          mode: "summary",
+        },
+      });
+      const calendarEventsSummaryPayload = parseTextContent(
+        calendarEventsSummaryResult,
+      ) as {
+        events?: {
+          total?: number;
+          byType?: { schedule?: number };
+          days?: Array<{ date?: string; total?: number }>;
+        };
+      };
+      expect(getTextContent(calendarEventsSummaryResult).length).toBeLessThan(
+        getTextContent(calendarEventsResult).length,
+      );
+      expect(typeof calendarEventsSummaryPayload.events?.total).toBe("number");
+      expect(typeof calendarEventsSummaryPayload.events?.byType?.schedule).toBe(
+        "number",
+      );
 
       const matchSectionCodesResult = await mcpClient.callTool({
         name: "match_section_codes",
@@ -774,9 +1211,9 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       ) as {
         suggestions?: Record<string, string[]>;
       };
-      expect(fuzzyMatchPayload.suggestions?.["DEV-CS201.0"]).toContain(
+      expect(fuzzyMatchPayload.suggestions?.["DEV-CS201.0"]).toEqual([
         DEV_SEED.section.code,
-      );
+      ]);
 
       const busResult = await mcpClient.callTool({
         name: "query_bus_timetable",
@@ -787,7 +1224,16 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       const busPayload = parseTextContent(busResult) as {
         fetchedAt?: string;
         version?: { title?: string | null };
+        counts?: {
+          routes?: number;
+          weekdayTrips?: number;
+          weekendTrips?: number;
+        };
         routes?: Array<{ id?: number | null }>;
+        nextDepartures?: Array<{
+          routeId?: number;
+          departureTime?: string | null;
+        }>;
         trips?: Array<{
           dayType?: string;
           stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
@@ -800,16 +1246,42 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       };
       expect(typeof busPayload.fetchedAt).toBe("string");
       expect(busPayload.version?.title).toContain(DEV_SEED.bus.versionTitle);
+      expect(typeof busPayload.counts?.routes).toBe("number");
       expect(
         busPayload.routes?.some((route) => route.id === DEV_SEED.bus.routeId),
       ).toBe(true);
+      expect(busPayload.trips).toBeUndefined();
+      expect(busPayload.preferences?.preferredOriginCampusId).toBe(1);
+      expect(busPayload.preferences?.preferredDestinationCampusId).toBe(4);
+      expect(busPayload.preferences?.showDepartedTrips).toBe(true);
+      expect((busPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+
+      const busFullResult = await mcpClient.callTool({
+        name: "query_bus_timetable",
+        arguments: {
+          locale: "zh-cn",
+          mode: "full",
+        },
+      });
+      const busFullPayload = parseTextContent(busFullResult) as {
+        routes?: Array<{ id?: number | null }>;
+        trips?: Array<{
+          dayType?: string;
+          stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+        }>;
+      };
       expect(
-        busPayload.trips?.some(
+        busFullPayload.routes?.some(
+          (route) => route.id === DEV_SEED.bus.routeId,
+        ),
+      ).toBe(true);
+      expect(
+        busFullPayload.trips?.some(
           (trip) => trip.dayType === "weekday" || trip.dayType === "weekend",
         ),
       ).toBe(true);
       expect(
-        busPayload.trips?.some(
+        busFullPayload.trips?.some(
           (trip) =>
             Array.isArray(trip.stopTimes) &&
             trip.stopTimes.some(
@@ -817,9 +1289,6 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
             ),
         ),
       ).toBe(true);
-      expect(busPayload.preferences?.preferredOriginCampusId).toBe(1);
-      expect(busPayload.preferences?.preferredDestinationCampusId).toBe(4);
-      expect(busPayload.preferences?.showDepartedTrips).toBe(true);
 
       const busSummaryResult = await mcpClient.callTool({
         name: "query_bus_timetable",
@@ -838,11 +1307,18 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           routeId?: number;
           departureTime?: string | null;
         }>;
+        nextDeparturesMessage?: string | null;
       };
       expect(typeof busSummaryPayload.counts?.routes).toBe("number");
       expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
       expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
       expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+      expect(getTextContent(busSummaryResult).length).toBeLessThan(
+        getTextContent(busResult).length,
+      );
+      if (busSummaryPayload.nextDepartures?.length === 0) {
+        expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
+      }
 
       // list_bus_routes — lightweight route catalog
       const listRoutesResult = await mcpClient.callTool({
@@ -940,16 +1416,37 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       });
       const nextBusesPayload = parseTextContent(nextBusesResult) as {
         totalRoutes?: number;
-        departures?: Array<{ routeId?: number; departureTime?: string | null }>;
+        departures?: Array<{
+          routeId?: number;
+          departureTime?: string | null;
+          originCampus?: unknown;
+          destinationCampus?: unknown;
+        }>;
+        message?: string | null;
+        nextAvailableDeparture?: {
+          routeId?: number;
+          departureTime?: string | null;
+        } | null;
       };
       expect(nextBusesPayload.totalRoutes).toBeGreaterThan(0);
-      expect(
-        nextBusesPayload.departures?.every(
-          (departure) =>
-            typeof departure.routeId === "number" &&
-            typeof departure.departureTime === "string",
-        ),
-      ).toBe(true);
+      if ((nextBusesPayload.departures?.length ?? 0) > 0) {
+        expect(
+          nextBusesPayload.departures?.every(
+            (departure) =>
+              typeof departure.routeId === "number" &&
+              typeof departure.departureTime === "string" &&
+              !Object.hasOwn(departure, "originCampus") &&
+              !Object.hasOwn(departure, "destinationCampus"),
+          ),
+        ).toBe(true);
+      } else {
+        expect(typeof nextBusesPayload.message).toBe("string");
+        if (nextBusesPayload.nextAvailableDeparture) {
+          expect(typeof nextBusesPayload.nextAvailableDeparture.routeId).toBe(
+            "number",
+          );
+        }
+      }
 
       // get_bus_route_timetable — invalid route returns error message
       const invalidTimetableResult = await mcpClient.callTool({
@@ -1003,6 +1500,69 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       };
       expect(deleteTodoPayload.success).toBe(true);
 
+      const homeworkTitle = `[MCP-E2E-HW] ${Date.now()}`;
+      const createHomeworkResult = await mcpClient.callTool({
+        name: "create_homework_on_section",
+        arguments: {
+          sectionJwId: DEV_SEED.section.jwId,
+          title: homeworkTitle,
+          description: "homework created by mcp e2e",
+          publishedAt: "2026-04-29T09:00:00+08:00",
+          submissionStartAt: "2026-04-29T09:00:00+08:00",
+          submissionDueAt: "2026-05-12T23:00:00+08:00",
+          locale: "zh-cn",
+        },
+      });
+      const createHomeworkPayload = parseTextContent(createHomeworkResult) as {
+        success?: boolean;
+        id?: string;
+        homework?: {
+          id?: string;
+          title?: string;
+          section?: { jwId?: number };
+          commentCount?: number;
+        } | null;
+      };
+      expect(createHomeworkPayload.success).toBe(true);
+      expect(typeof createHomeworkPayload.id).toBe("string");
+      expect(createHomeworkPayload.homework?.id).toBe(createHomeworkPayload.id);
+      expect(createHomeworkPayload.homework?.title).toBe(homeworkTitle);
+      expect(createHomeworkPayload.homework?.section?.jwId).toBe(
+        DEV_SEED.section.jwId,
+      );
+      expect(typeof createHomeworkPayload.homework?.commentCount).toBe(
+        "number",
+      );
+
+      const updateHomeworkResult = await mcpClient.callTool({
+        name: "update_homework_on_section",
+        arguments: {
+          homeworkId: createHomeworkPayload.id,
+          title: `${homeworkTitle}-updated`,
+          description: "homework updated by mcp e2e",
+          requiresTeam: true,
+          submissionDueAt: "2026-05-15T23:00:00+08:00",
+        },
+      });
+      const updateHomeworkPayload = parseTextContent(updateHomeworkResult) as {
+        success?: boolean;
+        homework?: {
+          id?: string;
+          title?: string;
+          requiresTeam?: boolean;
+          description?: { content?: string } | null;
+        } | null;
+      };
+      expect(updateHomeworkPayload.success).toBe(true);
+      expect(updateHomeworkPayload.homework?.id).toBe(createHomeworkPayload.id);
+      expect(updateHomeworkPayload.homework?.title).toBe(
+        `${homeworkTitle}-updated`,
+      );
+      expect(updateHomeworkPayload.homework?.requiresTeam).toBe(true);
+      expect(updateHomeworkPayload.homework?.description?.content).toBe(
+        "homework updated by mcp e2e",
+      );
+
       const calendarSubscriptionResult = await mcpClient.callTool({
         name: "get_my_calendar_subscription",
         arguments: {
@@ -1015,6 +1575,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         success?: boolean;
         subscription?: {
           userId?: string;
+          currentSemesterSections?: Array<{ id?: number }>;
           sections?: Array<{ id?: number }>;
           calendarPath?: string;
         };
@@ -1024,8 +1585,12 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         currentUser.id,
       );
       expect(
-        (calendarSubscriptionPayload.subscription?.sections?.length ?? 0) > 0,
+        (calendarSubscriptionPayload.subscription?.currentSemesterSections
+          ?.length ?? 0) > 0,
       ).toBe(true);
+      expect(
+        calendarSubscriptionPayload.subscription?.sections,
+      ).toBeUndefined();
       expect(calendarSubscriptionPayload.subscription?.calendarPath).toContain(
         "/api/users/",
       );
@@ -1050,6 +1615,15 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         calendarSubscriptionSummaryPayload.subscription?.sectionCount,
       ).toBeGreaterThan(0);
       expect(
+        (
+          calendarSubscriptionSummaryPayload.subscription as
+            | {
+                currentSemesterSections?: unknown;
+              }
+            | undefined
+        )?.currentSemesterSections,
+      ).toBeUndefined();
+      expect(
         calendarSubscriptionSummaryPayload.subscription?.calendarPath,
       ).toContain("[redacted]");
 
@@ -1063,9 +1637,19 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       const subscribePayload = parseTextContent(subscribeResult) as {
         success?: boolean;
         matchedCodes?: string[];
+        subscription?: {
+          sectionCount?: number;
+          currentSemesterSections?: unknown;
+          sections?: unknown;
+        } | null;
       };
       expect(subscribePayload.success).toBe(true);
       expect(subscribePayload.matchedCodes).toContain(DEV_SEED.section.code);
+      expect(typeof subscribePayload.subscription?.sectionCount).toBe("number");
+      expect(
+        subscribePayload.subscription?.currentSemesterSections,
+      ).toBeUndefined();
+      expect(subscribePayload.subscription?.sections).toBeUndefined();
 
       const missingSectionResult = await mcpClient.callTool({
         name: "get_section_by_jw_id",

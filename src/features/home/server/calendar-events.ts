@@ -1,3 +1,4 @@
+import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
@@ -62,6 +63,7 @@ export async function listUserCalendarEvents(
       sectionIds,
     }),
   ]);
+  const homeworkItems = await withHomeworkItemState(homeworks);
 
   const todos = await prisma.todo.findMany({
     where: {
@@ -92,7 +94,7 @@ export async function listUserCalendarEvents(
         payload: schedule,
       };
     }),
-    ...homeworks.map((homework) => ({
+    ...homeworkItems.map((homework) => ({
       type: "homework_due" as const,
       at: homework.submissionDueAt
         ? toShanghaiIsoString(homework.submissionDueAt)

@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
+import { resolveSignInCallbackUrl } from "@/lib/auth/signin-callback-url";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -35,9 +36,10 @@ export default async function SignInPage({
   searchParams: Promise<{ callbackUrl?: string; error?: string }>;
 }) {
   const [session, params] = await Promise.all([auth(), searchParams]);
+  const callbackUrl = resolveSignInCallbackUrl(params);
 
   if (session?.user) {
-    redirect(params.callbackUrl || "/");
+    redirect(callbackUrl);
   }
 
   const t = await getTranslations("signIn");
@@ -79,11 +81,7 @@ export default async function SignInPage({
               className="flex w-full flex-col gap-4"
             >
               <input type="hidden" name="providerId" value={provider.id} />
-              <input
-                type="hidden"
-                name="callbackUrl"
-                value={params.callbackUrl || "/"}
-              />
+              <input type="hidden" name="callbackUrl" value={callbackUrl} />
               <Button
                 type="submit"
                 variant="outline"

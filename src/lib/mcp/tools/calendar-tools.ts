@@ -13,18 +13,49 @@ import {
   findSectionCodeMatches,
   findSectionCompactByJwId,
 } from "@/lib/course-section-queries";
-import { getPrisma, prisma } from "@/lib/db/prisma";
+import { prisma } from "@/lib/db/prisma";
 import {
+  flexDateInputSchema,
   getUserId,
   jsonToolResult,
   mcpModeInputSchema,
-  parseRequiredDateInput,
   resolveMcpMode,
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
-import { summarizeCalendarSubscription } from "@/lib/mcp/tools/calendar-summary";
-import { sectionCompactInclude } from "@/lib/query-helpers";
+import {
+  summarizeCalendarSubscription,
+  summarizeCalendarSubscriptionBrief,
+} from "@/lib/mcp/tools/calendar-summary";
+import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary";
 import { getPublicOrigin } from "@/lib/site-url";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+
+function getCalendarSubscriptionReadPayload(
+  subscription: NonNullable<
+    Awaited<ReturnType<typeof getUserCalendarSubscription>>
+  >,
+  mode: "summary" | "default" | "full",
+) {
+  if (mode === "full") {
+    return subscription;
+  }
+  if (mode === "summary") {
+    return summarizeCalendarSubscriptionBrief(subscription);
+  }
+  return summarizeCalendarSubscription(subscription);
+}
+
+function getCalendarSubscriptionMutationPayload(
+  subscription: NonNullable<
+    Awaited<ReturnType<typeof getUserCalendarSubscription>>
+  >,
+  mode: "summary" | "default" | "full",
+) {
+  if (mode === "full") {
+    return subscription;
+  }
+  return summarizeCalendarSubscriptionBrief(subscription);
+}
 
 export function registerCalendarTools(server: McpServer) {
   server.registerTool(
@@ -48,22 +79,15 @@ export function registerCalendarTools(server: McpServer) {
         });
       }
 
-      if (resolvedMode === "summary") {
-        return jsonToolResult(
-          {
-            success: true,
-            subscription: summarizeCalendarSubscription(subscription),
-          },
-          { mode: "default" },
-        );
-      }
-
       return jsonToolResult(
         {
           success: true,
-          subscription,
+          subscription: getCalendarSubscriptionReadPayload(
+            subscription,
+            resolvedMode,
+          ),
         },
-        { mode: resolvedMode },
+        { mode: resolvedMode === "full" ? "full" : "default" },
       );
     },
   );
@@ -107,8 +131,21 @@ export function registerCalendarTools(server: McpServer) {
       },
     },
     async ({ jwId, locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
+      const userId = getUserId(extra.authInfo);
+      const existingSubscription = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          subscribedSections: {
+            where: { jwId },
+            select: { id: true },
+          },
+        },
+      });
+      const alreadySubscribed =
+        (existingSubscription?.subscribedSections.length ?? 0) > 0;
       const subscription = await subscribeUserToSectionByJwId(
-        getUserId(extra.authInfo),
+        userId,
         jwId,
         locale,
       );
@@ -116,9 +153,17 @@ export function registerCalendarTools(server: McpServer) {
       return jsonToolResult(
         {
           success: Boolean(subscription),
-          subscription,
+          action: subscription
+            ? alreadySubscribed
+              ? "already_subscribed"
+              : "subscribed"
+            : "not_found",
+          sectionJwId: jwId,
+          subscription: subscription
+            ? getCalendarSubscriptionMutationPayload(subscription, resolvedMode)
+            : null,
         },
-        { mode: resolveMcpMode(mode) },
+        { mode: resolvedMode === "full" ? "full" : "default" },
       );
     },
   );
@@ -135,8 +180,21 @@ export function registerCalendarTools(server: McpServer) {
       },
     },
     async ({ jwId, locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
+      const userId = getUserId(extra.authInfo);
+      const existingSubscription = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          subscribedSections: {
+            where: { jwId },
+            select: { id: true },
+          },
+        },
+      });
+      const wasSubscribed =
+        (existingSubscription?.subscribedSections.length ?? 0) > 0;
       const subscription = await unsubscribeUserFromSectionByJwId(
-        getUserId(extra.authInfo),
+        userId,
         jwId,
         locale,
       );
@@ -144,9 +202,17 @@ export function registerCalendarTools(server: McpServer) {
       return jsonToolResult(
         {
           success: Boolean(subscription),
-          subscription,
+          action: subscription
+            ? wasSubscribed
+              ? "unsubscribed"
+              : "not_subscribed"
+            : "not_found",
+          sectionJwId: jwId,
+          subscription: subscription
+            ? getCalendarSubscriptionMutationPayload(subscription, resolvedMode)
+            : null,
         },
-        { mode: resolveMcpMode(mode) },
+        { mode: resolvedMode === "full" ? "full" : "default" },
       );
     },
   );
@@ -192,7 +258,6 @@ export function registerCalendarTools(server: McpServer) {
     async ({ codes, semesterId, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const localizedPrisma = getPrisma(locale);
 
       const matches = await findSectionCodeMatches(codes, locale, semesterId);
       if (!matches) {
@@ -223,16 +288,7 @@ export function registerCalendarTools(server: McpServer) {
         },
       });
 
-      const updatedUser = await localizedPrisma.user.findUniqueOrThrow({
-        where: { id: userId },
-        select: {
-          id: true,
-          subscribedSections: {
-            include: sectionCompactInclude,
-            orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
-          },
-        },
-      });
+      const subscription = await getUserCalendarSubscription(userId, locale);
 
       return jsonToolResult(
         {
@@ -241,13 +297,12 @@ export function registerCalendarTools(server: McpServer) {
           matchedCodes: matches.matchedCodes,
           unmatchedCodes: matches.unmatchedCodes,
           addedCount,
-          subscription: {
-            userId: updatedUser.id,
-            sections: updatedUser.subscribedSections,
-            note: SECTION_SUBSCRIPTION_NOTE,
-          },
+          alreadySubscribedCount: matchedIds.length - addedCount,
+          subscription: subscription
+            ? getCalendarSubscriptionMutationPayload(subscription, resolvedMode)
+            : null,
         },
-        { mode: resolvedMode },
+        { mode: resolvedMode === "full" ? "full" : "default" },
       );
     },
   );
@@ -258,24 +313,59 @@ export function registerCalendarTools(server: McpServer) {
       description:
         "List unified calendar events for the authenticated user across schedules, homework deadlines, exams, and todos.",
       inputSchema: {
-        dateFrom: z.string().datetime({ offset: true }).optional(),
-        dateTo: z.string().datetime({ offset: true }).optional(),
+        dateFrom: flexDateInputSchema
+          .optional()
+          .describe(
+            "Start of the date range (inclusive). Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
+        dateTo: flexDateInputSchema
+          .optional()
+          .describe(
+            "End of the date range (inclusive). Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
         locale: localeSchema.default(DEFAULT_LOCALE),
         mode: mcpModeInputSchema,
       },
     },
     async ({ dateFrom, dateTo, locale, mode }, extra) => {
+      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
+      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
+      if (parsedDateFrom === undefined && dateFrom) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      if (parsedDateTo === undefined && dateTo) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
       const events = await listUserCalendarEvents(getUserId(extra.authInfo), {
         locale,
-        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
-        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
+        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
       });
+      const resolvedMode = resolveMcpMode(mode);
+
+      if (resolvedMode === "summary") {
+        return jsonToolResult(
+          {
+            events: summarizeCalendarEventCollection(events, {
+              itemLimit: 5,
+              dayLimit: 7,
+            }),
+          },
+          { mode: "default" },
+        );
+      }
 
       return jsonToolResult(
         {
           events,
         },
-        { mode: resolveMcpMode(mode) },
+        { mode: resolvedMode },
       );
     },
   );

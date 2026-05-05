@@ -8,6 +8,7 @@ import type {
   BusMapCampusNode,
   BusMapData,
   BusMapRouteEdge,
+  BusNextDeparturesResult,
   BusPreferencePayload,
   BusResolvedDayType,
   BusRouteListing,
@@ -608,8 +609,9 @@ export function buildNextBusDeparturesFromData(
     dayType?: BusResolvedDayType;
     limit?: number;
     includeDeparted?: boolean;
+    includeNextAvailableGuidance?: boolean;
   },
-) {
+): BusNextDeparturesResult {
   const now = input.atTime ? shanghaiDayjs(input.atTime) : shanghaiDayjs();
   const dayType = resolveBusDayType(input.dayType, now);
   const originCampus =
@@ -661,6 +663,45 @@ export function buildNextBusDeparturesFromData(
     })
     .slice(0, input.limit ?? 5);
 
+  let nextAvailableDeparture: (typeof departures)[number] | null = null;
+  if (
+    input.includeNextAvailableGuidance !== false &&
+    departures.length === 0 &&
+    applicableRoutes.length > 0
+  ) {
+    for (let dayOffset = 1; dayOffset < 7; dayOffset += 1) {
+      const probeTime = now
+        .add(dayOffset, "day")
+        .hour(0)
+        .minute(0)
+        .second(0)
+        .millisecond(0);
+      const probeDayType = resolveBusDayType(undefined, probeTime);
+      const probeResult = buildNextBusDeparturesFromData(data, {
+        originCampusId: input.originCampusId,
+        destinationCampusId: input.destinationCampusId,
+        atTime: probeTime.toISOString(),
+        dayType: probeDayType,
+        limit: 1,
+        includeDeparted: false,
+        includeNextAvailableGuidance: false,
+      });
+      if (probeResult.departures.length > 0) {
+        nextAvailableDeparture = probeResult.departures[0] ?? null;
+        break;
+      }
+    }
+  }
+
+  const message =
+    departures.length > 0
+      ? null
+      : applicableRoutes.length === 0
+        ? "No shuttle route is available for the requested origin and destination campuses."
+        : nextAvailableDeparture
+          ? `No more ${dayType} departures are available right now. The next available service is at ${nextAvailableDeparture.departureTime ?? "an estimated time"}.`
+          : `No more ${dayType} departures are available in the next 7 days for the requested route.`;
+
   return {
     originCampus,
     destinationCampus,
@@ -668,6 +709,8 @@ export function buildNextBusDeparturesFromData(
     dayType,
     totalRoutes: applicableRoutes.length,
     departures,
+    nextAvailableDeparture,
+    message,
   };
 }
 
@@ -681,7 +724,7 @@ export async function getNextBusDepartures(input: {
   includeDeparted?: boolean;
   versionKey?: string | null;
   userId?: string | null;
-}) {
+}): Promise<BusNextDeparturesResult | null> {
   const now = input.atTime ? shanghaiDayjs(input.atTime) : shanghaiDayjs();
   const data = await getBusTimetableData({
     locale: input.locale,

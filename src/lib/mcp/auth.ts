@@ -96,7 +96,7 @@ function accessTokenLooksLikeJwt(token: string): boolean {
  */
 async function verifyOpaqueAccessTokenForMcp(
   token: string,
-): Promise<AuthInfo | null> {
+): Promise<{ authInfo: AuthInfo } | { failure: AuthFailure } | null> {
   if (accessTokenLooksLikeJwt(token)) return null;
 
   const tokenHash = hashOAuthClientSecretForDbStorage(token);
@@ -105,17 +105,11 @@ async function verifyOpaqueAccessTokenForMcp(
   });
   if (!row || row.expiresAt.getTime() <= Date.now()) return null;
   if (!row.scopes.includes(MCP_TOOLS_SCOPE)) return null;
-
-  const mcpResource = getOAuthMcpResourceUrl();
-
   return {
-    token,
-    clientId: row.clientId,
-    scopes: [...row.scopes],
-    expiresAt: Math.floor(row.expiresAt.getTime() / 1000),
-    resource: new URL(mcpResource),
-    extra: {
-      userId: row.userId ?? undefined,
+    failure: {
+      error: INVALID_TOKEN_ERROR,
+      status: 401,
+      description: "Access token is not bound to this MCP resource",
     },
   };
 }
@@ -190,11 +184,16 @@ export async function verifyAccessToken(
   }
 
   const opaque = await verifyOpaqueAccessTokenForMcp(token);
-  if (opaque) return opaque;
+  if (opaque) {
+    if ("failure" in opaque) {
+      return opaque.failure;
+    }
+    return opaque.authInfo;
+  }
 
   if (isOAuthDebugLogging()) {
     logOAuthDebug("mcp.opaque-token-miss", request, {
-      reason: "no_matching_hashed_token_or_scope",
+      reason: "no_matching_hashed_token_scope_or_resource_binding",
     });
   }
 

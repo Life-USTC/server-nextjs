@@ -7,18 +7,25 @@ import {
   listSubscribedHomeworks,
   listSubscribedSchedules,
 } from "@/features/home/server/subscribed-data";
+import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import {
-  dateTimeSchema,
+  flexDateInputSchema,
   getTodayBounds,
   getUserId,
   getViewerInfo,
   jsonToolResult,
   mcpModeInputSchema,
-  parseRequiredDateInput,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
+import {
+  summarizeCalendarEventCollection,
+  summarizeExamCard,
+  summarizeHomeworkCard,
+  summarizeTodoCard,
+} from "@/lib/mcp/tools/event-summary";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export function registerMyDataTools(server: McpServer) {
@@ -42,8 +49,12 @@ export function registerMyDataTools(server: McpServer) {
         completed,
         limit,
       });
+      const homeworkItems = await withHomeworkItemState(homeworks);
 
-      return jsonToolResult({ homeworks }, { mode: resolvedMode });
+      return jsonToolResult(
+        { homeworks: homeworkItems },
+        { mode: resolvedMode },
+      );
     },
   );
 
@@ -160,8 +171,8 @@ export function registerMyDataTools(server: McpServer) {
       description:
         "List schedules across the authenticated user's subscribed sections.",
       inputSchema: {
-        dateFrom: dateTimeSchema.optional(),
-        dateTo: dateTimeSchema.optional(),
+        dateFrom: flexDateInputSchema.optional(),
+        dateTo: flexDateInputSchema.optional(),
         weekday: z.number().int().min(1).max(7).optional(),
         limit: z.number().int().min(1).max(300).default(150),
         locale: localeSchema.default(DEFAULT_LOCALE),
@@ -171,10 +182,24 @@ export function registerMyDataTools(server: McpServer) {
     async ({ dateFrom, dateTo, weekday, limit, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
+      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
+      if (parsedDateFrom === undefined && dateFrom) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
+      if (parsedDateTo === undefined && dateTo) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
       const schedules = await listSubscribedSchedules(userId, {
         locale,
-        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
-        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
+        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
         weekday,
         limit,
       });
@@ -189,8 +214,8 @@ export function registerMyDataTools(server: McpServer) {
       description:
         "List exams across the authenticated user's subscribed sections.",
       inputSchema: {
-        dateFrom: dateTimeSchema.optional(),
-        dateTo: dateTimeSchema.optional(),
+        dateFrom: flexDateInputSchema.optional(),
+        dateTo: flexDateInputSchema.optional(),
         includeDateUnknown: z.boolean().default(true),
         limit: z.number().int().min(1).max(300).default(150),
         locale: localeSchema.default(DEFAULT_LOCALE),
@@ -203,10 +228,24 @@ export function registerMyDataTools(server: McpServer) {
     ) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
+      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
+      if (parsedDateFrom === undefined && dateFrom) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
+      if (parsedDateTo === undefined && dateTo) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
       const exams = await listSubscribedExams(userId, {
         locale,
-        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
-        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
+        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
         includeDateUnknown,
         limit,
       });
@@ -222,15 +261,31 @@ export function registerMyDataTools(server: McpServer) {
         "Get an overview of todos, homeworks, schedules and exams for the authenticated user.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
+        atTime: flexDateInputSchema
+          .optional()
+          .describe(
+            "Override the current time for this query. Useful for testing or asking about a specific day.",
+          ),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ locale, mode }, extra) => {
+    async ({ locale, atTime, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
       const user = await getViewerInfo(userId);
       const sectionIds = await getSubscribedSectionIds(userId);
-      const { now, todayStart, tomorrowStart } = getTodayBounds();
+      const atTimeDate = atTime
+        ? (parseDateInput(atTime) ?? undefined)
+        : undefined;
+      if (atTime && !(atTimeDate instanceof Date)) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      const { now, todayStart, tomorrowStart } = getTodayBounds(
+        atTimeDate instanceof Date ? atTimeDate : undefined,
+      );
 
       // Prisma's pg adapter currently emits a driver deprecation warning when
       // a single request fans out multiple queries concurrently.
@@ -287,7 +342,7 @@ export function registerMyDataTools(server: McpServer) {
         orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
         take: 5,
       });
-      const [dueHomeworks, upcomingExams] = await Promise.all([
+      const [dueHomeworksRaw, upcomingExams] = await Promise.all([
         listSubscribedHomeworks(userId, {
           locale,
           completed: false,
@@ -303,6 +358,40 @@ export function registerMyDataTools(server: McpServer) {
           sectionIds,
         }),
       ]);
+      const dueHomeworks = await withHomeworkItemState(dueHomeworksRaw);
+
+      if (resolvedMode === "summary") {
+        return jsonToolResult(
+          {
+            user: {
+              id: user.id,
+              name: user.name,
+              image: user.image,
+            },
+            overview: {
+              pendingTodosCount,
+              pendingHomeworksCount,
+              todaySchedulesCount,
+              upcomingExamsCount,
+            },
+            samples: {
+              dueTodos: {
+                total: dueTodos.length,
+                items: dueTodos.slice(0, 3).map(summarizeTodoCard),
+              },
+              dueHomeworks: {
+                total: dueHomeworks.length,
+                items: dueHomeworks.slice(0, 3).map(summarizeHomeworkCard),
+              },
+              upcomingExams: {
+                total: upcomingExams.length,
+                items: upcomingExams.slice(0, 3).map(summarizeExamCard),
+              },
+            },
+          },
+          { mode: "default" },
+        );
+      }
 
       return jsonToolResult(
         {
@@ -336,13 +425,29 @@ export function registerMyDataTools(server: McpServer) {
         "Get next-7-day timeline events from schedules, homework deadlines, exams and todos.",
       inputSchema: {
         locale: localeSchema.default(DEFAULT_LOCALE),
+        atTime: flexDateInputSchema
+          .optional()
+          .describe(
+            "Override the start of the 7-day window. Defaults to today in Asia/Shanghai. Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ locale, mode }, extra) => {
+    async ({ locale, atTime, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const { todayStart } = getTodayBounds();
+      const atTimeDate = atTime
+        ? (parseDateInput(atTime) ?? undefined)
+        : undefined;
+      if (atTime && !(atTimeDate instanceof Date)) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      const { todayStart } = getTodayBounds(
+        atTimeDate instanceof Date ? atTimeDate : undefined,
+      );
       const windowEnd = new Date(todayStart);
       windowEnd.setDate(windowEnd.getDate() + 7);
       const events = await listUserCalendarEvents(userId, {
@@ -350,6 +455,23 @@ export function registerMyDataTools(server: McpServer) {
         dateFrom: todayStart,
         dateTo: windowEnd,
       });
+
+      if (resolvedMode === "summary") {
+        return jsonToolResult(
+          {
+            range: {
+              from: toShanghaiIsoString(todayStart),
+              to: toShanghaiIsoString(windowEnd),
+            },
+            total: events.length,
+            events: summarizeCalendarEventCollection(events, {
+              itemLimit: 5,
+              dayLimit: 7,
+            }),
+          },
+          { mode: "default" },
+        );
+      }
 
       return jsonToolResult(
         {

@@ -18,6 +18,11 @@ interface OAuthConsentFormProps {
   scopes: string[];
 }
 
+type OAuthConsentResponse = {
+  url?: string;
+  redirect_uri?: string;
+} | null;
+
 export function OAuthConsentForm({
   clientName,
   oauthQuery,
@@ -38,20 +43,26 @@ export function OAuthConsentForm({
           scope: scopes.join(" "),
         }),
       });
-      let payload: { url?: string } | null = null;
+      let payload: OAuthConsentResponse = null;
+      let redirectUri: string | null = null;
       try {
-        payload = await response.json();
+        payload = (await response.json()) as OAuthConsentResponse;
+        redirectUri =
+          typeof payload?.url === "string"
+            ? payload.url
+            : typeof payload?.redirect_uri === "string"
+              ? payload.redirect_uri
+              : null;
       } catch {
         // Malformed JSON response — handled below via redirect
       }
 
-      const redirectUrl = payload?.url;
-      if (!response.ok || !redirectUrl) {
+      if (!response.ok || !redirectUri) {
         window.location.href = "/error?error=consent_failed";
         return;
       }
 
-      window.location.href = redirectUrl;
+      window.location.href = redirectUri;
     } catch {
       window.location.href = "/error?error=consent_failed";
     }

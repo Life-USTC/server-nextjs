@@ -9,6 +9,21 @@ import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 
 export type Locale = z.infer<typeof localeSchema>;
 export const dateTimeSchema = z.string().datetime({ offset: true });
+
+/**
+ * Flexible date input schema for MCP tool parameters.
+ * Accepts ISO 8601 with timezone offset (e.g. 2026-05-01T08:00:00+08:00),
+ * date-only strings (e.g. 2026-05-01, treated as UTC midnight for @db.Date columns),
+ * or datetime without timezone (e.g. 2026-05-01T08:00:00, interpreted as Asia/Shanghai).
+ * Invalid strings are rejected at the handler level via parseDateInput.
+ */
+export const flexDateInputSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .describe(
+    "Accepts ISO 8601 with offset (2026-05-01T08:00:00+08:00), date-only (2026-05-01), or datetime without timezone (2026-05-01T08:00:00, interpreted as Asia/Shanghai).",
+  );
 export const sectionCodeSchema = z
   .string()
   .trim()
@@ -114,8 +129,13 @@ export async function getViewerInfo(userId: string) {
   return user;
 }
 
-export function getTodayBounds() {
-  const now = new Date();
+/**
+ * Returns today's bounds in Asia/Shanghai calendar time.
+ * Pass `atTime` to override the current time — useful for reproducible tests
+ * and AI assistant queries anchored to a specific moment.
+ */
+export function getTodayBounds(atTime?: Date) {
+  const now = atTime ?? new Date();
   const todayStart = parseRequiredDateInput(formatShanghaiDate(now));
   const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
   return { now, todayStart, tomorrowStart };

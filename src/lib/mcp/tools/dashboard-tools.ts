@@ -4,11 +4,17 @@ import { getAssistantDashboardSnapshot } from "@/features/home/server/assistant-
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
+  flexDateInputSchema,
   getUserId,
   jsonToolResult,
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
+import {
+  compactDashboardSnapshot,
+  summarizeDashboardSnapshot,
+} from "@/lib/mcp/tools/dashboard-summary";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export function registerDashboardTools(server: McpServer) {
   server.registerTool(
@@ -22,11 +28,22 @@ export function registerDashboardTools(server: McpServer) {
       },
     },
     async ({ locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const snapshot = await getAssistantDashboardSnapshot({
         userId: getUserId(extra.authInfo),
         locale,
       });
-      return jsonToolResult(snapshot, { mode: resolveMcpMode(mode) });
+      if (resolvedMode === "full") {
+        return jsonToolResult(snapshot, { mode: "full" });
+      }
+      if (resolvedMode === "summary") {
+        return jsonToolResult(summarizeDashboardSnapshot(snapshot), {
+          mode: "default",
+        });
+      }
+      return jsonToolResult(compactDashboardSnapshot(snapshot), {
+        mode: "default",
+      });
     },
   );
 
@@ -63,13 +80,30 @@ export function registerDashboardTools(server: McpServer) {
         "Get a merged upcoming list of homework deadlines, exams, and due todos for the authenticated user.",
       inputSchema: {
         dayLimit: z.number().int().min(1).max(30).default(7),
+        atTime: flexDateInputSchema
+          .optional()
+          .describe(
+            "Override the reference time for the deadline window. Defaults to now. Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
         locale: localeSchema.default(DEFAULT_LOCALE),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ dayLimit, locale, mode }, extra) => {
+    async ({ dayLimit, atTime, locale, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
-      const now = new Date();
+      let now: Date;
+      if (atTime) {
+        const parsed = parseDateInput(atTime);
+        if (!(parsed instanceof Date)) {
+          return jsonToolResult({
+            success: false,
+            message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+          });
+        }
+        now = parsed;
+      } else {
+        now = new Date();
+      }
       const dateTo = new Date(now.getTime() + dayLimit * 24 * 60 * 60 * 1000);
       const events = await listUserCalendarEvents(userId, {
         locale,

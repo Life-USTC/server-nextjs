@@ -2,6 +2,16 @@ function normalizeFuzzyValue(value: string) {
   return value.trim().toUpperCase().replace(/\s+/g, "");
 }
 
+function tokenizeFuzzyValue(value: string): string[] {
+  return (
+    value
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "")
+      .match(/[A-Z]+\d*|\d+/g) ?? []
+  );
+}
+
 function levenshteinDistance(left: string, right: string) {
   if (left === right) return 0;
   if (left.length === 0) return right.length;
@@ -47,8 +57,21 @@ function computeFuzzyScore(query: string, candidate: string) {
   const similarity = 1 - distance / maxLength;
   const prefixBonus = normalizedCandidate.startsWith(normalizedQuery) ? 0.2 : 0;
   const containsBonus = normalizedCandidate.includes(normalizedQuery) ? 0.1 : 0;
+  const queryTokens = tokenizeFuzzyValue(query);
+  const candidateTokens = tokenizeFuzzyValue(candidate);
+  const significantQueryTokens = queryTokens.filter(
+    (token) => token.length >= 4,
+  );
+  const significantOverlap = significantQueryTokens.filter((token) =>
+    candidateTokens.includes(token),
+  ).length;
+  if (significantQueryTokens.length > 0 && significantOverlap === 0) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  const tokenOverlapBonus =
+    significantOverlap > 0 ? Math.min(0.3, significantOverlap * 0.15) : 0;
 
-  return similarity + prefixBonus + containsBonus;
+  return similarity + prefixBonus + containsBonus + tokenOverlapBonus;
 }
 
 export function findClosestMatches(

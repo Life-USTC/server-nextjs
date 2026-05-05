@@ -1,10 +1,10 @@
 import { getViewerContext } from "@/features/comments/server/comment-utils";
 import {
-  getHomeworkCommentCounts,
   getSubscribedSectionIds,
   listSubscribedHomeworkAuditLogs,
   listSubscribedHomeworks,
 } from "@/features/home/server/subscribed-data";
+import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
   handleRouteError,
   jsonResponse,
@@ -51,18 +51,7 @@ export async function GET(request: Request) {
       listSubscribedHomeworkAuditLogs(userId, 50, sectionIds),
     ]);
 
-    const commentCounts = await getHomeworkCommentCounts(
-      homeworks.map((homework) => homework.id),
-    );
-
-    const responseHomeworks = homeworks.map((homework) => {
-      const { homeworkCompletions, ...rest } = homework;
-      return {
-        ...rest,
-        completion: homeworkCompletions?.[0] ?? null,
-        commentCount: commentCounts.get(homework.id) ?? 0,
-      };
-    });
+    const responseHomeworks = await withHomeworkItemState(homeworks);
 
     return jsonResponse({
       viewer,

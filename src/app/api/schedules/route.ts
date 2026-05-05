@@ -1,14 +1,16 @@
 import type { NextRequest } from "next/server";
-import type { Prisma } from "@/generated/prisma/client";
 import {
   buildPaginatedResponse,
   getPagination,
   handleRouteError,
   jsonResponse,
-  parseOptionalInt,
 } from "@/lib/api/helpers";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma, prisma } from "@/lib/db/prisma";
+import {
+  buildScheduleListWhere,
+  publicScheduleInclude,
+} from "@/lib/schedule-queries";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { formatTime } from "@/shared/lib/time-utils";
 export const dynamic = "force-dynamic";
@@ -24,8 +26,12 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const parsedQuery = schedulesQuerySchema.safeParse({
       sectionId: searchParams.get("sectionId") ?? undefined,
+      sectionJwId: searchParams.get("sectionJwId") ?? undefined,
+      sectionCode: searchParams.get("sectionCode") ?? undefined,
       teacherId: searchParams.get("teacherId") ?? undefined,
+      teacherCode: searchParams.get("teacherCode") ?? undefined,
       roomId: searchParams.get("roomId") ?? undefined,
+      roomJwId: searchParams.get("roomJwId") ?? undefined,
       dateFrom: searchParams.get("dateFrom") ?? undefined,
       dateTo: searchParams.get("dateTo") ?? undefined,
       weekday: searchParams.get("weekday") ?? undefined,
@@ -37,54 +43,55 @@ export async function GET(request: NextRequest) {
     }
 
     const pagination = getPagination(searchParams);
-    const { sectionId, teacherId, roomId, dateFrom, dateTo, weekday } =
-      parsedQuery.data;
+    const {
+      sectionId,
+      sectionJwId,
+      sectionCode,
+      teacherId,
+      teacherCode,
+      roomId,
+      roomJwId,
+      dateFrom,
+      dateTo,
+      weekday,
+    } = parsedQuery.data;
 
-    const whereClause: Prisma.ScheduleWhereInput = {};
-    const parsedSectionId = parseOptionalInt(sectionId);
-    if (parsedSectionId !== null) whereClause.sectionId = parsedSectionId;
-    if (teacherId) {
-      const parsedTeacherId = parseOptionalInt(teacherId);
-      if (parsedTeacherId !== null) {
-        whereClause.teachers = {
-          some: {
-            id: parsedTeacherId,
-          },
-        };
-      }
-    }
-    const parsedRoomId = parseOptionalInt(roomId);
-    if (parsedRoomId !== null) whereClause.roomId = parsedRoomId;
-    const dateFilter: Prisma.DateTimeFilter = {};
+    let parsedDateFrom: Date | undefined;
     if (dateFrom) {
-      const parsedDateFrom = parseDateInput(dateFrom);
-      if (!(parsedDateFrom instanceof Date)) {
+      const nextDateFrom = parseDateInput(dateFrom);
+      if (!(nextDateFrom instanceof Date)) {
         return handleRouteError(
           "Invalid schedule query",
           "Invalid dateFrom",
           400,
         );
       }
-      dateFilter.gte = parsedDateFrom;
+      parsedDateFrom = nextDateFrom;
     }
+    let parsedDateTo: Date | undefined;
     if (dateTo) {
-      const parsedDateTo = parseDateInput(dateTo);
-      if (!(parsedDateTo instanceof Date)) {
+      const nextDateTo = parseDateInput(dateTo);
+      if (!(nextDateTo instanceof Date)) {
         return handleRouteError(
           "Invalid schedule query",
           "Invalid dateTo",
           400,
         );
       }
-      dateFilter.lte = parsedDateTo;
+      parsedDateTo = nextDateTo;
     }
-    if (dateFrom || dateTo) whereClause.date = dateFilter;
-    if (weekday !== null && weekday !== undefined) {
-      const parsedWeekday = parseOptionalInt(weekday);
-      if (parsedWeekday !== null) {
-        whereClause.weekday = parsedWeekday;
-      }
-    }
+    const whereClause = buildScheduleListWhere({
+      sectionId,
+      sectionJwId,
+      sectionCode,
+      teacherId,
+      teacherCode,
+      roomId,
+      roomJwId,
+      weekday,
+      dateFrom: parsedDateFrom,
+      dateTo: parsedDateTo,
+    });
 
     const localizedPrisma = getPrisma("zh-cn");
     const [schedules, total] = await Promise.all([
@@ -92,30 +99,7 @@ export async function GET(request: NextRequest) {
         where: whereClause,
         skip: pagination.skip,
         take: pagination.pageSize,
-        include: {
-          room: {
-            include: {
-              building: {
-                include: {
-                  campus: true,
-                },
-              },
-              roomType: true,
-            },
-          },
-          teachers: {
-            include: {
-              department: true,
-            },
-          },
-          section: {
-            include: {
-              course: true,
-              semester: true,
-            },
-          },
-          scheduleGroup: true,
-        },
+        include: publicScheduleInclude,
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
       }),
       prisma.schedule.count({ where: whereClause }),
@@ -123,10 +107,10 @@ export async function GET(request: NextRequest) {
 
     return jsonResponse(
       buildPaginatedResponse(
-        schedules.map((s) => ({
-          ...s,
-          startTime: formatTime(s.startTime),
-          endTime: formatTime(s.endTime),
+        schedules.map((schedule: (typeof schedules)[number]) => ({
+          ...schedule,
+          startTime: formatTime(schedule.startTime),
+          endTime: formatTime(schedule.endTime),
         })),
         pagination.page,
         pagination.pageSize,

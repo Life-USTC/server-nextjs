@@ -94,6 +94,49 @@
         }
       }
     },
+    "/.well-known/oauth-authorization-server/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-oauth-authorization-server-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path authorization-server metadata.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-authorization-server-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/.well-known/oauth-protected-resource": {
       "get": {
         "operationId": "get-.well-known-oauth-protected-resource",
@@ -254,6 +297,49 @@
           },
           "204": {
             "description": "Response 204"
+          }
+        }
+      }
+    },
+    "/.well-known/openid-configuration/api/mcp": {
+      "get": {
+        "operationId": "get-.well-known-openid-configuration-api-mcp",
+        "summary": "Compatibility alias for clients that probe resource-path OIDC metadata.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-openid-configuration-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
           }
         }
       }
@@ -2374,6 +2460,111 @@
             }
           }
         }
+      },
+      "options": {
+        "operationId": "options-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/.well-known/oauth-authorization-server": {
+      "get": {
+        "operationId": "get-api-mcp-.well-known-oauth-authorization-server",
+        "summary": "Compatibility alias for clients that probe authorization-server metadata relative to /api/mcp.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-mcp-.well-known-oauth-authorization-server",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/.well-known/openid-configuration": {
+      "get": {
+        "operationId": "get-api-mcp-.well-known-openid-configuration",
+        "summary": "Compatibility alias for clients that probe OIDC metadata relative to /api/mcp.",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "307": {
+            "description": "Redirect",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-api-mcp-.well-known-openid-configuration",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
       }
     },
     "/api/me": {
@@ -2508,6 +2699,24 @@
           },
           {
             "in": "query",
+            "name": "sectionJwId",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "sectionCode",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "teacherId",
             "schema": {
               "type": "string",
@@ -2517,7 +2726,25 @@
           },
           {
             "in": "query",
+            "name": "teacherCode",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "roomId",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "roomJwId",
             "schema": {
               "type": "string",
               "pattern": "^-?\\d+$"
@@ -2616,7 +2843,25 @@
           },
           {
             "in": "query",
+            "name": "courseJwId",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "semesterId",
+            "schema": {
+              "type": "string",
+              "pattern": "^-?\\d+$"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "semesterJwId",
             "schema": {
               "type": "string",
               "pattern": "^-?\\d+$"
@@ -2652,6 +2897,15 @@
           },
           {
             "in": "query",
+            "name": "teacherCode",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required": false
+          },
+          {
+            "in": "query",
             "name": "search",
             "schema": {
               "type": "string"
@@ -2661,6 +2915,14 @@
           {
             "in": "query",
             "name": "ids",
+            "schema": {
+              "type": "string"
+            },
+            "required": false
+          },
+          {
+            "in": "query",
+            "name": "jwIds",
             "schema": {
               "type": "string"
             },

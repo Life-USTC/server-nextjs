@@ -20,12 +20,16 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const parsedQuery = sectionsQuerySchema.safeParse({
     courseId: searchParams.get("courseId") ?? undefined,
+    courseJwId: searchParams.get("courseJwId") ?? undefined,
     semesterId: searchParams.get("semesterId") ?? undefined,
+    semesterJwId: searchParams.get("semesterJwId") ?? undefined,
     campusId: searchParams.get("campusId") ?? undefined,
     departmentId: searchParams.get("departmentId") ?? undefined,
     teacherId: searchParams.get("teacherId") ?? undefined,
+    teacherCode: searchParams.get("teacherCode") ?? undefined,
     search: searchParams.get("search") ?? undefined,
     ids: searchParams.get("ids") ?? undefined,
+    jwIds: searchParams.get("jwIds") ?? undefined,
     page: searchParams.get("page") ?? undefined,
     limit: searchParams.get("limit") ?? undefined,
   });
@@ -36,20 +40,28 @@ export async function GET(request: NextRequest) {
   const pagination = getPagination(searchParams);
   const {
     courseId,
+    courseJwId,
     semesterId,
+    semesterJwId,
     campusId,
     departmentId,
     teacherId,
+    teacherCode,
     search,
     ids: idsParam,
+    jwIds,
   } = parsedQuery.data;
   const { where, orderBy } = buildSectionListQuery({
     courseId,
+    courseJwId,
     semesterId,
+    semesterJwId,
     campusId,
     departmentId,
     teacherId,
+    teacherCode,
     ids: idsParam,
+    jwIds,
     search,
   });
 

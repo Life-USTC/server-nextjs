@@ -216,9 +216,24 @@ export function registerProfileTools(server: McpServer) {
         data: updates,
       });
 
+      const updatedTodo = await prisma.todo.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          title: true,
+          content: true,
+          priority: true,
+          dueAt: true,
+          completed: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
       return jsonToolResult(
         {
           success: true,
+          todo: updatedTodo,
         },
         {
           mode: resolveMcpMode(mode),

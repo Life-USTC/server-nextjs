@@ -36,6 +36,7 @@ export function AppLogo({
           alt="Life@USTC"
           fill
           priority
+          sizes="28px"
           className="pointer-events-none object-cover"
         />
       </span>

@@ -4,16 +4,22 @@ import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { getPrisma } from "@/lib/db/prisma";
 import {
+  flexDateInputSchema,
   jsonToolResult,
   mcpModeInputSchema,
   parseRequiredDateInput,
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
+import { summarizeScheduleCard } from "@/lib/mcp/tools/event-summary";
+import {
+  buildScheduleListWhere,
+  publicScheduleInclude,
+} from "@/lib/schedule-queries";
+import { parseDateInput } from "@/lib/time/parse-date-input";
 import {
   sectionExamInclude,
   sectionNotFoundToolResult,
-  sectionScheduleInclude,
   sectionScheduleListInclude,
 } from "./shared";
 
@@ -25,8 +31,12 @@ export function registerSectionRecordTools(server: McpServer) {
         "Query public schedules with optional section, teacher, room, date range, and weekday filters.",
       inputSchema: {
         sectionId: z.number().int().positive().optional(),
+        sectionJwId: z.number().int().positive().optional(),
+        sectionCode: z.string().trim().min(1).optional(),
         teacherId: z.number().int().positive().optional(),
+        teacherCode: z.string().trim().min(1).optional(),
         roomId: z.number().int().positive().optional(),
+        roomJwId: z.number().int().positive().optional(),
         weekday: z.number().int().min(1).max(7).optional(),
         dateFrom: z.string().datetime({ offset: true }).optional(),
         dateTo: z.string().datetime({ offset: true }).optional(),
@@ -38,8 +48,12 @@ export function registerSectionRecordTools(server: McpServer) {
     },
     async ({
       sectionId,
+      sectionJwId,
+      sectionCode,
       teacherId,
+      teacherCode,
       roomId,
+      roomJwId,
       weekday,
       dateFrom,
       dateTo,
@@ -50,35 +64,25 @@ export function registerSectionRecordTools(server: McpServer) {
     }) => {
       const localizedPrisma = getPrisma(locale);
       const pagination = normalizePagination({ page, pageSize: limit });
-      const where = {
-        ...(sectionId ? { sectionId } : {}),
-        ...(teacherId
-          ? {
-              teachers: {
-                some: {
-                  id: teacherId,
-                },
-              },
-            }
-          : {}),
-        ...(roomId ? { roomId } : {}),
-        ...(weekday ? { weekday } : {}),
-        ...(dateFrom || dateTo
-          ? {
-              date: {
-                ...(dateFrom ? { gte: parseRequiredDateInput(dateFrom) } : {}),
-                ...(dateTo ? { lte: parseRequiredDateInput(dateTo) } : {}),
-              },
-            }
-          : {}),
-      };
+      const where = buildScheduleListWhere({
+        sectionId,
+        sectionJwId,
+        sectionCode,
+        teacherId,
+        teacherCode,
+        roomId,
+        roomJwId,
+        weekday,
+        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
+        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+      });
 
       const [schedules, total] = await Promise.all([
         localizedPrisma.schedule.findMany({
           where,
           skip: pagination.skip,
           take: pagination.pageSize,
-          include: sectionScheduleInclude,
+          include: publicScheduleInclude,
           orderBy: [{ date: "asc" }, { startTime: "asc" }],
         }),
         localizedPrisma.schedule.count({ where }),
@@ -102,15 +106,26 @@ export function registerSectionRecordTools(server: McpServer) {
     "list_schedules_by_section",
     {
       description:
-        "List schedules for a section by JW ID, ordered by date and start time.",
+        "List schedules for a section by JW ID, ordered by date and start time. Use dateFrom/dateTo to narrow to a specific window (e.g. the current week).",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
+        dateFrom: flexDateInputSchema
+          .optional()
+          .describe(
+            "Earliest schedule date (inclusive). Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
+        dateTo: flexDateInputSchema
+          .optional()
+          .describe(
+            "Latest schedule date (inclusive). Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
         limit: z.number().int().min(1).max(200).default(100),
         locale: localeSchema.default(DEFAULT_LOCALE),
         mode: mcpModeInputSchema,
       },
     },
-    async ({ sectionJwId, limit, locale, mode }) => {
+    async ({ sectionJwId, dateFrom, dateTo, limit, locale, mode }) => {
+      const resolvedMode = resolveMcpMode(mode);
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -120,21 +135,69 @@ export function registerSectionRecordTools(server: McpServer) {
         return sectionNotFoundToolResult(sectionJwId, mode);
       }
 
+      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
+      if (parsedDateFrom === undefined && dateFrom) {
+        return jsonToolResult({
+          found: true,
+          section,
+          schedules: [],
+          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
+      if (parsedDateTo === undefined && dateTo) {
+        return jsonToolResult({
+          found: true,
+          section,
+          schedules: [],
+          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+
+      const dateFilter =
+        parsedDateFrom instanceof Date || parsedDateTo instanceof Date
+          ? {
+              date: {
+                ...(parsedDateFrom instanceof Date
+                  ? { gte: parsedDateFrom }
+                  : {}),
+                ...(parsedDateTo instanceof Date ? { lte: parsedDateTo } : {}),
+              },
+            }
+          : {};
+
       const schedules = await localizedPrisma.schedule.findMany({
-        where: { sectionId: section.id },
+        where: { sectionId: section.id, ...dateFilter },
         include: sectionScheduleListInclude,
         orderBy: [{ date: "asc" }, { startTime: "asc" }],
         take: limit,
       });
+      const scopedSchedules = schedules.map(
+        ({ section: _section, ...schedule }) => schedule,
+      );
+
+      if (resolvedMode === "summary") {
+        return jsonToolResult(
+          {
+            found: true,
+            section,
+            schedules: {
+              total: schedules.length,
+              items: scopedSchedules.slice(0, 5).map(summarizeScheduleCard),
+            },
+          },
+          { mode: "default" },
+        );
+      }
 
       return jsonToolResult(
         {
           found: true,
           section,
-          schedules,
+          schedules: resolvedMode === "full" ? schedules : scopedSchedules,
         },
         {
-          mode: resolveMcpMode(mode),
+          mode: resolvedMode,
         },
       );
     },

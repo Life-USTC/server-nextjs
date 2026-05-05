@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { summarizeCalendarSubscription } from "@/lib/mcp/tools/calendar-summary";
+import {
+  summarizeCalendarSubscription,
+  summarizeCalendarSubscriptionBrief,
+} from "@/lib/mcp/tools/calendar-summary";
 
 describe("summarizeCalendarSubscription", () => {
   it("counts semesters with missing bounds as open-ended", () => {
-    const summary = summarizeCalendarSubscription({
+    const input = {
       userId: "user-1",
       sections: [
         {
@@ -49,12 +52,17 @@ describe("summarizeCalendarSubscription", () => {
       calendarUrl:
         "https://life.example/api/users/user-1/calendar.ics?token=secret",
       note: "note",
-    });
+    };
+    const summary = summarizeCalendarSubscription(input);
+    const brief = summarizeCalendarSubscriptionBrief(input);
 
     expect(summary.sectionCount).toBe(2);
     expect(summary.currentSemesterSectionCount).toBe(2);
     expect(summary.currentSemesterSections).toHaveLength(2);
     expect(summary.calendarPath).toContain("/api/users/user-1/calendar.ics");
     expect(summary.calendarUrl).toContain("/api/users/user-1/calendar.ics");
+    expect(brief.currentSemesterSections).toBeUndefined();
+    expect(brief.sectionCount).toBe(2);
+    expect(brief.calendarPath).toContain("/api/users/user-1/calendar.ics");
   });
 });

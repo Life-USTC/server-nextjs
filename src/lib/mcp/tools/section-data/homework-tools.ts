@@ -1,8 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
+import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
-import { prisma } from "@/lib/db/prisma";
+import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   getUserId,
   jsonToolResult,
@@ -10,8 +11,53 @@ import {
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
+import { summarizeHomeworkCard } from "@/lib/mcp/tools/event-summary";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { sectionNotFoundToolResult } from "./shared";
+
+const homeworkToolUserSelect = {
+  select: { id: true, name: true, username: true, image: true },
+} as const;
+
+function buildHomeworkToolInclude(userId?: string | null) {
+  return {
+    section: {
+      include: {
+        course: true,
+        semester: true,
+      },
+    },
+    description: true,
+    createdBy: homeworkToolUserSelect,
+    updatedBy: homeworkToolUserSelect,
+    deletedBy: homeworkToolUserSelect,
+    ...(userId
+      ? {
+          homeworkCompletions: {
+            where: { userId },
+            select: { completedAt: true },
+          },
+        }
+      : {}),
+  } as const;
+}
+
+async function getHomeworkItemById(
+  homeworkId: string,
+  locale: string,
+  userId?: string | null,
+) {
+  const homework = await getPrisma(locale).homework.findUnique({
+    where: { id: homeworkId },
+    include: buildHomeworkToolInclude(userId),
+  });
+  if (!homework) {
+    return null;
+  }
+
+  const [homeworkItem] = await withHomeworkItemState([homework]);
+  return homeworkItem ?? null;
+}
 
 export function registerSectionHomeworkTools(server: McpServer) {
   server.registerTool(
@@ -26,7 +72,8 @@ export function registerSectionHomeworkTools(server: McpServer) {
         mode: mcpModeInputSchema,
       },
     },
-    async ({ sectionJwId, includeDeleted, locale, mode }) => {
+    async ({ sectionJwId, includeDeleted, locale, mode }, extra) => {
+      const resolvedMode = resolveMcpMode(mode);
       const { localizedPrisma, section } = await resolveSectionByJwId(
         sectionJwId,
         locale,
@@ -36,34 +83,52 @@ export function registerSectionHomeworkTools(server: McpServer) {
         return sectionNotFoundToolResult(sectionJwId, mode);
       }
 
+      const viewerUserId =
+        typeof extra.authInfo?.extra?.userId === "string"
+          ? extra.authInfo.extra.userId
+          : null;
       const homeworks = await localizedPrisma.homework.findMany({
         where: {
           sectionId: section.id,
           ...(includeDeleted ? {} : { deletedAt: null }),
         },
-        include: {
-          description: true,
-          createdBy: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-          updatedBy: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-          deletedBy: {
-            select: { id: true, name: true, username: true, image: true },
-          },
-        },
+        include: buildHomeworkToolInclude(viewerUserId),
         orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
       });
+      const homeworkItems = await withHomeworkItemState(homeworks);
+      const scopedHomeworkItems = homeworkItems.map(
+        ({
+          section: _section,
+          createdBy: _createdBy,
+          updatedBy: _updatedBy,
+          deletedBy: _deletedBy,
+          ...homework
+        }) => homework,
+      );
+
+      if (resolvedMode === "summary") {
+        return jsonToolResult(
+          {
+            found: true,
+            section,
+            homeworks: {
+              total: homeworkItems.length,
+              items: scopedHomeworkItems.slice(0, 5).map(summarizeHomeworkCard),
+            },
+          },
+          { mode: "default" },
+        );
+      }
 
       return jsonToolResult(
         {
           found: true,
           section,
-          homeworks,
+          homeworks:
+            resolvedMode === "full" ? homeworkItems : scopedHomeworkItems,
         },
         {
-          mode: resolveMcpMode(mode),
+          mode: resolvedMode,
         },
       );
     },
@@ -203,9 +268,14 @@ export function registerSectionHomeworkTools(server: McpServer) {
 
         return created;
       });
+      const homeworkItem = await getHomeworkItemById(
+        homework.id,
+        locale,
+        userId,
+      );
 
       return jsonToolResult(
-        { success: true, id: homework.id },
+        { success: true, id: homework.id, homework: homeworkItem },
         { mode: resolvedMode },
       );
     },
@@ -387,8 +457,16 @@ export function registerSectionHomeworkTools(server: McpServer) {
           });
         }
       });
+      const homeworkItem = await getHomeworkItemById(
+        homeworkId,
+        DEFAULT_LOCALE,
+        userId,
+      );
 
-      return jsonToolResult({ success: true }, { mode: resolvedMode });
+      return jsonToolResult(
+        { success: true, homework: homeworkItem },
+        { mode: resolvedMode },
+      );
     },
   );
 }

@@ -2,7 +2,7 @@ import { redactCalendarFeedLocation } from "@/lib/mcp/compact-payload";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 
 type CalendarSubscriptionSummaryInput = {
-  userId: string;
+  userId: unknown;
   sections: Array<{
     id: number;
     jwId: number;
@@ -43,7 +43,7 @@ export function summarizeCalendarSubscription(
   });
 
   return {
-    userId: subscription.userId,
+    userId: typeof subscription.userId === "string" ? subscription.userId : "",
     sectionCount: subscription.sections.length,
     currentSemesterSectionCount: currentSemesterSections.length,
     currentSemesterSections: currentSemesterSections.map((section) => ({
@@ -70,5 +70,19 @@ export function summarizeCalendarSubscription(
     calendarPath: redactCalendarFeedLocation(subscription.calendarPath),
     calendarUrl: redactCalendarFeedLocation(subscription.calendarUrl),
     note: subscription.note,
+  };
+}
+
+export function summarizeCalendarSubscriptionBrief(
+  subscription: CalendarSubscriptionSummaryInput,
+) {
+  const summary = summarizeCalendarSubscription(subscription);
+  return {
+    userId: summary.userId,
+    sectionCount: summary.sectionCount,
+    currentSemesterSectionCount: summary.currentSemesterSectionCount,
+    calendarPath: summary.calendarPath,
+    calendarUrl: summary.calendarUrl,
+    note: summary.note,
   };
 }

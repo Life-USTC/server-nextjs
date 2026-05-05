@@ -459,6 +459,88 @@ describe("compactMcpPayload", () => {
       const events = result.events as Record<string, unknown>[];
       expect(events[0]).toEqual({ type: "schedule", at: "2024-01-01" });
     });
+
+    it("compacts generic event payloads that look like schedules", () => {
+      const input = {
+        nextClass: {
+          type: "schedule",
+          at: "2024-03-01T08:00:00Z",
+          payload: {
+            id: "sch1",
+            jwId: "J1",
+            date: "2024-03-01",
+            weekday: 1,
+            startTime: "08:00",
+            endTime: "09:35",
+            weekIndex: 3,
+            scheduleGroup: { id: "remove-me" },
+            roomType: { id: "remove-me-too" },
+            room: {
+              id: "r1",
+              jwId: "RJ1",
+              namePrimary: "Room 101",
+              nameSecondary: "101教室",
+            },
+          },
+        },
+      };
+      const result = compactMcpPayload(input) as Record<string, unknown>;
+      const nextClass = result.nextClass as Record<string, unknown>;
+      const payload = nextClass.payload as Record<string, unknown>;
+      expect(payload).not.toHaveProperty("scheduleGroup");
+      expect(payload).not.toHaveProperty("roomType");
+      expect(payload.room).toEqual({
+        id: "r1",
+        jwId: "RJ1",
+        namePrimary: "Room 101",
+        nameSecondary: "101教室",
+      });
+    });
+
+    it("does not misidentify exam objects as schedules (exam has startTime/endTime/sectionId but no date+weekday)", () => {
+      const input = {
+        exams: [
+          {
+            id: "e1",
+            jwId: "EJ1",
+            sectionId: "s1",
+            examDate: "2024-06-15",
+            startTime: "14:00",
+            endTime: "16:00",
+            examType: 1,
+            examMode: "offline",
+            examTakeCount: 1,
+            createdAt: "2024-01-01",
+            updatedAt: "2024-01-01",
+            extraField: "removed",
+            examRooms: [
+              {
+                id: "er1",
+                jwId: "ERJ1",
+                roomName: "Room 301",
+                buildingName: "Exam Hall",
+                count: 50,
+                capacity: 100,
+              },
+            ],
+          },
+        ],
+      };
+      const result = compactMcpPayload(input) as Record<string, unknown>;
+      const exam = (result.exams as Record<string, unknown>[])[0];
+      // Should be processed as an exam, not a schedule
+      expect(exam).toHaveProperty("examDate", "2024-06-15");
+      expect(exam).toHaveProperty("startTime", "14:00");
+      expect(exam).not.toHaveProperty("extraField");
+      // examRooms should be preserved and compacted (capacity stripped)
+      expect(
+        (exam.examRooms as Record<string, unknown>[])[0],
+      ).not.toHaveProperty("capacity");
+      expect((exam.examRooms as Record<string, unknown>[])[0]).toHaveProperty(
+        "roomName",
+        "Room 301",
+      );
+    });
   });
 
   describe("fallback singular keys", () => {

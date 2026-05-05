@@ -42,6 +42,10 @@ test.describe("OAuth provider", () => {
       openid,
       openidCompatibility,
       protectedResource,
+      authServerMcpCompatibility,
+      openidMcpCompatibility,
+      authServerMcpRelative,
+      openidMcpRelative,
       openidOptions,
       authServerAlias,
       openidAlias,
@@ -51,6 +55,18 @@ test.describe("OAuth provider", () => {
       request.get("/api/auth/.well-known/openid-configuration"),
       request.get("/.well-known/openid-configuration/api/auth"),
       request.get("/.well-known/oauth-protected-resource/api/mcp"),
+      request.get("/.well-known/oauth-authorization-server/api/mcp", {
+        maxRedirects: 0,
+      }),
+      request.get("/.well-known/openid-configuration/api/mcp", {
+        maxRedirects: 0,
+      }),
+      request.get("/api/mcp/.well-known/oauth-authorization-server", {
+        maxRedirects: 0,
+      }),
+      request.get("/api/mcp/.well-known/openid-configuration", {
+        maxRedirects: 0,
+      }),
       request.fetch("/api/auth/.well-known/openid-configuration", {
         method: "OPTIONS",
       }),
@@ -67,6 +83,10 @@ test.describe("OAuth provider", () => {
     expect(openid.status()).toBe(200);
     expect(openidCompatibility.status()).toBe(200);
     expect(protectedResource.status()).toBe(200);
+    expect(authServerMcpCompatibility.status()).toBe(307);
+    expect(openidMcpCompatibility.status()).toBe(307);
+    expect(authServerMcpRelative.status()).toBe(307);
+    expect(openidMcpRelative.status()).toBe(307);
     expect(openid.headers()["access-control-allow-origin"]).toBe("*");
     expect(openidCompatibility.headers()["access-control-allow-origin"]).toBe(
       "*",
@@ -79,24 +99,37 @@ test.describe("OAuth provider", () => {
     expect(openidOptions.headers()["access-control-allow-origin"]).toBe("*");
 
     expect(authServerAlias.status()).toBe(307);
-    expect(authServerAlias.headers().location).toBe(
-      `${PLAYWRIGHT_BASE_URL}/.well-known/oauth-authorization-server/api/auth`,
+    expect(new URL(authServerAlias.headers().location ?? "").pathname).toBe(
+      "/.well-known/oauth-authorization-server/api/auth",
     );
     expect(authServerAlias.headers()["access-control-allow-origin"]).toBe("*");
 
     expect(openidAlias.status()).toBe(307);
-    expect(openidAlias.headers().location).toBe(
-      `${PLAYWRIGHT_BASE_URL}/api/auth/.well-known/openid-configuration`,
+    expect(new URL(openidAlias.headers().location ?? "").pathname).toBe(
+      "/api/auth/.well-known/openid-configuration",
     );
     expect(openidAlias.headers()["access-control-allow-origin"]).toBe("*");
 
     expect(protectedResourceAlias.status()).toBe(307);
-    expect(protectedResourceAlias.headers().location).toBe(
-      `${PLAYWRIGHT_BASE_URL}/.well-known/oauth-protected-resource/api/mcp`,
-    );
+    expect(
+      new URL(protectedResourceAlias.headers().location ?? "").pathname,
+    ).toBe("/.well-known/oauth-protected-resource/api/mcp");
     expect(
       protectedResourceAlias.headers()["access-control-allow-origin"],
     ).toBe("*");
+
+    expect(
+      new URL(authServerMcpCompatibility.headers().location ?? "").pathname,
+    ).toBe("/.well-known/oauth-authorization-server/api/auth");
+    expect(
+      new URL(openidMcpCompatibility.headers().location ?? "").pathname,
+    ).toBe("/api/auth/.well-known/openid-configuration");
+    expect(
+      new URL(authServerMcpRelative.headers().location ?? "").pathname,
+    ).toBe("/.well-known/oauth-authorization-server/api/auth");
+    expect(new URL(openidMcpRelative.headers().location ?? "").pathname).toBe(
+      "/api/auth/.well-known/openid-configuration",
+    );
   });
 
   test("dynamic registration + consent + code exchange + userinfo", async ({
@@ -151,6 +184,13 @@ test.describe("OAuth provider", () => {
 
     // Complete consent UI.
     await page.goto(consentLocation);
+    if (/\/signin\?/.test(page.url())) {
+      await page
+        .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+        .first()
+        .click();
+      await page.waitForURL("**/oauth/authorize**");
+    }
     await page.getByRole("button", { name: /allow/i }).click();
     await page.waitForURL("**/e2e/oauth/callback**");
 

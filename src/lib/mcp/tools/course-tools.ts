@@ -173,11 +173,15 @@ export function registerCourseTools(server: McpServer) {
       description: "Search sections with optional filters and pagination.",
       inputSchema: {
         courseId: z.number().int().positive().optional(),
+        courseJwId: z.number().int().positive().optional(),
         semesterId: z.number().int().positive().optional(),
+        semesterJwId: z.number().int().positive().optional(),
         campusId: z.number().int().positive().optional(),
         departmentId: z.number().int().positive().optional(),
         teacherId: z.number().int().positive().optional(),
+        teacherCode: z.string().trim().min(1).optional(),
         ids: z.array(z.number().int().positive()).optional(),
+        jwIds: z.array(z.number().int().positive()).optional(),
         search: z.string().trim().optional(),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(20),
@@ -187,11 +191,15 @@ export function registerCourseTools(server: McpServer) {
     },
     async ({
       courseId,
+      courseJwId,
       semesterId,
+      semesterJwId,
       campusId,
       departmentId,
       teacherId,
+      teacherCode,
       ids,
+      jwIds,
       search,
       page,
       limit,
@@ -202,11 +210,15 @@ export function registerCourseTools(server: McpServer) {
       const pagination = normalizePagination({ page, pageSize: limit });
       const { where, orderBy } = buildSectionListQuery({
         courseId,
+        courseJwId,
         semesterId,
+        semesterJwId,
         campusId,
         departmentId,
         teacherId,
+        teacherCode,
         ids,
+        jwIds,
         search,
       });
 
