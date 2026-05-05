@@ -36,8 +36,8 @@ yq '[.modules[].capabilities[].rest | select(type == "!!map") | .routes[]? | .pa
 yq '[.modules[].capabilities[].rest | select(type == "!!map") | .routes[]? | select(.returns) | {"path": .path, "returns": .returns}]' docs/features.yml
 
 # MCP tools (toolEntry objects; unavailable surfaces use scalar shorthand)
-yq '[.modules[].capabilities[].mcp | select(type == "!!map") | .tools[]? | .name] | unique' docs/features.yml
-yq '[.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | select(.value.mcp == "unavailable" or .value.mcp.status == "unavailable") | {"module": $m.key, "capability": .key}]' docs/features.yml
+yq '[.modules[].capabilities[].mcp | select(type == "!!map") | .tools[]? | select((.status // "stable") != "unavailable") | .name] | unique' docs/features.yml
+yq '([.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | select(.value.mcp == "unavailable" or .value.mcp.status == "unavailable") | {"module": $m.key, "capability": .key}] + [.modules | to_entries[] | . as $m | .value.capabilities | to_entries[] | . as $c | .value.mcp | select(type == "!!map") | .tools[]? | select(.status == "unavailable") | {"module": $m.key, "capability": $c.key, "tool": .name}])' docs/features.yml
 yq '[.modules[].capabilities[].mcp | select(type == "!!map") | .tools[]? | select(.rest_equivalent) | {"tool": .name, "rest": .rest_equivalent}]' docs/features.yml
 
 # Auth-level filtering

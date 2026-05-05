@@ -3,7 +3,7 @@
  *
  * These tests run against the real database using an in-process MCP harness.
  * Prerequisites:
- *   - A running PostgreSQL database with the dev seed applied (bun run dev:seed)
+ *   - A running PostgreSQL database with the dev seed applied (bun run dev:seed-scenarios)
  *   - The .env / DATABASE_URL environment variable configured
  *
  * Run:
@@ -34,7 +34,7 @@ beforeAll(async () => {
   if (!user) {
     throw new Error(
       `Dev seed user "${DEV_SEED.debugUsername}" not found. ` +
-        "Run `bun run dev:seed` before executing integration tests.",
+        "Run `bun run dev:seed-scenarios` before executing integration tests.",
     );
   }
   devUserId = user.id;

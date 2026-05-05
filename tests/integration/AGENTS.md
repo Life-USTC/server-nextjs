@@ -8,7 +8,7 @@
 - Setup
   - Requires a reachable PostgreSQL database with DATABASE_URL configured
   - The vitest.integration.config.ts loads `.env` automatically; no manual export needed
-  - Dev seed must be applied: `bun run dev:seed`
+  - Dev seed must be applied: `bun run dev:seed-scenarios`
   - Run: `bun run test:integration`
 
 - Harness (`utils/mcp-harness.ts`)

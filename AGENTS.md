@@ -13,8 +13,9 @@ dev: bun run dev
 check: bun run check --write
 typecheck: bun run typecheck
 unit_test: bun run test
-integration_test: bun run test:integration  # requires DATABASE_URL + dev seed
+integration_test: bun run test:integration  # requires DATABASE_URL + bun run dev:seed-scenarios
 e2e: bun run test:e2e
+features_doc_check: bun run check:features
 prebuild: bun run prebuild
 build_image: docker build .
 ```
@@ -63,5 +64,6 @@ scoped_agents:
   prisma: prisma/AGENTS.md
   tests_e2e: tests/e2e/AGENTS.md
   tests_integration: tests/integration/AGENTS.md
+  tests_unit: tests/unit/AGENTS.md
   tools: tools/AGENTS.md
 ```

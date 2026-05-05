@@ -34,7 +34,7 @@
 - Time and security
   - Use Shanghai helpers for display and day boundaries
   - Use date serialization helpers before returning JSON
-  - API/MCP datetime input should include offsets where schemas require it
+  - API/MCP date input should use shared parsers; MCP schemas may accept bare dates or timezone-less datetimes
   - Auth redirects for pages live close to page entry
   - API routes return status responses, not page redirects
   - Permission checks happen before mutation
