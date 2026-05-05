@@ -134,4 +134,57 @@ describe("course and section query helpers", () => {
       },
     });
   });
+
+  it("builds JW-id-based course and semester filters", () => {
+    const result = buildSectionListQuery({
+      courseJwId: 101,
+      semesterJwId: 202,
+    });
+    expect(result.where).toMatchObject({
+      course: { jwId: 101 },
+      semester: { jwId: 202 },
+    });
+  });
+
+  it("builds teacherCode filter inside teachers.some", () => {
+    const result = buildSectionListQuery({ teacherCode: "DEV-T-001" });
+    expect(result.where).toMatchObject({
+      teachers: { some: { code: "DEV-T-001" } },
+    });
+  });
+
+  it("combines teacherId and teacherCode into a single teachers.some filter", () => {
+    const result = buildSectionListQuery({
+      teacherId: 55,
+      teacherCode: "T-001",
+    });
+    expect(result.where).toMatchObject({
+      teachers: { some: { id: 55, code: "T-001" } },
+    });
+  });
+
+  it("builds jwIds filter on section.jwId", () => {
+    const result = buildSectionListQuery({ jwIds: [9902001, 9902002] });
+    expect(result.where).toMatchObject({
+      jwId: { in: [9902001, 9902002] },
+    });
+  });
+
+  it("parses comma-separated jwIds string", () => {
+    const result = buildSectionListQuery({ jwIds: "9902001, 9902002, x" });
+    expect(result.where).toMatchObject({
+      jwId: { in: [9902001, 9902002] },
+    });
+  });
+
+  it("trims whitespace from teacherCode and ignores empty string", () => {
+    expect(
+      buildSectionListQuery({ teacherCode: "  " }).where,
+    ).not.toHaveProperty("teachers");
+    expect(
+      buildSectionListQuery({ teacherCode: "  T-001  " }).where,
+    ).toMatchObject({
+      teachers: { some: { code: "T-001" } },
+    });
+  });
 });

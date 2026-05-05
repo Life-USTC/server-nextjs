@@ -124,6 +124,43 @@ describe("other request schemas", () => {
     );
   });
 
+  it("validates new section query fields added in filter expansion", () => {
+    // JW-id aliases and string-based filters
+    expect(
+      sectionsQuerySchema.safeParse({
+        courseJwId: "101",
+        semesterJwId: "202",
+        teacherCode: "DEV-T-001",
+        jwIds: "9902001,9902002",
+      }).success,
+    ).toBe(true);
+    // teacherCode cannot be an empty string (min(1) after trim)
+    expect(sectionsQuerySchema.safeParse({ teacherCode: "" }).success).toBe(
+      false,
+    );
+    // jwIds is a plain string field — any non-empty string is accepted
+    expect(sectionsQuerySchema.safeParse({ jwIds: "1" }).success).toBe(true);
+  });
+
+  it("validates new schedule query fields added in filter expansion", () => {
+    expect(
+      schedulesQuerySchema.safeParse({
+        sectionJwId: "9902001",
+        sectionCode: "DEV-CS201.01",
+        teacherCode: "DEV-T-001",
+        roomJwId: "9910031",
+      }).success,
+    ).toBe(true);
+    // sectionCode cannot be an empty string
+    expect(schedulesQuerySchema.safeParse({ sectionCode: "" }).success).toBe(
+      false,
+    );
+    // numeric alias fields must parse as integers
+    expect(schedulesQuerySchema.safeParse({ sectionJwId: "abc" }).success).toBe(
+      false,
+    );
+  });
+
   it("re-exports response schemas from the compatibility barrel", () => {
     expect(
       meResponseSchema.safeParse({
