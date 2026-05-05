@@ -1,6 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import {
   buildSectionListQuery,
@@ -13,6 +12,7 @@ import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
   resolveMcpMode,
   sectionCodeSchema,
@@ -31,7 +31,8 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "list_semesters",
     {
-      description: "List semesters with pagination.",
+      description:
+        "List semesters with pagination. Use get_current_semester when you only need the active term.",
       inputSchema: {
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(20),
@@ -66,7 +67,8 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "get_current_semester",
     {
-      description: "Get the current semester.",
+      description:
+        "Get the semester active today. Use its id to constrain section-code matching and section search.",
       inputSchema: {
         mode: mcpModeInputSchema,
       },
@@ -90,11 +92,11 @@ export function registerCourseTools(server: McpServer) {
     "search_courses",
     {
       description:
-        "Search courses by Chinese name, English name, or course code.",
+        "Search courses by Chinese/English name or course code. Use this before search_sections when starting from a course name.",
       inputSchema: {
         search: z.string().trim().min(1),
         limit: z.number().int().min(1).max(25).default(10),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -113,10 +115,10 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "get_course_by_jw_id",
     {
-      description: "Fetch a detailed course record by its USTC JW course ID.",
+      description: "Fetch one detailed course by USTC JW course ID.",
       inputSchema: {
         jwId: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -138,10 +140,11 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "get_section_by_jw_id",
     {
-      description: "Fetch a detailed section record by its USTC JW section ID.",
+      description:
+        "Fetch one detailed section by USTC JW section ID, including course, teachers, semester, schedules, exams, and homeworks.",
       inputSchema: {
         jwId: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -170,7 +173,9 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "search_sections",
     {
-      description: "Search sections with optional filters and pagination.",
+      description:
+        "Search public sections by course, semester, campus, department, teacher, IDs, or text. " +
+        "Use this to find a section jwId before subscription or section-scoped schedule/homework/exam calls.",
       inputSchema: {
         courseId: z.number().int().positive().optional(),
         courseJwId: z.number().int().positive().optional(),
@@ -185,7 +190,7 @@ export function registerCourseTools(server: McpServer) {
         search: z.string().trim().optional(),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(20),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -250,13 +255,14 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "search_teachers",
     {
-      description: "Search teachers with optional filters and pagination.",
+      description:
+        "Search teachers by department or name/code. Use the returned id/code to filter search_sections or query_schedules.",
       inputSchema: {
         departmentId: z.number().int().positive().optional(),
         search: z.string().trim().optional(),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(20),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -304,10 +310,11 @@ export function registerCourseTools(server: McpServer) {
   server.registerTool(
     "get_teacher_by_id",
     {
-      description: "Fetch a detailed teacher record by numeric teacher ID.",
+      description:
+        "Fetch one detailed teacher by numeric ID, including department and related sections.",
       inputSchema: {
         id: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -334,11 +341,12 @@ export function registerCourseTools(server: McpServer) {
     "match_section_codes",
     {
       description:
-        "Match section codes in one semester and return matched/unmatched results for Life@USTC section subscriptions. This does not represent official USTC course enrollment.",
+        "Dry-run section-code matching for one semester. Returns matched/unmatched codes and suggestions. " +
+        "Use before subscribe_my_sections_by_codes when the user may need confirmation. Not official enrollment.",
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },

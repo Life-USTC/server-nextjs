@@ -1,6 +1,6 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import { z } from "zod";
-import type { localeSchema } from "@/i18n/config";
+import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { compactMcpPayload } from "@/lib/mcp/compact-payload";
 import { parseDateInput } from "@/lib/time/parse-date-input";
@@ -33,7 +33,24 @@ export const sectionCodeSchema = z
 export const todoPrioritySchema = z.enum(["low", "medium", "high"]);
 
 export const mcpModeSchema = z.enum(["summary", "default", "full"]);
-export const mcpModeInputSchema = mcpModeSchema.default("default");
+export const mcpModeInputSchema = mcpModeSchema
+  .default("default")
+  .describe(
+    "Output verbosity. summary=counts+top samples (smallest, good for quick checks). " +
+      "default=compact structured data with low-value fields stripped (recommended for most calls). " +
+      "full=complete raw records (use only when exact nested values are explicitly required).",
+  );
+
+/**
+ * Locale for localized names (course, section, teacher display names).
+ * Use zh-cn for Chinese names (default, matches most USTC data).
+ * Use en-us for English names where available.
+ */
+export const mcpLocaleInputSchema = localeSchema
+  .default(DEFAULT_LOCALE)
+  .describe(
+    "Language for localized names: zh-cn (Chinese, default) or en-us (English).",
+  );
 
 export function resolveMcpMode(
   mode: z.infer<typeof mcpModeSchema> | undefined,

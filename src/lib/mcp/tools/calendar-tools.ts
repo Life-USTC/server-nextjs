@@ -8,7 +8,6 @@ import {
   subscribeUserToSectionByJwId,
   unsubscribeUserFromSectionByJwId,
 } from "@/features/home/server/subscriptions";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
   findSectionCodeMatches,
   findSectionCompactByJwId,
@@ -18,6 +17,7 @@ import {
   flexDateInputSchema,
   getUserId,
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
   resolveMcpMode,
   sectionCodeSchema,
@@ -62,9 +62,9 @@ export function registerCalendarTools(server: McpServer) {
     "get_my_calendar_subscription",
     {
       description:
-        "Get the sections you follow in Life@USTC and the personal calendar feed path for the authenticated user. This does not represent official USTC course enrollment.",
+        "Get followed sections and the personal iCal calendar feed URL. Following is not official USTC enrollment.",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -96,9 +96,9 @@ export function registerCalendarTools(server: McpServer) {
     "list_my_subscribed_sections",
     {
       description:
-        "List sections currently followed by the authenticated user for dashboard and calendar personalization only.",
+        "List sections currently followed for dashboard and calendar personalization. Not official enrollment.",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -123,10 +123,11 @@ export function registerCalendarTools(server: McpServer) {
     "subscribe_section_by_jw_id",
     {
       description:
-        "Follow one section by JW ID for Life@USTC dashboard and calendar personalization. This does not represent official USTC course enrollment.",
+        "Follow one section by JW ID for dashboard/calendar. Not official USTC enrollment. " +
+        "Use match_section_codes or search_sections first to find the jwId.",
       inputSchema: {
         jwId: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -171,11 +172,10 @@ export function registerCalendarTools(server: McpServer) {
   server.registerTool(
     "unsubscribe_section_by_jw_id",
     {
-      description:
-        "Unfollow one section by JW ID for Life@USTC dashboard and calendar personalization.",
+      description: "Unfollow one section by JW ID.",
       inputSchema: {
         jwId: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -220,11 +220,10 @@ export function registerCalendarTools(server: McpServer) {
   server.registerTool(
     "get_section_calendar_subscription",
     {
-      description:
-        "Get the single-section iCal feed link for a section by JW ID.",
+      description: "Get the iCal feed URL for a single section by JW ID.",
       inputSchema: {
         jwId: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -247,11 +246,12 @@ export function registerCalendarTools(server: McpServer) {
     "subscribe_my_sections_by_codes",
     {
       description:
-        "Subscribe the authenticated user to matched section codes in one semester for Life@USTC only. This does not represent official USTC course enrollment.",
+        "Match section codes and subscribe in one step. Not official enrollment. " +
+        "Use match_section_codes first for a dry-run preview when confirmation is needed.",
       inputSchema: {
         codes: z.array(sectionCodeSchema).min(1).max(500),
         semesterId: z.number().int().positive().optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -311,7 +311,8 @@ export function registerCalendarTools(server: McpServer) {
     "list_my_calendar_events",
     {
       description:
-        "List unified calendar events for the authenticated user across schedules, homework deadlines, exams, and todos.",
+        "Unified personal calendar events (schedules, homework deadlines, exams, todos) filtered by date range. " +
+        "Use get_my_7days_timeline for a no-date-required 7-day window.",
       inputSchema: {
         dateFrom: flexDateInputSchema
           .optional()
@@ -323,7 +324,7 @@ export function registerCalendarTools(server: McpServer) {
           .describe(
             "End of the date range (inclusive). Accepts YYYY-MM-DD or ISO 8601 with offset.",
           ),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },

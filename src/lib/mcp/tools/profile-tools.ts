@@ -15,7 +15,7 @@ export function registerProfileTools(server: McpServer) {
     "get_my_profile",
     {
       description:
-        "Return the authenticated Life@USTC user profile associated with the OAuth access token.",
+        "Return the authenticated user's Life@USTC profile: id, username, name, image, isAdmin, timestamps.",
       inputSchema: {
         mode: mcpModeInputSchema,
       },
@@ -45,7 +45,7 @@ export function registerProfileTools(server: McpServer) {
     "list_my_todos",
     {
       description:
-        "List todos for the authenticated Life@USTC user with incomplete items first by default.",
+        "List todos. Incomplete items appear first by default. Returns counts (incomplete, completed, overdue) plus the todo list.",
       inputSchema: {
         includeCompleted: z.boolean().default(false),
         limit: z.number().int().min(1).max(200).default(50),
@@ -111,7 +111,7 @@ export function registerProfileTools(server: McpServer) {
   server.registerTool(
     "create_my_todo",
     {
-      description: "Create a todo for the authenticated user.",
+      description: "Create a new personal todo.",
       inputSchema: {
         title: z.string().trim().min(1).max(200),
         content: z.string().max(4000).optional().nullable(),
@@ -156,7 +156,8 @@ export function registerProfileTools(server: McpServer) {
   server.registerTool(
     "update_my_todo",
     {
-      description: "Update one todo for the authenticated user by todo ID.",
+      description:
+        "Update a todo by ID. Returns the updated todo snapshot. Only the owner can update.",
       inputSchema: {
         id: z.string().trim().min(1),
         title: z.string().trim().min(1).max(200).optional(),
@@ -245,7 +246,7 @@ export function registerProfileTools(server: McpServer) {
   server.registerTool(
     "delete_my_todo",
     {
-      description: "Delete one todo for the authenticated user by todo ID.",
+      description: "Delete a todo by ID. Only the owner can delete.",
       inputSchema: {
         id: z.string().trim().min(1),
         mode: mcpModeInputSchema,

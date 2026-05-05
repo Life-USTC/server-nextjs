@@ -1,13 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { getPrisma } from "@/lib/db/prisma";
 import {
   flexDateInputSchema,
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
-  parseRequiredDateInput,
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
@@ -28,7 +27,8 @@ export function registerSectionRecordTools(server: McpServer) {
     "query_schedules",
     {
       description:
-        "Query public schedules with optional section, teacher, room, date range, and weekday filters.",
+        "Query public schedules across sections by section, teacher, room, weekday, and date range. " +
+        "Use list_my_schedules for only followed sections.",
       inputSchema: {
         sectionId: z.number().int().positive().optional(),
         sectionJwId: z.number().int().positive().optional(),
@@ -38,11 +38,15 @@ export function registerSectionRecordTools(server: McpServer) {
         roomId: z.number().int().positive().optional(),
         roomJwId: z.number().int().positive().optional(),
         weekday: z.number().int().min(1).max(7).optional(),
-        dateFrom: z.string().datetime({ offset: true }).optional(),
-        dateTo: z.string().datetime({ offset: true }).optional(),
+        dateFrom: flexDateInputSchema
+          .optional()
+          .describe("Earliest schedule date/time (inclusive)."),
+        dateTo: flexDateInputSchema
+          .optional()
+          .describe("Latest schedule date/time (inclusive)."),
         page: z.number().int().min(1).default(1),
         limit: z.number().int().min(1).max(100).default(20),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -64,6 +68,20 @@ export function registerSectionRecordTools(server: McpServer) {
     }) => {
       const localizedPrisma = getPrisma(locale);
       const pagination = normalizePagination({ page, pageSize: limit });
+      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
+      if (!(parsedDateFrom instanceof Date) && dateFrom) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
+      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
+      if (!(parsedDateTo instanceof Date) && dateTo) {
+        return jsonToolResult({
+          success: false,
+          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+        });
+      }
       const where = buildScheduleListWhere({
         sectionId,
         sectionJwId,
@@ -73,8 +91,8 @@ export function registerSectionRecordTools(server: McpServer) {
         roomId,
         roomJwId,
         weekday,
-        dateFrom: dateFrom ? parseRequiredDateInput(dateFrom) : undefined,
-        dateTo: dateTo ? parseRequiredDateInput(dateTo) : undefined,
+        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
+        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
       });
 
       const [schedules, total] = await Promise.all([
@@ -106,7 +124,7 @@ export function registerSectionRecordTools(server: McpServer) {
     "list_schedules_by_section",
     {
       description:
-        "List schedules for a section by JW ID, ordered by date and start time. Use dateFrom/dateTo to narrow to a specific window (e.g. the current week).",
+        "Schedules for one section by JW ID, ordered by date/start time. Use dateFrom/dateTo for a week or date window.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         dateFrom: flexDateInputSchema
@@ -120,7 +138,7 @@ export function registerSectionRecordTools(server: McpServer) {
             "Latest schedule date (inclusive). Accepts YYYY-MM-DD or ISO 8601 with offset.",
           ),
         limit: z.number().int().min(1).max(200).default(100),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -206,11 +224,10 @@ export function registerSectionRecordTools(server: McpServer) {
   server.registerTool(
     "list_exams_by_section",
     {
-      description:
-        "List exams for a section by JW ID, including exam batch and exam rooms.",
+      description: "Exams for one section by JW ID, including batch and rooms.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },

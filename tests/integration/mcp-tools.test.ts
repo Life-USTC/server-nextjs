@@ -361,6 +361,43 @@ describe("list_schedules_by_section — date range filter", () => {
   });
 });
 
+describe("query_schedules — flexible date filters", () => {
+  it("accepts bare dates and returns paginated public schedules", async () => {
+    const result = await mcp.call<{
+      data?: Array<{ date?: string }>;
+      pagination?: { total?: number };
+    }>("query_schedules", {
+      sectionJwId: DEV_SEED.section.jwId,
+      dateFrom: "2026-04-29",
+      dateTo: "2026-05-05",
+      locale: "zh-cn",
+    });
+
+    expect(result.pagination?.total).toBeGreaterThan(0);
+    for (const s of result.data ?? []) {
+      if (s.date) {
+        const d = s.date.slice(0, 10);
+        expect(d >= "2026-04-29").toBe(true);
+        expect(d <= "2026-05-05").toBe(true);
+      }
+    }
+  });
+
+  it("returns a descriptive payload for invalid date filters", async () => {
+    const result = await mcp.call<{
+      success?: boolean;
+      message?: string;
+    }>("query_schedules", {
+      sectionJwId: DEV_SEED.section.jwId,
+      dateFrom: "yesterday",
+      locale: "zh-cn",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("yesterday");
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Dashboard snapshot — compact shape verification
 // ---------------------------------------------------------------------------
@@ -412,6 +449,17 @@ describe("get_my_dashboard — default mode compactness", () => {
 // ---------------------------------------------------------------------------
 
 describe("get_next_buses — default mode drops repeated campus objects", () => {
+  it("accepts date-only atTime for deterministic departure queries", async () => {
+    const result = await mcp.call<{ totalRoutes?: number }>("get_next_buses", {
+      locale: "zh-cn",
+      originCampusId: DEV_SEED.bus.originCampusId,
+      destinationCampusId: DEV_SEED.bus.destinationCampusId,
+      atTime: "2026-04-29",
+    });
+
+    expect(result.totalRoutes).toBeGreaterThan(0);
+  });
+
   it("departure items omit originCampus and destinationCampus", async () => {
     const result = await mcp.call<{
       originCampus?: { id?: number };

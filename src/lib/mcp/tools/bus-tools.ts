@@ -8,10 +8,11 @@ import {
   listBusRoutes,
   searchBusRoutes,
 } from "@/features/bus/lib/bus-service";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
+  flexDateInputSchema,
   getUserId,
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
@@ -119,10 +120,10 @@ export function registerBusTools(server: McpServer) {
     "query_bus_timetable",
     {
       description:
-        "Query the full USTC shuttle bus timetable dataset. Returns campuses, routes, both weekday and weekend trips, and the active timetable version without filtering or ranking so clients can decide locally which routes to show.",
+        "Full USTC shuttle bus dataset for clients that need local filtering. Prefer get_next_buses for departures or list_bus_routes for discovery.",
       inputSchema: {
         versionKey: z.string().trim().min(1).optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -163,9 +164,9 @@ export function registerBusTools(server: McpServer) {
     "list_bus_routes",
     {
       description:
-        "List shuttle bus routes and campuses for the currently effective timetable version. Returns route names, stop sequences, and campus details (no trip/timetable data). Use this for route discovery before querying timetables.",
+        "Route and campus discovery for the active shuttle timetable. Use returned route IDs with get_bus_route_timetable.",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
       },
     },
     async ({ locale }) => {
@@ -178,11 +179,11 @@ export function registerBusTools(server: McpServer) {
     "get_bus_route_timetable",
     {
       description:
-        "Get the full timetable for a specific bus route, including both weekday and weekend schedules. Also returns alternate routes that share the same origin and destination campuses. Use list_bus_routes first to find route IDs.",
+        "Full weekday/weekend timetable for one route ID. Use list_bus_routes first to find route IDs.",
       inputSchema: {
         routeId: z.number().int().positive(),
         versionKey: z.string().trim().min(1).optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -209,12 +210,12 @@ export function registerBusTools(server: McpServer) {
     "search_bus_routes",
     {
       description:
-        "Search shuttle bus routes with optional origin and destination campus filters.",
+        "Find shuttle routes by optional origin/destination campus IDs. Use get_next_buses when the user asks when to leave.",
       inputSchema: {
         originCampusId: z.number().int().positive().optional(),
         destinationCampusId: z.number().int().positive().optional(),
         versionKey: z.string().trim().min(1).optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -246,16 +247,20 @@ export function registerBusTools(server: McpServer) {
     "get_next_buses",
     {
       description:
-        "Get the next shuttle departures between two campuses instead of the full timetable.",
+        "Next shuttle departures between two campuses. Best tool for 'when is the next bus?' questions.",
       inputSchema: {
         originCampusId: z.number().int().positive(),
         destinationCampusId: z.number().int().positive(),
-        atTime: z.string().datetime({ offset: true }).optional(),
+        atTime: flexDateInputSchema
+          .optional()
+          .describe(
+            "Anchor the departure query to this moment instead of the server clock. Accepts YYYY-MM-DD or ISO 8601 with offset.",
+          ),
         dayType: busDayTypeSchema,
         includeDeparted: z.boolean().default(false),
         limit: z.number().int().min(1).max(20).default(5),
         versionKey: z.string().trim().min(1).optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },

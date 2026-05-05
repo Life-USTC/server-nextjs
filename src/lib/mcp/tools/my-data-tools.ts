@@ -8,7 +8,6 @@ import {
   listSubscribedSchedules,
 } from "@/features/home/server/subscribed-data";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { prisma } from "@/lib/db/prisma";
 import {
   flexDateInputSchema,
@@ -16,6 +15,7 @@ import {
   getUserId,
   getViewerInfo,
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
@@ -33,11 +33,12 @@ export function registerMyDataTools(server: McpServer) {
     "list_my_homeworks",
     {
       description:
-        "List homeworks across the authenticated user's subscribed sections.",
+        "List homeworks across your subscribed sections, including your personal completion state and comment count. " +
+        "Use list_homeworks_by_section for a single section's homeworks without completion state.",
       inputSchema: {
         completed: z.boolean().optional(),
         limit: z.number().int().min(1).max(200).default(100),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -62,7 +63,7 @@ export function registerMyDataTools(server: McpServer) {
     "set_my_homework_completion",
     {
       description:
-        "Mark a homework as completed or incomplete for the authenticated user.",
+        "Mark a homework as completed or incomplete. Prefer this over unset_my_homework_completion — pass completed: false to revert.",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         completed: z.boolean(),
@@ -126,7 +127,7 @@ export function registerMyDataTools(server: McpServer) {
     "unset_my_homework_completion",
     {
       description:
-        "Revert a completed homework back to incomplete for the authenticated user.",
+        "Revert a completed homework back to incomplete. Equivalent to set_my_homework_completion(completed: false).",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         mode: mcpModeInputSchema,
@@ -169,13 +170,13 @@ export function registerMyDataTools(server: McpServer) {
     "list_my_schedules",
     {
       description:
-        "List schedules across the authenticated user's subscribed sections.",
+        "List schedules across your subscribed sections. Use query_schedules for public schedules of any section without personal context.",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),
         dateTo: flexDateInputSchema.optional(),
         weekday: z.number().int().min(1).max(7).optional(),
         limit: z.number().int().min(1).max(300).default(150),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -212,13 +213,13 @@ export function registerMyDataTools(server: McpServer) {
     "list_my_exams",
     {
       description:
-        "List exams across the authenticated user's subscribed sections.",
+        "List exams across your subscribed sections. Includes unknown-date exams by default (set includeDateUnknown: false to exclude).",
       inputSchema: {
         dateFrom: flexDateInputSchema.optional(),
         dateTo: flexDateInputSchema.optional(),
         includeDateUnknown: z.boolean().default(true),
         limit: z.number().int().min(1).max(300).default(150),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -258,9 +259,10 @@ export function registerMyDataTools(server: McpServer) {
     "get_my_overview",
     {
       description:
-        "Get an overview of todos, homeworks, schedules and exams for the authenticated user.",
+        "Counts and top samples of pending todos, homeworks, today's schedules, and upcoming exams. " +
+        "Lighter than get_my_dashboard. Pass atTime to anchor to a specific day.",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         atTime: flexDateInputSchema
           .optional()
           .describe(
@@ -422,9 +424,10 @@ export function registerMyDataTools(server: McpServer) {
     "get_my_7days_timeline",
     {
       description:
-        "Get next-7-day timeline events from schedules, homework deadlines, exams and todos.",
+        "Next 7 days of unified calendar events (schedules, homework deadlines, exams, todos). " +
+        "Pass atTime to anchor the window start; default is today (Asia/Shanghai).",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         atTime: flexDateInputSchema
           .optional()
           .describe(

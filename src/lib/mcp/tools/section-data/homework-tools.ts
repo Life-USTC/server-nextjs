@@ -2,11 +2,12 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   getUserId,
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
   resolveMcpMode,
   resolveSectionByJwId,
@@ -64,11 +65,12 @@ export function registerSectionHomeworkTools(server: McpServer) {
     "list_homeworks_by_section",
     {
       description:
-        "List homeworks for a section by JW ID, optionally including deleted records.",
+        "Homeworks for one section by JW ID. Includes viewer completion state when authenticated. " +
+        "Use list_my_homeworks for all followed sections.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         includeDeleted: z.boolean().default(false),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -138,7 +140,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
     "create_homework_on_section",
     {
       description:
-        "Create one homework under a section (by section JW ID) for the authenticated user.",
+        "Create a homework under one section by section JW ID. Requires unsuspended signed-in user; does not mutate JW/import facts.",
       inputSchema: {
         sectionJwId: z.number().int().positive(),
         title: z.string().trim().min(1).max(200),
@@ -148,7 +150,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
         publishedAt: z.union([z.string(), z.null()]).optional(),
         submissionStartAt: z.union([z.string(), z.null()]).optional(),
         submissionDueAt: z.union([z.string(), z.null()]).optional(),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -285,7 +287,7 @@ export function registerSectionHomeworkTools(server: McpServer) {
     "update_homework_on_section",
     {
       description:
-        "Update one homework (by homework ID). Optionally upsert its description.",
+        "Update a homework by ID and optionally replace/upsert its description. Requires collaborator permissions and unsuspended user.",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         title: z.string().trim().min(1).max(200).optional(),

@@ -2,11 +2,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getAssistantDashboardSnapshot } from "@/features/home/server/assistant-dashboard-snapshot";
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
-import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import {
   flexDateInputSchema,
   getUserId,
   jsonToolResult,
+  mcpLocaleInputSchema,
   mcpModeInputSchema,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
@@ -21,9 +21,10 @@ export function registerDashboardTools(server: McpServer) {
     "get_my_dashboard",
     {
       description:
-        "Get a compact dashboard snapshot for the authenticated user with current courses, next class, deadlines, todos, and preferred shuttle.",
+        "Single-call snapshot: current courses, next class, upcoming deadlines, todo count, and preferred shuttle. " +
+        "Start here for most assistant workflows before fanning out to specific tools.",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -51,9 +52,9 @@ export function registerDashboardTools(server: McpServer) {
     "get_next_class",
     {
       description:
-        "Get the next upcoming class occurrence from the authenticated user's current followed sections.",
+        "Next upcoming class from followed sections. Lightweight alternative when only the next class is needed.",
       inputSchema: {
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
@@ -77,7 +78,8 @@ export function registerDashboardTools(server: McpServer) {
     "get_upcoming_deadlines",
     {
       description:
-        "Get a merged upcoming list of homework deadlines, exams, and due todos for the authenticated user.",
+        "Merged list of upcoming homework deadlines, exams, and due todos within dayLimit days (default 7). " +
+        "Pass atTime to anchor the window instead of using the server clock.",
       inputSchema: {
         dayLimit: z.number().int().min(1).max(30).default(7),
         atTime: flexDateInputSchema
@@ -85,7 +87,7 @@ export function registerDashboardTools(server: McpServer) {
           .describe(
             "Override the reference time for the deadline window. Defaults to now. Accepts YYYY-MM-DD or ISO 8601 with offset.",
           ),
-        locale: localeSchema.default(DEFAULT_LOCALE),
+        locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
       },
     },
