@@ -1,3 +1,10 @@
+# [1.28.0](https://github.com/Life-USTC/server-nextjs/compare/v1.27.1...v1.28.0) (2026-05-05)
+
+
+### Features
+
+* **mcp:** transport hardening, compact payloads, flexible dates, integration harness ([5df17be](https://github.com/Life-USTC/server-nextjs/commit/5df17beeba2901f08ec619f647222a25832fd339))
+
 ## [1.27.1](https://github.com/Life-USTC/server-nextjs/compare/v1.27.0...v1.27.1) (2026-04-28)
 
 
