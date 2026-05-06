@@ -31,7 +31,7 @@ jobs:
           bun-version-file: .bun-version
 
       - name: Run semantic-release with Bun
-        run: bunx --bun --package semantic-release@24.2.9 --package @semantic-release/commit-analyzer@13 --package @semantic-release/release-notes-generator@14 --package @semantic-release/changelog@6 --package @semantic-release/npm@12 --package @semantic-release/github@10 --package @semantic-release/git@10 semantic-release
+        run: bunx --bun --package @semantic-release/commit-analyzer@13 --package @semantic-release/release-notes-generator@14 --package @semantic-release/changelog@6 --package @semantic-release/npm@12 --package @semantic-release/github@10 --package @semantic-release/git@10 semantic-release@24.2.9
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
