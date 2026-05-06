@@ -1,3 +1,12 @@
+## [1.28.1](https://github.com/Life-USTC/server-nextjs/compare/v1.28.0...v1.28.1) (2026-05-06)
+
+
+### Bug Fixes
+
+* **ci:** install release tools with bun ([ac08490](https://github.com/Life-USTC/server-nextjs/commit/ac084903e7ad42a849e97f1b9b28d6eab7564acf))
+* **ci:** pin bun semantic release runner ([40afcdd](https://github.com/Life-USTC/server-nextjs/commit/40afcdd08b0ad4850142746c1ddb5e42f2e92c84))
+* **ci:** stabilize bun action checks ([b9fae6c](https://github.com/Life-USTC/server-nextjs/commit/b9fae6c01b6a4bb1a2daf7414750d3ba862adcae))
+
 # [1.28.0](https://github.com/Life-USTC/server-nextjs/compare/v1.27.1...v1.28.0) (2026-05-05)
 
 
