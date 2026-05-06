@@ -23,9 +23,11 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2eLock } from "../../../../utils/locks";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions";
+const DEBUG_USER_CALENDAR_LOCK = "debug-user-calendar";
 
 test.describe("POST /api/calendar-subscriptions", () => {
   test("contract", async ({ request }) => {
@@ -42,134 +44,140 @@ test.describe("POST /api/calendar-subscriptions", () => {
   test("subscribes to seed section and returns correct shape", async ({
     page,
   }) => {
-    await signInAsDebugUser(page, "/");
+    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+      await signInAsDebugUser(page, "/");
 
-    const matchRes = await page.request.post("/api/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
-    });
-    expect(matchRes.status()).toBe(200);
-    const matchBody = (await matchRes.json()) as {
-      sections?: Array<{ id?: number; code?: string | null }>;
-    };
-    const seedSection = matchBody.sections?.find(
-      (s) => s.code === DEV_SEED.section.code,
-    );
-    expect(seedSection?.id).toBeDefined();
-    if (seedSection?.id == null) {
-      throw new Error("Expected seed section id");
-    }
-    const sectionId = seedSection.id;
-
-    // Save current subscriptions for restoration
-    const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
-    );
-    const currentBody = (await currentRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
-
-    try {
-      const response = await page.request.post(BASE, {
-        data: { sectionIds: [sectionId] },
+      const matchRes = await page.request.post("/api/sections/match-codes", {
+        data: { codes: [DEV_SEED.section.code] },
       });
-      expect(response.status()).toBe(200);
-
-      const body = (await response.json()) as {
-        subscription?: {
-          userId?: string;
-          sections?: Array<{ id?: number }>;
-        };
+      expect(matchRes.status()).toBe(200);
+      const matchBody = (await matchRes.json()) as {
+        sections?: Array<{ id?: number; code?: string | null }>;
       };
-      expect(body.subscription?.userId).toBeTruthy();
-      expect(Array.isArray(body.subscription?.sections)).toBe(true);
-      expect(body.subscription?.sections?.some((s) => s.id === sectionId)).toBe(
-        true,
+      const seedSection = matchBody.sections?.find(
+        (s) => s.code === DEV_SEED.section.code,
       );
-    } finally {
-      await page.request.post(BASE, {
-        data: { sectionIds: originalIds },
-      });
-    }
+      expect(seedSection?.id).toBeDefined();
+      if (seedSection?.id == null) {
+        throw new Error("Expected seed section id");
+      }
+      const sectionId = seedSection.id;
+
+      // Save current subscriptions for restoration
+      const currentRes = await page.request.get(
+        "/api/calendar-subscriptions/current",
+      );
+      const currentBody = (await currentRes.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> } | null;
+      };
+      const originalIds =
+        currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+      try {
+        const response = await page.request.post(BASE, {
+          data: { sectionIds: [sectionId] },
+        });
+        expect(response.status()).toBe(200);
+
+        const body = (await response.json()) as {
+          subscription?: {
+            userId?: string;
+            sections?: Array<{ id?: number }>;
+          };
+        };
+        expect(body.subscription?.userId).toBeTruthy();
+        expect(Array.isArray(body.subscription?.sections)).toBe(true);
+        expect(
+          body.subscription?.sections?.some((s) => s.id === sectionId),
+        ).toBe(true);
+      } finally {
+        await page.request.post(BASE, {
+          data: { sectionIds: originalIds },
+        });
+      }
+    });
   });
 
   test("omitting sectionIds clears subscriptions", async ({ page }) => {
-    await signInAsDebugUser(page, "/");
+    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+      await signInAsDebugUser(page, "/");
 
-    // Save current subscriptions for restoration
-    const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
-    );
-    const currentBody = (await currentRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
-
-    try {
-      const response = await page.request.post(BASE, { data: {} });
-      expect(response.status()).toBe(200);
-
-      const body = (await response.json()) as {
-        subscription?: { sections?: Array<{ id?: number }> };
+      // Save current subscriptions for restoration
+      const currentRes = await page.request.get(
+        "/api/calendar-subscriptions/current",
+      );
+      const currentBody = (await currentRes.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> } | null;
       };
-      expect(body.subscription?.sections).toEqual([]);
-    } finally {
-      await page.request.post(BASE, {
-        data: { sectionIds: originalIds },
-      });
-    }
+      const originalIds =
+        currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+      try {
+        const response = await page.request.post(BASE, { data: {} });
+        expect(response.status()).toBe(200);
+
+        const body = (await response.json()) as {
+          subscription?: { sections?: Array<{ id?: number }> };
+        };
+        expect(body.subscription?.sections).toEqual([]);
+      } finally {
+        await page.request.post(BASE, {
+          data: { sectionIds: originalIds },
+        });
+      }
+    });
   });
 
   test("non-existent section IDs are silently dropped", async ({ page }) => {
-    await signInAsDebugUser(page, "/");
+    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+      await signInAsDebugUser(page, "/");
 
-    const matchRes = await page.request.post("/api/sections/match-codes", {
-      data: { codes: [DEV_SEED.section.code] },
-    });
-    const matchBody = (await matchRes.json()) as {
-      sections?: Array<{ id?: number; code?: string | null }>;
-    };
-    const seedSection = matchBody.sections?.find(
-      (s) => s.code === DEV_SEED.section.code,
-    );
-    expect(seedSection?.id).toBeDefined();
-    if (seedSection?.id == null) {
-      throw new Error("Expected seed section id");
-    }
-    const validId = seedSection.id;
-    const bogusId = 999_999_999;
-
-    const currentRes = await page.request.get(
-      "/api/calendar-subscriptions/current",
-    );
-    const currentBody = (await currentRes.json()) as {
-      subscription?: { sections?: Array<{ id?: number }> } | null;
-    };
-    const originalIds =
-      currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
-
-    try {
-      const response = await page.request.post(BASE, {
-        data: { sectionIds: [validId, bogusId] },
+      const matchRes = await page.request.post("/api/sections/match-codes", {
+        data: { codes: [DEV_SEED.section.code] },
       });
-      expect(response.status()).toBe(200);
-
-      const body = (await response.json()) as {
-        subscription?: { sections?: Array<{ id?: number }> };
+      const matchBody = (await matchRes.json()) as {
+        sections?: Array<{ id?: number; code?: string | null }>;
       };
-      expect(body.subscription?.sections?.some((s) => s.id === validId)).toBe(
-        true,
+      const seedSection = matchBody.sections?.find(
+        (s) => s.code === DEV_SEED.section.code,
       );
-      expect(body.subscription?.sections?.some((s) => s.id === bogusId)).toBe(
-        false,
+      expect(seedSection?.id).toBeDefined();
+      if (seedSection?.id == null) {
+        throw new Error("Expected seed section id");
+      }
+      const validId = seedSection.id;
+      const bogusId = 999_999_999;
+
+      const currentRes = await page.request.get(
+        "/api/calendar-subscriptions/current",
       );
-    } finally {
-      await page.request.post(BASE, {
-        data: { sectionIds: originalIds },
-      });
-    }
+      const currentBody = (await currentRes.json()) as {
+        subscription?: { sections?: Array<{ id?: number }> } | null;
+      };
+      const originalIds =
+        currentBody.subscription?.sections?.map((s) => s.id as number) ?? [];
+
+      try {
+        const response = await page.request.post(BASE, {
+          data: { sectionIds: [validId, bogusId] },
+        });
+        expect(response.status()).toBe(200);
+
+        const body = (await response.json()) as {
+          subscription?: { sections?: Array<{ id?: number }> };
+        };
+        expect(body.subscription?.sections?.some((s) => s.id === validId)).toBe(
+          true,
+        );
+        expect(body.subscription?.sections?.some((s) => s.id === bogusId)).toBe(
+          false,
+        );
+      } finally {
+        await page.request.post(BASE, {
+          data: { sectionIds: originalIds },
+        });
+      }
+    });
   });
 
   test("returns 400 for malformed body", async ({ page }) => {
