@@ -1,46 +1,89 @@
 # src/lib/mcp/
 
-- Scope
-  - MCP server registration, OAuth resource metadata, auth verification and tool definitions
-  - Keep MCP aligned with the Web and REST product model
-  - Default focus is personal learning workspace; no admin tools by default
+MCP server and tools.
 
-- Server and tools
-  - Register tool groups in `src/lib/mcp/server.ts`
-  - Tool files live under `src/lib/mcp/tools/`
-  - Shared helpers live in `src/lib/mcp/tools/_helpers.ts`
-  - Tool input uses Zod schemas; add `.describe()` on shared/ambiguous fields because clients see it as JSON Schema
-  - Tool output uses `jsonToolResult()`
-  - Modes are `summary`, `default` and `full`; use `resolveMcpMode()` before branching on mode
-  - Mode guidance: `summary` for counts/top samples, `default` for most agent calls, `full` only for exact nested records
-  - Tool descriptions should say when to use the tool, not exhaustively restate its return shape
-  - Avoid repeating auth context in descriptions (`my_` and OAuth already imply the caller)
+## Structure
 
-- Auth and OAuth
-  - Auth requires Bearer token with `MCP_TOOLS_SCOPE`
-  - MCP uses resource indicators; audience must match `/api/mcp`
-  - Resource-bound JWT access tokens are accepted
-  - Opaque tokens that cannot prove MCP audience binding are rejected with `invalid_token`
-  - Do not accept cookie sessions for MCP tools
-  - Do not log access tokens, refresh tokens, client secrets or raw Authorization headers
+```
+server.ts        MCP server registration
+tools/           Tool implementations
+  _helpers.ts    Shared utilities
+  dashboard.ts
+  homework.ts
+  ...
+```
 
-- Data and permissions
-  - Use base `prisma` for writes and locale-neutral reads
-  - Use `getPrisma(locale)` for localized names
-  - Personal tools must scope data to the authenticated user
-  - Collaborative writes must enforce signed-in, unsuspended-user rules
-  - Normal users do not mutate JW/import facts
-  - Todo writes are personal user state; homework completion writes are per-user state
+## Tool Pattern
 
-- Dates and output
-  - Use `flexDateInputSchema` for MCP date/datetime string inputs and parse with `parseDateInput` / `parseRequiredDateInput`
-  - Use `jsonToolResult()` so date serialization and compact modes stay consistent
-  - Preserve section code, section number, semester and JW IDs when needed for disambiguation
-  - Keep tool descriptions clear that section subscription is not official USTC course selection
+```typescript
+import { z } from "zod";
+import { jsonToolResult, toolError, resolveMcpMode } from "./_helpers";
 
-- Common tool workflows
-  - Student snapshot: `get_my_dashboard` first, then fan out to `get_next_class`, `get_upcoming_deadlines`, `list_my_todos`, or `list_my_calendar_events`
-  - Subscribe by code: `get_current_semester` → `match_section_codes` for preview → `subscribe_my_sections_by_codes` after confirmation
-  - Subscribe by search: `search_courses` or `search_sections` → `subscribe_section_by_jw_id`
-  - Section detail: `get_section_by_jw_id` first, then `list_schedules_by_section`, `list_homeworks_by_section`, or `list_exams_by_section`
-  - Bus: `get_next_buses` for next departures, `list_bus_routes` before `get_bus_route_timetable`, `query_bus_timetable` only for full local processing
+const inputSchema = z.object({
+  sectionJwId: z.number().describe("Section JW ID"),
+  mode: z.enum(["summary", "default", "full"]).optional(),
+});
+
+export async function myTool(args: unknown, authInfo: { userId: string }) {
+  try {
+    const input = inputSchema.parse(args);
+    const mode = resolveMcpMode(input.mode);
+    
+    // Business logic
+    const result = await doWork(authInfo.userId, input);
+    
+    return jsonToolResult(result, mode);
+  } catch (error) {
+    return toolError("Failed to do work", error);
+  }
+}
+```
+
+## Mode Guidance
+
+- **summary**: Counts, top samples
+- **default**: Standard agent calls
+- **full**: Complete nested records
+
+## Auth
+
+- Bearer token required (no cookies)
+- Audience must match `/api/mcp`
+- `authInfo.userId` injected by middleware
+
+## Tool Descriptions
+
+```typescript
+server.addTool({
+  name: "my_tool",
+  description: "When to use this tool (not exhaustive return shape)",
+  inputSchema: zodToJsonSchema(inputSchema),
+  handler: myTool,
+});
+```
+
+## Patterns
+
+```typescript
+// Writes
+await prisma.model.create({ data });
+
+// Localized reads
+const localPrisma = getPrisma(locale);
+await localPrisma.model.findMany();
+
+// Dates
+import { flexDateInputSchema } from "@/lib/mcp/schemas";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+
+// Output
+return jsonToolResult(data, mode); // handles dates + compaction
+```
+
+## Permissions
+
+- Personal tools scope to `authInfo.userId`
+- Check suspension for collaborative writes
+- Normal users don't mutate JW/import facts
+
+See root `AGENTS.md` for auth, dates, Prisma, errors.

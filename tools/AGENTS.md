@@ -1,53 +1,69 @@
 # tools/
 
-## Scope
+Build, seed, import scripts.
 
-```yaml
-paths:
-  - tools/**
-subtrees:
-  shared: helper code used by tool scripts
-  build/openapi: build-time OpenAPI generation and postprocessing
-  dev/check: local convention and diagnostic checks
-  dev/benchmark: local benchmark scripts
-  dev/util: local development utilities
-  dev/seed: development seed data, reset, and E2E scenario scripts
-  production/load: production import/load scripts
-  production/util: production maintenance utilities
+## Structure
+
+```
+shared/              Helper code
+build/openapi/       OpenAPI generation
+dev/check/           Convention checks
+dev/seed/            Dev seed data
+production/load/     Production imports
 ```
 
-- Runtime
-  - Use `bun` / `bunx` only
-  - Load env with `dotenv/config` when needed
-  - Scripts that instantiate Prisma should use `PrismaClient`, use `createPrismaAdapter()` and disconnect when complete
+## Prisma in Scripts
 
-- Seed scripts
-  - `dev/seed/seed-dev-scenarios.ts` creates stable debug users and current-semester course/section/schedule/exam scenarios
-  - Seed scenarios should include homework, completion, todo, comment, upload and suspension cases when relevant
-  - `dev/seed/reset-dev-scenarios.ts` removes scenario data
-  - Seed IDs use high JW ranges to avoid real imported data collisions
-  - Seed text should remain stable for E2E assertions
+```typescript
+import { PrismaClient } from "@prisma/client";
+import { createPrismaAdapter } from "@/lib/db/adapter";
+import pg from "pg";
 
-- Import scripts
-  - `production/load/load-from-static.ts` imports SQLite snapshot data and supports cache, snapshot URL override, minimum semester filter and skipped course/bus import
-  - Course import should preserve JW/import facts
-  - Synthetic IDs must remain stable
-  - China-local date conversion should stay centralized in script helpers
-  - Bus import should go through `src/features/bus/lib/bus-import.ts`
-  - Bus version/checksum should make repeated imports safe
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = createPrismaAdapter(pool);
+const prisma = new PrismaClient({ adapter });
 
-- OpenAPI and checks
-  - `build/openapi/postprocess-spec.ts` runs after the custom OpenAPI generator
-  - `bun run prebuild` runs Prisma generate, OpenAPI generate and OpenAPI type generation
-  - `dev/check/check-e2e-conventions.ts` rejects `waitForTimeout()`, committed skipped E2E tests and direct Prisma imports in Playwright tests
-  - `dev/check/check-i18n-keys.ts` checks translation key availability across `src` and `messages`
-  - `dev/benchmark/e2e-workers.ts` benchmarks Playwright worker counts against one built app/server
+try {
+  await prisma.$connect();
+  // work
+} finally {
+  await prisma.$disconnect();
+  await pool.end();
+}
+```
 
-- Data rules
-  - Seed current-semester dashboard cases
-  - Seed no-subscription or stale-semester edge cases when changed
-  - Seed cross-semester disambiguation cases when relevant
-  - Seed section subscription separately from JW facts
-  - Seed homework separately from per-user completion
-  - Seed personal todos separately from section homework
-  - Cover admin, moderation, upload, OAuth and MCP edge cases when changed
+## Seed
+
+```bash
+bun run dev:seed-scenarios  # Create
+bun run dev:seed:reset      # Clean
+```
+
+Seed data:
+- Debug users (admin, normal, suspended)
+- Current-semester scenarios
+- Anchor date: `2026-04-29`
+
+## Import
+
+```bash
+bun tools/production/load/load-from-static.ts
+```
+
+- Import from SQLite snapshot
+- Preserve JW facts
+- Bus import via `src/features/bus/lib/bus-import.ts`
+
+## OpenAPI
+
+```bash
+bun run prebuild  # Generate + postprocess
+```
+
+## Convention Checks
+
+```bash
+bun run check:e2e        # E2E conventions
+bun run check:i18n-keys  # Translation keys
+bun run check:features   # Feature docs
+```

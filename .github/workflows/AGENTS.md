@@ -1,21 +1,35 @@
 # .github/workflows/
 
-## Scope
+CI/CD pipelines.
 
-```yaml
-paths:
-  - .github/workflows/**
-registry: ghcr.io
-deploy_mode: manual_on_jp-2
-```
+## Workflows
+
+| Workflow | Trigger | Jobs |
+|----------|---------|------|
+| CI | push/PR to main | Check, E2E (4 shards), Commitlint |
+| CD | push to main | Docker Build/Push, Prisma Deploy |
+| Release | push to main | Changelog + version bump |
+| Code Quality | push to main | Biome check |
+
+## Version Alignment
+
+Keep Bun versions aligned with:
+- `.bun-version`
 
 ## Rules
 
-- Production build validation is `docker build .`.
-- Keep workflow Node/Bun versions aligned with:
-  - `.nvmrc`
-  - `.node-version`
-  - `.bun-version`
-- Prefer the repo's existing `bun`-based commands over introducing parallel `npm` or `pnpm` workflow paths.
-- When workflow changes affect app/runtime expectations, keep them aligned with the commands in the root `AGENTS.md`.
-- Do not add secrets to workflow files, logs, comments, or docs.
+- Use repo's `bun`-based commands; do not add Node setup steps
+- Production build: `docker build .`
+- Never commit secrets
+
+## Common Tasks
+
+```bash
+bun install --frozen-lockfile
+bun run check
+bun run typecheck
+bun run test
+bun run test:integration  # needs DATABASE_URL
+bun run test:e2e          # needs build
+docker build .
+```

@@ -1,79 +1,56 @@
 # src/features/
 
-- Scope
-  - User-task business domains
-  - Keep domain logic here, not in route handlers
-  - Typical feature layout: `components/`, `server/`, `lib/`
-  - Server Component data functions belong in `server/`
-  - Client hooks stay under feature `hooks/` when scoped to one domain
+Business domain logic.
 
-- `home/`
-  - Own dashboard panels and cards
-  - Dashboard aggregation lives in `src/features/home/server/`
-  - Keep route-level composition in `src/app/page.tsx`; do not reintroduce reusable dashboard business logic under `src/app/dashboard/`
-  - Overview should answer what the user should do next
-  - Prioritize current-semester work
-  - Do not make stale semesters look current
-  - Calendar week starts Sunday
-  - Calendar events should link back to source objects
+## Structure
 
-- `homeworks/`
-  - Homework belongs to a section
-  - Creation does not require subscribing to that section
-  - Signed-in, unsuspended users can create/update active homework
-  - Delete is creator/admin scoped
-  - Completion belongs to the viewer, not the homework
-  - Due-less homework stays visible but out of urgent due ordering
-  - Description may be created/updated with homework
-  - Preserve audit log writes for create/delete paths
+```
+home/          Dashboard panels, overview
+homework/      Section homework (not todos)
+todos/         Personal tasks
+comments/      Object-scoped discussions
+uploads/       Comment attachments
+descriptions/  Platform markdown content
+dashboard-links/ Link catalog
+bus/           Public timetable
+```
 
-- `todos/`
-  - Todo belongs to one user
-  - Users can create/edit/complete/delete only their own todos
-  - Todo may have title, content, priority and due date
-  - Incomplete due todos can appear on personal calendar
-  - Completed todos should not remain urgent dashboard work
+## Layout
 
-- `comments/`
-  - Comments are object-scoped to section, course, teacher, section-teacher or homework
-  - Support Markdown, math, emoji, tables, replies and reactions
-  - Visibility supports public, logged-in only and anonymous
-  - Anonymous hides identity from normal users; admin moderation can see enough context for safety work
-  - Suspended users cannot create new comments
-  - Authors can edit/delete their own comments
-  - Admin can moderate/hide/delete
+```
+feature/
+  components/  React components
+  server/      Server data functions
+  lib/         Domain utilities
+```
 
-- `uploads/`
-  - Uploads are comment attachments
-  - Use pending-upload flow before attaching to comments
-  - Enforce max file size and total quota
-  - E2E can use mock S3
-  - Download must check access to the owning comment/target context
-  - Rename/delete only the owner upload unless admin flow explicitly exists
+## Key Rules
 
-- `descriptions/`
-  - Markdown supplement for section, course, teacher and homework
-  - Platform-maintained info, distinct from comments
-  - Track last editor and edit history
-  - Description takes precedence over conflicting comment opinion
+### homework/
+- Attached to section, not user
+- Signed-in, unsuspended can create/update
+- Delete: creator or admin only
+- Completion is per-user, separate from entity
 
-- `dashboard-links/`
-  - Static link catalog plus user state
-  - Search supports Chinese and pinyin
-  - Public users can browse
-  - Signed-in users can pin and record visits
-  - Links navigate; buttons mutate pin/visit state
+### todos/
+- Purely personal
+- User owns CRUD
+- Due date → calendar (if incomplete)
 
-- `bus/`
-  - Public timetable lookup
-  - Signed-in preference save
-  - Routes are ordered campus stop lists
-  - Trips differ by weekday/weekend
-  - Default day type should follow current date
-  - Static import should be idempotent by schedule version/checksum
+### comments/
+- Scoped to section/course/teacher/homework
+- Visibility: public, logged-in, anonymous
+- Suspended can't create
+- Admin can moderate
 
-- Change rules
-  - Add seed data for new models or special logic
-  - Add or update E2E for changed user journeys
-  - Preserve semester and section number in search, matching, cross-semester and admin views
-  - Compact personal cards may prefer course name, time, place, teacher, state and next action
+### uploads/
+- Comment attachments
+- Pending-upload flow
+- Check permissions for downloads
+
+### bus/
+- Public timetable
+- Signed-in preference save
+- Import idempotent by version
+
+See root `AGENTS.md` for auth, dates, Prisma patterns.

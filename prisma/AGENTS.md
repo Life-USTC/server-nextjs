@@ -1,43 +1,67 @@
 # prisma/
 
-- Scope
-  - Prisma schema, migrations and data model boundaries
-  - `schema.prisma` is the source of truth for model details
-  - Generated Prisma client output is `src/generated/prisma`
-  - Import generated client from `@/generated/prisma/client`
+Database schema and migrations.
 
-- Datasource and generator
-  - PostgreSQL connection comes from env
-  - App code uses `@prisma/adapter-pg`
-  - Prisma generator provider is `prisma-client`
+## Files
 
-- Model boundaries
-  - JW/import facts include semester, course, section, teacher, schedule, exam and lookup data
-  - User state includes section subscriptions, homework completions, todos, dashboard pins/clicks and bus preferences
-  - Collaborative content includes homework, descriptions, comments, reactions and uploads
-  - Auth/OAuth models are owned by Better Auth and the OAuth provider
-  - Bus tables represent campuses, routes, ordered stops, schedule versions and trips
+```
+schema.prisma    Source of truth
+migrations/      Migration history
+seed.ts          Dev seed data
+```
 
-- Mutation constraints
-  - Normal users do not edit JW/import facts
-  - Subscription writes update only the current user relation
-  - Homework completion writes must not mutate homework
-  - Todo writes must stay scoped to owner
-  - Comment, description and upload writes need target context
-  - Admin/risky writes should preserve actor and time fields where the schema supports them
-  - Soft-delete fields such as `deletedAt` must keep read paths and uniqueness assumptions in mind
+## Generated Output
 
-- Schema change rules
-  - Run `bun run prisma:migrate`
-  - Run `bun run prebuild`
-  - Add or update seed scenarios for new models or special logic
-  - Update E2E tests when behavior changes
-  - Check migrations for accidental destructive changes
+```
+src/generated/prisma/  → DO NOT EDIT
+```
 
-- Naming
-  - `id`: internal primary key
-  - `jwId`: JW external key
-  - `code`: imported or product code
-  - `nameCn` / `nameEn`: bilingual names
-  - `createdAt` / `updatedAt`: timestamps
-  - `deletedAt`: soft delete marker
+## Imports
+
+```typescript
+// App code
+import { prisma, getPrisma } from "@/lib/db/prisma";
+import type { User } from "@/generated/prisma/client";
+
+// Scripts
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+// ... use ...
+await prisma.$disconnect();
+```
+
+## Model Boundaries
+
+- **JW/Import**: Semester, Course, Section, Teacher, Schedule, Exam
+- **User State**: Subscriptions, completions, todos, pins
+- **Collaborative**: Homework, descriptions, comments, uploads
+- **Auth/OAuth**: Better Auth models
+- **Bus**: Campuses, routes, stops, versions, trips
+
+## Mutation Rules
+
+- Normal users don't edit JW facts
+- Subscription → current user only
+- Homework completion → don't mutate homework
+- Todo → scoped to owner
+- Soft-delete (`deletedAt`) → check read paths
+
+## Schema Changes
+
+```bash
+bun run prisma:migrate  # Create migration
+bun run prebuild        # Generate client
+# Update seed scenarios
+# Update E2E tests
+```
+
+## Naming
+
+- `id` - Primary key
+- `jwId` - JW external key
+- `code` - Imported code
+- `nameCn`/`nameEn` - Bilingual
+- `createdAt`/`updatedAt` - Timestamps
+- `deletedAt` - Soft delete
+
+See root `AGENTS.md` for Prisma patterns.

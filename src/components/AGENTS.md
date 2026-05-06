@@ -1,42 +1,66 @@
 # src/components/
 
-- Scope
-  - Reusable UI components and shared composed UI
-  - No feature-specific data fetching
-  - No new feature-specific product mutations
-  - Existing shared mutation surfaces must use typed API clients or server actions and keep permissions server-side
+Reusable UI components.
 
-- Structure
-  - `ui/`: base component wrappers built on Base UI patterns and Tailwind classes
-  - `admin/`: shared admin tables, filters and dialogs
-  - `descriptions/`: shared description display/edit surface
-  - `filters/`: list/dashboard filter toolbars
-  - `schedules/`: schedule display helpers
-  - Root components cover layout shells, nav, calendars, profile/settings pieces and data states
+## Structure
 
-- Component rules
-  - Prefer compound components for multi-part UI
-  - Use CVA for variants and `cn()` for class merging
-  - Preserve `data-slot` patterns in UI primitives
-  - Buttons default to `type="button"` unless used as submit
-  - Keep ARIA and keyboard support intact
-  - Links navigate; buttons mutate state
-  - Use Sheet for light edits and AlertDialog for destructive confirmation
-  - Use Toast for mutation feedback when the result is not otherwise obvious
+```
+ui/            Base components (Base UI + Tailwind)
+admin/         Admin tables, filters, dialogs
+descriptions/  Description display/edit
+filters/       List/dashboard filters
+schedules/     Schedule display
+Root:          Layout shells, nav, calendars
+```
 
-- Layout and display
-  - Use `PageLayout` for normal pages
-  - Use `PageSection` / `Panel` for framed content blocks
-  - Use `PageBreadcrumbs` where hierarchy matters
-  - Keep `#main-content` contract intact through page composition
-  - Keep cards stable as state changes
-  - Do not let long course names, section codes or URLs overflow
-  - Personal cards should keep title, time/state and primary action stable
-  - Preserve semester, section code, teacher and location when needed for disambiguation
+## Rules
 
-- Accessibility
-  - Prefer semantic roles and labels
-  - Keep focus-visible states
-  - Preserve skip-to-content behavior
-  - Icon-only controls need labels
-  - Dialogs and sheets need titles
+- No feature-specific data fetching
+- No new feature mutations
+- Keep permissions server-side
+
+## Patterns
+
+```typescript
+// Compound components
+export function Card({ children }) {
+  return <div>{children}</div>;
+}
+Card.Header = function CardHeader({ children }) {
+  return <div>{children}</div>;
+};
+
+// Variants with CVA
+const variants = cva("base", {
+  variants: { variant: { default: "..." } }
+});
+
+// Class merging
+<div className={cn("base", className)} />
+```
+
+## UI Primitives
+
+- Preserve `data-slot` patterns
+- Buttons default `type="button"`
+- Keep ARIA and keyboard support
+- Links navigate, buttons mutate
+- Sheet for edits, AlertDialog for destructive
+
+## Layout
+
+```typescript
+<PageLayout>
+  <PageBreadcrumbs items={[...]} />
+  <PageSection>
+    <Panel>...</Panel>
+  </PageSection>
+</PageLayout>
+```
+
+## Accessibility
+
+- Semantic roles and labels
+- `focus-visible` states
+- Icon-only controls need labels
+- Dialogs need titles

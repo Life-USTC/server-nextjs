@@ -1,24 +1,49 @@
 # src/app/
 
-- Scope: Next.js App Router pages, layouts, non-API route handlers, and page composition. Keep files thin.
-- Put reusable business logic in `src/features/` and infrastructure helpers in `src/lib/`.
-- App Router rules:
-  - `params` and `searchParams` may be Promises
-  - use `generateMetadata()` with translations
-  - set `runtime = "nodejs"` when Node APIs or MCP transport are required
-  - set `dynamic = "force-dynamic"` only when the route truly cannot be static
-- Page contracts:
-  - `/` is the signed-in dashboard and anonymous public bus/links entry
-  - course, section, and teacher pages are public browsing surfaces
-  - section pages must not imply official course enrollment
-  - `/welcome` is required when a signed-in user lacks name or username
-  - `/signin` may expose dev debug providers only in dev/E2E mode
-  - `/settings` is the personal account/content/upload/danger surface
-  - `/oauth/authorize` must show app, scopes, approve, and deny actions
-  - `/admin/*` is admin-only and needs clear feedback for high-risk actions
-  - `/comments/[id]` redirects to the target object anchor
-  - keep `#main-content` visible
-- Route handlers under `src/app/api` follow `src/app/api/AGENTS.md`.
-- Keep OpenAPI annotations directly above handlers: `@params`, `@pathParams`, `@body`, `@response`. After API changes run `bun run prebuild`.
-- iCal routes must return valid calendar content even for empty event sets, and feed tokens belong to the user.
-- Use shared page layout components where possible. Load anonymous home bus data unless the links tab is explicitly selected. Keep route aliases consistent with E2E helpers.
+App Router pages and layouts.
+
+## Scope
+
+- Pages, layouts, route handlers
+- Keep thin, business logic in `src/features/`
+
+## App Router
+
+```typescript
+// params/searchParams may be Promises
+export default async function Page({ params, searchParams }) {
+  const { id } = await params;
+  const { tab } = await searchParams;
+}
+
+// Metadata
+export async function generateMetadata({ params }) {
+  return { title: "..." };
+}
+
+// Set runtime only when needed
+export const runtime = "nodejs"; // for MCP
+export const dynamic = "force-dynamic"; // only if truly dynamic
+```
+
+## Page Contracts
+
+- `/` - Dashboard (signed-in) or public (anon)
+- `/courses`, `/sections`, `/teachers` - Public browsing
+- `/welcome` - Required for new users
+- `/settings` - Personal account management
+- `/admin/*` - Admin only
+
+## OpenAPI
+
+```typescript
+/**
+ * @params { page?: number }
+ * @response PaginatedResponse<Course>
+ */
+export async function GET(request: Request) {}
+```
+
+Run `bun run prebuild` after API changes.
+
+See `api/AGENTS.md` for REST handlers, root `AGENTS.md` for patterns.

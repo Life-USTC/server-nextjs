@@ -1,38 +1,49 @@
 # src/app/api/
 
-- Scope
-  - REST route handlers and protocol endpoints under the App Router
-  - Keep handlers thin; move reusable business behavior to `src/features/`
-  - Keep infrastructure behavior in `src/lib/`
+REST route handlers.
 
-- Handler rules
-  - Use `jsonResponse()` for JSON so date serialization stays consistent
-  - Use `handleRouteError()` for unexpected failures
-  - Use typed helpers such as `badRequest`, `unauthorized`, `forbidden`, `notFound` and `payloadTooLarge`
-  - Validate request bodies and query params with schemas from `src/lib/api/schemas`
-  - Use `parseInteger` / `parseOptionalInt` for integer params after schema parsing
-  - Use `buildPaginatedResponse()` for paginated lists
-  - Return status responses from route handlers; do not use page redirects
+## Pattern
 
-- Auth and access
-  - Keep auth checks before mutation
-  - Use `resolveApiUserId()` when Bearer token and cookie sessions are both valid inputs
-  - MCP route is Bearer-token only
-  - OAuth client access must follow authorized REST/MCP capabilities, not admin defaults
-  - Suspended users cannot perform collaborative writes
+```typescript
+import { jsonResponse } from "@/lib/api/json-response";
+import { handleRouteError } from "@/lib/api/error-handler";
+import { unauthorized, notFound } from "@/lib/api/status-responses";
+import { resolveApiUserId } from "@/lib/auth/resolve-api-user-id";
 
-- API surface
-  - Keep REST behavior aligned with Web and MCP for the same capability
-  - Do not create a separate API product model
-  - Section subscription must not be described as official USTC course selection
-  - Preserve section code, section number, semester and JW IDs where needed for disambiguation
+export async function GET(request: Request) {
+  try {
+    const userId = await resolveApiUserId(request);
+    if (!userId) return unauthorized();
 
-- OpenAPI
-  - Keep annotations above handlers: `@params`, `@pathParams`, `@body`, `@response`
-  - Use schema names from API schema files
-  - After API changes run `bun run prebuild`
+    // Validate, fetch, return
+    const data = await fetchData();
+    return jsonResponse(data);
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+```
 
-- Dates
-  - Use `parseDateInput` for API date input
-  - Return dates through `jsonResponse()` or shared serialization helpers
-  - Date-only JW data should preserve the stored calendar date
+## Key Rules
+
+- Return status responses, not redirects
+- Use `jsonResponse()` for date serialization
+- Validate with Zod schemas
+- Check auth before mutations
+- Use `buildPaginatedResponse()` for lists
+
+## OpenAPI
+
+```typescript
+/**
+ * @params { page?: number }
+ * @pathParams { id: string }
+ * @body CreateBody
+ * @response { id: string }
+ */
+export async function POST(request: Request) {}
+```
+
+Run `bun run prebuild` after changes.
+
+See root `AGENTS.md` for auth, dates, errors, validation.

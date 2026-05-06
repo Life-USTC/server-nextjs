@@ -1,49 +1,46 @@
 # src/lib/
 
-- Scope: infrastructure and shared low-level helpers only. Keep page-specific product logic out; put business behavior in `src/features/`.
-- `api/`
-  - use `jsonResponse()` so date serialization stays consistent
-  - use `handleRouteError()` for unexpected failures
-  - use shared status helpers, pagination helpers, and centralized request/response schemas aligned with OpenAPI generation
-- `auth/`
-  - `requireSignedInUserId()` is for page redirects
-  - `resolveApiUserId()` accepts OAuth Bearer tokens or Better Auth cookie sessions
-  - route handlers return status responses, not page redirects
-  - preserve final-account disconnect protection
-- `db/`
-  - import Prisma types from `@/generated/prisma/client`
-  - import app Prisma instances from `@/lib/db/prisma`
-  - use `createPrismaAdapter()` with PostgreSQL
-  - use base `prisma` for writes and locale-neutral reads
-  - use `getPrisma(locale)` for localized names
-  - do not create ad hoc Prisma clients in app code
-  - scripts may create their own client and must disconnect
-- `mcp/`: follow the narrower rules in `src/lib/mcp/AGENTS.md`.
-- `oauth/`
-  - Better Auth owns client, token, and consent models
-  - dynamic client registration is supported
-  - MCP uses resource indicators and `MCP_TOOLS_SCOPE`
-  - redirect URI handling must stay strict
-  - debug logging must not leak secrets
-- `storage/`
-  - use the official AWS SDK and its default runtime configuration chain
-  - `S3_BUCKET` names the upload bucket
-  - upload keys are scoped under `uploads/{userId}/...`
-  - signed URLs are transport only; app permissions still matter
-- `security/`
-  - CSP nonce is created in `src/proxy.ts`
-  - layout reads the nonce from `x-csp-nonce`
-  - keep analytics scripts nonce-bound
-  - proxy excludes API and static paths
-- `time/`
-  - use `src/lib/time/parse-date-input.ts` for API/MCP date parsing
-  - use `src/lib/time/serialize-date-output.ts` for JSON-safe date output
-  - Shanghai helpers drive display and dashboard day windows
-  - do not hand-roll timezone conversion in features
-- Other rules:
-  - use structured app/route logging helpers
-  - use shared pagination/search-param helpers
-  - use localized navigation wrappers from `i18n/routing`
-  - keep auth and permission checks explicit
-  - never treat raw S3 URLs as authorization
-  - keep API/MCP date serialization consistent
+Infrastructure and shared helpers.
+
+## Directories
+
+```
+api/       Request/response, schemas, status
+auth/      Session resolution, permissions
+db/        Prisma instances
+mcp/       MCP server (see mcp/AGENTS.md)
+oauth/     OAuth provider, tokens
+storage/   S3 client, signed URLs
+security/  CSP, content security
+time/      Date parsing, serialization
+log/       Structured logging
+```
+
+## Key Imports
+
+```typescript
+// API
+import { jsonResponse } from "@/lib/api/json-response";
+import { handleRouteError } from "@/lib/api/error-handler";
+import { buildPaginatedResponse } from "@/lib/api/pagination";
+
+// Auth
+import { requireSignedInUserId } from "@/lib/auth/require-signed-in-user-id";
+import { resolveApiUserId } from "@/lib/auth/resolve-api-user-id";
+
+// DB
+import { prisma, getPrisma } from "@/lib/db/prisma";
+
+// Time
+import { parseDateInput } from "@/lib/time/parse-date-input";
+import { getShanghaiDay } from "@/lib/time/shanghai-helpers";
+```
+
+## Rules
+
+- No business logic (use `src/features/`)
+- No direct Prisma imports
+- Use shared helpers
+- OAuth: never log tokens/secrets
+
+See root `AGENTS.md` for patterns.

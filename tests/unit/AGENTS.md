@@ -1,20 +1,51 @@
 # tests/unit/
 
-- Scope
-  - Vitest unit tests for pure helpers, schemas, serializers, query builders and small UI contracts
-  - No live database, browser, running Next server or network access
-  - Keep tests deterministic and fast; run with `bun run test`
+Unit tests for pure helpers.
 
-- Conventions
-  - Place tests beside the behavior area by name, not by implementation path mirroring
-  - Prefer table tests for parser/schema/query-builder edge cases
-  - Mock only process/env/time boundaries that the unit owns
-  - Do not import app Prisma clients or generated Prisma runtime clients here
-  - Use integration tests for real MCP tool calls and DB-backed behavior
-  - Use E2E tests for browser routing, auth redirects, accessibility-visible flows and full-stack API contracts
+## Run
 
-- Coverage priorities
-  - Date parsing/serialization and Shanghai day-boundary helpers
-  - API schemas and query builders before route-handler behavior
-  - Permission/auth helper edge cases without requiring a session
-  - Compact/summary payload helpers for agent-facing surfaces
+```bash
+bun run test
+```
+
+## Scope
+
+- Pure functions only
+- No DB, browser, server, network
+- Fast, deterministic
+
+## Conventions
+
+- Tests beside behavior area
+- Table tests for edge cases
+- Mock only process/env/time boundaries
+- Don't import Prisma clients
+
+## Coverage Priorities
+
+- Date parsing/serialization
+- API schemas and query builders
+- Permission helpers (no session needed)
+- Compact payload helpers
+
+## Examples
+
+```typescript
+import { describe, test, expect } from "vitest";
+
+describe("parseDateInput", () => {
+  test.each([
+    ["2026-05-06", new Date("2026-05-06T00:00:00.000Z")],
+    ["invalid", null],
+  ])("parseDateInput(%s) = %s", (input, expected) => {
+    expect(parseDateInput(input)).toEqual(expected);
+  });
+});
+```
+
+## Deterministic Tests
+
+- No `Date.now()` (mock if needed)
+- No `Math.random()`
+- No network calls
+- No file system (except fixtures)
