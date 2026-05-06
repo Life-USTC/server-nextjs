@@ -33,7 +33,7 @@ services:
     volumes:
       - ./:/usr/src/app
       - bun-cache:/root/.bun
-      - node-modules:/usr/src/app/node_modules
+      - bun-node-modules:/usr/src/app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,4 +41,4 @@ services:
 volumes:
   postgres-data-dev:
   bun-cache:
-  node-modules:
+  bun-node-modules:

@@ -60,5 +60,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD bun run health || exit 1
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-# Use node server.js (node → bun symlink in oven/bun image)
-CMD ["node", "server.js"]
+# Run the Next.js standalone server with Bun directly.
+CMD ["bun", "server.js"]

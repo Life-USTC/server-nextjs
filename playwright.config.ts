@@ -75,7 +75,7 @@ export default defineConfig({
   },
   webServer: {
     command:
-      "bun run build && bun run test:e2e:prepare-server && node .next/standalone/server.js",
+      "bun run build && bun run test:e2e:prepare-server && bun .next/standalone/server.js",
     env: {
       ...process.env,
       HOSTNAME: playwrightHost,
