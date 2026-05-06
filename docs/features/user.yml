@@ -1,0 +1,120 @@
+name: User
+access:
+  anon: Can browse all public information; further actions are not available before entering the sign-in flow.
+  user: Can follow sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences, post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.
+  admin: Can review comments, maintain descriptions, manage users, suspend accounts, manage OAuth clients, maintain bus data, and handle user content and platform security issues.
+  agent: Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions.
+rules:
+  sign-in-providers: Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.
+  oauth-callback-integrity: On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.
+  welcome-flow-required: New users who have not set a name or username on first login must complete the welcome flow before proceeding.
+  auth-callback-not-intercepted: Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.
+  post-login-redirect: After successful login, the user should be redirected back to the originally requested page whenever possible; if no origin page exists, redirect to the home page.
+  oauth-login-resume: If an OAuth authorization request lands on /signin with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.
+  oauth-consent-loopback-continuation: The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.
+  public-identity-display: Public identity defaults to displaying name or username, not internal identifiers.
+capabilities:
+  sign-in:
+    title: Sign In
+    auth: anon
+    web:
+      pages:
+        - /signin
+    rest: stable
+    mcp: unavailable
+    display:
+      fields:
+        - "OAuth provider buttons: GitHub, Google, OIDC/USTC"
+        - Error message (if login fails)
+        - Terms and privacy links
+  first-login-welcome:
+    title: First Login & Welcome Page
+    auth: user
+    web:
+      pages:
+        - /welcome
+    rest: unavailable
+    mcp: unavailable
+    links:
+      models:
+        - User
+    display:
+      fields:
+        - user.name (Current value display)
+        - user.username (Current value display)
+        - user.image (Current avatar)
+        - user.profilePictures[] (Avatar selector grid)
+        - semesters[] (Semester dropdown options)
+        - defaultSemesterId (Preselected semester)
+  post-login-redirect:
+    title: Post-Login Redirect
+    auth: anon
+    web: stable
+    rest: unavailable
+    display:
+      fields:
+        - callbackUrl query parameter (origin page)
+        - Fallback to home page if no origin
+  public-profile:
+    title: Public Profile
+    auth: anon
+    web:
+      pages:
+        - /u/$username
+        - /u/id/$uid
+    rest:
+      routes:
+        - path: /api/me
+          returns: "{ id, email, name, image, username, isAdmin }"
+          auth: user
+          notes:
+            - Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed.
+    mcp:
+      tools:
+        - name: get_my_profile
+          auth: user
+          returns: "{ id, username, name, image, isAdmin, createdAt, updatedAt }"
+          rest_equivalent: GET /api/me
+        - name: get_public_user_profile
+          status: unavailable
+    links:
+      models:
+        - User
+    display:
+      fields:
+        - user.id (ID profile route only)
+        - user.image (Avatar)
+        - user.name (Display name)
+        - user.username (@username)
+        - user.createdAt (Join date)
+        - sectionCount (Subscribed sections)
+        - user._count.comments (Total comments)
+        - user._count.uploads (Total uploads)
+        - user._count.homeworksCreated (Homeworks created)
+        - weeks[].date (YYYY-MM-DD)
+        - weeks[].count (Contribution count)
+        - totalContributions (Aggregate)
+  settings:
+    title: Settings
+    auth: user
+    web:
+      pages:
+        - /settings?tab=profile
+        - /settings?tab=accounts
+        - /settings?tab=content
+        - /settings?tab=danger
+    rest: unavailable
+    mcp: unavailable
+    links:
+      models:
+        - User
+    display:
+      fields:
+        - user.profilePictures[] (Avatar options)
+        - user.image (Current avatar)
+        - user.name (Display name)
+        - user.username (Username)
+        - user.accounts[].provider (github, google, oidc)
+        - canDisconnect (Boolean - requires min 2 accounts)
+        - Navigation links to sections and comment guide
+        - Account deletion confirmation interface

@@ -32,11 +32,11 @@
         },
         "file": {
           "type": "string",
-          "const": "docs/features.yml"
+          "const": "docs/features"
         },
         "query": {
           "type": "string",
-          "enum": ["yq"]
+          "enum": ["sh", "yq"]
         },
         "queries": {
           "type": "object",
@@ -48,8 +48,7 @@
           "additionalProperties": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 700,
-            "pattern": "^yq .+ docs/features\\.yml$"
+            "maxLength": 1200
           }
         }
       }

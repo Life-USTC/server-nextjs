@@ -1,0 +1,84 @@
+name: Calendar
+access:
+  anon: Can browse calendar information on public section detail pages.
+  user: Can browse the personal calendar view.
+  admin: Has no special calendar view separate from regular users.
+  agent: Can read timeline information with the same semantics through OAuth REST and MCP.
+rules:
+  views: Currently provides semester, month, and week views simultaneously.
+  week-starts-sunday: The week view starts on Sunday.
+  event-card-types: Calendar event cards uniformly carry course, exam, homework, and todo events.
+capabilities:
+  personal-calendar-view:
+    title: Personal Calendar View
+    auth: user
+    links:
+      models:
+        - Schedule
+        - Homework
+        - Exam
+        - Todo
+    web:
+      pages:
+        - /?tab=calendar
+    rest: unavailable
+    mcp:
+      tools:
+        - name: list_my_calendar_events
+          returns: "{ events: CalendarEvent[] }"
+          notes:
+            - Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.
+            - Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.
+            - Summary mode returns grouped counts/day slices plus a limited event sample instead of the full raw event list.
+        - name: get_my_7days_timeline
+          returns: "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }"
+        - name: list_my_schedules
+          returns: "{ schedules: ScheduleEntry[] }"
+        - name: list_my_exams
+          returns: "{ exams: ExamEntry[] }"
+    display:
+      fields:
+        - calendarEvents (schedules + exams + homeworks + todos)
+        - schedule.date, startTime, endTime
+        - exam.examDate, startTime, endTime, examMode, examRooms
+        - homework.submissionDueAt
+        - todo.dueAt
+        - Week numbers
+        - Weekday labels (Sun-Sat)
+      filters:
+        - View tabs
+        - Previous/next semester controls
+  section-calendar-view:
+    title: Section Calendar View
+    auth: anon
+    links:
+      ui:
+        - Context Tabs
+    web:
+      pages:
+        - /sections/[jwId]
+    rest: stable
+    display:
+      fields:
+        - calendarMonthStart (Month view)
+        - calendarEvents[]
+        - schedule.date, startTime, endTime
+        - schedule.room (with building/campus)
+        - schedule.teachers[].namePrimary
+        - exam.examDate, startTime, endTime
+        - exam.examRooms[]
+        - weekLabelTemplate (Week numbers)
+        - weekdayLabels (Sun-Sat)
+        - todayKey (Today highlight)
+  event-card:
+    title: Event Card
+    auth: anon
+    web: stable
+    rest: unavailable
+    mcp: unavailable
+    display:
+      fields:
+        - Event type (schedule/exam/homework/todo)
+        - event.title or section.course.namePrimary
+        - event.time or first metadata segment
+        - Details/popover may show location

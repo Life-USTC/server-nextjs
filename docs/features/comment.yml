@@ -1,0 +1,98 @@
+name: Comment
+access:
+  anon: Can read public comments but cannot create sign-in-required comments.
+  user: Can post, reply, react, edit, and delete their own comments; suspended users cannot post new comments.
+  admin: Can hide, delete, and moderate comments, and handle reports or suspensions.
+  agent: No comment read/write capability is currently provided.
+rules:
+  attached-to-object: Comments must be attached to a specific object; no decontextualized public feed entry is provided.
+  attached-object-types: Attached objects include courses, sections, teachers, homework, and section-teacher relationships.
+  rich-content: Supports Markdown, math formulas, emoji, tables, replies, and reactions.
+  visibility-modes: Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios.
+capabilities:
+  object-comment-section:
+    title: Object Comment Section
+    auth: anon
+    web: stable
+    rest:
+      routes:
+        - path: /api/comments
+          returns: "{ comments: Comment[], hiddenCount: Int, viewer, target }"
+        - path: /api/comments
+          method: POST
+          returns: "{ id: String }"
+          auth: user
+        - path: /api/comments/[id]
+          method: PATCH
+          returns: "{ success: Boolean, comment: Comment }"
+          auth: user
+        - path: /api/comments/[id]
+          method: DELETE
+          returns: "{ success: Boolean }"
+          auth: user
+        - path: /api/comments/[id]/reactions
+          method: POST
+          returns: "{ success: Boolean }"
+          auth: user
+        - path: /api/comments/[id]
+          returns: "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }"
+        - path: /api/comments/[id]/reactions
+          method: DELETE
+          returns: "{ success: Boolean }"
+          auth: user
+    mcp: unavailable
+    display:
+      fields:
+        - comment.id
+        - comment.author.name
+        - comment.author.image (avatar)
+        - comment.body (markdown-rendered)
+        - comment.createdAt (timestamp)
+        - comment.updatedAt / edited timestamp
+        - comment.visibility badges
+        - comment.status (non-active states)
+        - comment.reactions[] (counts per reaction type)
+        - comment.replies[] (threaded)
+        - comment.attachments[] filename/open action
+        - canReply/canEdit/canModerate actions
+        - Copy link action
+  comment-governance:
+    title: Comment Governance
+    auth: admin
+    web:
+      pages:
+        - /admin/moderation
+    rest:
+      routes:
+        - path: /api/admin/comments
+          returns: "{ comments: Comment[] }"
+        - path: /api/admin/comments/[id]
+          method: PATCH
+          returns: "{ comment: Comment }"
+        - path: /api/admin/suspensions
+          method: POST
+          returns: "{ suspension: Suspension }"
+        - path: /api/admin/suspensions/[id]
+          method: PATCH
+          returns: "{ suspension: Suspension }"
+    mcp: unavailable
+    display:
+      fields:
+        - comment.body/content preview
+        - comment.author.name
+        - target object
+        - creation timestamp
+        - "Status: active/softbanned/deleted"
+        - Suspended filter
+        - Status radio + confirm action
+        - Suspension controls
+  comment-auxiliary-pages:
+    title: Comment Auxiliary Pages
+    auth: anon
+    web:
+      pages:
+        - /comments/[id]
+        - /comments/guide
+    display:
+      fields:
+        - Comment guidelines/help pages

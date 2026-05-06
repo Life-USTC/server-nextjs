@@ -1,8 +1,9 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
 import { parse } from "yaml";
 
-const featuresPath = "docs/features.yml";
+const featuresDir = "docs/features";
 const schemaPath = "docs/features.schema.json";
 const prismaPath = "prisma/schema.prisma";
 
@@ -53,12 +54,71 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-const doc = parse(readFileSync(featuresPath, "utf8"));
-const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
+// Load and merge modular feature files
+if (!existsSync(featuresDir)) {
+  console.error(`Features directory not found: ${featuresDir}`);
+  process.exit(1);
+}
 
+const files = readdirSync(featuresDir).filter((f) => f.endsWith(".yml"));
+if (files.length === 0) {
+  console.error("No feature files found");
+  process.exit(1);
+}
+
+console.log(`Found ${files.length} feature files`);
+
+const metadataTargets = {
+  "_meta.yml": "meta",
+  "_product.yml": "product",
+  "_models.yml": "models",
+  "_enums.yml": "enums",
+  "_ui.yml": "ui",
+  "_cases.yml": "cases",
+  "_audit.yml": "audit",
+} as const;
+
+// Merge all feature files
+const merged: Record<string, unknown> & { modules: Record<string, unknown> } = {
+  meta: {},
+  product: {},
+  models: {},
+  enums: {},
+  ui: {},
+  modules: {},
+  cases: {},
+  audit: {},
+};
+
+for (const file of files.sort()) {
+  const path = join(featuresDir, file);
+  const content = readFileSync(path, "utf8");
+  const data = parse(content);
+
+  if (file.startsWith("_")) {
+    const target = metadataTargets[file as keyof typeof metadataTargets];
+    if (!target) {
+      console.error(`Unknown metadata file: ${path}`);
+      process.exit(1);
+    }
+    merged[target] = data;
+    continue;
+  }
+
+  const moduleName = file.replace(".yml", "");
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    console.error(`Module file must contain a YAML object: ${path}`);
+    process.exit(1);
+  }
+  merged.modules[moduleName] = data;
+}
+
+// Validate against schema
+const schema = JSON.parse(readFileSync(schemaPath, "utf8"));
 const ajv = new Ajv2020({ allErrors: true, strict: false });
 const validate = ajv.compile(schema);
-if (!validate(doc)) {
+
+if (!validate(merged)) {
   console.error("Feature document schema validation failed:");
   for (const error of validate.errors ?? []) {
     console.error(
@@ -68,16 +128,16 @@ if (!validate(doc)) {
   process.exit(1);
 }
 
+// Validate Prisma sync
 const expected = parsePrismaSchema(readFileSync(prismaPath, "utf8"));
-const actual = { enums: doc.enums, models: doc.models };
+const actual = { enums: merged.enums, models: merged.models };
 
 if (stableJson(actual) !== stableJson(expected)) {
   console.error(
-    "Feature document model metadata is out of sync with prisma/schema.prisma. Regenerate docs/features.yml models/enums from the Prisma schema.",
+    "Feature document model metadata is out of sync with prisma/schema.prisma.",
   );
   process.exit(1);
 }
 
-console.log(
-  "features.yml validates against features.schema.json and prisma/schema.prisma",
-);
+console.log("✅ Features validate against schema and Prisma");
+console.log(`   ${files.length} files merged successfully`);

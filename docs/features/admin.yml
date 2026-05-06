@@ -1,0 +1,115 @@
+name: Admin
+access:
+  anon: Cannot access the admin backend.
+  user: Cannot access the admin backend.
+  admin: Can access governance pages for moderation, users, OAuth, bus, and more.
+  agent: No admin tools are currently provided.
+rules:
+  divided-by-responsibility: The admin backend is divided by governance responsibility, not all actions on one page.
+  moderation-centralized: Comment and description governance are currently centralized on the moderation page.
+  high-risk-feedback: High-risk admin actions such as delete, suspend, and hide must have clear feedback.
+capabilities:
+  admin-home:
+    title: Admin Home
+    auth: admin
+    web:
+      pages:
+        - /admin
+    display:
+      fields:
+        - Navigation to moderation queues
+        - User management
+        - OAuth client management
+        - Bus data management
+  moderation:
+    title: Moderation
+    auth: admin
+    web:
+      pages:
+        - /admin/moderation
+    rest:
+      routes:
+        - path: /api/admin/comments
+          returns: "{ comments: Comment[] }"
+        - path: /api/admin/comments/[id]
+          method: PATCH
+          returns: "{ comment: Comment }"
+        - path: /api/admin/descriptions
+          returns: "{ descriptions: Description[] }"
+        - path: /api/admin/suspensions
+          returns: "{ suspensions: Suspension[] }"
+        - path: /api/admin/suspensions/[id]
+          method: PATCH
+          returns: "{ suspension: Suspension }"
+        - path: /api/admin/homeworks
+          returns: "{ homeworks: HomeworkItem[] }"
+        - path: /api/admin/homeworks/[id]
+          method: DELETE
+          returns: "{ success: Boolean }"
+    mcp: unavailable
+    display:
+      fields:
+        - Comment moderation table
+        - Description moderation table
+        - content/descriptionPreview
+        - author / lastEditedBy
+        - postedIn target
+        - timestamp
+        - comment status
+        - detail dialog controls
+  user-management:
+    title: User Management
+    auth: admin
+    web:
+      pages:
+        - /admin/users
+    rest:
+      routes:
+        - path: /api/admin/users
+          returns: "{ data: User[], pagination }"
+        - path: /api/admin/users/[id]
+          method: PATCH
+          returns: "{ user: User }"
+    mcp: unavailable
+    display:
+      fields:
+        - user.email
+        - user.name
+        - user.username
+        - user.createdAt
+        - Is admin checkbox
+        - "Actions: edit profile/admin state, suspend/unsuspend"
+  oauth-client-management:
+    title: OAuth Client Management
+    auth: admin
+    web:
+      pages:
+        - /admin/oauth
+    rest: unavailable
+    mcp: unavailable
+    display:
+      fields:
+        - client.name
+        - client.clientId
+        - client.redirectUris[]
+        - client.scopes[]
+        - client.tokenEndpointAuthMethod
+        - client.isTrusted
+        - "Action: delete"
+  bus-management:
+    title: Bus Management
+    auth: admin
+    web:
+      pages:
+        - /admin/bus
+    rest: unavailable
+    mcp: unavailable
+    display:
+      fields:
+        - Bus schedule version title
+        - version key
+        - tripCount
+        - importedAt
+        - effective range
+        - enabled status
+        - "Actions: import, activate, delete"

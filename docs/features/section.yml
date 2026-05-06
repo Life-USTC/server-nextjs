@@ -1,0 +1,142 @@
+name: Section
+access:
+  anon: Can browse public section information.
+  user: Can perform subscription, homework, comment, and description collaborative actions around sections, but cannot modify section fact data.
+  admin: Does not directly modify academic section facts through ordinary pages.
+  agent: Can read section information and manage personal section-related state through OAuth-authorized REST / MCP endpoints.
+rules:
+  semester-offering: A section is a specific teaching class for a course in a given semester.
+  subscription-not-enrollment: Pages involving subscription actions must clearly state this is not official academic course enrollment.
+  jwid-url-only: jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI.
+capabilities:
+  section-list:
+    title: Section List & Filter
+    auth: anon
+    links:
+      models:
+        - Section
+      ui:
+        - List Table
+    web:
+      pages:
+        - /sections
+    rest:
+      routes:
+        - path: /api/sections
+          returns: PaginatedResponse<SectionSummary>
+    mcp:
+      tools:
+        - name: search_sections
+          returns: PaginatedResponse<SectionSummary>
+          rest_equivalent: GET /api/sections
+    display:
+      fields:
+        - section.semester.nameCn
+        - section.code
+        - section.course.namePrimary
+        - section.teachers[].namePrimary
+        - section.campus.namePrimary
+        - section.credits
+        - section.stdCount / section.limitCount (capacity)
+      filters:
+        - Semester selector
+        - Generic search
+        - "REST/MCP: campusId, departmentId, teacherId, teacherCode, ids, jwIds, courseId, courseJwId, semesterId, semesterJwId, advanced search syntax"
+  section-detail:
+    title: Section Detail
+    auth: anon
+    links:
+      models:
+        - Section
+      ui:
+        - Detail Hero
+        - Context Tabs
+        - Basic Info Card
+    web:
+      pages:
+        - /sections/[jwId]
+    rest:
+      routes:
+        - path: /api/sections/[jwId]
+          returns: SectionDetail (schedules without room/teacher expansion)
+    mcp:
+      tools:
+        - name: get_section_by_jw_id
+          returns: "{ found: Boolean, section: Section? }"
+          rest_equivalent: GET /api/sections/[jwId]
+    display:
+      fields:
+        - section.course.namePrimary (h1)
+        - section.course.nameSecondary (Locale subtitle)
+        - section.semester.nameCn
+        - section.code (Monospace)
+        - section.campus.namePrimary + nameSecondary
+        - section.graduateAndPostgraduate (yes/no)
+        - section.credits
+        - section.period + actualPeriods (if different)
+        - section.examMode.namePrimary
+        - section.remark (Whitespace-preserved)
+        - section.teachers[] (Linked badge list)
+        - section.adminClasses[] (Collapsible details)
+        - section.timesPerWeek
+        - section.periodsPerWeek
+        - section.theoryPeriods
+        - section.practicePeriods
+        - section.experimentPeriods
+        - section.machinePeriods
+        - section.designPeriods
+        - section.testPeriods
+        - section.teachLanguage.namePrimary
+        - section.roomType.namePrimary
+        - scheduleDateKeys (Set<string> YYYY-MM-DD)
+        - examDateKeys (Set<string> YYYY-MM-DD)
+        - todayKey (Current date marker)
+        - schedule.date (ISO)
+        - schedule.startTime, endTime
+        - schedule.startUnit, endUnit
+        - schedule.weekIndex
+        - schedule.room.namePrimary
+        - schedule.room.building.namePrimary
+        - schedule.room.building.campus.namePrimary
+        - schedule.teachers[].namePrimary
+        - exam.examDate
+        - exam.startTime, endTime
+        - exam.examMode
+        - exam.examTakeCount
+        - exam.examRooms[]
+        - homework.title
+        - homework.submissionDueAt
+        - homework.description.content
+        - section.course.namePrimary (Context)
+        - completionStatus (per user)
+        - comment.id
+        - comment.author.name
+        - comment.author.image (Avatar)
+        - comment.body (Markdown)
+        - comment.createdAt
+        - comment.status (non-active states shown)
+        - comment.reactions[]
+  section-ical:
+    title: Section iCal Export
+    auth: anon
+    links:
+      ui:
+        - Calendar Export Dialog
+    web: stable
+    rest:
+      routes:
+        - path: /api/sections/[jwId]/calendar.ics
+          returns: text/calendar
+          notes:
+            - Returns text/calendar; content is derived from the section's schedule and exams.
+    mcp:
+      tools:
+        - name: get_section_calendar_subscription
+          returns: "{ found: Boolean, section: Section?, calendarPath: String, calendarUrl: String }"
+          rest_equivalent: GET /api/sections/[jwId]/calendar.ics
+          notes:
+            - Returns a single-section iCal link and usage instructions.
+    display:
+      fields:
+        - iCalendar URL (copyable)
+        - Export format indicator

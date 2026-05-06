@@ -1,6 +1,6 @@
 # Life@USTC
 
-- [docs/features.yml](./docs/features.yml)
+- Feature specs: [docs/features/](./docs/features/)
 
 ## 快速开始
 
