@@ -18,7 +18,7 @@ function PlannerDayTypePills({
   t: (key: string) => string;
 }) {
   return (
-    <DashboardTabToolbarGroup className="rounded-xl border-border/70 bg-background p-1">
+    <DashboardTabToolbarGroup className="rounded-xl border-border/70 bg-background/90 p-1">
       {(["weekday", "weekend"] as const).map((dayType) => (
         <button
           key={dayType}
@@ -51,9 +51,14 @@ function StopPicker({
   onSelect: (campusId: number) => void;
 }) {
   return (
-    <section className="space-y-2">
-      <p className="text-foreground text-sm">{label}</p>
-      <fieldset data-testid={testId} className="space-y-2">
+    <section className="space-y-2.5">
+      <p className="text-muted-foreground text-xs uppercase tracking-[0.14em]">
+        {label}
+      </p>
+      <fieldset
+        data-testid={testId}
+        className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1"
+      >
         <legend className="sr-only">{label}</legend>
         {campuses.map((campus) => {
           const isSelected = selectedId === campus.id;
@@ -64,13 +69,22 @@ function StopPicker({
               aria-pressed={isSelected}
               onClick={() => onSelect(campus.id)}
               className={cn(
-                "flex min-h-10 w-full touch-manipulation items-center rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                "flex min-h-11 w-full touch-manipulation items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 isSelected
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-border/70 bg-background text-foreground hover:border-foreground/25 hover:bg-muted/30",
+                  ? "border-foreground bg-foreground text-background shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                  : "border-border/70 bg-background/80 text-foreground hover:border-foreground/25 hover:bg-muted/30",
               )}
             >
               <span className="truncate text-sm">{campus.namePrimary}</span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "h-2.5 w-2.5 shrink-0 rounded-full border transition-colors",
+                  isSelected
+                    ? "border-background/80 bg-background"
+                    : "border-border/80 bg-transparent",
+                )}
+              />
             </button>
           );
         })}
@@ -104,8 +118,8 @@ export function BusPlannerControls({
 }) {
   return (
     <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm sm:p-5">
-      <div className="flex flex-col gap-4 lg:gap-8">
-        <div className="flex min-w-0 flex-1 flex-col gap-3.5 border-border/50 border-b pb-5">
+      <div className="flex flex-col gap-5">
+        <div className="flex min-w-0 flex-1 flex-col gap-3 border-border/50 border-b pb-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <PlannerDayTypePills
               value={selectedDayType}
@@ -132,19 +146,20 @@ export function BusPlannerControls({
             }}
           />
 
-          <div className="hidden lg:flex lg:items-start lg:justify-center lg:pt-9">
+          <div className="flex items-center justify-center lg:items-start lg:pt-9">
             <button
               type="button"
               onClick={handleSwap}
               className={cn(
                 dashboardTabToolbarItemClass(
                   false,
-                  "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/70 bg-background text-foreground transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border/70 bg-background text-foreground transition-colors hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 ),
               )}
               aria-label={t("planner.reverse")}
             >
               <ArrowLeftRight aria-hidden="true" className="h-4 w-4" />
+              <span className="sr-only">{t("planner.reverse")}</span>
             </button>
           </div>
 

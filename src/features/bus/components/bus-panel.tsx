@@ -216,7 +216,7 @@ export function BusPanel({
         className={cn(
           dashboardTabToolbarItemClass(
             false,
-            "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-border/70 bg-background px-3 font-medium text-sm",
+            "inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-border/70 bg-background px-3 font-medium text-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]",
           ),
         )}
       >
@@ -231,9 +231,9 @@ export function BusPanel({
           setShowDepartedTrips((value) => !value);
         }}
         className={cn(
-          "inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border px-3 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border px-3 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           showDepartedTrips
-            ? "border-foreground bg-foreground text-background"
+            ? "border-foreground bg-foreground text-background shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
             : "border-border/70 bg-background text-foreground hover:bg-muted/30",
         )}
         aria-pressed={showDepartedTrips}
@@ -271,11 +271,11 @@ export function BusPanel({
 
       <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:min-w-0 lg:flex-1">
         {signedIn && showPreferences ? (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/50 bg-muted/10 px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border/50 bg-muted/10 px-3 py-2.5">
             <p
               aria-live="polite"
               className={cn(
-                "text-xs",
+                "text-xs leading-5",
                 saveState === "error"
                   ? "text-destructive"
                   : "text-muted-foreground",
