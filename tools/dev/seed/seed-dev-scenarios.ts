@@ -224,12 +224,13 @@ const DEV_BUS_PAYLOAD: BusStaticPayload = {
   },
 };
 
+const SEED_ANCHOR_DATE = new Date(2026, 3, 29, 0, 0, 0, 0);
+
 function makeDateAt(hour: number, minute: number, offsetDays = 0) {
-  const now = new Date();
   return new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() + offsetDays,
+    SEED_ANCHOR_DATE.getFullYear(),
+    SEED_ANCHOR_DATE.getMonth(),
+    SEED_ANCHOR_DATE.getDate() + offsetDays,
     hour,
     minute,
     0,
