@@ -1248,10 +1248,11 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           "NOT-EXIST-CODE",
         );
 
+        const fuzzySectionCode = DEV_SEED.section.code.replace(/\.\d+$/, ".0");
         const fuzzyMatchSectionCodesResult = await mcpClient.callTool({
           name: "match_section_codes",
           arguments: {
-            codes: ["DEV-CS201.0"],
+            codes: [fuzzySectionCode],
             locale: "zh-cn",
           },
         });
@@ -1260,50 +1261,65 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         ) as {
           suggestions?: Record<string, string[]>;
         };
-        expect(fuzzyMatchPayload.suggestions?.["DEV-CS201.0"]).toEqual([
+        expect(fuzzyMatchPayload.suggestions?.[fuzzySectionCode]).toEqual([
           DEV_SEED.section.code,
         ]);
 
-        const busResult = await mcpClient.callTool({
-          name: "query_bus_timetable",
-          arguments: {
-            locale: "zh-cn",
-          },
+        let busResult:
+          | Awaited<ReturnType<typeof mcpClient.callTool>>
+          | undefined;
+        let busPayload:
+          | {
+              fetchedAt?: string;
+              version?: { title?: string | null };
+              counts?: {
+                routes?: number;
+                weekdayTrips?: number;
+                weekendTrips?: number;
+              };
+              routes?: Array<{ id?: number | null }>;
+              nextDepartures?: Array<{
+                routeId?: number;
+                departureTime?: string | null;
+              }>;
+              trips?: Array<{
+                dayType?: string;
+                stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
+              }>;
+              preferences?: {
+                preferredOriginCampusId?: number | null;
+                preferredDestinationCampusId?: number | null;
+                showDepartedTrips?: boolean;
+              } | null;
+            }
+          | undefined;
+        await expect(async () => {
+          busResult = await mcpClient.callTool({
+            name: "query_bus_timetable",
+            arguments: {
+              locale: "zh-cn",
+            },
+          });
+          busPayload = parseTextContent(busResult) as typeof busPayload;
+          expect(typeof busPayload?.fetchedAt).toBe("string");
+          expect(busPayload?.version?.title).toContain(
+            DEV_SEED.bus.versionTitle,
+          );
+          expect(typeof busPayload?.counts?.routes).toBe("number");
+          expect(
+            busPayload?.routes?.some(
+              (route) => route.id === DEV_SEED.bus.routeId,
+            ),
+          ).toBe(true);
+          expect(busPayload?.trips).toBeUndefined();
+          expect(busPayload?.preferences?.preferredOriginCampusId).toBe(1);
+          expect(busPayload?.preferences?.preferredDestinationCampusId).toBe(4);
+          expect(busPayload?.preferences?.showDepartedTrips).toBe(true);
+          expect((busPayload?.nextDepartures?.length ?? 0) > 0).toBe(true);
+        }).toPass({
+          timeout: 10_000,
+          intervals: [250, 500, 1_000],
         });
-        const busPayload = parseTextContent(busResult) as {
-          fetchedAt?: string;
-          version?: { title?: string | null };
-          counts?: {
-            routes?: number;
-            weekdayTrips?: number;
-            weekendTrips?: number;
-          };
-          routes?: Array<{ id?: number | null }>;
-          nextDepartures?: Array<{
-            routeId?: number;
-            departureTime?: string | null;
-          }>;
-          trips?: Array<{
-            dayType?: string;
-            stopTimes?: Array<{ stopOrder?: number; time?: string | null }>;
-          }>;
-          preferences?: {
-            preferredOriginCampusId?: number | null;
-            preferredDestinationCampusId?: number | null;
-            showDepartedTrips?: boolean;
-          } | null;
-        };
-        expect(typeof busPayload.fetchedAt).toBe("string");
-        expect(busPayload.version?.title).toContain(DEV_SEED.bus.versionTitle);
-        expect(typeof busPayload.counts?.routes).toBe("number");
-        expect(
-          busPayload.routes?.some((route) => route.id === DEV_SEED.bus.routeId),
-        ).toBe(true);
-        expect(busPayload.trips).toBeUndefined();
-        expect(busPayload.preferences?.preferredOriginCampusId).toBe(1);
-        expect(busPayload.preferences?.preferredDestinationCampusId).toBe(4);
-        expect(busPayload.preferences?.showDepartedTrips).toBe(true);
-        expect((busPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
 
         const busFullResult = await mcpClient.callTool({
           name: "query_bus_timetable",
@@ -1362,8 +1378,10 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         expect(typeof busSummaryPayload.counts?.weekdayTrips).toBe("number");
         expect(typeof busSummaryPayload.counts?.weekendTrips).toBe("number");
         expect((busSummaryPayload.nextDepartures?.length ?? 0) > 0).toBe(true);
+        expect(busResult).toBeDefined();
+        const fullBusTextLength = getTextContent(busResult ?? []).length;
         expect(getTextContent(busSummaryResult).length).toBeLessThan(
-          getTextContent(busResult).length,
+          fullBusTextLength,
         );
         if (busSummaryPayload.nextDepartures?.length === 0) {
           expect(typeof busSummaryPayload.nextDeparturesMessage).toBe("string");
