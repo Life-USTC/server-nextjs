@@ -1,3 +1,11 @@
+# [1.29.0](https://github.com/Life-USTC/server-nextjs/compare/v1.28.1...v1.29.0) (2026-05-11)
+
+
+### Features
+
+* **bus-ui:** improve planner and route table readability ([c903b0a](https://github.com/Life-USTC/server-nextjs/commit/c903b0aed6b42ba25f0dce0d526441823c4b99c3))
+* **oauth-device:** preserve verification state through signin ([9e1efe4](https://github.com/Life-USTC/server-nextjs/commit/9e1efe4643603309222819b3228d843301695067))
+
 ## [1.28.1](https://github.com/Life-USTC/server-nextjs/compare/v1.28.0...v1.28.1) (2026-05-06)
 
 
