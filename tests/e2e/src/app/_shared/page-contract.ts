@@ -1,16 +1,28 @@
 import { expect, type Page, type TestInfo } from "@playwright/test";
 import { signInAsDebugUser } from "../../../utils/auth";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { getCurrentSessionUser } from "../../../utils/e2e-db";
 import {
   gotoAndWaitForReady,
   waitForUiSettled,
 } from "../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../utils/screenshot";
+import {
+  resolveSeedSectionId,
+  resolveSeedTeacherId,
+} from "../../../utils/seed-lookups";
 
 type PageContractCase = {
   routePath: string;
   testInfo?: TestInfo;
 };
+
+function getContractWaitUntil(routePath: string) {
+  if (routePath === "/api-docs" || routePath === "/guides/markdown-support") {
+    return "load" as const;
+  }
+  return "networkidle" as const;
+}
 
 async function maybeCapture(
   page: Page,
@@ -23,237 +35,234 @@ async function maybeCapture(
   await captureStepScreenshot(page, testInfo, name);
 }
 
-async function resolveTeacherId(page: Page): Promise<number> {
-  const response = await page.request.get(
-    `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=10`,
-  );
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    data?: Array<{ id?: number; nameCn?: string }>;
-  };
-  const teacher = body.data?.find(
-    (item) =>
-      typeof item.id === "number" &&
-      item.nameCn?.includes(DEV_SEED.teacher.nameCn),
-  );
-  expect(teacher?.id).toBeDefined();
-  return teacher?.id as number;
-}
-
-async function resolveSectionId(page: Page): Promise<number> {
-  const response = await page.request.post("/api/sections/match-codes", {
-    data: { codes: [DEV_SEED.section.code] },
-  });
-  expect(response.status()).toBe(200);
-  const body = (await response.json()) as {
-    sections?: Array<{ id?: number; code?: string | null }>;
-  };
-  const section = body.sections?.find(
-    (item) =>
-      typeof item.id === "number" && item.code === DEV_SEED.section.code,
-  );
-  expect(section?.id).toBeDefined();
-  return section?.id as number;
-}
-
-export async function assertPageContract(
+async function gotoContractPage(
   page: Page,
-  { routePath, testInfo }: PageContractCase,
+  path: string,
+  testInfo: TestInfo | undefined,
 ) {
-  if (routePath === "/sections/[jwId]") {
-    const response = await gotoAndWaitForReady(
-      page,
-      `/sections/${DEV_SEED.section.jwId}`,
-    );
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.course.nameCn).first()).toBeVisible();
-    await maybeCapture(page, testInfo, "sections-jwId");
-    return;
-  }
-
-  if (routePath === "/courses/[jwId]") {
-    const response = await gotoAndWaitForReady(
-      page,
-      `/courses/${DEV_SEED.course.jwId}`,
-    );
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.course.nameCn).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-    await maybeCapture(page, testInfo, "courses-jwId");
-    return;
-  }
-
-  if (routePath === "/teachers/[id]") {
-    const teacherId = await resolveTeacherId(page);
-    const response = await gotoAndWaitForReady(page, `/teachers/${teacherId}`);
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-    await maybeCapture(page, testInfo, "teachers-id");
-    return;
-  }
-
-  if (routePath === "/u/[username]") {
-    const response = await gotoAndWaitForReady(
-      page,
-      `/u/${DEV_SEED.debugUsername}`,
-    );
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
-    await expect(
-      page.getByText(`@${DEV_SEED.debugUsername}`).first(),
-    ).toBeVisible();
-    await maybeCapture(page, testInfo, "u-username");
-    return;
-  }
-
-  if (routePath === "/u/id/[uid]") {
-    await signInAsDebugUser(page, "/");
-    const sessionResponse = await page.request.get("/api/auth/get-session");
-    expect(sessionResponse.status()).toBe(200);
-    const session = (await sessionResponse.json()) as {
-      user?: { id?: string; username?: string | null };
-    };
-    expect(session.user?.id).toBeTruthy();
-
-    const response = await gotoAndWaitForReady(
-      page,
-      `/u/id/${session.user?.id}`,
-    );
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(
-      page.getByText(`@${DEV_SEED.debugUsername}`).first(),
-    ).toBeVisible();
-    await maybeCapture(page, testInfo, "u-id-uid");
-    return;
-  }
-
-  if (routePath === "/comments/[id]") {
-    await signInAsDebugUser(page);
-    const sectionId = await resolveSectionId(page);
-    const createResponse = await page.request.post("/api/comments", {
-      data: {
-        targetType: "section",
-        targetId: String(sectionId),
-        body: "e2e mapped route comment",
-      },
-    });
-    expect(createResponse.status()).toBe(200);
-    const createBody = (await createResponse.json()) as { id?: string };
-    expect(createBody.id).toBeTruthy();
-
-    const response = await gotoAndWaitForReady(
-      page,
-      `/comments/${createBody.id}`,
-    );
-    if (response) {
-      expect(response.status()).toBeLessThan(500);
-    }
-    await expect(page).toHaveURL(
-      new RegExp(
-        `/sections/${DEV_SEED.section.jwId}(?:\\?.*)?#comment-${createBody.id}$`,
-      ),
-    );
-    await expect(page.locator("#main-content")).toBeVisible();
-    await maybeCapture(page, testInfo, "comments-id");
-    return;
-  }
-
-  const response = await gotoAndWaitForReady(page, routePath, {
-    waitUntil:
-      routePath === "/api-docs" || routePath === "/guides/markdown-support"
-        ? "load"
-        : "networkidle",
+  const response = await gotoAndWaitForReady(page, path, {
+    waitUntil: getContractWaitUntil(path),
+    testInfo,
+    screenshotLabel: "contract",
   });
 
   if (response) {
     expect(response.status()).toBeLessThan(500);
   }
 
-  if (routePath === "/signin") {
-    await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Google/i })).toBeVisible();
-    await maybeCapture(page, testInfo, "signin");
-    return;
-  }
+  return response;
+}
 
-  if (routePath === "/sections") {
-    await gotoAndWaitForReady(
-      page,
-      `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
-    );
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
-    await maybeCapture(page, testInfo, "sections");
-    return;
-  }
-
-  if (routePath === "/teachers") {
-    await gotoAndWaitForReady(
-      page,
-      `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
-    );
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.teacher.nameCn).first()).toBeVisible();
-    await maybeCapture(page, testInfo, "teachers");
-    return;
-  }
-
-  if (routePath === "/courses") {
-    await gotoAndWaitForReady(
-      page,
-      `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
-    );
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.course.nameCn).first()).toBeVisible();
-    await maybeCapture(page, testInfo, "courses");
-    return;
-  }
-
-  if (routePath === "/guides/markdown-support") {
-    await waitForUiSettled(page);
-    await expect(page.locator("pre").first()).toBeVisible();
-    await expect(page.locator("table").first()).toBeVisible();
-    await maybeCapture(page, testInfo, "guides-markdown-support");
-    return;
-  }
-
-  if (routePath === "/") {
-    await expect(page.locator("#main-content")).toBeVisible();
-    // Public home defaults to bus tab with bus+links grouped as public queries
-    await expect(
-      page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /^(网站|Websites)$/i }),
-    ).toBeVisible();
-    await maybeCapture(page, testInfo, "home");
-    return;
-  }
-
+async function expectMainContent(page: Page) {
   await expect(page.locator("#main-content")).toBeVisible();
+}
 
-  if (routePath === "/api-docs") {
-    await waitForUiSettled(page);
-    await expect(page.locator("#swagger-ui")).toBeVisible();
-    await maybeCapture(page, testInfo, "api-docs");
+export async function assertPageContract(
+  page: Page,
+  { routePath, testInfo }: PageContractCase,
+) {
+  switch (routePath) {
+    case "/sections/[jwId]": {
+      await gotoContractPage(
+        page,
+        `/sections/${DEV_SEED.section.jwId}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await expect(
+        page.getByText(DEV_SEED.course.nameCn).first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "sections-jwId");
+      return;
+    }
+
+    case "/courses/[jwId]": {
+      await gotoContractPage(
+        page,
+        `/courses/${DEV_SEED.course.jwId}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByText(DEV_SEED.course.nameCn).first(),
+      ).toBeVisible();
+      await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
+      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await maybeCapture(page, testInfo, "courses-jwId");
+      return;
+    }
+
+    case "/teachers/[id]": {
+      await gotoContractPage(
+        page,
+        `/teachers/${await resolveSeedTeacherId(page)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByText(DEV_SEED.teacher.nameCn).first(),
+      ).toBeVisible();
+      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await maybeCapture(page, testInfo, "teachers-id");
+      return;
+    }
+
+    case "/u/[username]": {
+      await gotoContractPage(page, `/u/${DEV_SEED.debugUsername}`, testInfo);
+      await expectMainContent(page);
+      await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+      await expect(
+        page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "u-username");
+      return;
+    }
+
+    case "/u/id/[uid]": {
+      await signInAsDebugUser(page, "/");
+      const sessionUser = await getCurrentSessionUser(page);
+      await gotoContractPage(page, `/u/id/${sessionUser.id}`, testInfo);
+      await expectMainContent(page);
+      await expect(
+        page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "u-id-uid");
+      return;
+    }
+
+    case "/comments/[id]": {
+      await signInAsDebugUser(page);
+      const sectionId = await resolveSeedSectionId(page);
+      const createResponse = await page.request.post("/api/comments", {
+        data: {
+          targetType: "section",
+          targetId: String(sectionId),
+          body: "e2e mapped route comment",
+        },
+      });
+      expect(createResponse.status()).toBe(200);
+      const createBody = (await createResponse.json()) as { id?: string };
+      expect(createBody.id).toBeTruthy();
+
+      await gotoContractPage(page, `/comments/${createBody.id}`, testInfo);
+      await expect(page).toHaveURL(
+        new RegExp(
+          `/sections/${DEV_SEED.section.jwId}(?:\\?.*)?#comment-${createBody.id}$`,
+        ),
+      );
+      await expectMainContent(page);
+      await maybeCapture(page, testInfo, "comments-id");
+      return;
+    }
+
+    case "/signin": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expect(page.getByRole("button", { name: /USTC/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /GitHub/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Google/i })).toBeVisible();
+      await maybeCapture(page, testInfo, "signin");
+      return;
+    }
+
+    case "/sections": {
+      await gotoContractPage(
+        page,
+        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      // section-list.display.fields: code, course.namePrimary, campus.namePrimary
+      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await expect(
+        page
+          .getByText(DEV_SEED.course.nameCn)
+          .or(page.getByText(DEV_SEED.course.nameEn))
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByText(DEV_SEED.campus.nameCn)
+          .or(page.getByText(DEV_SEED.campus.nameEn))
+          .first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "sections");
+      return;
+    }
+
+    case "/teachers": {
+      await gotoContractPage(
+        page,
+        `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      // teacher-list.display.fields: namePrimary, department, title, email, _count.sections
+      await expect(
+        page
+          .getByText(DEV_SEED.teacher.nameCn)
+          .or(page.getByText(DEV_SEED.teacher.nameEn))
+          .first(),
+      ).toBeVisible();
+      await expect(
+        page
+          .getByText(DEV_SEED.teacher.departmentNameCn)
+          .or(page.getByText(DEV_SEED.teacher.departmentNameEn))
+          .first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "teachers");
+      return;
+    }
+
+    case "/courses": {
+      await gotoContractPage(
+        page,
+        `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        testInfo,
+      );
+      await expectMainContent(page);
+      await expect(
+        page.getByText(DEV_SEED.course.nameCn).first(),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "courses");
+      return;
+    }
+
+    case "/guides/markdown-support": {
+      await gotoContractPage(page, routePath, testInfo);
+      await waitForUiSettled(page);
+      await expect(page.locator("pre").first()).toBeVisible();
+      await expect(page.locator("table").first()).toBeVisible();
+      await maybeCapture(page, testInfo, "guides-markdown-support");
+      return;
+    }
+
+    case "/": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      // Public home defaults to bus tab with bus+links grouped as public queries
+      await expect(
+        page.getByRole("link", { name: /^(校车|Shuttle Bus)$/i }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /^(网站|Websites)$/i }),
+      ).toBeVisible();
+      await maybeCapture(page, testInfo, "home");
+      return;
+    }
+
+    case "/api-docs": {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+      await waitForUiSettled(page);
+      await expect(page.locator("#swagger-ui")).toBeVisible();
+      await maybeCapture(page, testInfo, "api-docs");
+      return;
+    }
+
+    default: {
+      await gotoContractPage(page, routePath, testInfo);
+      await expectMainContent(page);
+    }
   }
 }
