@@ -19,6 +19,8 @@ bun run check:e2e                   # Convention check
    docker compose -f docker-compose.dev.yml up -d
    ```
    This starts Postgres, MinIO, and `minio-setup` (which auto-creates bucket `life-ustc-dev`).
+   Playwright global setup also provisions the dedicated E2E bucket `life-ustc-e2e`
+   unless you override it with `PLAYWRIGHT_S3_BUCKET`.
    Console: <http://127.0.0.1:9001> (user/pass: `minioadmin`)
 
 2. **Build the app**:

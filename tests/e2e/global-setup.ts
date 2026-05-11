@@ -49,7 +49,8 @@ async function retry<T>(attempts: number, fn: () => Promise<T>) {
 async function provisionMinioBucket() {
   const endpoint =
     configured(process.env.AWS_ENDPOINT_URL_S3) ?? DEFAULT_MINIO_ENDPOINT;
-  const bucket = configured(process.env.S3_BUCKET) ?? DEFAULT_E2E_BUCKET;
+  const bucket =
+    configured(process.env.PLAYWRIGHT_S3_BUCKET) ?? DEFAULT_E2E_BUCKET;
 
   const s3 = new S3Client({
     region: configured(process.env.AWS_REGION) ?? "us-east-1",

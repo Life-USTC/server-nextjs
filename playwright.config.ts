@@ -3,6 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const PLAYWRIGHT_NO_PROXY = "127.0.0.1,localhost,::1";
 const DEFAULT_WEB_SERVER_TIMEOUT_MS = 300 * 1000;
 const DEFAULT_MINIO_ENDPOINT = "http://127.0.0.1:9000";
+const DEFAULT_E2E_BUCKET = "life-ustc-e2e";
 
 const playwrightPort = process.env.PLAYWRIGHT_PORT ?? "3000";
 const playwrightHost = process.env.PLAYWRIGHT_HOST ?? "127.0.0.1";
@@ -47,6 +48,8 @@ const awsRegion =
   configuredValue(process.env.AWS_REGION) ??
   configuredValue(process.env.AWS_DEFAULT_REGION) ??
   "us-east-1";
+const e2eBucket =
+  configuredValue(process.env.PLAYWRIGHT_S3_BUCKET) ?? DEFAULT_E2E_BUCKET;
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -87,7 +90,7 @@ export default defineConfig({
       DEV_ADMIN_NAME: process.env.DEV_ADMIN_NAME ?? "校园管理员",
       DEV_ADMIN_PASSWORD:
         process.env.DEV_ADMIN_PASSWORD ?? "e2e-admin-local-only",
-      S3_BUCKET: configuredValue(process.env.S3_BUCKET) ?? "life-ustc-e2e",
+      S3_BUCKET: e2eBucket,
       AWS_REGION: awsRegion,
       AWS_DEFAULT_REGION: awsRegion,
       AWS_ACCESS_KEY_ID:
