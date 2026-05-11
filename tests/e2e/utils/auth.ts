@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { DEV_SEED } from "./dev-seed";
 import { gotoAndWaitForReady, waitForUiSettled } from "./page-ready";
 
 const DEV_DEBUG_LOGIN_BUTTON = /Debug User \(Dev\)|调试用户（开发）/i;
@@ -15,10 +16,6 @@ const authStorageStateCache = new Map<AuthRole, AuthStorageState>();
 
 function escapeForRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-export function resolveExpectedPath(path: string) {
-  return path;
 }
 
 export async function expectPagePath(page: Page, path: string) {
@@ -71,12 +68,40 @@ async function applyCachedSession(
   try {
     await page.context().addCookies(storageState.cookies);
     await gotoAndWaitForReady(page, expectedPath);
+    await completeWelcomeProfileIfNeeded(page, role, expectedPath);
     await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
     return true;
   } catch {
     authStorageStateCache.delete(role);
     return false;
   }
+}
+
+async function completeWelcomeProfileIfNeeded(
+  page: Page,
+  role: AuthRole,
+  expectedPath: string,
+) {
+  if (role !== "debug" || expectedPath.startsWith("/welcome")) {
+    return;
+  }
+  if (!page.url().includes("/welcome")) {
+    return;
+  }
+
+  const nameInput = page.getByRole("textbox", { name: /^(姓名|Name)\b/i });
+  const usernameInput = page.getByRole("textbox", {
+    name: /^(用户名|Username)\b/i,
+  });
+  if ((await nameInput.count()) === 0 || (await usernameInput.count()) === 0) {
+    return;
+  }
+
+  await expect(nameInput).toBeVisible();
+  await nameInput.fill(DEV_SEED.debugName);
+  await usernameInput.fill(DEV_SEED.debugUsername);
+  await page.getByRole("button", { name: /继续|Continue/i }).click();
+  await gotoAndWaitForReady(page, expectedPath);
 }
 
 async function signInWithDevButton(
@@ -91,6 +116,7 @@ async function signInWithDevButton(
   );
 
   if (!page.url().includes("/signin")) {
+    await completeWelcomeProfileIfNeeded(page, role, expectedPath);
     await expectPagePath(page, expectedPath);
     await waitForUiSettled(page);
     await expectAuthenticatedSession(page, { isAdmin: role === "admin" });
@@ -118,7 +144,9 @@ async function signInWithDevButton(
 
   await page.waitForURL((url) => !url.pathname.startsWith("/signin"), {
     timeout: 15_000,
+    waitUntil: "domcontentloaded",
   });
+  await completeWelcomeProfileIfNeeded(page, role, expectedPath);
   await expectPagePath(page, expectedPath);
   await waitForUiSettled(page);
   await expectAuthenticatedSession(page, { isAdmin: role === "admin" });

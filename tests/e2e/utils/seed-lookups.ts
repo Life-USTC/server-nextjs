@@ -1,0 +1,89 @@
+import { type APIRequestContext, expect, type Page } from "@playwright/test";
+import { DEV_SEED } from "./dev-seed";
+
+type SeedSectionMatch = {
+  id: number;
+  jwId: number | null;
+  code: string;
+};
+
+let seedSectionMatchPromise: Promise<SeedSectionMatch> | undefined;
+let seedTeacherIdPromise: Promise<number> | undefined;
+
+function getRequestContext(source: APIRequestContext | Page) {
+  return "request" in source ? source.request : source;
+}
+
+export async function resolveSeedSectionMatch(
+  source: APIRequestContext | Page,
+): Promise<SeedSectionMatch> {
+  seedSectionMatchPromise ??= (async () => {
+    const response = await getRequestContext(source).post(
+      "/api/sections/match-codes",
+      {
+        data: { codes: [DEV_SEED.section.code] },
+      },
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      sections?: Array<{
+        id?: number;
+        jwId?: number | null;
+        code?: string | null;
+      }>;
+    };
+    const section = body.sections?.find(
+      (entry) =>
+        typeof entry.id === "number" &&
+        typeof entry.code === "string" &&
+        entry.code === DEV_SEED.section.code,
+    );
+
+    if (!section) {
+      throw new Error(
+        `Seed section ${DEV_SEED.section.code} not found via /api/sections/match-codes`,
+      );
+    }
+
+    return {
+      id: section.id,
+      jwId: section.jwId ?? null,
+      code: section.code,
+    };
+  })();
+
+  return seedSectionMatchPromise;
+}
+
+export async function resolveSeedSectionId(source: APIRequestContext | Page) {
+  return (await resolveSeedSectionMatch(source)).id;
+}
+
+export async function resolveSeedTeacherId(
+  source: APIRequestContext | Page,
+): Promise<number> {
+  seedTeacherIdPromise ??= (async () => {
+    const response = await getRequestContext(source).get(
+      `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=10`,
+    );
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      data?: Array<{ id?: number; nameCn?: string }>;
+    };
+    const teacher = body.data?.find(
+      (item) =>
+        typeof item.id === "number" &&
+        item.nameCn?.includes(DEV_SEED.teacher.nameCn),
+    );
+
+    if (!teacher || typeof teacher.id !== "number") {
+      throw new Error(
+        `Seed teacher ${DEV_SEED.teacher.nameCn} not found via /api/teachers`,
+      );
+    }
+
+    return teacher.id;
+  })();
+
+  return seedTeacherIdPromise;
+}
