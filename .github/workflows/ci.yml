@@ -56,17 +56,8 @@ jobs:
       - name: Verify Biome check
         run: bun run check 2>&1
 
-      - name: Generate types (Prisma & OpenAPI)
-        run: bun run prebuild
-
-      - name: Typecheck
-        run: bun run typecheck
-
-      - name: Run i18n key check
-        run: bun run check:i18n
-
-      - name: Run unit tests
-        run: bun run test
+      - name: Run fast verification
+        run: bun run verify:fast
 
   test-e2e:
     name: E2E Test (${{ matrix.scope }})
@@ -207,17 +198,8 @@ jobs:
       - name: Apply Prisma migrations
         run: bun run prisma:deploy
 
-      - name: Run Biome check
-        run: bun run check
-
-      - name: Run E2E convention check
-        run: bun run check:e2e
-
-      - name: Setup Prisma and Zod
-        run: bun run prebuild
-
-      - name: Typecheck
-        run: bun run typecheck
+      - name: Run E2E verification prerequisites
+        run: bun run verify:e2e
 
       - name: Run Playwright E2E tests
         run: bun run test:e2e -- ${{ matrix.paths }}

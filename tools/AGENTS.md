@@ -34,7 +34,10 @@ try {
 
 ## Seed
 
+Start local infra first when a script needs DB/storage:
+
 ```bash
+docker compose -f docker-compose.dev.yml up -d
 bun run dev:seed-scenarios  # Create
 bun run dev:seed:reset      # Clean
 ```
@@ -60,10 +63,20 @@ bun tools/production/load/load-from-static.ts
 bun run prebuild  # Generate + postprocess
 ```
 
+## Verification
+
+Default path for tool changes:
+
+```bash
+bun run verify:fast  # Most edits
+bun run verify:full  # Shared tooling, seed flows, or integration-sensitive edits
+```
+
 ## Convention Checks
 
 ```bash
-bun run check:e2e        # E2E conventions
-bun run check:i18n-keys  # Translation keys
-bun run check:features   # Feature docs
+bun run check:all      # Lint + docs + i18n + route/static import checks
+bun run check:e2e      # E2E conventions
+bun run check:features # Feature docs
+bun run check:features:write # Refresh docs/features.generated.json
 ```

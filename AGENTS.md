@@ -7,15 +7,19 @@ Next.js campus workspace with REST + MCP APIs.
 ```bash
 # Development
 bun install --frozen-lockfile
-bun run dev
+bun run dev        # Host app dev; auto-runs prisma generate + migrate deploy
+bun run dev:infra  # Infra only (postgres, minio, minio-setup)
+bun run dev:docker # Full dev stack in Docker
+bun run dev:down   # Stop dev Docker stack
 
 # Quality
-bun run check --write        # Lint + format
-bun run typecheck           # TypeScript
-bun run check:features      # Validate feature docs
+bun run check --write        # Lint + format fixes
+bun run verify:fast         # Default local gate: checks + prebuild + typecheck + unit tests
+bun run verify:full         # Full gate: fast verification + integration + E2E
+bun run verify:e2e          # E2E prerequisites before Playwright
 
 # Tests
-bun run test                # Unit
+bun run test                # Unit only
 bun run test:integration    # Integration (needs DATABASE_URL + seed)
 bun run test:e2e            # E2E (full build)
 
@@ -25,16 +29,31 @@ bun run build
 docker build .
 ```
 
+## Local Dev Environment
+
+- `.env` is configured for host-native dev (`bun run dev`) against local Docker infra on `127.0.0.1`.
+- `docker-compose.dev.yml` can also run the Next.js dev server via profile `app`; in that mode Compose overrides `DATABASE_URL` and S3 endpoint to use service DNS names.
+- `minio-setup` auto-creates bucket `life-ustc-dev` and exits successfully; that is expected.
+- Both host-native `bun run dev` and compose app dev auto-run `prisma generate` + `prisma migrate deploy` before `next dev`.
+- The compose app exposes a healthcheck via `bun run health`.
+- Host-native `bun run dev` and compose app dev both use port `3000`; run only one app server at a time.
+- Prefer these flows for pain-free setup:
+  1. `bun run dev:docker` for one-command full stack
+  2. `bun run dev:infra && bun run dev` for host-native app dev
+
 ## Documentation Structure
 
 ```
-docs/features/          Feature specs (modular YAML)
-  _meta.yml            Product metadata
-  _product.yml         Roles, workflow
-  _models.yml          Prisma models
-  _ui.yml              UI patterns
-  user.yml             26 feature modules
-  course.yml           ...
+docs/features/          Feature specs (modular JSON)
+  _meta.json           Product metadata
+  _product.json        Roles, workflow
+  _models.json         Prisma models
+  _enums.json          Enums
+  _ui.json             UI patterns
+  _cases.json          Cross-feature scenarios
+  _audit.json          Audit actions
+  user.json            Feature modules
+  course.json          ...
   ...
 
 src/*/AGENTS.md         Scoped implementation guides
@@ -88,12 +107,22 @@ buildPaginatedResponse(items, total, page, limit)
 - `src/generated/prisma/`
 - `src/generated/openapi.ts`
 - `public/openapi.generated.json`
+- `docs/features.generated.json`
 
 **Feature Changes**:
-1. Update `docs/features/<module>.yml` first
+1. Update `docs/features/<module>.json` first
 2. Implement code
-3. Run `bun run check:features`
-4. Update tests
+3. Run `bun run verify:fast`
+4. Update tests, then escalate to `bun run verify:full` when the change touches integration or browser flows
+
+**Documentation Changes**:
+- Ask before broad documentation rewrites or restructures when the user did not explicitly request doc edits.
+- When docs must change as part of code work, keep the edits narrow and run the same default gate.
+
+**Default Verification**:
+- Use `bun run verify:fast` for most commits and PR updates.
+- Use `bun run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
+- Use `bun run verify:e2e` before `bun run test:e2e`; Playwright still requires the right local stack and env.
 
 **No Stray Reports**:
 - Do not leave migration plans, improvement reports, or status summaries in the repo
@@ -102,7 +131,7 @@ buildPaginatedResponse(items, total, page, limit)
 
 ## Scoped Guides
 
-- **Features**: `docs/features/<module>.yml` - Specifications
+- **Features**: `docs/features/<module>.json` - Specifications
 - **Source**: `src/AGENTS.md` - Organization
 - **App**: `src/app/AGENTS.md` - App Router
 - **API**: `src/app/api/AGENTS.md` - REST handlers
