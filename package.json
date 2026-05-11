@@ -51,7 +51,7 @@
     "test:e2e:report": "playwright show-report",
     "test:e2e:ui": "playwright test --ui",
     "test:watch": "vitest",
-    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration": "bun run dev:seed-scenarios && vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "verify:e2e": "bun run check:e2e && bun run prebuild && bun run typecheck",
     "verify:fast": "bun run check:all && bun run prebuild && bun run typecheck && bun run test",

@@ -5,10 +5,7 @@ Integration tests with in-process MCP harness.
 ## Setup
 
 ```bash
-# Requires DATABASE_URL
-bun run dev:seed-scenarios
-
-# Run
+# Requires DATABASE_URL; test:integration applies the seed automatically.
 bun run test:integration
 ```
 

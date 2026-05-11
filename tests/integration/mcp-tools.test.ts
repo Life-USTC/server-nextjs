@@ -42,7 +42,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await mcp.close();
+  await mcp?.close();
   await prisma.$disconnect();
 });
 
