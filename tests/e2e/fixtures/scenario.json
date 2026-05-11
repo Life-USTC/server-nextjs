@@ -1,0 +1,195 @@
+{
+  "users": {
+    "debug": {
+      "username": "liuyang",
+      "name": "刘洋",
+      "avatarSeed": "life-ustc-liuyang"
+    },
+    "admin": {
+      "username": "dev-admin",
+      "name": "校园管理员",
+      "avatarSeed": "life-ustc-admin"
+    }
+  },
+  "semester": {
+    "jwId": 9900001,
+    "nameCn": "2025-2026 学年第二学期",
+    "code": "2025-2026-2"
+  },
+  "catalog": {
+    "campus": {
+      "jwId": 9910001,
+      "code": "EAST",
+      "nameCn": "东校区",
+      "nameEn": "East Campus"
+    },
+    "department": {
+      "code": "DPT-CS",
+      "nameCn": "计算机科学与技术学院",
+      "nameEn": "School of Computer Science and Technology"
+    },
+    "building": {
+      "jwId": 9910021,
+      "code": "BLDG-1",
+      "nameCn": "第一教学楼",
+      "nameEn": "Teaching Building 1"
+    },
+    "room": {
+      "jwId": 9910031,
+      "code": "101",
+      "nameCn": "一教101",
+      "nameEn": "Room 101"
+    },
+    "roomType": {
+      "jwId": 9910011,
+      "code": "MULTIMEDIA",
+      "nameCn": "多媒体教室",
+      "nameEn": "Multimedia Classroom"
+    },
+    "teachLanguage": { "nameCn": "中文", "nameEn": "Chinese" },
+    "examMode": { "nameCn": "闭卷", "nameEn": "Closed Book" },
+    "educationLevel": { "nameCn": "本科生", "nameEn": "Undergraduate" },
+    "category": {
+      "nameCn": "学科基础课",
+      "nameEn": "Disciplinary Foundation"
+    },
+    "classType": { "nameCn": "理论课", "nameEn": "Lecture" },
+    "classify": { "nameCn": "必修", "nameEn": "Required" },
+    "gradation": { "nameCn": "进阶", "nameEn": "Advanced" },
+    "courseType": { "nameCn": "专业核心", "nameEn": "Core Major" },
+    "teacherTitle": {
+      "jwId": 9910041,
+      "code": "PROF",
+      "nameCn": "教授",
+      "nameEn": "Professor"
+    },
+    "teacherLessonType": {
+      "jwId": 9910051,
+      "code": "LECT",
+      "nameCn": "主讲",
+      "nameEn": "Lecturer"
+    },
+    "adminClass": {
+      "jwId": 9910061,
+      "code": "CS-2022-01",
+      "nameCn": "计算机01",
+      "nameEn": "CS Class 01"
+    },
+    "examBatch": {
+      "nameCn": "2025-2026-2 期末考试",
+      "nameEn": "Final Exam 2025-2026-2"
+    }
+  },
+  "teachers": [
+    {
+      "index": 0,
+      "code": "T2401001",
+      "nameCn": "陈建平",
+      "nameEn": "Chen Jianping",
+      "email": "cjp@cs.ustc.edu.cn",
+      "mobile": "13800001111"
+    },
+    {
+      "index": 1,
+      "code": "T2401002",
+      "nameCn": "李明远",
+      "nameEn": "Li Mingyuan",
+      "email": "lmy@math.ustc.edu.cn",
+      "mobile": "13800002222"
+    },
+    {
+      "index": 2,
+      "code": "T2401003",
+      "nameCn": "张晓燕",
+      "nameEn": "Zhang Xiaoyan",
+      "email": "zxy@phys.ustc.edu.cn",
+      "mobile": "13800003333"
+    }
+  ],
+  "courses": [
+    {
+      "index": 0,
+      "jwId": 9901001,
+      "code": "CS0501",
+      "nameCn": "软件工程实践",
+      "nameEn": "Software Engineering Practice"
+    },
+    {
+      "index": 1,
+      "jwId": 9901002,
+      "code": "MA0301",
+      "nameCn": "高等线性代数",
+      "nameEn": "Advanced Linear Algebra"
+    },
+    {
+      "index": 2,
+      "jwId": 9901003,
+      "code": "PH0201",
+      "nameCn": "近代实验方法",
+      "nameEn": "Modern Experimental Methods"
+    }
+  ],
+  "sections": [
+    {
+      "index": 0,
+      "jwId": 9902001,
+      "code": "CS0501.01",
+      "credits": 3,
+      "stdCount": 46,
+      "limitCount": 60,
+      "teacherIndexes": [0, 1],
+      "remark": "项目型课堂，强调周内迭代与代码评审。"
+    },
+    {
+      "index": 1,
+      "jwId": 9902002,
+      "code": "MA0301.02",
+      "credits": 4,
+      "stdCount": 72,
+      "limitCount": 90,
+      "teacherIndexes": [1],
+      "remark": "理论课 + 习题课双节奏安排。"
+    },
+    {
+      "index": 2,
+      "jwId": 9902003,
+      "code": "PH0201.03",
+      "credits": 2,
+      "stdCount": 28,
+      "limitCount": 36,
+      "teacherIndexes": [2],
+      "remark": "小班实验与阶段汇报并行。"
+    }
+  ],
+  "scheduleGroups": [9903001, 9903002, 9903003, 9903004, 9903005, 9903006],
+  "exams": [{ "jwId": 9904001 }, { "jwId": 9904002 }, { "jwId": 9904003 }],
+  "homeworks": {
+    "title": "迭代二系统设计评审",
+    "completedTitle": "迭代一需求拆解"
+  },
+  "todos": {
+    "dueTodayTitle": "期末报告提交",
+    "completedTitle": "代码评审会议记录"
+  },
+  "comments": {
+    "sectionRootBody": "这门课节奏快，建议每周固定做一次代码评审。"
+  },
+  "uploads": {
+    "firstFilename": "software-engineering-checklist.pdf"
+  },
+  "bus": {
+    "versionKey": "scenario-bus-2025",
+    "versionTitle": "校车时刻表 2025-2026",
+    "routeId": 8,
+    "recommendedRouteId": 8,
+    "originCampusId": 1,
+    "destinationCampusId": 6,
+    "originCampusName": "东区",
+    "destinationCampusName": "高新",
+    "recommendedRoute": "东区 -> 西区 -> 先研院 -> 高新",
+    "recommendedDeparture": "07:40"
+  },
+  "suspensions": {
+    "reasonKeyword": "账号异常临时限制"
+  }
+}
