@@ -3,6 +3,7 @@ import scenarioData from "../../../tests/e2e/fixtures/scenario.json";
 const s = scenarioData;
 
 export const DEV_SEED = {
+  seedAnchorAtTime: "2026-04-29T00:00:00+08:00",
   debugUsername: s.users.debug.username,
   debugName: s.users.debug.name,
   debugAvatarSeed: s.users.debug.avatarSeed,

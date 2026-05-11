@@ -1127,6 +1127,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           name: "get_my_7days_timeline",
           arguments: {
             locale: "zh-cn",
+            atTime: DEV_SEED.seedAnchorAtTime,
           },
         });
         const timelinePayload = parseTextContent(timelineResult) as {
@@ -1155,6 +1156,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           name: "get_my_7days_timeline",
           arguments: {
             locale: "zh-cn",
+            atTime: DEV_SEED.seedAnchorAtTime,
             mode: "summary",
           },
         });

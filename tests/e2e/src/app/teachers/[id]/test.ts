@@ -26,6 +26,7 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import { withE2eLock } from "../../../../utils/locks";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
@@ -166,39 +167,45 @@ test.describe("/teachers/[id]", () => {
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/teachers");
-    await navigateToSeedTeacher(page);
+    await withE2eLock("debug-user-profile", async () => {
+      await signInAsDebugUser(page, "/teachers");
+      await navigateToSeedTeacher(page);
 
-    const descCard = page
-      .locator('[data-slot="card"]')
-      .filter({ has: page.getByText(/简介|Description/i) })
-      .first();
-    await expect(descCard).toBeVisible();
+      const descCard = page
+        .locator('[data-slot="card"]')
+        .filter({ has: page.getByText(/简介|Description/i) })
+        .first();
+      await expect(descCard).toBeVisible();
 
-    await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
-    const content = `e2e-teacher-desc-${Date.now()}`;
-    await descCard.locator("textarea").first().fill(content);
+      await descCard.getByRole("button", { name: /^编辑$|^Edit$/i }).click();
+      const content = `e2e-teacher-desc-${Date.now()}`;
+      await descCard.locator("textarea").first().fill(content);
 
-    const saveResponse = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/descriptions") &&
-        r.request().method() === "POST" &&
-        r.status() === 200,
-    );
-    await descCard.getByRole("button", { name: /保存|Save/i }).click();
-    await saveResponse;
-    await page.waitForLoadState("networkidle");
+      const saveResponse = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/descriptions") &&
+          r.request().method() === "POST" &&
+          r.status() === 200,
+      );
+      await descCard.getByRole("button", { name: /保存|Save/i }).click();
+      await saveResponse;
+      await page.waitForLoadState("networkidle");
 
-    // description.content rendered
-    await expect(page.getByText(content).first()).toBeVisible();
-    // description.lastEditedBy.name
-    await expect(
-      page.getByText(DEV_SEED.debugName, { exact: false }).first(),
-    ).toBeVisible();
-    // description.lastEditedAt — some date/time text present near description
-    await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
+      // description.content rendered
+      await expect(page.getByText(content).first()).toBeVisible();
+      // description.lastEditedBy.name
+      await expect(
+        page.getByText(DEV_SEED.debugName, { exact: false }).first(),
+      ).toBeVisible();
+      // description.lastEditedAt — some date/time text present near description
+      await expect(descCard.getByText(/\d{4}/).first()).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "teacher/description-updated");
+      await captureStepScreenshot(
+        page,
+        testInfo,
+        "teacher/description-updated",
+      );
+    });
   });
 
   // ── Comment CRUD ─────────────────────────────────────────────────────────────
