@@ -42,6 +42,10 @@ export function buildBetterAuthOptions() {
     secret: getBetterAuthSecret(),
     database: createBetterAuthPrismaAdapter(prisma),
     disabledPaths: ["/token"],
+    // Disable Better Auth's built-in rate limiting in debug/E2E mode so that
+    // rapid sequential requests (e.g. /api/auth/get-session during tests)
+    // don't get throttled with 429 responses.
+    ...(allowDebugAuth ? { rateLimit: { enabled: false } } : {}),
     advanced: {
       // Reverse proxies should still forward the original scheme/host correctly
       // for request-aware Better Auth behavior, but deployment origin comes from config.

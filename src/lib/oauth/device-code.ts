@@ -69,5 +69,9 @@ export function getVerificationUriComplete(
   baseUrl: string,
   userCode: string,
 ): string {
-  return `${getVerificationUri(baseUrl)}?code=${encodeURIComponent(userCode)}`;
+  const params = new URLSearchParams({
+    code: userCode,
+    step: "approve",
+  });
+  return `${getVerificationUri(baseUrl)}?${params.toString()}`;
 }

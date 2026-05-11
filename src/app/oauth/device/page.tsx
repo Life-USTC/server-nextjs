@@ -21,8 +21,22 @@ export default async function DeviceVerifyPage({
   const [session, params] = await Promise.all([auth(), searchParams]);
 
   if (!session?.user?.id) {
-    const callbackUrl = params.code
-      ? `/oauth/device?code=${encodeURIComponent(params.code)}`
+    const callbackParams = new URLSearchParams();
+    if (params.code) {
+      callbackParams.set("code", params.code);
+    }
+    if (params.step) {
+      callbackParams.set("step", params.step);
+    }
+    if (params.result) {
+      callbackParams.set("result", params.result);
+    }
+    if (params.reason) {
+      callbackParams.set("reason", params.reason);
+    }
+
+    const callbackUrl = callbackParams.size
+      ? `/oauth/device?${callbackParams.toString()}`
       : "/oauth/device";
     redirect(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
   }
