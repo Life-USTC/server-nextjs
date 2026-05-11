@@ -1,0 +1,69 @@
+{
+  "name": "Dashboard Link",
+  "access": {
+    "anon": "Can browse frequent links but cannot pin them.",
+    "user": "Can pin, unpin, and record link visits.",
+    "admin": "Has no dedicated link management interface separate from regular users.",
+    "agent": "No frequent link management capability is currently provided."
+  },
+  "rules": {
+    "navigation-not-feed": "Frequent links are a navigation capability, not a content feed.",
+    "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
+    "links-vs-buttons": "Links are for navigation; buttons are for actions.",
+    "pin-limit": "Currently a maximum of 5 links can be pinned; exceeding this displaces the earliest pinned link.",
+    "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
+  },
+  "capabilities": {
+    "link-browse": {
+      "title": "Link Browse & Search",
+      "auth": "anon",
+      "web": {
+        "pages": ["/?tab=links", "/?tab=overview"]
+      },
+      "rest": "unavailable",
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "link.title",
+          "link.description",
+          "link.icon",
+          "link.slug visit action",
+          "link.group",
+          "link.isPinned (if authenticated)",
+          "Search input/query"
+        ]
+      }
+    },
+    "link-pin-and-visit": {
+      "title": "Link Pin & Visit",
+      "auth": "user",
+      "web": "stable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/dashboard-links/pin",
+            "method": "POST",
+            "returns": "{ pinnedSlugs: String[], maxPinnedLinks: Int, error?: String }"
+          },
+          {
+            "path": "/api/dashboard-links/visit",
+            "method": "POST",
+            "returns": "303 redirect"
+          },
+          {
+            "path": "/api/dashboard-links/visit",
+            "returns": "303 redirect"
+          }
+        ]
+      },
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "link.slug visit action",
+          "Pin/unpin button",
+          "Pinned indicator"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,215 @@
+{
+  "name": "Homework",
+  "access": {
+    "anon": "Can read homework information under public sections, but cannot create, update, or delete.",
+    "user": "When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.",
+    "admin": "Can delete homework and participate in governance.",
+    "agent": "After authorization, can read, create, and update homework and set the current user's completion state; both REST and MCP currently provide this capability."
+  },
+  "rules": {
+    "attached-to-section": "Homework is attached to a section, not a personal user todo.",
+    "no-subscription-required": "Creating homework does not require the user to be subscribed to the section first.",
+    "entity-and-completion-separated": "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'."
+  },
+  "capabilities": {
+    "cross-section-homework-summary": {
+      "title": "Cross-Section Homework Summary",
+      "auth": "user",
+      "links": {
+        "models": ["Homework"]
+      },
+      "web": {
+        "pages": ["/?tab=homeworks"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/me/subscriptions/homeworks",
+            "returns": "{ viewer, homeworks: HomeworkItem[], auditLogs: AuditLog[], sectionIds: Int[] }",
+            "notes": [
+              "Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context."
+            ]
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "list_my_homeworks",
+            "returns": "{ homeworks: HomeworkItem[] }",
+            "notes": [
+              "Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "homework.title",
+          "homework.description.content",
+          "homework.submissionDueAt (with ETA label)",
+          "section.course.namePrimary",
+          "homework.isMajor badge",
+          "homework.requiresTeam badge",
+          "completionStatus (completed/pending)",
+          "filter: incomplete/completed/all"
+        ]
+      }
+    },
+    "section-homework-tab": {
+      "title": "Section Homework Tab",
+      "auth": "anon",
+      "links": {
+        "models": ["Homework"],
+        "ui": ["Context Tabs"]
+      },
+      "web": {
+        "pages": ["/sections/[jwId]"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/homeworks",
+            "returns": "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
+          },
+          {
+            "path": "/api/homeworks",
+            "method": "POST",
+            "returns": "{ id: String }",
+            "auth": "user"
+          },
+          {
+            "path": "/api/homeworks/[id]",
+            "method": "PATCH",
+            "returns": "{ success: Boolean }",
+            "auth": "user"
+          },
+          {
+            "path": "/api/homeworks/[id]",
+            "method": "DELETE",
+            "returns": "{ success: Boolean }",
+            "auth": "user"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "list_homeworks_by_section",
+            "returns": "{ found: Boolean, section: Section?, homeworks: HomeworkItem[] }",
+            "rest_equivalent": "GET /api/homeworks",
+            "notes": [
+              "Default/summary responses omit the repeated per-item section payload because the top-level section already scopes the list.",
+              "Editor identity fields stay in full mode; default/summary focus on homework state and due context."
+            ]
+          },
+          {
+            "name": "create_homework_on_section",
+            "auth": "user",
+            "returns": "{ success: Boolean, id: String, homework: HomeworkItem }",
+            "rest_equivalent": "POST /api/homeworks",
+            "notes": [
+              "Returns the created homework snapshot so MCP clients can continue with follow-up actions without an extra read."
+            ]
+          },
+          {
+            "name": "update_homework_on_section",
+            "auth": "user",
+            "returns": "{ success: Boolean, homework: HomeworkItem }",
+            "rest_equivalent": "PATCH /api/homeworks/[id]",
+            "notes": [
+              "Returns the updated homework snapshot after metadata and/or description changes are applied."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "homework.title",
+          "homework.description.content",
+          "homework.submissionDueAt",
+          "homework.createdAt",
+          "homework.submissionStartAt",
+          "homework.publishedAt",
+          "commentCount / comments action",
+          "user completion status",
+          "edit action"
+        ]
+      }
+    },
+    "homework-governance": {
+      "title": "Homework Governance",
+      "auth": "admin",
+      "web": "unavailable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/admin/homeworks",
+            "returns": "{ homeworks: HomeworkItem[] }"
+          },
+          {
+            "path": "/api/admin/homeworks/[id]",
+            "method": "DELETE",
+            "returns": "{ success: Boolean }"
+          }
+        ]
+      },
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "homework.title",
+          "homework.section.code",
+          "creator",
+          "creation timestamp",
+          "Action: delete",
+          "Status: active/deleted"
+        ]
+      }
+    },
+    "homework-completion": {
+      "title": "Homework Completion",
+      "auth": "user",
+      "links": {
+        "models": ["Homework"]
+      },
+      "web": "stable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/homeworks/[id]/completion",
+            "method": "PUT",
+            "returns": "{ completed: Boolean, completedAt: DateTime? }"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "set_my_homework_completion",
+            "returns": "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }",
+            "rest_equivalent": "PUT /api/homeworks/[id]/completion",
+            "notes": [
+              "Pass completed=true to mark as done, completed=false to revert to incomplete."
+            ]
+          },
+          {
+            "name": "unset_my_homework_completion",
+            "returns": "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }",
+            "rest_equivalent": "PUT /api/homeworks/[id]/completion",
+            "notes": [
+              "Dedicated tool to revert a completed homework back to incomplete; equivalent to set_my_homework_completion with completed=false."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "homework.title",
+          "homework.submissionDueAt",
+          "completion action button",
+          "completion status"
+        ]
+      }
+    }
+  }
+}

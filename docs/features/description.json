@@ -1,0 +1,71 @@
+{
+  "name": "Description",
+  "access": {
+    "anon": "Can read public descriptions.",
+    "user": "When signed in and not suspended, can maintain descriptions.",
+    "admin": "Can review and maintain descriptions in the admin backend.",
+    "agent": "No general description tools are currently provided."
+  },
+  "rules": {
+    "supplement-not-comment": "Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.",
+    "attached-object-types": "Attached objects include courses, sections, teachers, homework, and similar.",
+    "platform-maintained": "When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default."
+  },
+  "capabilities": {
+    "object-description-section": {
+      "title": "Object Description Section",
+      "auth": "anon",
+      "web": "stable",
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/descriptions",
+            "returns": "{ description, history, viewer }"
+          },
+          {
+            "path": "/api/descriptions",
+            "method": "POST",
+            "returns": "{ id: String, updated: Boolean }",
+            "auth": "user"
+          }
+        ]
+      },
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "description.content (markdown-rendered)",
+          "description.lastEditedBy.name",
+          "description.lastEditedAt / updatedAt",
+          "Edit button (if authorized)",
+          "history count",
+          "history editor",
+          "previous/updated diff content"
+        ]
+      }
+    },
+    "description-governance": {
+      "title": "Description Governance",
+      "auth": "admin",
+      "web": {
+        "pages": ["/admin/moderation"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/admin/descriptions",
+            "returns": "{ descriptions: Description[] }"
+          }
+        ]
+      },
+      "mcp": "unavailable",
+      "display": {
+        "fields": [
+          "description.content / preview",
+          "object target",
+          "lastEditedBy name",
+          "timestamp"
+        ]
+      }
+    }
+  }
+}

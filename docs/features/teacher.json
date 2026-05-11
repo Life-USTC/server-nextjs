@@ -1,0 +1,104 @@
+{
+  "name": "Teacher",
+  "access": {
+    "anon": "Can browse teacher information.",
+    "user": "Can browse teacher information. Cannot modify teacher fact data.",
+    "admin": "Can browse teacher information. Does not directly modify teacher facts through ordinary pages.",
+    "agent": "Can directly read teacher lists and details; also indirectly consumes teacher information in course and section results."
+  },
+  "rules": {
+    "identified-by-name": "Teacher objects are naturally identified by name.",
+    "section-code-auxiliary": "Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list."
+  },
+  "capabilities": {
+    "teacher-list": {
+      "title": "Teacher List & Filter",
+      "auth": "anon",
+      "links": {
+        "models": ["Teacher"],
+        "ui": ["List Table"]
+      },
+      "web": {
+        "pages": ["/teachers"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/teachers",
+            "returns": "PaginatedResponse<TeacherSummary>"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "search_teachers",
+            "returns": "PaginatedResponse<TeacherSummary>",
+            "rest_equivalent": "GET /api/teachers"
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "teacher.namePrimary",
+          "teacher.nameSecondary (locale-dependent)",
+          "teacher.department.namePrimary",
+          "teacher.teacherTitle.namePrimary",
+          "teacher.email",
+          "teacher._count.sections"
+        ],
+        "filters": ["search", "departmentId"]
+      }
+    },
+    "teacher-detail": {
+      "title": "Teacher Detail",
+      "auth": "anon",
+      "links": {
+        "models": ["Teacher"],
+        "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
+      },
+      "web": {
+        "pages": ["/teachers/[id]"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/teachers/[id]",
+            "returns": "TeacherDetail"
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "get_teacher_by_id",
+            "returns": "{ found: Boolean, teacher: TeacherDetail? }",
+            "rest_equivalent": "GET /api/teachers/[id]"
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "teacher.namePrimary (h1)",
+          "teacher.nameSecondary (Locale subtitle)",
+          "teacher.department.namePrimary",
+          "teacher.teacherTitle.namePrimary",
+          "teacher.email (if not null)",
+          "teacher.telephone (if not null)",
+          "teacher.mobile (if not null)",
+          "teacher.address (if not null)",
+          "section.semester.nameCn (Badge)",
+          "section.course.namePrimary + nameSecondary",
+          "section.code (Badge, monospace)",
+          "section.credits (or empty)",
+          "comment.id",
+          "comment.author.name",
+          "comment.author.image",
+          "comment.body",
+          "comment.createdAt",
+          "description.content (Markdown-rendered via DescriptionLoader)"
+        ]
+      }
+    }
+  }
+}

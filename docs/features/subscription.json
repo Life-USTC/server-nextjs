@@ -1,0 +1,112 @@
+{
+  "name": "Subscription",
+  "access": {
+    "anon": "Can see the subscription entry but cannot directly create a subscription.",
+    "user": "Can only manage their own section subscription relationships.",
+    "admin": "Does not manage personal subscriptions on behalf of users through ordinary pages.",
+    "agent": "After OAuth authorization, can manage the current user's own subscription relationships; REST and MCP both support the same semantic operations."
+  },
+  "rules": {
+    "subscription-language": "Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.",
+    "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam."
+  },
+  "capabilities": {
+    "subscribe-from-section": {
+      "title": "Subscribe from Section Detail",
+      "auth": "user",
+      "links": {
+        "models": ["User", "Section"],
+        "ui": ["Detail Hero"]
+      },
+      "web": {
+        "pages": ["/sections/[jwId]"]
+      },
+      "rest": "unavailable",
+      "mcp": {
+        "tools": [
+          {
+            "name": "subscribe_section_by_jw_id",
+            "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
+            "notes": [
+              "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
+              "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
+            ]
+          },
+          {
+            "name": "unsubscribe_section_by_jw_id",
+            "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
+            "notes": [
+              "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
+              "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "Subscribe/unsubscribe icon button state",
+          "Subscription disclaimer copy"
+        ]
+      }
+    },
+    "batch-subscribe-by-codes": {
+      "title": "Batch Subscribe by Course Codes",
+      "auth": "user",
+      "links": {
+        "models": ["Section", "User"]
+      },
+      "web": {
+        "pages": ["/?tab=subscriptions"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/sections/match-codes",
+            "method": "POST",
+            "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], sections: Section[], total: Int }"
+          },
+          {
+            "path": "/api/calendar-subscriptions",
+            "method": "POST",
+            "returns": "{ subscription: CalendarSubscription }",
+            "notes": [
+              "subscription.sections[] is the user's new set of subscribed sections."
+            ]
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "match_section_codes",
+            "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions?: Record<String, String[]>, sections: Section[], total: Int }",
+            "rest_equivalent": "POST /api/sections/match-codes",
+            "notes": [
+              "Returns suggestions for unmatched inputs when close section codes in the selected semester share a strong code-prefix or edit-distance match; unrelated section codes should be filtered out.",
+              "Prefer this read-only preview before subscribe_my_sections_by_codes when the caller needs confirmation or typo recovery."
+            ]
+          },
+          {
+            "name": "subscribe_my_sections_by_codes",
+            "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, addedCount, alreadySubscribedCount, subscription }",
+            "rest_equivalent": "POST /api/calendar-subscriptions",
+            "notes": [
+              "Convenience mutation that combines matching with subscription update.",
+              "Use match_section_codes first when the caller needs a dry-run style preview.",
+              "Default/summary responses return the subscription totals plus feed link information, not the entire subscribed section list.",
+              "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "Course/section code input",
+          "Bulk subscribe button",
+          "Matched section cards with course, code, semester, campus, teachers",
+          "Unmatched codes"
+        ]
+      }
+    }
+  }
+}

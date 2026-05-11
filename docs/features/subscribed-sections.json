@@ -1,0 +1,65 @@
+{
+  "name": "Subscribed Sections",
+  "access": {
+    "anon": "Cannot view their own subscribed sections list.",
+    "user": "Can only view and manage their own subscribed sections list.",
+    "admin": "Does not view or edit other users' subscription lists through ordinary pages.",
+    "agent": "Can read and manage the subscribed sections list data with the same semantics as the web through REST and MCP."
+  },
+  "rules": {
+    "grouped-by-semester": "The list is grouped by semester rather than presented as a single flat list.",
+    "section-codes-promoted": "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted."
+  },
+  "capabilities": {
+    "subscribed-sections-tab": {
+      "title": "Subscribed Sections Tab",
+      "auth": "user",
+      "links": {
+        "models": ["User", "Section"],
+        "ui": ["List Table"]
+      },
+      "web": {
+        "pages": ["/?tab=subscriptions"]
+      },
+      "rest": {
+        "routes": [
+          {
+            "path": "/api/calendar-subscriptions/current",
+            "returns": "{ subscription: CalendarSubscription | null }",
+            "notes": [
+              "Returns the current user's subscribed section details and personal subscription feed information; supports the subscribed sections list and personal calendar subscription entry."
+            ]
+          }
+        ]
+      },
+      "mcp": {
+        "tools": [
+          {
+            "name": "list_my_subscribed_sections",
+            "returns": "{ success: Boolean, sections: Section[], note: String }",
+            "rest_equivalent": "GET /api/calendar-subscriptions/current"
+          },
+          {
+            "name": "get_my_calendar_subscription",
+            "returns": "{ success: Boolean, subscription?, message?: String }",
+            "rest_equivalent": "GET /api/calendar-subscriptions/current",
+            "notes": [
+              "Supplements calendarPath and calendarUrl on the same abstract entry.",
+              "Use full mode only when the caller explicitly needs the full subscribed section list on the same response."
+            ]
+          }
+        ]
+      },
+      "display": {
+        "fields": [
+          "semester group label and count",
+          "subscription.sections[].code",
+          "subscription.sections[].course.namePrimary",
+          "section.teachers[]",
+          "section.credits",
+          "Unsubscribe button per section"
+        ]
+      }
+    }
+  }
+}
