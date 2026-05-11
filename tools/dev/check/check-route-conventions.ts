@@ -57,7 +57,10 @@ async function collectRouteFiles(relativeDir: string): Promise<string[]> {
 
 function usesJsonHelpers(source: string) {
   return (
-    source.includes("jsonResponse(") || source.includes("handleRouteError(")
+    source.includes("jsonResponse(") ||
+    source.includes("handleRouteError(") ||
+    source.includes("getDiscoveryRedirectResponse(") ||
+    source.includes("getDiscoveryOptionsResponse(")
   );
 }
 

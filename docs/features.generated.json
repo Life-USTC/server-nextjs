@@ -1,0 +1,4538 @@
+{
+  "meta": {
+    "name": "Life@USTC",
+    "language": "en",
+    "file": "docs/features",
+    "query": "sh",
+    "queries": {
+      "list_modules": "find docs/features -maxdepth 1 -type f -name '*.json' ! -name '_*.json' -exec basename {} .json \\; | sort",
+      "list_models": "jq -r 'keys[]' docs/features/_models.json",
+      "list_enums": "jq -r 'keys[]' docs/features/_enums.json",
+      "list_mcp_tools_stable": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; jq -r '.capabilities[]?.mcp | select(type == \"object\") | .tools[]? | select((.status // \"stable\") != \"unavailable\") | .name' \"$f\"; done | sort -u",
+      "list_mcp_tools_unavailable": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; module=$(basename \"$f\" .json); jq -c --arg module \"$module\" '.capabilities | to_entries[] | select(.value.mcp == \"unavailable\" or ((.value.mcp | type) == \"object\" and .value.mcp.status == \"unavailable\")) | {module: $module, capability: .key}' \"$f\"; done",
+      "list_rest_routes": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; jq -r '.capabilities[]?.rest | select(type == \"object\") | .routes[]?.path' \"$f\"; done | sort -u",
+      "capabilities_by_auth": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; module=$(basename \"$f\" .json); jq -c --arg module \"$module\" '.capabilities | to_entries[] | {module: $module, capability: .key, auth: .value.auth}' \"$f\"; done",
+      "tool_rest_map": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; jq -c '.capabilities[]?.mcp | select(type == \"object\") | .tools[]? | select(.rest_equivalent) | {tool: .name, rest: .rest_equivalent}' \"$f\"; done",
+      "rest_returns_map": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; jq -c '.capabilities[]?.rest | select(type == \"object\") | .routes[]? | select(.returns) | {path: .path, method: (.method // \"GET\"), returns: .returns}' \"$f\"; done",
+      "capabilities_no_rest": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; module=$(basename \"$f\" .json); jq -c --arg module \"$module\" '.capabilities | to_entries[] | select((.value.rest | not) or .value.rest == \"unavailable\" or ((.value.rest | type) == \"object\" and .value.rest.status == \"unavailable\")) | {module: $module, capability: .key, title: .value.title}' \"$f\"; done",
+      "capabilities_planned": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; module=$(basename \"$f\" .json); jq -c --arg module \"$module\" '.capabilities | to_entries[] | select(.value.rest == \"planned\" or ((.value.rest | type) == \"object\" and .value.rest.status == \"planned\") or .value.mcp == \"planned\" or ((.value.mcp | type) == \"object\" and .value.mcp.status == \"planned\")) | {module: $module, capability: .key}' \"$f\"; done",
+      "rules_by_module": "for f in docs/features/*.json; do case \"$(basename \"$f\")\" in _*) continue;; esac; module=$(basename \"$f\" .json); jq -c --arg module \"$module\" '{module: $module, rule_ids: (.rules | keys)}' \"$f\"; done",
+      "model_fields": "jq -c 'to_entries[] | {model: .key, fields: (.value.fields | keys)}' docs/features/_models.json"
+    },
+    "version": "1.0.0"
+  },
+  "product": {
+    "priority": [
+      "student learning workspace",
+      "public campus info browser",
+      "controlled REST / MCP surface",
+      "admin maintenance surface"
+    ],
+    "surfaces": ["web", "rest", "mcp"],
+    "roles": {
+      "anon": "Unauthenticated visitor; can browse all public information.",
+      "user": "Authenticated, non-suspended user; can manage personal state and perform social actions.",
+      "admin": "Platform administrator; has governance, moderation, and maintenance capabilities.",
+      "agent": "OAuth-authorized third-party client or MCP caller; inherits user permissions after authorization; does not inherit admin by default."
+    },
+    "terms": {
+      "sectionSubscription": "In-app follow relationship; not equivalent to official course enrollment.",
+      "homework": "Class-attached learning task; completion state is tracked per user independently.",
+      "todo": "Personal user task; not attached to any class."
+    },
+    "workflow": [
+      "Update the affected docs/features/<module>.json first whenever capabilities, tool surfaces, parameters, or outputs change.",
+      "Use jq to inspect the affected module or metadata file while editing.",
+      "Implement the behavior change in code.",
+      "Check docs/features, AGENTS.md, and implementation for consistency before concluding."
+    ],
+    "display_conventions": {
+      "real-models-only": "models mirrors prisma/schema.prisma model fields; API return DTO names stay in returns only.",
+      "compact-surfaces": "surface status defaults to stable; use unavailable/planned/stable string shorthand when no page, route, tool, or group is listed.",
+      "inherited-auth": "route and tool auth inherit capability auth unless explicitly overridden.",
+      "compact-display": "display uses fields and filters only; keep field lists short and user-visible."
+    }
+  },
+  "models": {
+    "AdminClass": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int? @unique",
+        "code": "String?",
+        "grade": "String?",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "stdCount": "Int?",
+        "planCount": "Int?",
+        "enabled": "Boolean?",
+        "abbrZh": "String?",
+        "abbrEn": "String?",
+        "sections": "Section[] @relation(\"SectionAdminClasses\")"
+      },
+      "constraints": ["@@index([jwId])", "@@index([code])", "@@index([nameCn])"]
+    },
+    "Building": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "code": "String",
+        "campusId": "Int?",
+        "campus": "Campus? @relation(fields: [campusId], references: [id])",
+        "rooms": "Room[]"
+      },
+      "constraints": [
+        "@@index([jwId])",
+        "@@index([nameCn])",
+        "@@index([nameEn])",
+        "@@index([campusId])"
+      ]
+    },
+    "Campus": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int? @unique",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "code": "String?",
+        "buildings": "Building[]",
+        "sections": "Section[]"
+      },
+      "constraints": [
+        "@@index([jwId])",
+        "@@index([code])",
+        "@@index([nameCn])",
+        "@@index([nameEn])"
+      ]
+    },
+    "ClassType": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "courses": "Course[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "Course": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "code": "String",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "categoryId": "Int?",
+        "classTypeId": "Int?",
+        "classifyId": "Int?",
+        "educationLevelId": "Int?",
+        "gradationId": "Int?",
+        "typeId": "Int?",
+        "category": "CourseCategory? @relation(fields: [categoryId], references: [id])",
+        "classType": "ClassType? @relation(fields: [classTypeId], references: [id])",
+        "classify": "CourseClassify? @relation(fields: [classifyId], references: [id])",
+        "educationLevel": "EducationLevel? @relation(fields: [educationLevelId], references: [id])",
+        "gradation": "CourseGradation? @relation(fields: [gradationId], references: [id])",
+        "type": "CourseType? @relation(fields: [typeId], references: [id])",
+        "sections": "Section[]",
+        "comments": "Comment[]",
+        "description": "Description?"
+      },
+      "constraints": [
+        "@@index([jwId])",
+        "@@index([code])",
+        "@@index([nameCn])",
+        "@@index([nameEn])",
+        "@@index([categoryId])",
+        "@@index([classTypeId])",
+        "@@index([classifyId])",
+        "@@index([educationLevelId])",
+        "@@index([gradationId])",
+        "@@index([typeId])"
+      ]
+    },
+    "CourseCategory": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "courses": "Course[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "CourseClassify": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "courses": "Course[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "CourseGradation": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "courses": "Course[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "CourseType": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "courses": "Course[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "Department": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "code": "String @unique",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "isCollege": "Boolean?",
+        "sections": "Section[]",
+        "teachers": "Teacher[]"
+      },
+      "constraints": [
+        "@@index([code])",
+        "@@index([nameCn])",
+        "@@index([nameEn])"
+      ]
+    },
+    "EducationLevel": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "courses": "Course[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "ExamMode": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "sections": "Section[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "Room": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "code": "String",
+        "floor": "Int?",
+        "virtual": "Boolean",
+        "seatsForSection": "Int",
+        "remark": "String?",
+        "seats": "Int",
+        "buildingId": "Int?",
+        "roomTypeId": "Int?",
+        "building": "Building? @relation(fields: [buildingId], references: [id])",
+        "roomType": "RoomType? @relation(fields: [roomTypeId], references: [id])",
+        "schedules": "Schedule[]"
+      },
+      "constraints": [
+        "@@unique([buildingId, code])",
+        "@@index([jwId])",
+        "@@index([nameCn])",
+        "@@index([nameEn])"
+      ]
+    },
+    "RoomType": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "code": "String",
+        "rooms": "Room[]",
+        "sections": "Section[]"
+      },
+      "constraints": [
+        "@@index([jwId])",
+        "@@index([nameCn])",
+        "@@index([nameEn])"
+      ]
+    },
+    "Schedule": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "periods": "Int",
+        "date": "DateTime? @db.Date",
+        "weekday": "Int",
+        "startTime": "Int",
+        "endTime": "Int",
+        "experiment": "String?",
+        "customPlace": "String?",
+        "lessonType": "String?",
+        "weekIndex": "Int",
+        "exerciseClass": "Boolean?",
+        "startUnit": "Int",
+        "endUnit": "Int",
+        "roomId": "Int?",
+        "sectionId": "Int",
+        "scheduleGroupId": "Int",
+        "room": "Room? @relation(fields: [roomId], references: [id])",
+        "section": "Section @relation(fields: [sectionId], references: [id])",
+        "scheduleGroup": "ScheduleGroup @relation(fields: [scheduleGroupId], references: [id])",
+        "teachers": "Teacher[] @relation(\"ScheduleTeachers\")"
+      },
+      "constraints": [
+        "@@index([date])",
+        "@@index([roomId])",
+        "@@index([sectionId])",
+        "@@index([scheduleGroupId])"
+      ]
+    },
+    "ScheduleGroup": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "no": "Int",
+        "limitCount": "Int",
+        "stdCount": "Int",
+        "actualPeriods": "Int",
+        "isDefault": "Boolean",
+        "sectionId": "Int",
+        "section": "Section @relation(fields: [sectionId], references: [id])",
+        "schedules": "Schedule[]"
+      },
+      "constraints": ["@@index([jwId])", "@@index([sectionId])"]
+    },
+    "Section": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "code": "String",
+        "bizTypeId": "Int?",
+        "credits": "Float?",
+        "period": "Int?",
+        "periodsPerWeek": "Int?",
+        "timesPerWeek": "Int?",
+        "stdCount": "Int?",
+        "limitCount": "Int?",
+        "graduateAndPostgraduate": "Boolean?",
+        "dateTimePlaceText": "String?",
+        "dateTimePlacePersonText": "Json?",
+        "actualPeriods": "Int?",
+        "theoryPeriods": "Float?",
+        "practicePeriods": "Float?",
+        "experimentPeriods": "Float?",
+        "machinePeriods": "Float?",
+        "designPeriods": "Float?",
+        "testPeriods": "Float?",
+        "scheduleState": "String?",
+        "suggestScheduleWeeks": "Json?",
+        "suggestScheduleWeekInfo": "String?",
+        "scheduleJsonParams": "Json?",
+        "selectedStdCount": "Int?",
+        "remark": "String?",
+        "scheduleRemark": "String?",
+        "courseId": "Int",
+        "semesterId": "Int?",
+        "campusId": "Int?",
+        "examModeId": "Int?",
+        "openDepartmentId": "Int?",
+        "teachLanguageId": "Int?",
+        "roomTypeId": "Int?",
+        "course": "Course @relation(fields: [courseId], references: [id])",
+        "semester": "Semester? @relation(fields: [semesterId], references: [id])",
+        "campus": "Campus? @relation(fields: [campusId], references: [id])",
+        "examMode": "ExamMode? @relation(fields: [examModeId], references: [id])",
+        "openDepartment": "Department? @relation(fields: [openDepartmentId], references: [id])",
+        "teachLanguage": "TeachLanguage? @relation(fields: [teachLanguageId], references: [id])",
+        "roomType": "RoomType? @relation(fields: [roomTypeId], references: [id])",
+        "schedules": "Schedule[]",
+        "scheduleGroups": "ScheduleGroup[]",
+        "adminClasses": "AdminClass[] @relation(\"SectionAdminClasses\")",
+        "teachers": "Teacher[] @relation(\"SectionTeachers\")",
+        "sectionTeachers": "SectionTeacher[]",
+        "teacherAssignments": "TeacherAssignment[]",
+        "exams": "Exam[]",
+        "subscribedUsers": "User[] @relation(\"UserCalendarSections\")",
+        "comments": "Comment[]",
+        "description": "Description?",
+        "homeworks": "Homework[]",
+        "homeworkAuditLogs": "HomeworkAuditLog[]"
+      },
+      "constraints": [
+        "@@index([jwId])",
+        "@@index([code])",
+        "@@index([bizTypeId])",
+        "@@index([period])",
+        "@@index([graduateAndPostgraduate])",
+        "@@index([courseId])",
+        "@@index([semesterId])",
+        "@@index([examModeId])",
+        "@@index([campusId])",
+        "@@index([openDepartmentId])",
+        "@@index([roomTypeId])",
+        "@@index([teachLanguageId])"
+      ]
+    },
+    "Exam": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "examType": "Int?",
+        "startTime": "Int?",
+        "endTime": "Int?",
+        "examDate": "DateTime? @db.Date",
+        "examTakeCount": "Int?",
+        "examMode": "String?",
+        "examBatchId": "Int?",
+        "sectionId": "Int",
+        "examBatch": "ExamBatch? @relation(fields: [examBatchId], references: [id], onDelete: Cascade)",
+        "section": "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)",
+        "examRooms": "ExamRoom[]"
+      },
+      "constraints": [
+        "@@index([jwId])",
+        "@@index([examType])",
+        "@@index([examDate])",
+        "@@index([examBatchId])",
+        "@@index([sectionId])"
+      ]
+    },
+    "ExamBatch": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "exams": "Exam[]"
+      },
+      "constraints": ["@@index([nameCn])"]
+    },
+    "ExamRoom": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "room": "String",
+        "count": "Int",
+        "examId": "Int",
+        "exam": "Exam @relation(fields: [examId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": ["@@index([examId])", "@@index([room])"]
+    },
+    "Semester": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "nameCn": "String",
+        "code": "String",
+        "startDate": "DateTime? @db.Date",
+        "endDate": "DateTime? @db.Date",
+        "sections": "Section[]"
+      },
+      "constraints": ["@@index([jwId])"]
+    },
+    "Teacher": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "personId": "Int? @unique",
+        "teacherId": "Int? @unique",
+        "code": "String? @unique",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "age": "Int?",
+        "email": "String?",
+        "telephone": "String?",
+        "mobile": "String?",
+        "address": "String?",
+        "postcode": "String?",
+        "qq": "String?",
+        "wechat": "String?",
+        "departmentId": "Int?",
+        "teacherTitleId": "Int?",
+        "department": "Department? @relation(fields: [departmentId], references: [id])",
+        "teacherTitle": "TeacherTitle? @relation(fields: [teacherTitleId], references: [id])",
+        "sections": "Section[] @relation(\"SectionTeachers\")",
+        "sectionTeachers": "SectionTeacher[]",
+        "teacherAssignments": "TeacherAssignment[]",
+        "schedules": "Schedule[] @relation(\"ScheduleTeachers\")",
+        "comments": "Comment[]",
+        "description": "Description?"
+      },
+      "constraints": [
+        "@@unique([nameCn, departmentId])",
+        "@@index([code])",
+        "@@index([nameCn])",
+        "@@index([nameEn])",
+        "@@index([teacherTitleId])",
+        "@@index([departmentId])"
+      ]
+    },
+    "Description": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "content": "String @default(\"\")",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "lastEditedAt": "DateTime?",
+        "lastEditedById": "String?",
+        "lastEditedBy": "User? @relation(\"DescriptionLastEditor\", fields: [lastEditedById], references: [id], onDelete: SetNull)",
+        "sectionId": "Int? @unique",
+        "courseId": "Int? @unique",
+        "teacherId": "Int? @unique",
+        "homeworkId": "String? @unique",
+        "section": "Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)",
+        "course": "Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)",
+        "teacher": "Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)",
+        "homework": "Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)",
+        "edits": "DescriptionEdit[]"
+      },
+      "constraints": ["@@index([lastEditedById])", "@@index([homeworkId])"]
+    },
+    "Homework": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "title": "String",
+        "isMajor": "Boolean @default(false)",
+        "requiresTeam": "Boolean @default(false)",
+        "publishedAt": "DateTime?",
+        "submissionStartAt": "DateTime?",
+        "submissionDueAt": "DateTime?",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "deletedAt": "DateTime?",
+        "sectionId": "Int",
+        "section": "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)",
+        "createdById": "String?",
+        "createdBy": "User? @relation(\"HomeworkCreatedBy\", fields: [createdById], references: [id], onDelete: SetNull)",
+        "updatedById": "String?",
+        "updatedBy": "User? @relation(\"HomeworkUpdatedBy\", fields: [updatedById], references: [id], onDelete: SetNull)",
+        "deletedById": "String?",
+        "deletedBy": "User? @relation(\"HomeworkDeletedBy\", fields: [deletedById], references: [id], onDelete: SetNull)",
+        "description": "Description?",
+        "comments": "Comment[]",
+        "auditLogs": "HomeworkAuditLog[]",
+        "homeworkCompletions": "HomeworkCompletion[]"
+      },
+      "constraints": [
+        "@@index([sectionId])",
+        "@@index([publishedAt])",
+        "@@index([submissionDueAt])",
+        "@@index([deletedAt])",
+        "@@index([createdById])",
+        "@@index([sectionId, deletedAt])",
+        "@@index([sectionId, submissionDueAt])"
+      ]
+    },
+    "HomeworkCompletion": {
+      "fields": {
+        "userId": "String",
+        "homeworkId": "String",
+        "completedAt": "DateTime @default(now())",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "homework": "Homework @relation(fields: [homeworkId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@id([userId, homeworkId])",
+        "@@index([homeworkId])",
+        "@@index([userId])"
+      ]
+    },
+    "HomeworkAuditLog": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "action": "HomeworkAuditAction",
+        "titleSnapshot": "String",
+        "createdAt": "DateTime @default(now())",
+        "sectionId": "Int",
+        "section": "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)",
+        "homeworkId": "String?",
+        "homework": "Homework? @relation(fields: [homeworkId], references: [id], onDelete: SetNull)",
+        "actorId": "String?",
+        "actor": "User? @relation(\"HomeworkAuditActor\", fields: [actorId], references: [id], onDelete: SetNull)"
+      },
+      "constraints": [
+        "@@index([sectionId])",
+        "@@index([homeworkId])",
+        "@@index([actorId])",
+        "@@index([createdAt])",
+        "@@index([sectionId, createdAt])"
+      ]
+    },
+    "AuditLog": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "action": "AuditAction",
+        "userId": "String",
+        "user": "User @relation(fields: [userId], references: [id])",
+        "targetId": "String?",
+        "targetType": "String?",
+        "metadata": "Json?",
+        "createdAt": "DateTime @default(now())",
+        "ipAddress": "String?",
+        "userAgent": "String?"
+      },
+      "constraints": [
+        "@@index([userId])",
+        "@@index([action])",
+        "@@index([createdAt])"
+      ]
+    },
+    "DescriptionEdit": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "descriptionId": "String",
+        "description": "Description @relation(fields: [descriptionId], references: [id], onDelete: Cascade)",
+        "editorId": "String?",
+        "editor": "User? @relation(\"DescriptionEdits\", fields: [editorId], references: [id], onDelete: SetNull)",
+        "previousContent": "String?",
+        "nextContent": "String",
+        "createdAt": "DateTime @default(now())"
+      },
+      "constraints": [
+        "@@index([descriptionId])",
+        "@@index([editorId])",
+        "@@index([createdAt])",
+        "@@index([descriptionId, createdAt])"
+      ]
+    },
+    "SectionTeacher": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "sectionId": "Int",
+        "teacherId": "Int",
+        "section": "Section @relation(fields: [sectionId], references: [id], onDelete: Cascade)",
+        "teacher": "Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)",
+        "comments": "Comment[]",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt"
+      },
+      "constraints": [
+        "@@unique([sectionId, teacherId])",
+        "@@index([sectionId])",
+        "@@index([teacherId])"
+      ]
+    },
+    "TeachLanguage": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "sections": "Section[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "TeacherTitle": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "code": "String",
+        "enabled": "Boolean?",
+        "teachers": "Teacher[]"
+      },
+      "constraints": ["@@index([jwId])", "@@index([nameCn])"]
+    },
+    "TeacherLessonType": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "jwId": "Int @unique",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "code": "String",
+        "role": "String?",
+        "enabled": "Boolean?",
+        "teacherAssignments": "TeacherAssignment[]"
+      },
+      "constraints": ["@@index([jwId])", "@@index([nameCn])"]
+    },
+    "TeacherAssignment": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "teacherId": "Int",
+        "sectionId": "Int",
+        "role": "String?",
+        "period": "Int?",
+        "weekIndices": "Json?",
+        "weekIndicesMsg": "String?",
+        "teacherLessonTypeId": "Int?",
+        "teacher": "Teacher @relation(fields: [teacherId], references: [id])",
+        "section": "Section @relation(fields: [sectionId], references: [id])",
+        "teacherLessonType": "TeacherLessonType? @relation(fields: [teacherLessonTypeId], references: [id])"
+      },
+      "constraints": [
+        "@@unique([teacherId, sectionId])",
+        "@@index([teacherId])",
+        "@@index([sectionId])",
+        "@@index([teacherLessonTypeId])"
+      ]
+    },
+    "User": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "email": "String @unique",
+        "emailVerified": "Boolean @default(false)",
+        "name": "String @default(\"\")",
+        "username": "String? @unique",
+        "image": "String?",
+        "profilePictures": "String[] @default([])",
+        "isAdmin": "Boolean @default(false)",
+        "calendarFeedToken": "String? @unique",
+        "accounts": "Account[]",
+        "sessions": "Session[]",
+        "Authenticator": "Authenticator[]",
+        "verifiedEmails": "VerifiedEmail[]",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "subscribedSections": "Section[] @relation(\"UserCalendarSections\")",
+        "uploads": "Upload[]",
+        "uploadPendings": "UploadPending[]",
+        "comments": "Comment[]",
+        "moderatedComments": "Comment[] @relation(\"ModeratedComments\")",
+        "commentReactions": "CommentReaction[]",
+        "suspensions": "UserSuspension[] @relation(\"SuspendedUser\")",
+        "suspensionsIssued": "UserSuspension[] @relation(\"SuspensionCreatedBy\")",
+        "suspensionsLifted": "UserSuspension[] @relation(\"SuspensionLiftedBy\")",
+        "descriptionEdits": "DescriptionEdit[] @relation(\"DescriptionEdits\")",
+        "descriptionLastEdits": "Description[] @relation(\"DescriptionLastEditor\")",
+        "homeworksCreated": "Homework[] @relation(\"HomeworkCreatedBy\")",
+        "homeworksUpdated": "Homework[] @relation(\"HomeworkUpdatedBy\")",
+        "homeworksDeleted": "Homework[] @relation(\"HomeworkDeletedBy\")",
+        "homeworkAuditLogs": "HomeworkAuditLog[] @relation(\"HomeworkAuditActor\")",
+        "auditLogs": "AuditLog[]",
+        "homeworkCompletions": "HomeworkCompletion[]",
+        "dashboardLinkClicks": "DashboardLinkClick[]",
+        "dashboardLinkPins": "DashboardLinkPin[]",
+        "todos": "Todo[]",
+        "busPreference": "BusUserPreference?",
+        "oauthClients": "OAuthClient[]",
+        "oauthAccessTokens": "OAuthAccessToken[]",
+        "oauthRefreshTokens": "OAuthRefreshToken[]",
+        "oauthConsents": "OAuthConsent[]",
+        "deviceCodes": "DeviceCode[]"
+      }
+    },
+    "DashboardLinkClick": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "userId": "String",
+        "slug": "String",
+        "count": "Int @default(0)",
+        "lastClickedAt": "DateTime @default(now())",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@unique([userId, slug])",
+        "@@index([userId])",
+        "@@index([slug])"
+      ]
+    },
+    "DashboardLinkPin": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "userId": "String",
+        "slug": "String",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@unique([userId, slug])",
+        "@@index([userId])",
+        "@@index([slug])"
+      ]
+    },
+    "Upload": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "key": "String @unique",
+        "filename": "String",
+        "contentType": "String?",
+        "size": "Int",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "userId": "String",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "commentAttachments": "CommentAttachment[]"
+      },
+      "constraints": ["@@index([userId])", "@@index([userId, createdAt])"]
+    },
+    "Comment": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "body": "String",
+        "visibility": "CommentVisibility @default(public)",
+        "status": "CommentStatus @default(active)",
+        "isAnonymous": "Boolean @default(false)",
+        "authorName": "String?",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "deletedAt": "DateTime?",
+        "moderatedAt": "DateTime?",
+        "moderationNote": "String?",
+        "userId": "String?",
+        "user": "User? @relation(fields: [userId], references: [id], onDelete: SetNull)",
+        "moderatedById": "String?",
+        "moderatedBy": "User? @relation(\"ModeratedComments\", fields: [moderatedById], references: [id], onDelete: SetNull)",
+        "parentId": "String?",
+        "parent": "Comment? @relation(\"CommentReplies\", fields: [parentId], references: [id], onDelete: Cascade)",
+        "replies": "Comment[] @relation(\"CommentReplies\")",
+        "rootId": "String?",
+        "root": "Comment? @relation(\"CommentRoot\", fields: [rootId], references: [id], onDelete: Cascade)",
+        "thread": "Comment[] @relation(\"CommentRoot\")",
+        "sectionId": "Int?",
+        "courseId": "Int?",
+        "teacherId": "Int?",
+        "sectionTeacherId": "Int?",
+        "homeworkId": "String?",
+        "section": "Section? @relation(fields: [sectionId], references: [id], onDelete: Cascade)",
+        "course": "Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)",
+        "teacher": "Teacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)",
+        "sectionTeacher": "SectionTeacher? @relation(fields: [sectionTeacherId], references: [id], onDelete: Cascade)",
+        "homework": "Homework? @relation(fields: [homeworkId], references: [id], onDelete: Cascade)",
+        "attachments": "CommentAttachment[]",
+        "reactions": "CommentReaction[]"
+      },
+      "constraints": [
+        "@@index([userId])",
+        "@@index([parentId])",
+        "@@index([rootId])",
+        "@@index([sectionId])",
+        "@@index([courseId])",
+        "@@index([teacherId])",
+        "@@index([sectionTeacherId])",
+        "@@index([homeworkId])",
+        "@@index([status])",
+        "@@index([visibility])",
+        "@@index([userId, status])",
+        "@@index([sectionId, status])",
+        "@@index([courseId, status])",
+        "@@index([teacherId, status])",
+        "@@index([status, createdAt])",
+        "@@index([rootId, createdAt])"
+      ]
+    },
+    "CommentAttachment": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "commentId": "String",
+        "uploadId": "String",
+        "createdAt": "DateTime @default(now())",
+        "comment": "Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)",
+        "upload": "Upload @relation(fields: [uploadId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": ["@@unique([commentId, uploadId])", "@@index([uploadId])"]
+    },
+    "CommentReaction": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "type": "CommentReactionType",
+        "createdAt": "DateTime @default(now())",
+        "commentId": "String",
+        "userId": "String",
+        "comment": "Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@unique([commentId, userId, type])",
+        "@@index([userId])",
+        "@@index([commentId])"
+      ]
+    },
+    "UserSuspension": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "userId": "String",
+        "createdById": "String",
+        "createdAt": "DateTime @default(now())",
+        "reason": "String?",
+        "note": "String?",
+        "expiresAt": "DateTime?",
+        "liftedAt": "DateTime?",
+        "liftedById": "String?",
+        "user": "User @relation(\"SuspendedUser\", fields: [userId], references: [id], onDelete: Cascade)",
+        "createdBy": "User @relation(\"SuspensionCreatedBy\", fields: [createdById], references: [id], onDelete: Cascade)",
+        "liftedBy": "User? @relation(\"SuspensionLiftedBy\", fields: [liftedById], references: [id], onDelete: SetNull)"
+      },
+      "constraints": [
+        "@@index([userId])",
+        "@@index([createdById])",
+        "@@index([liftedAt])",
+        "@@index([expiresAt])",
+        "@@index([userId, liftedAt])"
+      ]
+    },
+    "UploadPending": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "key": "String @unique",
+        "filename": "String",
+        "contentType": "String?",
+        "size": "Int",
+        "expiresAt": "DateTime",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "userId": "String",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@index([userId])",
+        "@@index([expiresAt])",
+        "@@index([userId, expiresAt])"
+      ]
+    },
+    "VerifiedEmail": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "email": "String",
+        "provider": "String",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "userId": "String",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": ["@@unique([provider, email])", "@@index([userId])"]
+    },
+    "Account": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "userId": "String",
+        "type": "String @default(\"oauth\")",
+        "provider": "String",
+        "providerAccountId": "String",
+        "refresh_token": "String?",
+        "access_token": "String?",
+        "expires_at": "Int?",
+        "token_type": "String?",
+        "scope": "String?",
+        "id_token": "String?",
+        "session_state": "String?",
+        "accessTokenExpiresAt": "DateTime?",
+        "refreshTokenExpiresAt": "DateTime?",
+        "password": "String?",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@unique([provider, providerAccountId])",
+        "@@index([userId])",
+        "@@index([provider])"
+      ]
+    },
+    "Session": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "sessionToken": "String @unique",
+        "userId": "String",
+        "expires": "DateTime",
+        "ipAddress": "String?",
+        "userAgent": "String?",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "oauthAccessTokens": "OAuthAccessToken[]",
+        "oauthRefreshTokens": "OAuthRefreshToken[]"
+      },
+      "constraints": ["@@index([userId])"]
+    },
+    "VerificationToken": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "identifier": "String",
+        "token": "String",
+        "expires": "DateTime",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt"
+      },
+      "constraints": [
+        "@@unique([identifier, token])",
+        "@@index([identifier])",
+        "@@index([expires])"
+      ]
+    },
+    "Authenticator": {
+      "fields": {
+        "credentialID": "String @unique",
+        "userId": "String",
+        "providerAccountId": "String",
+        "credentialPublicKey": "String",
+        "counter": "Int",
+        "credentialDeviceType": "String",
+        "credentialBackedUp": "Boolean",
+        "transports": "String?",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": ["@@id([userId, credentialID])"]
+    },
+    "Todo": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "title": "String",
+        "content": "String?",
+        "completed": "Boolean @default(false)",
+        "priority": "TodoPriority @default(medium)",
+        "dueAt": "DateTime?",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "userId": "String",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@index([userId])",
+        "@@index([userId, completed])",
+        "@@index([dueAt])",
+        "@@index([userId, completed, dueAt])"
+      ]
+    },
+    "BusCampus": {
+      "fields": {
+        "id": "Int @id",
+        "nameCn": "String @unique",
+        "nameEn": "String?",
+        "latitude": "Float",
+        "longitude": "Float",
+        "routeStops": "BusRouteStop[]",
+        "preferredByOriginUsers": "BusUserPreference[] @relation(\"BusPreferenceOrigin\")",
+        "preferredByDestinationUsers": "BusUserPreference[] @relation(\"BusPreferenceDestination\")"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "BusRoute": {
+      "fields": {
+        "id": "Int @id",
+        "nameCn": "String",
+        "nameEn": "String?",
+        "stops": "BusRouteStop[]",
+        "trips": "BusTrip[]"
+      },
+      "constraints": ["@@index([nameCn])", "@@index([nameEn])"]
+    },
+    "BusRouteStop": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "routeId": "Int",
+        "campusId": "Int",
+        "stopOrder": "Int",
+        "route": "BusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)",
+        "campus": "BusCampus @relation(fields: [campusId], references: [id])"
+      },
+      "constraints": ["@@unique([routeId, stopOrder])", "@@index([campusId])"]
+    },
+    "BusScheduleVersion": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "key": "String @unique",
+        "title": "String",
+        "checksum": "String @unique",
+        "sourceMessage": "String?",
+        "sourceUrl": "String?",
+        "rawJson": "Json",
+        "effectiveFrom": "DateTime? @db.Date",
+        "effectiveUntil": "DateTime? @db.Date",
+        "isEnabled": "Boolean @default(true)",
+        "importedAt": "DateTime @default(now())",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "trips": "BusTrip[]"
+      },
+      "constraints": ["@@index([isEnabled, effectiveFrom, effectiveUntil])"]
+    },
+    "BusTrip": {
+      "fields": {
+        "id": "Int @id @default(autoincrement())",
+        "versionId": "Int",
+        "routeId": "Int",
+        "dayType": "BusScheduleDayType",
+        "position": "Int",
+        "stopTimes": "Json",
+        "version": "BusScheduleVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)",
+        "route": "BusRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)"
+      },
+      "constraints": [
+        "@@unique([versionId, dayType, routeId, position])",
+        "@@index([dayType, routeId])",
+        "@@index([versionId])"
+      ]
+    },
+    "BusUserPreference": {
+      "fields": {
+        "userId": "String @id",
+        "preferredOriginCampusId": "Int?",
+        "preferredDestinationCampusId": "Int?",
+        "favoriteCampusIds": "Int[] @default([])",
+        "favoriteRouteIds": "Int[] @default([])",
+        "showDepartedTrips": "Boolean @default(false)",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "preferredOriginCampus": "BusCampus? @relation(\"BusPreferenceOrigin\", fields: [preferredOriginCampusId], references: [id], onDelete: SetNull)",
+        "preferredDestinationCampus": "BusCampus? @relation(\"BusPreferenceDestination\", fields: [preferredDestinationCampusId], references: [id], onDelete: SetNull)"
+      },
+      "constraints": [
+        "@@index([preferredOriginCampusId])",
+        "@@index([preferredDestinationCampusId])"
+      ]
+    },
+    "OAuthClient": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "clientId": "String @unique",
+        "clientSecret": "String?",
+        "disabled": "Boolean @default(false)",
+        "skipConsent": "Boolean?",
+        "enableEndSession": "Boolean?",
+        "subjectType": "String?",
+        "scopes": "String[] @default([])",
+        "userId": "String?",
+        "user": "User? @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt",
+        "name": "String?",
+        "uri": "String?",
+        "icon": "String?",
+        "contacts": "String[] @default([])",
+        "tos": "String?",
+        "policy": "String?",
+        "softwareId": "String?",
+        "softwareVersion": "String?",
+        "softwareStatement": "String?",
+        "redirectUris": "String[]",
+        "postLogoutRedirectUris": "String[] @default([])",
+        "tokenEndpointAuthMethod": "String?",
+        "grantTypes": "String[] @default([])",
+        "responseTypes": "String[] @default([])",
+        "public": "Boolean?",
+        "type": "String?",
+        "requirePKCE": "Boolean?",
+        "referenceId": "String?",
+        "metadata": "Json?",
+        "accessTokens": "OAuthAccessToken[]",
+        "refreshTokens": "OAuthRefreshToken[]",
+        "consents": "OAuthConsent[]",
+        "deviceCodes": "DeviceCode[]"
+      },
+      "constraints": ["@@index([userId])"]
+    },
+    "DeviceCode": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "deviceCode": "String @unique",
+        "userCode": "String @unique",
+        "scopes": "String[] @default([])",
+        "clientId": "String",
+        "client": "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)",
+        "userId": "String?",
+        "user": "User? @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "status": "String @default(\"pending\") // pending, approved, denied",
+        "lastPolledAt": "DateTime?",
+        "expiresAt": "DateTime",
+        "createdAt": "DateTime @default(now())"
+      },
+      "constraints": [
+        "@@index([deviceCode])",
+        "@@index([userCode])",
+        "@@index([clientId])",
+        "@@index([userId])",
+        "@@index([expiresAt])"
+      ]
+    },
+    "OAuthRefreshToken": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "token": "String @unique",
+        "clientId": "String",
+        "client": "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)",
+        "sessionId": "String?",
+        "session": "Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)",
+        "userId": "String",
+        "user": "User @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "referenceId": "String?",
+        "expiresAt": "DateTime",
+        "createdAt": "DateTime @default(now())",
+        "revoked": "DateTime?",
+        "authTime": "DateTime?",
+        "scopes": "String[] @default([])",
+        "accessTokens": "OAuthAccessToken[]"
+      },
+      "constraints": [
+        "@@index([clientId])",
+        "@@index([sessionId])",
+        "@@index([userId])",
+        "@@index([expiresAt])"
+      ]
+    },
+    "OAuthAccessToken": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "token": "String @unique",
+        "clientId": "String",
+        "client": "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)",
+        "sessionId": "String?",
+        "session": "Session? @relation(fields: [sessionId], references: [id], onDelete: SetNull)",
+        "userId": "String?",
+        "user": "User? @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "referenceId": "String?",
+        "refreshId": "String?",
+        "refresh": "OAuthRefreshToken? @relation(fields: [refreshId], references: [id], onDelete: SetNull)",
+        "expiresAt": "DateTime",
+        "createdAt": "DateTime @default(now())",
+        "scopes": "String[] @default([])"
+      },
+      "constraints": [
+        "@@index([clientId])",
+        "@@index([sessionId])",
+        "@@index([userId])",
+        "@@index([refreshId])",
+        "@@index([expiresAt])"
+      ]
+    },
+    "OAuthConsent": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "clientId": "String",
+        "client": "OAuthClient @relation(fields: [clientId], references: [clientId], onDelete: Cascade)",
+        "userId": "String?",
+        "user": "User? @relation(fields: [userId], references: [id], onDelete: Cascade)",
+        "referenceId": "String?",
+        "scopes": "String[] @default([])",
+        "createdAt": "DateTime @default(now())",
+        "updatedAt": "DateTime @updatedAt"
+      },
+      "constraints": ["@@index([clientId])", "@@index([userId])"]
+    },
+    "Jwks": {
+      "fields": {
+        "id": "String @id @default(cuid())",
+        "publicKey": "String",
+        "privateKey": "String",
+        "createdAt": "DateTime @default(now())",
+        "expiresAt": "DateTime?"
+      }
+    }
+  },
+  "enums": {
+    "CommentVisibility": ["public", "logged_in_only", "anonymous"],
+    "CommentStatus": ["active", "softbanned", "deleted"],
+    "CommentReactionType": [
+      "upvote",
+      "downvote",
+      "heart",
+      "laugh",
+      "hooray",
+      "confused",
+      "rocket",
+      "eyes"
+    ],
+    "HomeworkAuditAction": ["created", "deleted"],
+    "AuditAction": [
+      "comment_create",
+      "comment_edit",
+      "comment_delete",
+      "comment_react",
+      "description_edit",
+      "upload_delete",
+      "admin_user_suspend",
+      "admin_user_unsuspend",
+      "admin_comment_moderate",
+      "admin_description_moderate"
+    ],
+    "TodoPriority": ["low", "medium", "high"],
+    "BusScheduleDayType": ["weekday", "weekend"]
+  },
+  "ui": {
+    "List Table": "* Used for discovery-type lists such as courses, sections, and teachers.\n* Primary display information is placed in the first visual column.\n* Structured fields serve disambiguation and comparison.\n* Rows are fully clickable and navigate to the detail page.",
+    "Detail Hero": "* Used at the top of course, section, and teacher detail pages.\n* Contains breadcrumb, h1, and an optional subtitle.\n* h1 uses the primary display name of the current object, not an internal ID.",
+    "Basic Info Card": "* Used in detail page sidebars or collapsible panels.\n* Displays structured fields; does not carry comment or homework interactions.",
+    "Context Tabs": "* Used for multi-context switching within detail pages.\n* Common combinations: sections — homework, calendar, comments; courses — sections, comments; teachers — sections, comments.",
+    "Calendar Export Dialog": "* Used to display single-object iCal and personal subscription iCal.\n* Presented as a copyable link; users are not required to manually construct the URL."
+  },
+  "modules": {
+    "admin": {
+      "name": "Admin",
+      "access": {
+        "anon": "Cannot access the admin backend.",
+        "user": "Cannot access the admin backend.",
+        "admin": "Can access governance pages for moderation, users, OAuth, bus, and more.",
+        "agent": "No admin tools are currently provided."
+      },
+      "rules": {
+        "divided-by-responsibility": "The admin backend is divided by governance responsibility, not all actions on one page.",
+        "moderation-centralized": "Comment and description governance are currently centralized on the moderation page.",
+        "high-risk-feedback": "High-risk admin actions such as delete, suspend, and hide must have clear feedback."
+      },
+      "capabilities": {
+        "admin-home": {
+          "title": "Admin Home",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin"]
+          },
+          "display": {
+            "fields": [
+              "Navigation to moderation queues",
+              "User management",
+              "OAuth client management",
+              "Bus data management"
+            ]
+          }
+        },
+        "moderation": {
+          "title": "Moderation",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/moderation"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/admin/comments",
+                "returns": "{ comments: Comment[] }"
+              },
+              {
+                "path": "/api/admin/comments/[id]",
+                "method": "PATCH",
+                "returns": "{ comment: Comment }"
+              },
+              {
+                "path": "/api/admin/descriptions",
+                "returns": "{ descriptions: Description[] }"
+              },
+              {
+                "path": "/api/admin/suspensions",
+                "returns": "{ suspensions: Suspension[] }"
+              },
+              {
+                "path": "/api/admin/suspensions/[id]",
+                "method": "PATCH",
+                "returns": "{ suspension: Suspension }"
+              },
+              {
+                "path": "/api/admin/homeworks",
+                "returns": "{ homeworks: HomeworkItem[] }"
+              },
+              {
+                "path": "/api/admin/homeworks/[id]",
+                "method": "DELETE",
+                "returns": "{ success: Boolean }"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Comment moderation table",
+              "Description moderation table",
+              "content/descriptionPreview",
+              "author / lastEditedBy",
+              "postedIn target",
+              "timestamp",
+              "comment status",
+              "detail dialog controls"
+            ]
+          }
+        },
+        "user-management": {
+          "title": "User Management",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/users"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/admin/users",
+                "returns": "{ data: User[], pagination }"
+              },
+              {
+                "path": "/api/admin/users/[id]",
+                "method": "PATCH",
+                "returns": "{ user: User }"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "user.email",
+              "user.name",
+              "user.username",
+              "user.createdAt",
+              "Is admin checkbox",
+              "Actions: edit profile/admin state, suspend/unsuspend"
+            ]
+          }
+        },
+        "oauth-client-management": {
+          "title": "OAuth Client Management",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/oauth"]
+          },
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "client.name",
+              "client.clientId",
+              "client.redirectUris[]",
+              "client.scopes[]",
+              "client.tokenEndpointAuthMethod",
+              "client.isTrusted",
+              "Action: delete"
+            ]
+          }
+        },
+        "bus-management": {
+          "title": "Bus Management",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/bus"]
+          },
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Bus schedule version title",
+              "version key",
+              "tripCount",
+              "importedAt",
+              "effective range",
+              "enabled status",
+              "Actions: import, activate, delete"
+            ]
+          }
+        }
+      }
+    },
+    "bus": {
+      "name": "Bus",
+      "access": {
+        "anon": "Can query bus information.",
+        "user": "Can query bus information and save preferences.",
+        "admin": "Can maintain bus data.",
+        "agent": "Can read bus timetable capabilities."
+      },
+      "rules": {
+        "public-no-signin": "Bus is public campus life information; sign-in should not be a prerequisite.",
+        "weekday-by-client-time": "The dashboard bus page determines weekday/weekend by the user's local time on the client side by default and allows manual switching.",
+        "shanghai-time-interpretation": "When calculating 'how long until departure', whether a trip has departed, and route ordering, the dashboard client interprets HH:mm times in the timetable uniformly as Shanghai Time, not changing with the browser's timezone.",
+        "core-filters-only": "The dashboard bus page provides only core filters for departure stop, arrival stop, direction reversal, and 'show already-departed trips'; departure and arrival stops use a directly clickable vertical stop column to avoid secondary dropdowns, maintaining clear departure/arrival hierarchy.",
+        "visual-priority": "The dashboard visual structure should prioritize 'quick scanning of the next trip and route differences'; selected stop, direction, next departure time, and route grouping must be more prominent than decorative cards.",
+        "sort-by-next-boardable": "Routes are currently sorted by 'the next boardable time from the selected departure stop'; if a stop has no exact time in the original timetable, the average of adjacent known stop times in the same trip is used as an estimate.",
+        "merged-table-grouped-by-route": "The dashboard main view uses a single merged large table to display all applicable routes, grouped into table sections by route; each section shows the visible trips for that route.",
+        "raw-data-returned": "/api/bus and query_bus_timetable return raw route/stop/trip data within the selected timetable version; the preferences field is null for anonymous callers and returns the authenticated caller's saved preferences; the server does not pre-apply recommendations, filtering, or sorting.",
+        "current-version-only": "list_bus_routes only lists routes actually present in the current active timetable version; it does not expose historical route IDs outside the current version.",
+        "dashboard-vs-map": "The dashboard prioritizes answering 'how to get the next trip'; the map page handles spatial understanding.",
+        "task-oriented-tool-hierarchy": "Use query_bus_timetable for raw/full datasets, list_bus_routes for unfiltered discovery, search_bus_routes for filtered discovery, get_bus_route_timetable for one route, and get_next_buses for immediate departure answers.",
+        "summary-mode-compact": "query_bus_timetable summary mode should return compact counts, route/campus summaries, and only a few relevant departures rather than the full trip dataset."
+      },
+      "capabilities": {
+        "bus-dashboard": {
+          "title": "Bus Dashboard",
+          "auth": "anon",
+          "web": {
+            "pages": ["/?tab=bus"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/bus",
+                "returns": "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }"
+              },
+              {
+                "path": "/api/bus/preferences",
+                "method": "POST",
+                "returns": "{ preference: BusPreferences }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/bus/preferences",
+                "returns": "{ preference: BusPreferences }",
+                "auth": "user"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "query_bus_timetable",
+                "returns": "{ locale, fetchedAt, version, availableVersions, campuses, routes, trips, preferences, notice }",
+                "rest_equivalent": "GET /api/bus",
+                "notes": [
+                  "summary mode returns a compact assistant-oriented snapshot with counts, summarized campuses/routes, and only a few nextDepartures instead of the full trip dataset.",
+                  "default mode also stays assistant-oriented and compact; request full mode for the raw campuses/routes/trips dataset."
+                ]
+              },
+              {
+                "name": "list_bus_routes",
+                "returns": "{ routes: BusRoute[], campuses: BusCampus[] }",
+                "rest_equivalent": "GET /api/bus",
+                "notes": [
+                  "Use this for full current-version route discovery before fetching one route timetable."
+                ]
+              },
+              {
+                "name": "get_bus_route_timetable",
+                "returns": "{ route: BusRoute, weekday, weekend, alternateRoutes }",
+                "rest_equivalent": "GET /api/bus",
+                "notes": [
+                  "Single-route raw timetable tool; use get_next_buses when the caller only needs the next few departures."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "route.descriptionPrimary",
+              "next departure times",
+              "campus stop columns",
+              "route schedules",
+              "day type control",
+              "departure/arrival campus controls",
+              "reverse direction control",
+              "show-departed toggle"
+            ]
+          }
+        },
+        "bus-route-search": {
+          "title": "Bus Route Search",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "search_bus_routes",
+                "returns": "{ originCampus?, destinationCampus?, total: Int, routes: BusRouteSearchResult[] }",
+                "notes": [
+                  "Filtered discovery helper for origin/destination prompts.",
+                  "Use list_bus_routes when the caller needs the entire current route catalog."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "originCampus",
+              "destinationCampus",
+              "filtered route list",
+              "route stop order",
+              "weekday/weekend trip counts"
+            ]
+          }
+        },
+        "bus-next-departures": {
+          "title": "Bus Next Departures",
+          "auth": "user",
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_next_buses",
+                "returns": "{ originCampus, destinationCampus, atTime, dayType, totalRoutes: Int, departures: BusDeparture[] }",
+                "notes": [
+                  "Task-oriented convenience tool for 'when is the next bus?' prompts.",
+                  "Default parameters: dayType=auto, includeDeparted=false, limit=5.",
+                  "When a route exists but no remaining departures are available for the requested window, return guidance describing the situation and, when possible, the next available service time.",
+                  "Default/summary responses should avoid repeating the same originCampus/destinationCampus object inside every departure item when they already appear at the top level."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "originCampus",
+              "destinationCampus",
+              "dayType",
+              "departureTime",
+              "arrivalTime",
+              "minutesUntilDeparture",
+              "route description"
+            ]
+          }
+        },
+        "bus-map": {
+          "title": "Bus Route Map",
+          "auth": "anon",
+          "web": {
+            "pages": ["/bus-map"]
+          },
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Bus routes (polylines on map)",
+              "Bus stops/stations (markers)",
+              "Active trips derived from timetable times",
+              "Campus locations reference",
+              "Interactive map controls"
+            ]
+          }
+        }
+      }
+    },
+    "calendar": {
+      "name": "Calendar",
+      "access": {
+        "anon": "Can browse calendar information on public section detail pages.",
+        "user": "Can browse the personal calendar view.",
+        "admin": "Has no special calendar view separate from regular users.",
+        "agent": "Can read timeline information with the same semantics through OAuth REST and MCP."
+      },
+      "rules": {
+        "views": "Currently provides semester, month, and week views simultaneously.",
+        "week-starts-sunday": "The week view starts on Sunday.",
+        "event-card-types": "Calendar event cards uniformly carry course, exam, homework, and todo events."
+      },
+      "capabilities": {
+        "personal-calendar-view": {
+          "title": "Personal Calendar View",
+          "auth": "user",
+          "links": {
+            "models": ["Schedule", "Homework", "Exam", "Todo"]
+          },
+          "web": {
+            "pages": ["/?tab=calendar"]
+          },
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_my_calendar_events",
+                "returns": "{ events: CalendarEvent[] }",
+                "notes": [
+                  "Returns course, exam, homework, and todo events unified by date range, directly corresponding to the personal calendar view.",
+                  "Each item in events[] has type, at, and payload; payload corresponds to ScheduleEntry, HomeworkItem, ExamEntry, or TodoItem based on type.",
+                  "Summary mode returns grouped counts/day slices plus a limited event sample instead of the full raw event list."
+                ]
+              },
+              {
+                "name": "get_my_7days_timeline",
+                "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }"
+              },
+              {
+                "name": "list_my_schedules",
+                "returns": "{ schedules: ScheduleEntry[] }"
+              },
+              {
+                "name": "list_my_exams",
+                "returns": "{ exams: ExamEntry[] }"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "calendarEvents (schedules + exams + homeworks + todos)",
+              "schedule.date, startTime, endTime",
+              "exam.examDate, startTime, endTime, examMode, examRooms",
+              "homework.submissionDueAt",
+              "todo.dueAt",
+              "Week numbers",
+              "Weekday labels (Sun-Sat)"
+            ],
+            "filters": ["View tabs", "Previous/next semester controls"]
+          }
+        },
+        "section-calendar-view": {
+          "title": "Section Calendar View",
+          "auth": "anon",
+          "links": {
+            "ui": ["Context Tabs"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": "stable",
+          "display": {
+            "fields": [
+              "calendarMonthStart (Month view)",
+              "calendarEvents[]",
+              "schedule.date, startTime, endTime",
+              "schedule.room (with building/campus)",
+              "schedule.teachers[].namePrimary",
+              "exam.examDate, startTime, endTime",
+              "exam.examRooms[]",
+              "weekLabelTemplate (Week numbers)",
+              "weekdayLabels (Sun-Sat)",
+              "todayKey (Today highlight)"
+            ]
+          }
+        },
+        "event-card": {
+          "title": "Event Card",
+          "auth": "anon",
+          "web": "stable",
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Event type (schedule/exam/homework/todo)",
+              "event.title or section.course.namePrimary",
+              "event.time or first metadata segment",
+              "Details/popover may show location"
+            ]
+          }
+        }
+      }
+    },
+    "comment": {
+      "name": "Comment",
+      "access": {
+        "anon": "Can read public comments but cannot create sign-in-required comments.",
+        "user": "Can post, reply, react, edit, and delete their own comments; suspended users cannot post new comments.",
+        "admin": "Can hide, delete, and moderate comments, and handle reports or suspensions.",
+        "agent": "No comment read/write capability is currently provided."
+      },
+      "rules": {
+        "attached-to-object": "Comments must be attached to a specific object; no decontextualized public feed entry is provided.",
+        "attached-object-types": "Attached objects include courses, sections, teachers, homework, and section-teacher relationships.",
+        "rich-content": "Supports Markdown, math formulas, emoji, tables, replies, and reactions.",
+        "visibility-modes": "Supports public, signed-in-only, and anonymous posting; anonymous comments hide identity from regular users but are traceable by admins in governance scenarios."
+      },
+      "capabilities": {
+        "object-comment-section": {
+          "title": "Object Comment Section",
+          "auth": "anon",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/comments",
+                "returns": "{ comments: Comment[], hiddenCount: Int, viewer, target }"
+              },
+              {
+                "path": "/api/comments",
+                "method": "POST",
+                "returns": "{ id: String }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/comments/[id]",
+                "method": "PATCH",
+                "returns": "{ success: Boolean, comment: Comment }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/comments/[id]",
+                "method": "DELETE",
+                "returns": "{ success: Boolean }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/comments/[id]/reactions",
+                "method": "POST",
+                "returns": "{ success: Boolean }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/comments/[id]",
+                "returns": "{ thread: Comment[], focusId: String, hiddenCount: Int, viewer, target }"
+              },
+              {
+                "path": "/api/comments/[id]/reactions",
+                "method": "DELETE",
+                "returns": "{ success: Boolean }",
+                "auth": "user"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "comment.id",
+              "comment.author.name",
+              "comment.author.image (avatar)",
+              "comment.body (markdown-rendered)",
+              "comment.createdAt (timestamp)",
+              "comment.updatedAt / edited timestamp",
+              "comment.visibility badges",
+              "comment.status (non-active states)",
+              "comment.reactions[] (counts per reaction type)",
+              "comment.replies[] (threaded)",
+              "comment.attachments[] filename/open action",
+              "canReply/canEdit/canModerate actions",
+              "Copy link action"
+            ]
+          }
+        },
+        "comment-governance": {
+          "title": "Comment Governance",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/moderation"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/admin/comments",
+                "returns": "{ comments: Comment[] }"
+              },
+              {
+                "path": "/api/admin/comments/[id]",
+                "method": "PATCH",
+                "returns": "{ comment: Comment }"
+              },
+              {
+                "path": "/api/admin/suspensions",
+                "method": "POST",
+                "returns": "{ suspension: Suspension }"
+              },
+              {
+                "path": "/api/admin/suspensions/[id]",
+                "method": "PATCH",
+                "returns": "{ suspension: Suspension }"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "comment.body/content preview",
+              "comment.author.name",
+              "target object",
+              "creation timestamp",
+              "Status: active/softbanned/deleted",
+              "Suspended filter",
+              "Status radio + confirm action",
+              "Suspension controls"
+            ]
+          }
+        },
+        "comment-auxiliary-pages": {
+          "title": "Comment Auxiliary Pages",
+          "auth": "anon",
+          "web": {
+            "pages": ["/comments/[id]", "/comments/guide"]
+          },
+          "display": {
+            "fields": ["Comment guidelines/help pages"]
+          }
+        }
+      }
+    },
+    "course": {
+      "name": "Course",
+      "access": {
+        "anon": "Can browse course information.",
+        "user": "Can browse course information. Cannot modify course fact data.",
+        "admin": "Can browse course information. Does not directly modify course facts through ordinary pages.",
+        "agent": "Can read course search and detail capabilities."
+      },
+      "rules": {
+        "stable-entity": "A course is a stable course entity and does not represent a specific semester offering.",
+        "jwid-url-only": "jwId is used only for URLs, APIs, MCP, and backend logic; it should not be directly displayed in ordinary course UI."
+      },
+      "capabilities": {
+        "course-list": {
+          "title": "Course List & Filter",
+          "auth": "anon",
+          "links": {
+            "models": ["Course"],
+            "ui": ["List Table"]
+          },
+          "web": {
+            "pages": ["/courses"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/courses",
+                "returns": "PaginatedResponse<Course>"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "search_courses",
+                "returns": "{ courses: Course[] }",
+                "rest_equivalent": "GET /api/courses"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "course.code",
+              "course.namePrimary",
+              "course.nameSecondary (locale-dependent)",
+              "course.educationLevel.namePrimary",
+              "course.category.namePrimary",
+              "course.classType.namePrimary"
+            ],
+            "filters": [
+              "search",
+              "educationLevelId",
+              "categoryId",
+              "classTypeId"
+            ]
+          }
+        },
+        "course-detail": {
+          "title": "Course Detail",
+          "auth": "anon",
+          "links": {
+            "models": ["Course"],
+            "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
+          },
+          "web": {
+            "pages": ["/courses/[jwId]"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/courses/[jwId]",
+                "returns": "CourseDetail"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_course_by_jw_id",
+                "returns": "{ found: Boolean, course: CourseDetail? }",
+                "rest_equivalent": "GET /api/courses/[jwId]"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "course.namePrimary (h1 title)",
+              "course.nameSecondary (Locale-dependent subtitle)",
+              "course.code (Monospace badge)",
+              "course.educationLevel.namePrimary",
+              "course.category.namePrimary",
+              "course.classType.namePrimary",
+              "section.semester.nameCn (Semester column)",
+              "section.code (Section code badge)",
+              "section.teachers[].namePrimary + nameSecondary (Teachers)",
+              "section.campus.namePrimary (Campus)",
+              "section.stdCount / section.limitCount (Capacity)",
+              "description.content (Markdown-rendered via DescriptionLoader)"
+            ]
+          }
+        }
+      }
+    },
+    "dashboard-link": {
+      "name": "Dashboard Link",
+      "access": {
+        "anon": "Can browse frequent links but cannot pin them.",
+        "user": "Can pin, unpin, and record link visits.",
+        "admin": "Has no dedicated link management interface separate from regular users.",
+        "agent": "No frequent link management capability is currently provided."
+      },
+      "rules": {
+        "navigation-not-feed": "Frequent links are a navigation capability, not a content feed.",
+        "search-fuzzy": "Search supports Chinese, pinyin, and whitespace-tolerant matching.",
+        "links-vs-buttons": "Links are for navigation; buttons are for actions.",
+        "pin-limit": "Currently a maximum of 5 links can be pinned; exceeding this displaces the earliest pinned link.",
+        "pin-error-clear": "When pin/unpin writes fail, the endpoint returns a clear error; failures are not disguised as successes."
+      },
+      "capabilities": {
+        "link-browse": {
+          "title": "Link Browse & Search",
+          "auth": "anon",
+          "web": {
+            "pages": ["/?tab=links", "/?tab=overview"]
+          },
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "link.title",
+              "link.description",
+              "link.icon",
+              "link.slug visit action",
+              "link.group",
+              "link.isPinned (if authenticated)",
+              "Search input/query"
+            ]
+          }
+        },
+        "link-pin-and-visit": {
+          "title": "Link Pin & Visit",
+          "auth": "user",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/dashboard-links/pin",
+                "method": "POST",
+                "returns": "{ pinnedSlugs: String[], maxPinnedLinks: Int, error?: String }"
+              },
+              {
+                "path": "/api/dashboard-links/visit",
+                "method": "POST",
+                "returns": "303 redirect"
+              },
+              {
+                "path": "/api/dashboard-links/visit",
+                "returns": "303 redirect"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "link.slug visit action",
+              "Pin/unpin button",
+              "Pinned indicator"
+            ]
+          }
+        }
+      }
+    },
+    "description": {
+      "name": "Description",
+      "access": {
+        "anon": "Can read public descriptions.",
+        "user": "When signed in and not suspended, can maintain descriptions.",
+        "admin": "Can review and maintain descriptions in the admin backend.",
+        "agent": "No general description tools are currently provided."
+      },
+      "rules": {
+        "supplement-not-comment": "Description is a Markdown supplement on an object, not equivalent to comments expressing personal opinions.",
+        "attached-object-types": "Attached objects include courses, sections, teachers, homework, and similar.",
+        "platform-maintained": "When descriptions conflict with personal experiences in comments, descriptions are treated as platform-maintained information by default."
+      },
+      "capabilities": {
+        "object-description-section": {
+          "title": "Object Description Section",
+          "auth": "anon",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/descriptions",
+                "returns": "{ description, history, viewer }"
+              },
+              {
+                "path": "/api/descriptions",
+                "method": "POST",
+                "returns": "{ id: String, updated: Boolean }",
+                "auth": "user"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "description.content (markdown-rendered)",
+              "description.lastEditedBy.name",
+              "description.lastEditedAt / updatedAt",
+              "Edit button (if authorized)",
+              "history count",
+              "history editor",
+              "previous/updated diff content"
+            ]
+          }
+        },
+        "description-governance": {
+          "title": "Description Governance",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/moderation"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/admin/descriptions",
+                "returns": "{ descriptions: Description[] }"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "description.content / preview",
+              "object target",
+              "lastEditedBy name",
+              "timestamp"
+            ]
+          }
+        }
+      }
+    },
+    "exam": {
+      "name": "Exam",
+      "access": {
+        "anon": "Can read exam information.",
+        "user": "Can read exam information. Cannot modify exam fact data.",
+        "admin": "Maintains exam data through admin or import flows, not direct edits on ordinary pages.",
+        "agent": "After authorization, can read exams relevant to the current user; this capability is primarily exposed via MCP."
+      },
+      "rules": {
+        "attached-to-section": "Exams are attached to sections and are high-priority time events.",
+        "read-only": "Exams are read-only; no ordinary user edit entry point is provided.",
+        "semester-required": "Semesters must be explicitly displayed when browsing exams across semesters."
+      },
+      "capabilities": {
+        "cross-section-exam-list": {
+          "title": "Cross-Section Exam List",
+          "auth": "user",
+          "links": {
+            "models": ["Exam"]
+          },
+          "web": {
+            "pages": ["/?tab=exams"]
+          },
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_my_exams",
+                "returns": "{ exams: ExamEntry[] }",
+                "notes": [
+                  "Returns exams[]; each item contains section.course.namePrimary, section.code, section.semester?.nameCn, examDate, startTime, endTime, examBatch, and examRooms[]."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "exam.examDate",
+              "exam.startTime - endTime",
+              "exam.examMode",
+              "exam.examRooms[] (locations)",
+              "section.course.namePrimary",
+              "completion filter: incomplete/completed/all"
+            ]
+          }
+        },
+        "section-exam-info": {
+          "title": "Section Exam Info",
+          "auth": "anon",
+          "links": {
+            "models": ["Exam"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_exams_by_section",
+                "returns": "{ found: Boolean, section: Section?, exams: ExamEntry[] }",
+                "notes": ["Returns a single section's exams[]."]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "exam.examDate",
+              "exam.startTime - endTime",
+              "exam.examMode",
+              "exam.examBatch.namePrimary",
+              "exam.examRooms[]"
+            ]
+          }
+        }
+      }
+    },
+    "homework": {
+      "name": "Homework",
+      "access": {
+        "anon": "Can read homework information under public sections, but cannot create, update, or delete.",
+        "user": "When signed in and not suspended, can create and update homework; delete permission is limited to the creator and admins; each user can only manage their own homework completion state.",
+        "admin": "Can delete homework and participate in governance.",
+        "agent": "After authorization, can read, create, and update homework and set the current user's completion state; both REST and MCP currently provide this capability."
+      },
+      "rules": {
+        "attached-to-section": "Homework is attached to a section, not a personal user todo.",
+        "no-subscription-required": "Creating homework does not require the user to be subscribed to the section first.",
+        "entity-and-completion-separated": "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'."
+      },
+      "capabilities": {
+        "cross-section-homework-summary": {
+          "title": "Cross-Section Homework Summary",
+          "auth": "user",
+          "links": {
+            "models": ["Homework"]
+          },
+          "web": {
+            "pages": ["/?tab=homeworks"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/me/subscriptions/homeworks",
+                "returns": "{ viewer, homeworks: HomeworkItem[], auditLogs: AuditLog[], sectionIds: Int[] }",
+                "notes": [
+                  "Returns homeworks across all subscribed sections in a single call; includes audit logs and viewer context."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_my_homeworks",
+                "returns": "{ homeworks: HomeworkItem[] }",
+                "notes": [
+                  "Returns homeworks[]; each item contains title, submissionDueAt, section.course.namePrimary, section.code, description, and completion."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "homework.title",
+              "homework.description.content",
+              "homework.submissionDueAt (with ETA label)",
+              "section.course.namePrimary",
+              "homework.isMajor badge",
+              "homework.requiresTeam badge",
+              "completionStatus (completed/pending)",
+              "filter: incomplete/completed/all"
+            ]
+          }
+        },
+        "section-homework-tab": {
+          "title": "Section Homework Tab",
+          "auth": "anon",
+          "links": {
+            "models": ["Homework"],
+            "ui": ["Context Tabs"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/homeworks",
+                "returns": "{ viewer: String, homeworks: HomeworkItem[], auditLogs: AuditLog[] }"
+              },
+              {
+                "path": "/api/homeworks",
+                "method": "POST",
+                "returns": "{ id: String }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/homeworks/[id]",
+                "method": "PATCH",
+                "returns": "{ success: Boolean }",
+                "auth": "user"
+              },
+              {
+                "path": "/api/homeworks/[id]",
+                "method": "DELETE",
+                "returns": "{ success: Boolean }",
+                "auth": "user"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_homeworks_by_section",
+                "returns": "{ found: Boolean, section: Section?, homeworks: HomeworkItem[] }",
+                "rest_equivalent": "GET /api/homeworks",
+                "notes": [
+                  "Default/summary responses omit the repeated per-item section payload because the top-level section already scopes the list.",
+                  "Editor identity fields stay in full mode; default/summary focus on homework state and due context."
+                ]
+              },
+              {
+                "name": "create_homework_on_section",
+                "auth": "user",
+                "returns": "{ success: Boolean, id: String, homework: HomeworkItem }",
+                "rest_equivalent": "POST /api/homeworks",
+                "notes": [
+                  "Returns the created homework snapshot so MCP clients can continue with follow-up actions without an extra read."
+                ]
+              },
+              {
+                "name": "update_homework_on_section",
+                "auth": "user",
+                "returns": "{ success: Boolean, homework: HomeworkItem }",
+                "rest_equivalent": "PATCH /api/homeworks/[id]",
+                "notes": [
+                  "Returns the updated homework snapshot after metadata and/or description changes are applied."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "homework.title",
+              "homework.description.content",
+              "homework.submissionDueAt",
+              "homework.createdAt",
+              "homework.submissionStartAt",
+              "homework.publishedAt",
+              "commentCount / comments action",
+              "user completion status",
+              "edit action"
+            ]
+          }
+        },
+        "homework-governance": {
+          "title": "Homework Governance",
+          "auth": "admin",
+          "web": "unavailable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/admin/homeworks",
+                "returns": "{ homeworks: HomeworkItem[] }"
+              },
+              {
+                "path": "/api/admin/homeworks/[id]",
+                "method": "DELETE",
+                "returns": "{ success: Boolean }"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "homework.title",
+              "homework.section.code",
+              "creator",
+              "creation timestamp",
+              "Action: delete",
+              "Status: active/deleted"
+            ]
+          }
+        },
+        "homework-completion": {
+          "title": "Homework Completion",
+          "auth": "user",
+          "links": {
+            "models": ["Homework"]
+          },
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/homeworks/[id]/completion",
+                "method": "PUT",
+                "returns": "{ completed: Boolean, completedAt: DateTime? }"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "set_my_homework_completion",
+                "returns": "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }",
+                "rest_equivalent": "PUT /api/homeworks/[id]/completion",
+                "notes": [
+                  "Pass completed=true to mark as done, completed=false to revert to incomplete."
+                ]
+              },
+              {
+                "name": "unset_my_homework_completion",
+                "returns": "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }",
+                "rest_equivalent": "PUT /api/homeworks/[id]/completion",
+                "notes": [
+                  "Dedicated tool to revert a completed homework back to incomplete; equivalent to set_my_homework_completion with completed=false."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "homework.title",
+              "homework.submissionDueAt",
+              "completion action button",
+              "completion status"
+            ]
+          }
+        }
+      }
+    },
+    "ical": {
+      "name": "Personal Calendar Subscription iCal",
+      "access": {
+        "anon": "Can copy a single-section iCal link from the public section detail page.",
+        "user": "Can copy their own personal subscription iCal link.",
+        "admin": "No additional exclusive iCal capabilities.",
+        "agent": "After authorization, can read the current user's personal calendar subscription information; REST and MCP should both return the same subscription feed information and description."
+      },
+      "rules": {
+        "copyable-links": "iCal links should be presented as copyable links rather than requiring users to manually construct them.",
+        "no-second-model": "iCal is an export / subscription capability and should not carry a second business model.",
+        "static-json-resilient": "Calendar location and building image enhancements only read static JSON published at https://static.life-ustc.tiankaima.dev; when loading fails or data is corrupted, diagnostic information should be logged and a valid iCal should still be returned."
+      },
+      "capabilities": {
+        "section-calendar-dialog": {
+          "title": "Section Calendar Dialog",
+          "auth": "anon",
+          "links": {
+            "ui": ["Calendar Export Dialog"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections/[jwId]/calendar.ics",
+                "returns": "text/calendar",
+                "notes": [
+                  "Returns text/calendar synthesized from the section's schedule and exams."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "iCalendar URL (copyable)",
+              "section.code (context)",
+              "Export format: .ics",
+              "Copy button"
+            ]
+          }
+        },
+        "personal-calendar-subscription": {
+          "title": "Personal Calendar Subscription",
+          "auth": "user",
+          "links": {
+            "models": ["User", "Section"],
+            "ui": ["Calendar Export Dialog"]
+          },
+          "web": {
+            "pages": ["/?tab=calendar"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/users/[userId]/calendar.ics",
+                "returns": "text/calendar"
+              },
+              {
+                "path": "/api/calendar-subscriptions/current",
+                "returns": "{ subscription: CalendarSubscription | null }",
+                "notes": [
+                  "Returns subscribed section details, personal calendar feed path, full feed URL, and descriptive text."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_my_calendar_subscription",
+                "returns": "{ success: Boolean, subscription?, message?: String }",
+                "rest_equivalent": "GET /api/calendar-subscriptions/current",
+                "notes": [
+                  "Default mode returns feed links plus current-semester section context instead of the full subscribed section list.",
+                  "Summary mode further reduces this to counts and feed-link metadata.",
+                  "In summary/default MCP output, token-bearing calendarPath and calendarUrl may be redacted for privacy; request full mode only when the raw feed location is explicitly needed."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": ["iCalendar URL copy button"]
+          }
+        },
+        "multi-section-ical": {
+          "title": "Multi-Section iCal Export",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections/calendar.ics",
+                "returns": "text/calendar",
+                "notes": [
+                  "Generates a multi-section iCal based on sectionIds query parameter."
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "mcp": {
+      "name": "MCP",
+      "access": {
+        "anon": "Cannot call MCP tools that require user context.",
+        "user": "After authorization, can call personal workspace-related tools.",
+        "admin": "Currently does not automatically gain additional MCP admin tools due to admin status.",
+        "agent": "MCP is one of the protocol entry points alongside REST, covering capabilities aligned with the web by default and sharing the same OAuth permission boundary."
+      },
+      "rules": {
+        "personal-workspace-focus": "MCP focuses by default on personal learning workspace, public query, and low-risk personal state write capabilities; admin capabilities are not exposed by default.",
+        "text-formatted-json": "Current tool output is uniformly text-formatted JSON.",
+        "output-modes": "Output mode has three levels: summary for counts/top samples, default for compact structured data, and full for exact raw records. Default is recommended for most agent calls.",
+        "coverage": "MCP currently covers profile, todos, courses, sections, teachers, semesters, subscriptions, schedules, calendar events, assistant dashboard snapshots, and bus discovery/next-trip queries; comment, upload, description governance, link management, and admin capabilities do not yet have corresponding tools.",
+        "aggregate-before-fanout": "Prefer assistant-oriented aggregate or filtered tools first; raw dataset tools remain available for power clients that need local post-processing.",
+        "privacy-safe-summary": "Summary/default outputs may omit repeated low-value nested objects and redact token-bearing URLs or other sensitive strings; full mode is the escape hatch when exact raw values are required.",
+        "resource-bound-access-token": "MCP transport requests must present a resource-bound Bearer token for /api/mcp. JWT access tokens minted with resource=/api/mcp are accepted; opaque tokens minted without a resource indicator are rejected because the server cannot prove MCP audience binding from those token records.",
+        "flexible-date-inputs": "Date and datetime parameters on MCP tools accept ISO 8601 with timezone offset (2026-05-01T08:00:00+08:00), bare date strings (2026-05-01, treated as UTC midnight for @db.Date columns), or timezone-less datetimes (2026-05-01T08:00:00, interpreted as Asia/Shanghai). Invalid strings produce a descriptive error response rather than a validation rejection.",
+        "time-override": "Time-sensitive tools (get_my_7days_timeline, get_upcoming_deadlines, get_my_overview, get_next_buses) accept an optional atTime parameter to anchor their internal clock to a caller-supplied moment instead of the server clock, enabling reproducible queries and future-scenario planning."
+      },
+      "capabilities": {
+        "protocol-endpoint": {
+          "title": "Protocol Endpoint",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/mcp",
+                "method": "POST",
+                "returns": "MCP JSON-RPC response",
+                "notes": [
+                  "All tool calls are handled through this endpoint and require a Bearer token bound to the MCP protected resource /api/mcp.",
+                  "Trusted browser-origin Bearer-token clients receive CORS headers, including exposed MCP-Session-Id and WWW-Authenticate response headers for browser transports.",
+                  "Answers browser CORS preflight requests for the MCP transport headers used by POST/DELETE browser clients.",
+                  "Requests with a foreign Origin header are rejected before MCP auth/tool handling."
+                ]
+              },
+              {
+                "path": "/api/mcp",
+                "returns": "MCP transport response"
+              },
+              {
+                "path": "/api/mcp",
+                "method": "DELETE",
+                "returns": "MCP transport response"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "MCP protocol server endpoint",
+              "GET/POST/DELETE transport methods",
+              "Returns JSON-RPC or transport responses"
+            ]
+          }
+        },
+        "tool-groups": {
+          "title": "Tool Groups",
+          "auth": "anon",
+          "mcp": {
+            "groups": [
+              {
+                "name": "Profile & Todo",
+                "tools": [
+                  "get_my_profile",
+                  "list_my_todos",
+                  "create_my_todo",
+                  "update_my_todo",
+                  "delete_my_todo"
+                ]
+              },
+              {
+                "name": "Dashboard & Overview",
+                "tools": [
+                  "get_my_dashboard",
+                  "get_my_overview",
+                  "get_next_class",
+                  "get_upcoming_deadlines"
+                ]
+              },
+              {
+                "name": "Course, Section & Semester",
+                "tools": [
+                  "list_semesters",
+                  "get_current_semester",
+                  "search_courses",
+                  "get_course_by_jw_id",
+                  "search_sections",
+                  "get_section_by_jw_id",
+                  "search_teachers",
+                  "get_teacher_by_id",
+                  "match_section_codes"
+                ]
+              },
+              {
+                "name": "Calendar & Subscription",
+                "tools": [
+                  "list_my_calendar_events",
+                  "get_my_7days_timeline",
+                  "get_my_calendar_subscription",
+                  "list_my_subscribed_sections",
+                  "subscribe_section_by_jw_id",
+                  "unsubscribe_section_by_jw_id",
+                  "get_section_calendar_subscription",
+                  "subscribe_my_sections_by_codes"
+                ]
+              },
+              {
+                "name": "Homework, Schedule & Exam",
+                "tools": [
+                  "list_my_homeworks",
+                  "set_my_homework_completion",
+                  "unset_my_homework_completion",
+                  "list_my_schedules",
+                  "list_my_exams",
+                  "list_homeworks_by_section",
+                  "create_homework_on_section",
+                  "update_homework_on_section",
+                  "query_schedules",
+                  "list_schedules_by_section",
+                  "list_exams_by_section"
+                ]
+              },
+              {
+                "name": "Bus",
+                "tools": [
+                  "query_bus_timetable",
+                  "list_bus_routes",
+                  "get_bus_route_timetable",
+                  "search_bus_routes",
+                  "get_next_buses"
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "Schedule tools",
+              "Homework tools",
+              "Section tools",
+              "Tool name",
+              "Tool description",
+              "Input schema",
+              "Preferred tool for common prompts"
+            ]
+          }
+        }
+      }
+    },
+    "oauth": {
+      "name": "OAuth",
+      "access": {
+        "anon": "When accessing the authorization page, will first be guided to sign in.",
+        "user": "Can only approve or reject third-party client authorization requests.",
+        "admin": "Can manage OAuth clients in the admin backend.",
+        "agent": "Accesses restricted capabilities after obtaining a token through the standard authorization flow."
+      },
+      "rules": {
+        "auth-page-clarity": "The authorization page must clearly display the application name, requested permissions, approve action, and reject action.",
+        "user-consent-framing": "Users see 'what this app wants and whether I allow it', not technical protocol details.",
+        "dcr-via-provider": "Dynamic client registration is handled by the standard /oauth2/register path of the Better Auth OAuth provider; the project no longer maintains a parallel hand-written DCR persistence logic.",
+        "dcr-rules-from-provider": "Default scopes, allowed scopes, public/confidential restrictions, and PKCE rules for DCR should be uniformly decided by the Better Auth provider configuration, not re-implemented as an approximate set of rules at the application layer.",
+        "trusted-clients-admin-backend": "First-party / internal applications prefer using trusted OAuth clients created in the admin backend; such clients can skip consent and can further be incorporated into the Better Auth provider's trusted / cached client scheme when needed, rather than relying on public DCR.",
+        "public-clients-pkce": "Public MCP / CLI / native clients use public + PKCE mode; admin copy and grouping should explicitly separate trusted first-party from external/public to reduce admin misconfiguration probability.",
+        "client-validation-from-provider": "When creating clients in the admin backend, redirect URI and client metadata validation should preferentially reuse the rules of the Better Auth OAuth provider, no longer maintaining a local forked rule document.",
+        "loopback-redirect-tolerance": "For public native clients with loopback redirect URIs, the server should accommodate the hostname alias difference between 127.0.0.1 and localhost to avoid DCR registration and authorization requests failing solely due to these two local loopback representations; beyond this, strict matching is maintained for path, query, scheme, and non-loopback host rules.",
+        "device-grant-custom": "The device authorization flow is currently still implemented by the project as a custom implementation, because the existing Better Auth device-authorization plugin returns a session token rather than the OAuth bearer-token / refresh-token semantics of this project; it should not be forcibly replaced until the provider natively supports the OAuth device grant.",
+        "oauth-proxy-for-dev": "Local development and preview deployments without fixed hostnames can reuse the production site's registered provider callback address through an OAuth proxy; after the preview/local instance shares the proxy encryption key with the production instance, the production site completes the provider callback and sends the encrypted user profile back to the current instance to establish a local session.",
+        "as-metadata-canonical-path": "For OAuth issuers with a path (currently /api/auth), the canonical entry for authorization server metadata should be /.well-known/oauth-authorization-server/api/auth; the root-level /.well-known/oauth-authorization-server serves only as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the issuer at the root level.",
+        "oidc-discovery-canonical-path": "For OpenID issuers with a path (currently /api/auth), the canonical entry for OIDC Discovery should be /api/auth/.well-known/openid-configuration, with /.well-known/openid-configuration/api/auth also provided as an RFC 8414 compatible path; the root-level /.well-known/openid-configuration serves only as a compatibility alias redirect to the canonical address.",
+        "protected-resource-canonical-path": "For protected resources with a path (currently MCP resource /api/mcp), the canonical entry per RFC 9728 should be /.well-known/oauth-protected-resource/api/mcp; the root-level /.well-known/oauth-protected-resource serves only as a compatibility alias redirect to the canonical address, to avoid returning metadata inconsistent with the resource field.",
+        "mcp-discovery-compatibility-aliases": "Because some MCP clients probe resource-relative or issuer-style well-known paths before settling on canonical metadata, /api/mcp/.well-known/oauth-authorization-server, /.well-known/oauth-authorization-server/api/mcp, /api/mcp/.well-known/openid-configuration, and /.well-known/openid-configuration/api/mcp should redirect to the issuer metadata used by the MCP protected resource.",
+        "aliases-use-redirect": "Compatibility aliases should use redirects rather than redundantly returning a JSON that looks usable but is inconsistent with issuer/resource validation, so that clients ultimately complete metadata validation at the canonical address.",
+        "discovery-cors": "Discovery metadata should support cross-origin reading; at minimum return Access-Control-Allow-Origin: * for OpenID discovery, and keep the CORS behavior of authorization server metadata and protected resource metadata consistent, reducing compatibility risks for browser-type clients and debugging tools.",
+        "transport-cors": "The MCP transport endpoint /api/mcp should also support browser-based clients and debugging tools using Bearer tokens: answer OPTIONS preflights, allow the MCP-specific request headers, and expose MCP-Session-Id and WWW-Authenticate on cross-origin transport responses.",
+        "transport-origin-validation": "Per the MCP Streamable HTTP transport guidance, /api/mcp should reject requests carrying an Origin header unless that origin matches the app's trusted origin set (public/canonical origin, localhost dev aliases, and allowed preview hosts). Non-browser clients that omit Origin remain supported."
+      },
+      "capabilities": {
+        "authorization": {
+          "title": "Authorization",
+          "auth": "anon",
+          "web": {
+            "pages": ["/oauth/authorize", "/error"]
+          },
+          "rest": "stable",
+          "display": {
+            "fields": [
+              "client.name (which app is requesting)",
+              "Requested scopes[] (human-readable)",
+              "Approve/Deny buttons",
+              "Consent failure message when authorization cannot continue"
+            ]
+          }
+        },
+        "client-registration": {
+          "title": "Client Registration & Discovery",
+          "auth": "admin",
+          "web": {
+            "pages": ["/admin/oauth"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/auth/.well-known/openid-configuration",
+                "returns": "OIDCDiscoveryDocument",
+                "auth": "anon"
+              },
+              {
+                "path": "/api/auth/{nextauth}",
+                "method": "POST",
+                "returns": "Better Auth OAuth provider response",
+                "auth": "anon"
+              },
+              {
+                "path": "/.well-known/oauth-authorization-server/api/auth",
+                "returns": "OAuthAuthorizationServerMetadata",
+                "auth": "anon"
+              },
+              {
+                "path": "/.well-known/oauth-authorization-server/api/mcp",
+                "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
+                "auth": "anon"
+              },
+              {
+                "path": "/.well-known/openid-configuration/api/auth",
+                "returns": "OIDCDiscoveryDocument",
+                "auth": "anon"
+              },
+              {
+                "path": "/.well-known/openid-configuration/api/mcp",
+                "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
+                "auth": "anon"
+              },
+              {
+                "path": "/.well-known/oauth-protected-resource/api/mcp",
+                "returns": "OAuthProtectedResourceMetadata",
+                "auth": "anon"
+              },
+              {
+                "path": "/api/mcp/.well-known/oauth-authorization-server",
+                "returns": "307 redirect to /.well-known/oauth-authorization-server/api/auth",
+                "auth": "anon"
+              },
+              {
+                "path": "/api/mcp/.well-known/openid-configuration",
+                "returns": "307 redirect to /api/auth/.well-known/openid-configuration",
+                "auth": "anon"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "client.name (text input)",
+              "client.redirectUris[] (multi-input)",
+              "client.scopes[] (checkboxes)",
+              "tokenEndpointAuthMethod (radio)",
+              "Register button"
+            ]
+          }
+        },
+        "device-authorization-grant": {
+          "title": "Device Authorization Grant (RFC 8628)",
+          "auth": "anon",
+          "web": {
+            "pages": ["/oauth/device"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/auth/oauth2/device-authorization",
+                "method": "POST",
+                "returns": "{ device_code, user_code, verification_uri, verification_uri_complete, expires_in, interval }",
+                "notes": [
+                  "Request body is application/x-www-form-urlencoded.",
+                  "Supports CORS (Access-Control-Allow-Origin: *).",
+                  ".well-known/openid-configuration already includes device_authorization_endpoint and urn:ietf:params:oauth:grant-type:device_code in grant_types_supported."
+                ]
+              },
+              {
+                "path": "/api/auth/oauth2/token",
+                "method": "POST",
+                "returns": "{ access_token, token_type, expires_in, refresh_token?, scope? } | { error }",
+                "notes": [
+                  "The device polls this endpoint with grant_type=urn:ietf:params:oauth:grant-type:device_code and device_code to obtain an access token.",
+                  "During polling, returns authorization_pending, slow_down, expired_token, or access_denied error codes based on state."
+                ]
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "User code entry form",
+              "Approval/result screens",
+              "device_auth status (pending/approved/denied)"
+            ]
+          }
+        }
+      }
+    },
+    "openapi": {
+      "name": "REST / OpenAPI",
+      "access": {
+        "anon": "Can browse API documentation and public REST capabilities.",
+        "user": "When signed in, can call their own restricted REST capabilities.",
+        "admin": "Calls governance capabilities through the corresponding admin endpoints.",
+        "agent": "Can call public REST capabilities and, after OAuth authorization, can call restricted REST and MCP capabilities; both share the same authorization boundary by default."
+      },
+      "rules": {
+        "aligned-with-web": "The goal of REST / OpenAPI is to expose capabilities aligned with the web, not to create an additional product layer.",
+        "no-developer-model": "Public documentation helps callers understand the existing product capability boundaries, not to introduce a separate developer-specific business model.",
+        "session-and-bearer": "Current user-side business REST endpoints support both in-site session from the request cookie and OAuth bearer tokens; bearer-token access is no longer limited to MCP.",
+        "rest-mcp-consistent": "The same abstract endpoint currently maintains the same core fields, state information, and action results in both REST and MCP; differences mainly appear in interaction form and serialization level."
+      },
+      "capabilities": {
+        "api-docs-page": {
+          "title": "API Docs Page",
+          "auth": "anon",
+          "web": {
+            "pages": ["/api-docs"]
+          },
+          "display": {
+            "fields": [
+              "REST endpoints generated by annotations",
+              "Endpoint path, method, parameters",
+              "Request/response schemas where annotated",
+              "Try-it-out interface"
+            ]
+          }
+        },
+        "openapi-spec": {
+          "title": "OpenAPI Spec",
+          "auth": "anon",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/openapi",
+                "returns": "OpenAPI 3.x JSON"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "OpenAPI 3.x JSON",
+              "Annotated routes with schemas",
+              "Some protocol routes without detailed schemas"
+            ]
+          }
+        },
+        "business-rest-routes": {
+          "title": "Business REST Routes",
+          "auth": "anon",
+          "web": "stable",
+          "rest": "stable",
+          "display": {
+            "fields": [
+              "REST routes for business logic",
+              "Each with path, method, request/response types where annotated"
+            ]
+          }
+        },
+        "platform-utility-routes": {
+          "title": "Platform Utility Routes",
+          "auth": "anon",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/metadata",
+                "returns": "{ educationLevels, courseCategories, campuses, ... }",
+                "notes": [
+                  "Returns filter dictionaries (education level, course category, campus, etc.)."
+                ]
+              },
+              {
+                "path": "/api/locale",
+                "method": "POST",
+                "returns": "{ success: Boolean }",
+                "notes": ["Sets the user language preference cookie."]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "Metadata endpoint",
+              "Locale endpoint",
+              "OAuth/provider catch-all endpoints",
+              "Webhook endpoint via Better Auth catch-all"
+            ]
+          }
+        }
+      }
+    },
+    "overview": {
+      "name": "Overview",
+      "access": {
+        "anon": "On the home page, can only see the public bus and frequent links views; cannot enter the personal overview.",
+        "user": "The home page serves as the personal workspace.",
+        "admin": "The home page personal workspace behavior is the same as regular users.",
+        "agent": "Can read overview results with the same semantics as the home page; REST and MCP should return consistent overview information."
+      },
+      "rules": {
+        "decision-page": "The home page is not a directory page but a decision page for 'what to do next'.",
+        "current-semester-priority": "The above-the-fold area prioritizes personal learning tasks within the current semester, not historical semester content or complete directory information.",
+        "homework-todo-layered": "Homework and todos are layered as 'due today / due soon / all incomplete'; homework with no due date does not participate in upcoming due date sorting.",
+        "non-current-not-disguised": "Non-current-semester subscribed sections must not be disguised as current learning tasks.",
+        "aggregate-first-for-assistants": "Prefer a single aggregated snapshot tool for common assistant prompts before fanning out into multiple narrower tool calls.",
+        "focused-extracts-share-window": "Focused tools such as next-class and upcoming-deadlines should stay aligned with the same short-horizon window as the broader dashboard snapshot."
+      },
+      "capabilities": {
+        "authenticated-overview": {
+          "title": "Authenticated Homepage Overview",
+          "auth": "user",
+          "links": {
+            "models": ["User", "Section", "Homework", "Todo", "Exam"]
+          },
+          "web": {
+            "pages": [
+              "/?tab=overview",
+              "/?tab=calendar",
+              "/?tab=subscriptions",
+              "/?tab=exams",
+              "/?tab=homeworks",
+              "/?tab=todos",
+              "/?tab=bus",
+              "/?tab=links"
+            ]
+          },
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_my_overview",
+                "returns": "{ user, overview, samples }",
+                "notes": [
+                  "overview contains pending todo, homework, today's schedule, and upcoming exam counts.",
+                  "samples contains dueTodos[], dueHomeworks[], and upcomingExams[].",
+                  "Count-and-sample oriented tool; use get_my_dashboard for a richer single-call assistant snapshot.",
+                  "Summary mode trims samples further; optional atTime anchors today's bounds for tests or specific-day questions."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "pendingHomeworksCount",
+              "upcomingExamsCount",
+              "pendingTodosCount",
+              "todaySchedulesCount",
+              "Today highlight",
+              "7-day week grid",
+              "Schedule events per day",
+              "Pending homeworks (sorted by submissionDueAt)",
+              "Tomorrow schedule section",
+              "homework due today/due soon/all badges",
+              "todo due today/due soon/all badges",
+              "Pending todos",
+              "Tab icons and counts"
+            ]
+          }
+        },
+        "assistant-dashboard-snapshot": {
+          "title": "Assistant Dashboard Snapshot & Focused Extracts",
+          "auth": "user",
+          "links": {
+            "models": ["User", "Section", "Homework", "Todo", "Exam"]
+          },
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_my_dashboard",
+                "returns": "{ user, currentSemester, subscriptions, nextClass, upcomingDeadlines, upcomingEvents, todos, bus }",
+                "notes": [
+                  "Preferred single-call snapshot for assistant workflows.",
+                  "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures.",
+                  "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
+                  "Summary mode should be materially smaller than default, focusing on counts and the next few actionable items instead of mirroring the full compact snapshot."
+                ]
+              },
+              {
+                "name": "get_next_class",
+                "returns": "{ found: Boolean, nextClass, currentSemester }",
+                "notes": [
+                  "Focused extract for 'what is my next class?' prompts."
+                ]
+              },
+              {
+                "name": "get_upcoming_deadlines",
+                "returns": "{ total: Int, deadlines: TimelineEvent[] }",
+                "notes": [
+                  "dayLimit defaults to 7.",
+                  "Merges homework_due, exam, and todo_due entries into one ordered list.",
+                  "Accepts optional atTime to anchor the deadline window instead of using the server clock."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "currentSemester",
+              "subscriptions.currentSemesterCount",
+              "nextClass",
+              "upcomingDeadlines",
+              "todos.incompleteCount",
+              "bus.nextDeparture"
+            ]
+          }
+        },
+        "anonymous-overview": {
+          "title": "Anonymous Homepage",
+          "auth": "anon",
+          "web": "stable",
+          "display": {
+            "fields": [
+              "Public bus tab",
+              "Public dashboard links tab",
+              "link.title",
+              "link.description",
+              "link.icon"
+            ]
+          }
+        }
+      }
+    },
+    "permission": {
+      "name": "Permission UI / Permission",
+      "access": {
+        "anon": "Can only perform public browsing and pre-sign-in guidance actions.",
+        "user": "Cannot modify schedules or exams; can only manage personal state such as homework completion status and todos.",
+        "admin": "Has governance entries but this does not change the information hierarchy logic on ordinary detail pages.",
+        "agent": "Can receive more structured fields but should not produce a second product model as a result."
+      },
+      "rules": {
+        "name-first": "Users first identify by name, not by code.",
+        "codes-for-disambiguation": "Codes, semesters, and numbers primarily serve disambiguation and retrieval.",
+        "internal-ids-hidden": "jwId, database id, and other internal identifiers are not directly displayed in ordinary UI by default."
+      },
+      "capabilities": {
+        "list-page": {
+          "title": "List Page",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": "unavailable"
+        },
+        "detail-page": {
+          "title": "Detail Page",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": "unavailable"
+        },
+        "card": {
+          "title": "Card",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": "unavailable"
+        },
+        "auxiliary-pages": {
+          "title": "Auxiliary Pages",
+          "auth": "anon",
+          "web": "unavailable",
+          "rest": "unavailable",
+          "mcp": "unavailable"
+        }
+      }
+    },
+    "schedule": {
+      "name": "Schedule",
+      "access": {
+        "anon": "Can read public schedule information.",
+        "user": "Can read public schedule information. Cannot modify schedule fact data.",
+        "admin": "Can read public schedule information. Does not directly modify schedule facts through ordinary pages.",
+        "agent": "Can read schedules for specific sections; current-user schedule aggregation is primarily exposed via MCP; public schedule retrieval is available through REST and MCP."
+      },
+      "rules": {
+        "schedule-definition": "Schedule refers to a section's class times, locations, and week patterns.",
+        "schedule-as-context": "The schedule within a section detail page is not treated as an isolated table but as an important entry point for understanding the section context.",
+        "personal-calendar-integrates": "The personal calendar integrates subscribed section schedules, homework due dates, exam times, and personal todo due dates."
+      },
+      "capabilities": {
+        "my-schedule": {
+          "title": "My Schedule",
+          "auth": "user",
+          "links": {
+            "models": ["Schedule"]
+          },
+          "web": {
+            "pages": ["/?tab=calendar"]
+          },
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_my_schedules",
+                "returns": "{ schedules: ScheduleEntry[] }",
+                "notes": [
+                  "Returns schedules[]; each item contains date, weekday, startTime, endTime, section.course.namePrimary, section.code, room, teachers[], and scheduleGroup."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "7-day grid (Sun-Sat)",
+              "Today highlight",
+              "schedule.date",
+              "schedule.startTime - endTime",
+              "schedule.room.namePrimary",
+              "section.course.namePrimary",
+              "teacher names"
+            ],
+            "filters": ["Previous/next semester links"]
+          }
+        },
+        "public-schedule-query": {
+          "title": "Public Schedule Query",
+          "auth": "anon",
+          "links": {
+            "models": ["Schedule"]
+          },
+          "web": "unavailable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/schedules",
+                "returns": "PaginatedResponse<ScheduleEntry>",
+                "notes": [
+                  "Supports filtering by section, teacher, room, date range, and day of week.",
+                  "REST/MCP both accept exact JW/code-style filters for schedules so callers do not need to resolve internal numeric IDs first."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "query_schedules",
+                "returns": "PaginatedResponse<ScheduleEntry>",
+                "rest_equivalent": "GET /api/schedules"
+              }
+            ]
+          },
+          "display": {
+            "filters": [
+              "sectionId",
+              "sectionJwId",
+              "sectionCode",
+              "teacherId",
+              "teacherCode",
+              "roomId",
+              "roomJwId",
+              "dateFrom/dateTo",
+              "weekday"
+            ]
+          }
+        },
+        "section-schedule": {
+          "title": "Section Schedule",
+          "auth": "anon",
+          "links": {
+            "models": ["Schedule"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections/[jwId]/schedules",
+                "returns": "ScheduleEntry[]",
+                "notes": [
+                  "Returns a simplified variant of ScheduleEntry[] for the section."
+                ]
+              },
+              {
+                "path": "/api/sections/[jwId]/schedule-groups",
+                "returns": "ScheduleGroupEntry[] (with schedules)",
+                "notes": [
+                  "Returns schedule groups with schedules, not separate aggregated period summaries."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_schedules_by_section",
+                "returns": "{ found: Boolean, section: Section?, schedules: ScheduleEntry[] }",
+                "rest_equivalent": "GET /api/sections/[jwId]/schedules",
+                "notes": [
+                  "Default/summary responses omit the repeated per-item section payload because the top-level section already scopes the list.",
+                  "Accepts optional dateFrom/dateTo to narrow results to a specific window (e.g. the current week); both accept flexible date strings."
+                ]
+              },
+              {
+                "name": "get_my_7days_timeline",
+                "auth": "user",
+                "returns": "{ range: { from: DateTime, to: DateTime }, total: Int, events: CalendarEvent[] }",
+                "notes": [
+                  "Returns schedules as the schedule type within a unified event stream.",
+                  "Summary mode returns grouped counts/day slices plus a limited event sample instead of another full raw event dump.",
+                  "Accepts optional atTime to anchor the 7-day window to a specific moment instead of the server clock; useful for asking about a future week."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "schedule.date",
+              "schedule.startTime - endTime",
+              "schedule.room (with building/campus)",
+              "schedule.weekday (0=Sunday)",
+              "schedule.teachers[] names"
+            ]
+          }
+        }
+      }
+    },
+    "section": {
+      "name": "Section",
+      "access": {
+        "anon": "Can browse public section information.",
+        "user": "Can perform subscription, homework, comment, and description collaborative actions around sections, but cannot modify section fact data.",
+        "admin": "Does not directly modify academic section facts through ordinary pages.",
+        "agent": "Can read section information and manage personal section-related state through OAuth-authorized REST / MCP endpoints."
+      },
+      "rules": {
+        "semester-offering": "A section is a specific teaching class for a course in a given semester.",
+        "subscription-not-enrollment": "Pages involving subscription actions must clearly state this is not official academic course enrollment.",
+        "jwid-url-only": "jwId is used only for routing and API endpoints; it should not be directly displayed in ordinary section UI."
+      },
+      "capabilities": {
+        "section-list": {
+          "title": "Section List & Filter",
+          "auth": "anon",
+          "links": {
+            "models": ["Section"],
+            "ui": ["List Table"]
+          },
+          "web": {
+            "pages": ["/sections"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections",
+                "returns": "PaginatedResponse<SectionSummary>"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "search_sections",
+                "returns": "PaginatedResponse<SectionSummary>",
+                "rest_equivalent": "GET /api/sections"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "section.semester.nameCn",
+              "section.code",
+              "section.course.namePrimary",
+              "section.teachers[].namePrimary",
+              "section.campus.namePrimary",
+              "section.credits",
+              "section.stdCount / section.limitCount (capacity)"
+            ],
+            "filters": [
+              "Semester selector",
+              "Generic search",
+              "REST/MCP: campusId, departmentId, teacherId, teacherCode, ids, jwIds, courseId, courseJwId, semesterId, semesterJwId, advanced search syntax"
+            ]
+          }
+        },
+        "section-detail": {
+          "title": "Section Detail",
+          "auth": "anon",
+          "links": {
+            "models": ["Section"],
+            "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections/[jwId]",
+                "returns": "SectionDetail (schedules without room/teacher expansion)"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_section_by_jw_id",
+                "returns": "{ found: Boolean, section: Section? }",
+                "rest_equivalent": "GET /api/sections/[jwId]"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "section.course.namePrimary (h1)",
+              "section.course.nameSecondary (Locale subtitle)",
+              "section.semester.nameCn",
+              "section.code (Monospace)",
+              "section.campus.namePrimary + nameSecondary",
+              "section.graduateAndPostgraduate (yes/no)",
+              "section.credits",
+              "section.period + actualPeriods (if different)",
+              "section.examMode.namePrimary",
+              "section.remark (Whitespace-preserved)",
+              "section.teachers[] (Linked badge list)",
+              "section.adminClasses[] (Collapsible details)",
+              "section.timesPerWeek",
+              "section.periodsPerWeek",
+              "section.theoryPeriods",
+              "section.practicePeriods",
+              "section.experimentPeriods",
+              "section.machinePeriods",
+              "section.designPeriods",
+              "section.testPeriods",
+              "section.teachLanguage.namePrimary",
+              "section.roomType.namePrimary",
+              "scheduleDateKeys (Set<string> YYYY-MM-DD)",
+              "examDateKeys (Set<string> YYYY-MM-DD)",
+              "todayKey (Current date marker)",
+              "schedule.date (ISO)",
+              "schedule.startTime, endTime",
+              "schedule.startUnit, endUnit",
+              "schedule.weekIndex",
+              "schedule.room.namePrimary",
+              "schedule.room.building.namePrimary",
+              "schedule.room.building.campus.namePrimary",
+              "schedule.teachers[].namePrimary",
+              "exam.examDate",
+              "exam.startTime, endTime",
+              "exam.examMode",
+              "exam.examTakeCount",
+              "exam.examRooms[]",
+              "homework.title",
+              "homework.submissionDueAt",
+              "homework.description.content",
+              "section.course.namePrimary (Context)",
+              "completionStatus (per user)",
+              "comment.id",
+              "comment.author.name",
+              "comment.author.image (Avatar)",
+              "comment.body (Markdown)",
+              "comment.createdAt",
+              "comment.status (non-active states shown)",
+              "comment.reactions[]"
+            ]
+          }
+        },
+        "section-ical": {
+          "title": "Section iCal Export",
+          "auth": "anon",
+          "links": {
+            "ui": ["Calendar Export Dialog"]
+          },
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections/[jwId]/calendar.ics",
+                "returns": "text/calendar",
+                "notes": [
+                  "Returns text/calendar; content is derived from the section's schedule and exams."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_section_calendar_subscription",
+                "returns": "{ found: Boolean, section: Section?, calendarPath: String, calendarUrl: String }",
+                "rest_equivalent": "GET /api/sections/[jwId]/calendar.ics",
+                "notes": [
+                  "Returns a single-section iCal link and usage instructions."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": ["iCalendar URL (copyable)", "Export format indicator"]
+          }
+        }
+      }
+    },
+    "security": {
+      "name": "Content / Security",
+      "access": {
+        "anon": "Anonymous comments do not expose real identity to regular users; identity is traceable by admins for governance and security processing.",
+        "user": "Can post anonymous comments with identity hidden from other users. Uploads and downloads require permission validation. Destructive actions require explicit confirmation.",
+        "admin": "Can trace anonymous comment identities in governance scenarios. High-risk actions (delete, suspend, hide) must provide explicit feedback.",
+        "agent": "Must maintain the same permission boundaries and error feedback as web/API."
+      },
+      "rules": {
+        "anonymous-and-traceable": "Anonymous capability and traceability capability coexist; this is not an either-or design.",
+        "upload-download-both-checked": "Both uploads and downloads require permission checks; the security boundary must not apply only to the upload entry point."
+      },
+      "capabilities": {
+        "anonymous-comment-visibility": {
+          "title": "Anonymous Comment Visibility",
+          "auth": "anon",
+          "web": "stable",
+          "rest": "stable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "comment.visibility (public/logged_in_only)",
+              "comment.isAnonymous",
+              "Anonymous author badge / hidden identity UI"
+            ]
+          }
+        },
+        "upload-download-access": {
+          "title": "Upload / Download Access Control",
+          "auth": "user",
+          "web": "stable",
+          "rest": "stable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Both upload and download require permission checks",
+              "Security boundary not at upload entry point only"
+            ]
+          }
+        },
+        "destructive-action-confirmation": {
+          "title": "Destructive Action Confirmation",
+          "auth": "user",
+          "web": "stable",
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Account deletion confirmation word DELETE",
+              "Comment/upload delete confirm dialog",
+              "Warning text",
+              "Confirm button",
+              "Cancel button"
+            ]
+          }
+        }
+      }
+    },
+    "semester": {
+      "name": "Semester",
+      "access": {
+        "anon": "Can read semester information.",
+        "user": "Can read semester information. Cannot modify semester data.",
+        "admin": "Can read semester information. Does not directly modify semester facts through ordinary pages.",
+        "agent": "Can only read existing semester information; no additional write permissions."
+      },
+      "rules": {
+        "organizational-dimension": "Semesters are the organizational dimension for courses, sections, schedules, and exams.",
+        "current-semester-by-rules": "The current semester must be determined by explicit business rules, not by rough natural-year inference.",
+        "semester-visible-in-filters": "Semesters should be clearly visible in filters, group headings, detail basic info, and cross-semester browsing."
+      },
+      "capabilities": {
+        "semester-list": {
+          "title": "Semester List",
+          "auth": "anon",
+          "links": {
+            "models": ["Semester"]
+          },
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/semesters",
+                "returns": "PaginatedResponse<SemesterSummary>"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_semesters",
+                "returns": "PaginatedResponse<SemesterSummary>",
+                "rest_equivalent": "GET /api/semesters"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "semester.id",
+              "semester.jwId",
+              "semester.code",
+              "semester.nameCn",
+              "semester.startDate",
+              "semester.endDate"
+            ]
+          }
+        },
+        "current-semester": {
+          "title": "Current Semester",
+          "auth": "anon",
+          "links": {
+            "models": ["Semester"]
+          },
+          "rules": {
+            "latest-startdate-wins": "The current semester is determined by date range; when multiple semester ranges overlap the current date, the semester with the latest startDate is selected to prevent an older range or import residue from shadowing a more specific newer semester."
+          },
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/semesters/current",
+                "returns": "Semester | 404",
+                "notes": [
+                  "Returns the current semester or 404 when none is found."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_current_semester",
+                "returns": "{ found: Boolean, semester: SemesterSummary? }",
+                "rest_equivalent": "GET /api/semesters/current"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "semester.id",
+              "semester.jwId",
+              "semester.nameCn",
+              "semester.startDate",
+              "semester.endDate",
+              "semester.code"
+            ]
+          }
+        }
+      }
+    },
+    "subscribed-sections": {
+      "name": "Subscribed Sections",
+      "access": {
+        "anon": "Cannot view their own subscribed sections list.",
+        "user": "Can only view and manage their own subscribed sections list.",
+        "admin": "Does not view or edit other users' subscription lists through ordinary pages.",
+        "agent": "Can read and manage the subscribed sections list data with the same semantics as the web through REST and MCP."
+      },
+      "rules": {
+        "grouped-by-semester": "The list is grouped by semester rather than presented as a single flat list.",
+        "section-codes-promoted": "In the 'subscribed context', users manage specific section relationships, so section codes are intentionally promoted."
+      },
+      "capabilities": {
+        "subscribed-sections-tab": {
+          "title": "Subscribed Sections Tab",
+          "auth": "user",
+          "links": {
+            "models": ["User", "Section"],
+            "ui": ["List Table"]
+          },
+          "web": {
+            "pages": ["/?tab=subscriptions"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/calendar-subscriptions/current",
+                "returns": "{ subscription: CalendarSubscription | null }",
+                "notes": [
+                  "Returns the current user's subscribed section details and personal subscription feed information; supports the subscribed sections list and personal calendar subscription entry."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_my_subscribed_sections",
+                "returns": "{ success: Boolean, sections: Section[], note: String }",
+                "rest_equivalent": "GET /api/calendar-subscriptions/current"
+              },
+              {
+                "name": "get_my_calendar_subscription",
+                "returns": "{ success: Boolean, subscription?, message?: String }",
+                "rest_equivalent": "GET /api/calendar-subscriptions/current",
+                "notes": [
+                  "Supplements calendarPath and calendarUrl on the same abstract entry.",
+                  "Use full mode only when the caller explicitly needs the full subscribed section list on the same response."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "semester group label and count",
+              "subscription.sections[].code",
+              "subscription.sections[].course.namePrimary",
+              "section.teachers[]",
+              "section.credits",
+              "Unsubscribe button per section"
+            ]
+          }
+        }
+      }
+    },
+    "subscription": {
+      "name": "Subscription",
+      "access": {
+        "anon": "Can see the subscription entry but cannot directly create a subscription.",
+        "user": "Can only manage their own section subscription relationships.",
+        "admin": "Does not manage personal subscriptions on behalf of users through ordinary pages.",
+        "agent": "After OAuth authorization, can manage the current user's own subscription relationships; REST and MCP both support the same semantic operations."
+      },
+      "rules": {
+        "subscription-language": "Copy may use 'subscribe to section' or 'follow section'; must not write 'enroll in course'.",
+        "user-scoped": "Subscription relationships belong only to the current user and determine the display scope for home page, calendar, homework, and exam."
+      },
+      "capabilities": {
+        "subscribe-from-section": {
+          "title": "Subscribe from Section Detail",
+          "auth": "user",
+          "links": {
+            "models": ["User", "Section"],
+            "ui": ["Detail Hero"]
+          },
+          "web": {
+            "pages": ["/sections/[jwId]"]
+          },
+          "rest": "unavailable",
+          "mcp": {
+            "tools": [
+              {
+                "name": "subscribe_section_by_jw_id",
+                "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
+                "notes": [
+                  "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
+                  "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
+                ]
+              },
+              {
+                "name": "unsubscribe_section_by_jw_id",
+                "returns": "{ success: Boolean, action: String, sectionJwId: Int, subscription }",
+                "notes": [
+                  "Default/summary responses return a compact subscription update result instead of the full subscribed section list.",
+                  "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "Subscribe/unsubscribe icon button state",
+              "Subscription disclaimer copy"
+            ]
+          }
+        },
+        "batch-subscribe-by-codes": {
+          "title": "Batch Subscribe by Course Codes",
+          "auth": "user",
+          "links": {
+            "models": ["Section", "User"]
+          },
+          "web": {
+            "pages": ["/?tab=subscriptions"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/sections/match-codes",
+                "method": "POST",
+                "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], sections: Section[], total: Int }"
+              },
+              {
+                "path": "/api/calendar-subscriptions",
+                "method": "POST",
+                "returns": "{ subscription: CalendarSubscription }",
+                "notes": [
+                  "subscription.sections[] is the user's new set of subscribed sections."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "match_section_codes",
+                "returns": "{ semester: Semester, matchedCodes: String[], unmatchedCodes: String[], suggestions?: Record<String, String[]>, sections: Section[], total: Int }",
+                "rest_equivalent": "POST /api/sections/match-codes",
+                "notes": [
+                  "Returns suggestions for unmatched inputs when close section codes in the selected semester share a strong code-prefix or edit-distance match; unrelated section codes should be filtered out.",
+                  "Prefer this read-only preview before subscribe_my_sections_by_codes when the caller needs confirmation or typo recovery."
+                ]
+              },
+              {
+                "name": "subscribe_my_sections_by_codes",
+                "returns": "{ success: Boolean, semester, matchedCodes, unmatchedCodes, addedCount, alreadySubscribedCount, subscription }",
+                "rest_equivalent": "POST /api/calendar-subscriptions",
+                "notes": [
+                  "Convenience mutation that combines matching with subscription update.",
+                  "Use match_section_codes first when the caller needs a dry-run style preview.",
+                  "Default/summary responses return the subscription totals plus feed link information, not the entire subscribed section list.",
+                  "Request full mode only when the caller explicitly needs the full CalendarSubscription with sections[]."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "Course/section code input",
+              "Bulk subscribe button",
+              "Matched section cards with course, code, semester, campus, teachers",
+              "Unmatched codes"
+            ]
+          }
+        }
+      }
+    },
+    "teacher": {
+      "name": "Teacher",
+      "access": {
+        "anon": "Can browse teacher information.",
+        "user": "Can browse teacher information. Cannot modify teacher fact data.",
+        "admin": "Can browse teacher information. Does not directly modify teacher facts through ordinary pages.",
+        "agent": "Can directly read teacher lists and details; also indirectly consumes teacher information in course and section results."
+      },
+      "rules": {
+        "identified-by-name": "Teacher objects are naturally identified by name.",
+        "section-code-auxiliary": "Section codes retain value on teacher pages but appear only as auxiliary fields in the teaching section list."
+      },
+      "capabilities": {
+        "teacher-list": {
+          "title": "Teacher List & Filter",
+          "auth": "anon",
+          "links": {
+            "models": ["Teacher"],
+            "ui": ["List Table"]
+          },
+          "web": {
+            "pages": ["/teachers"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/teachers",
+                "returns": "PaginatedResponse<TeacherSummary>"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "search_teachers",
+                "returns": "PaginatedResponse<TeacherSummary>",
+                "rest_equivalent": "GET /api/teachers"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "teacher.namePrimary",
+              "teacher.nameSecondary (locale-dependent)",
+              "teacher.department.namePrimary",
+              "teacher.teacherTitle.namePrimary",
+              "teacher.email",
+              "teacher._count.sections"
+            ],
+            "filters": ["search", "departmentId"]
+          }
+        },
+        "teacher-detail": {
+          "title": "Teacher Detail",
+          "auth": "anon",
+          "links": {
+            "models": ["Teacher"],
+            "ui": ["Detail Hero", "Context Tabs", "Basic Info Card"]
+          },
+          "web": {
+            "pages": ["/teachers/[id]"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/teachers/[id]",
+                "returns": "TeacherDetail"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_teacher_by_id",
+                "returns": "{ found: Boolean, teacher: TeacherDetail? }",
+                "rest_equivalent": "GET /api/teachers/[id]"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "teacher.namePrimary (h1)",
+              "teacher.nameSecondary (Locale subtitle)",
+              "teacher.department.namePrimary",
+              "teacher.teacherTitle.namePrimary",
+              "teacher.email (if not null)",
+              "teacher.telephone (if not null)",
+              "teacher.mobile (if not null)",
+              "teacher.address (if not null)",
+              "section.semester.nameCn (Badge)",
+              "section.course.namePrimary + nameSecondary",
+              "section.code (Badge, monospace)",
+              "section.credits (or empty)",
+              "comment.id",
+              "comment.author.name",
+              "comment.author.image",
+              "comment.body",
+              "comment.createdAt",
+              "description.content (Markdown-rendered via DescriptionLoader)"
+            ]
+          }
+        }
+      }
+    },
+    "todo": {
+      "name": "Todo",
+      "access": {
+        "anon": "Cannot read or write personal todos.",
+        "user": "Can only manage their own todos.",
+        "admin": "Has no ordinary page capability to independently manage other users' todos.",
+        "agent": "After authorization, can only read and write the current user's own todos; both REST and MCP currently provide this capability."
+      },
+      "rules": {
+        "purely-personal": "Todo is a purely personal object and is not bound to any section.",
+        "due-date-calendar": "Only incomplete todos with a due date appear in the calendar.",
+        "completed-retained": "Completed todos retain history but no longer occupy urgent information areas."
+      },
+      "capabilities": {
+        "todo-list": {
+          "title": "Todo List & Filter",
+          "auth": "user",
+          "links": {
+            "models": ["Todo"]
+          },
+          "web": {
+            "pages": ["/?tab=todos"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/todos",
+                "returns": "{ todos: TodoItem[] }",
+                "notes": [
+                  "Returns todos[]; each item contains id, title, content, completed, priority, dueAt, createdAt, and updatedAt."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "list_my_todos",
+                "returns": "{ counts: { incomplete: Int, completed: Int, overdue: Int }, todos: TodoItem[] }",
+                "rest_equivalent": "GET /api/todos",
+                "notes": [
+                  "Default parameters: includeCompleted=false, limit=50.",
+                  "Incomplete items are returned first; completed items are excluded unless includeCompleted=true."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "todo.title",
+              "todo.content (description)",
+              "todo.priority",
+              "todo.dueAt",
+              "completed status action button",
+              "filter: incomplete/completed/all"
+            ]
+          }
+        },
+        "todo-edit": {
+          "title": "Todo Edit Sheet",
+          "auth": "user",
+          "links": {
+            "models": ["Todo"]
+          },
+          "web": {
+            "pages": ["/?tab=todos"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/todos",
+                "method": "POST",
+                "returns": "{ id: String }"
+              },
+              {
+                "path": "/api/todos/[id]",
+                "method": "PATCH",
+                "returns": "{ success: Boolean }"
+              },
+              {
+                "path": "/api/todos/[id]",
+                "method": "DELETE",
+                "returns": "{ success: Boolean }"
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "create_my_todo",
+                "returns": "{ success: Boolean, id: String }",
+                "rest_equivalent": "POST /api/todos"
+              },
+              {
+                "name": "update_my_todo",
+                "returns": "{ success: Boolean, todo: TodoItem }",
+                "rest_equivalent": "PATCH /api/todos/[id]",
+                "notes": [
+                  "Returns the updated todo snapshot so callers can confirm the applied changes without an extra read."
+                ]
+              },
+              {
+                "name": "delete_my_todo",
+                "returns": "{ success: Boolean }",
+                "rest_equivalent": "DELETE /api/todos/[id]"
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "todo.title (text input)",
+              "todo.content (text/markdown input)",
+              "todo.priority (select)",
+              "todo.dueAt (date/time picker)",
+              "Save button",
+              "Delete button (edit mode)",
+              "Cancel button"
+            ]
+          }
+        }
+      }
+    },
+    "upload": {
+      "name": "Upload",
+      "access": {
+        "anon": "Cannot upload attachments.",
+        "user": "Can upload in the comment attachment flow; download permissions must be re-validated.",
+        "admin": "No standalone public 'upload management console' currently exists.",
+        "agent": "No upload capability is currently provided."
+      },
+      "rules": {
+        "comment-attachments-only": "Uploads serve only comment attachments; they are not an independent file space.",
+        "permission-and-quota": "Permission and quota checks are required before upload.",
+        "three-step-upload": "Web comment attachment uploads follow a three-step flow — create upload session on-site → browser direct upload to S3-compatible pre-signed URL generated by AWS SDK → confirm completion on-site; page CSP must allow the signed storage origin actually used by the upload backend, including AWS S3 virtual-hosted / path-style addresses or compatible backend addresses via custom endpoint configuration.",
+        "s3-compatible-backend": "The storage backend operates with AWS SDK S3-compatible configuration; defaults to AWS S3 but allows connecting to compatible backends via custom endpoint.",
+        "e2e-local-s3": "E2E tests use a local S3-compatible test endpoint by default; external storage is only used when an available S3 environment is explicitly provided.",
+        "download-auth-required": "Downloads must not bypass authorization by obtaining a direct link.",
+        "download-signed-url": "/api/uploads/[id]/download only returns a short-lived signed download URL redirect, not a stable long-reusable object direct link."
+      },
+      "capabilities": {
+        "upload-list": {
+          "title": "Upload List",
+          "auth": "user",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/uploads",
+                "returns": "{ maxFileSizeBytes, quotaBytes, uploads: Upload[], usedBytes }",
+                "notes": [
+                  "The same path currently handles both 'read upload quota / history' and 'create upload session' capabilities."
+                ]
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "upload.filename",
+              "upload.size (formatted bytes)",
+              "upload.createdAt",
+              "usedBytes",
+              "quotaBytes",
+              "maxFileSizeBytes"
+            ]
+          }
+        },
+        "comment-attachment-upload": {
+          "title": "Comment Attachment Upload",
+          "auth": "user",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/uploads",
+                "method": "POST",
+                "returns": "{ key: String, url: String, maxFileSizeBytes: Int, quotaBytes: Int, usedBytes: Int }"
+              },
+              {
+                "path": "/api/uploads/complete",
+                "method": "POST",
+                "returns": "{ upload: Upload, usedBytes: Int, quotaBytes: Int }"
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "File input",
+              "File preview",
+              "upload progress indicator",
+              "Cancel button"
+            ]
+          }
+        },
+        "comment-attachment-download": {
+          "title": "Comment Attachment Download",
+          "auth": "user",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/uploads/[id]/download",
+                "returns": "302 redirect to signed URL",
+                "notes": [
+                  "Validates access permissions before redirecting to a short-lived signed URL."
+                ]
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": ["attachment filename", "Open/download button"]
+          }
+        },
+        "upload-manage": {
+          "title": "Upload Rename & Delete",
+          "auth": "user",
+          "web": "stable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/uploads/[id]",
+                "method": "PATCH",
+                "returns": "{ upload: Upload }",
+                "notes": ["Renames one upload owned by the current user."]
+              },
+              {
+                "path": "/api/uploads/[id]",
+                "method": "DELETE",
+                "returns": "{ deletedId: String, deletedSize: Int }",
+                "notes": [
+                  "Deletes one upload owned by the current user and removes the object from storage."
+                ]
+              }
+            ]
+          },
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "Rename action",
+              "Delete action",
+              "Per-upload feedback state"
+            ]
+          }
+        }
+      }
+    },
+    "user": {
+      "name": "User",
+      "access": {
+        "anon": "Can browse all public information; further actions are not available before entering the sign-in flow.",
+        "user": "Can follow sections, manage todos, mark homework completion, export iCal, pin frequent links, save bus preferences, post comments/replies/reactions and upload attachments, and manage personal profile and OAuth connections.",
+        "admin": "Can review comments, maintain descriptions, manage users, suspend accounts, manage OAuth clients, maintain bus data, and handle user content and platform security issues.",
+        "agent": "Can only access restricted capabilities after OAuth authorization; does not inherit admin permissions by default; REST and MCP for the same abstract endpoint maintain consistent fields and permissions."
+      },
+      "rules": {
+        "sign-in-providers": "Sign-in supports USTC, GitHub, and Google OAuth; custom username/password login is not considered due to security and maintenance cost.",
+        "oauth-callback-integrity": "On a canonical same-origin deployment, OAuth login callbacks must complete state validation and session creation directly, without losing state due to proxy wrapping or container-internal host differences.",
+        "welcome-flow-required": "New users who have not set a name or username on first login must complete the welcome flow before proceeding.",
+        "auth-callback-not-intercepted": "Authorization callback continuation requests carrying OAuth code/error and state must be allowed to complete the protocol redirect; the welcome page interceptor must not break the authorization result redirect.",
+        "post-login-redirect": "After successful login, the user should be redirected back to the originally requested page whenever possible; if no origin page exists, redirect to the home page.",
+        "oauth-login-resume": "If an OAuth authorization request lands on /signin with raw authorization query parameters instead of callbackUrl, the sign-in flow should resume that exact authorization request after login rather than falling back to /.",
+        "oauth-consent-loopback-continuation": "The OAuth consent step must continue working for loopback public clients even when the client uses 127.0.0.1 and the app itself is being browsed via localhost; consent submission should preserve the original authorization query and complete the redirect back to the registered loopback callback.",
+        "public-identity-display": "Public identity defaults to displaying name or username, not internal identifiers."
+      },
+      "capabilities": {
+        "sign-in": {
+          "title": "Sign In",
+          "auth": "anon",
+          "web": {
+            "pages": ["/signin"]
+          },
+          "rest": "stable",
+          "mcp": "unavailable",
+          "display": {
+            "fields": [
+              "OAuth provider buttons: GitHub, Google, OIDC/USTC",
+              "Error message (if login fails)",
+              "Terms and privacy links"
+            ]
+          }
+        },
+        "first-login-welcome": {
+          "title": "First Login & Welcome Page",
+          "auth": "user",
+          "web": {
+            "pages": ["/welcome"]
+          },
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "links": {
+            "models": ["User"]
+          },
+          "display": {
+            "fields": [
+              "user.name (Current value display)",
+              "user.username (Current value display)",
+              "user.image (Current avatar)",
+              "user.profilePictures[] (Avatar selector grid)",
+              "semesters[] (Semester dropdown options)",
+              "defaultSemesterId (Preselected semester)"
+            ]
+          }
+        },
+        "post-login-redirect": {
+          "title": "Post-Login Redirect",
+          "auth": "anon",
+          "web": "stable",
+          "rest": "unavailable",
+          "display": {
+            "fields": [
+              "callbackUrl query parameter (origin page)",
+              "Fallback to home page if no origin"
+            ]
+          }
+        },
+        "public-profile": {
+          "title": "Public Profile",
+          "auth": "anon",
+          "web": {
+            "pages": ["/u/$username", "/u/id/$uid"]
+          },
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/me",
+                "returns": "{ id, email, name, image, username, isAdmin }",
+                "auth": "user",
+                "notes": [
+                  "Returns the authenticated user's core profile fields only; no separate public profile endpoint for other users is currently exposed."
+                ]
+              }
+            ]
+          },
+          "mcp": {
+            "tools": [
+              {
+                "name": "get_my_profile",
+                "auth": "user",
+                "returns": "{ id, username, name, image, isAdmin, createdAt, updatedAt }",
+                "rest_equivalent": "GET /api/me"
+              },
+              {
+                "name": "get_public_user_profile",
+                "status": "unavailable"
+              }
+            ]
+          },
+          "links": {
+            "models": ["User"]
+          },
+          "display": {
+            "fields": [
+              "user.id (ID profile route only)",
+              "user.image (Avatar)",
+              "user.name (Display name)",
+              "user.username (@username)",
+              "user.createdAt (Join date)",
+              "sectionCount (Subscribed sections)",
+              "user._count.comments (Total comments)",
+              "user._count.uploads (Total uploads)",
+              "user._count.homeworksCreated (Homeworks created)",
+              "weeks[].date (YYYY-MM-DD)",
+              "weeks[].count (Contribution count)",
+              "totalContributions (Aggregate)"
+            ]
+          }
+        },
+        "settings": {
+          "title": "Settings",
+          "auth": "user",
+          "web": {
+            "pages": [
+              "/settings?tab=profile",
+              "/settings?tab=accounts",
+              "/settings?tab=content",
+              "/settings?tab=danger"
+            ]
+          },
+          "rest": "unavailable",
+          "mcp": "unavailable",
+          "links": {
+            "models": ["User"]
+          },
+          "display": {
+            "fields": [
+              "user.profilePictures[] (Avatar options)",
+              "user.image (Current avatar)",
+              "user.name (Display name)",
+              "user.username (Username)",
+              "user.accounts[].provider (github, google, oidc)",
+              "canDisconnect (Boolean - requires min 2 accounts)",
+              "Navigation links to sections and comment guide",
+              "Account deletion confirmation interface"
+            ]
+          }
+        }
+      }
+    },
+    "webhook-login": {
+      "name": "Webhook Login",
+      "access": {
+        "anon": "Not applicable.",
+        "user": "Not applicable.",
+        "admin": "Must hold the WEBHOOK_SECRET environment variable value.",
+        "agent": "Not applicable."
+      },
+      "rules": {
+        "requires-secret": "Only available when the server is configured with the WEBHOOK_SECRET environment variable; all requests return 403 when not configured.",
+        "debug-only": "Used for passwordless login in production debugging scenarios; not a regular user sign-in entry point.",
+        "session-via-betterauth": "Locates the target user by email or userId and establishes a session via Better Auth session primitives; no longer hand-writes session cookie signing."
+      },
+      "capabilities": {
+        "webhook-login": {
+          "title": "Webhook Login",
+          "auth": "admin",
+          "web": "unavailable",
+          "rest": {
+            "routes": [
+              {
+                "path": "/api/auth/{nextauth}",
+                "method": "POST",
+                "returns": "{ ok, userId, email, sessionToken, expires } | { error }",
+                "notes": [
+                  "Request body is JSON.",
+                  "Also sets the better-auth.session_token cookie."
+                ]
+              }
+            ]
+          },
+          "display": {
+            "fields": [
+              "Webhook URL handled through Better Auth catch-all",
+              "User info payload",
+              "Session creation JSON response"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "cases": {
+    "mcp-assistant-workflows": {
+      "affects": [
+        {
+          "module": "mcp",
+          "capability": "tool-groups"
+        },
+        {
+          "module": "overview",
+          "capability": "assistant-dashboard-snapshot"
+        },
+        {
+          "module": "subscription",
+          "capability": "batch-subscribe-by-codes"
+        },
+        {
+          "module": "ical",
+          "capability": "personal-calendar-subscription"
+        },
+        {
+          "module": "todo",
+          "capability": "todo-list"
+        },
+        {
+          "module": "bus",
+          "capability": "bus-dashboard"
+        },
+        {
+          "module": "bus",
+          "capability": "bus-route-search"
+        },
+        {
+          "module": "bus",
+          "capability": "bus-next-departures"
+        }
+      ],
+      "rules": {
+        "aggregate-first": [
+          "Prefer get_my_dashboard or other task-oriented aggregate tools before stitching together multiple lower-level tool calls."
+        ],
+        "preview-before-write": [
+          "Batch or fuzzy write flows should offer a read-only preview tool before the mutation tool."
+        ],
+        "focused-over-raw-for-common-questions": [
+          "For prompts such as 'what is my next class?' or 'when is the next bus?', use focused extract tools instead of raw dataset mirrors."
+        ],
+        "summary-privacy-default": [
+          "Summary/default outputs should stay compact and redact token-bearing URLs or repeated low-value nested objects."
+        ]
+      },
+      "decisions": [
+        "Assistant-oriented MCP additions should land as aggregate snapshots or filtered convenience tools, not only as raw dataset mirrors.",
+        "Tool documentation should call out the preferred first tool, focused alternative, default parameters, and privacy redaction behavior for common prompts."
+      ]
+    },
+    "semester": {
+      "affects": [
+        {
+          "module": "overview",
+          "capability": "authenticated-overview"
+        },
+        {
+          "module": "subscription",
+          "capability": "batch-subscribe-by-codes"
+        },
+        {
+          "module": "subscribed-sections",
+          "capability": "subscribed-sections-tab"
+        }
+      ],
+      "rules": {
+        "no-current-semester": [
+          "The home page should display a recoverable empty state.",
+          "Users should be guided to browse or import sections."
+        ],
+        "only-non-current-semester-subscriptions": [
+          "The home page must not pretend to have current learning tasks.",
+          "Must clearly indicate that no sections are subscribed for the current semester."
+        ],
+        "cross-semester-browsing": [
+          "Courses must display semester.",
+          "Sections must display semester.",
+          "Homework must display semester.",
+          "Exams must display semester."
+        ]
+      },
+      "decisions": [
+        "When the current semester does not exist, the home page should enter a recoverable empty state rather than rendering a misleading empty list.",
+        "When only non-current-semester sections are subscribed, the user must be clearly told 'no content subscribed for the current semester' rather than pretending everything is normal."
+      ]
+    },
+    "disambiguation": {
+      "affects": [
+        {
+          "module": "course",
+          "capability": "course-list"
+        },
+        {
+          "module": "section",
+          "capability": "section-list"
+        },
+        {
+          "module": "subscription",
+          "capability": "batch-subscribe-by-codes"
+        }
+      ],
+      "rules": {
+        "duplicate-course-names": [
+          "Course code or other disambiguation information should be displayed."
+        ],
+        "multiple-sections-same-course": [
+          "Section code and semester should be displayed."
+        ],
+        "required-disambiguation-contexts": [
+          "Section search.",
+          "Child sections in course detail.",
+          "Batch import results."
+        ]
+      },
+      "decisions": [
+        "Whenever there is a risk of ambiguity, list views must prioritize displaying fields that help make a selection.",
+        "Courses with the same name and multiple sections under the same course must not display only the course name.",
+        "In cross-semester or multi-section scenarios, semester and section code are mandatory information to retain."
+      ]
+    },
+    "missing-data": {
+      "affects": [
+        {
+          "module": "schedule",
+          "capability": "section-schedule"
+        },
+        {
+          "module": "exam",
+          "capability": "section-exam-info"
+        },
+        {
+          "module": "homework",
+          "capability": "section-homework-tab"
+        },
+        {
+          "module": "ical"
+        }
+      ],
+      "rules": {
+        "section-missing-teacher-location-or-exam": [
+          "A default empty state should be displayed.",
+          "The entire object must not be hidden."
+        ],
+        "homework-no-due-date": [
+          "Does not enter the 'upcoming due' sort.",
+          "Can still be viewed in the homework list."
+        ],
+        "ical-no-events": [
+          "A valid but empty or informational calendar content should be returned."
+        ]
+      },
+      "decisions": [
+        "When fields are missing, prefer showing a default empty state rather than hiding the entire object.",
+        "Homework with no due date retains visibility but does not mix into upcoming due date sorting.",
+        "When iCal has no events, a valid result should still be returned to prevent clients from failing on 'empty'."
+      ]
+    },
+    "account": {
+      "affects": [
+        {
+          "module": "user",
+          "capability": "settings"
+        },
+        {
+          "module": "user",
+          "capability": "public-profile"
+        }
+      ],
+      "rules": {
+        "username-change": [
+          "The new profile page should be accessible.",
+          "The old username must not continue to represent the user."
+        ],
+        "oauth-connection-error": [
+          "Duplicate OAuth connection should give a clear error response.",
+          "Disconnecting the last account should give a clear error response."
+        ],
+        "account-deletion": [
+          "The user must be required to enter a confirmation word.",
+          "After successful deletion, the current session should be terminated and the settings page exited."
+        ]
+      },
+      "decisions": [
+        "After a username change, the new address should immediately become the canonical entry.",
+        "The old username must not continue to represent the user for an extended period to avoid identity confusion.",
+        "Disconnecting the last sign-in account is an error operation that must be blocked, not an ordinary failure-retry scenario.",
+        "Account deletion carries higher risk than ordinary destructive operations; the current implementation requires entering the fixed confirmation word DELETE."
+      ]
+    },
+    "content-security": {
+      "affects": [
+        {
+          "module": "comment",
+          "capability": "object-comment-section"
+        },
+        {
+          "module": "upload",
+          "capability": "comment-attachment-download"
+        },
+        {
+          "module": "security",
+          "capability": "destructive-action-confirmation"
+        }
+      ],
+      "rules": {
+        "suspended-user": ["Cannot post new comments."],
+        "upload-attachment-download": ["Access permissions must be validated."],
+        "destructive-actions": [
+          "Deletion must have explicit feedback.",
+          "Suspension must have explicit feedback.",
+          "Hiding must have explicit feedback."
+        ]
+      },
+      "decisions": [
+        "Suspended users cannot post new comments; this restriction must hold at both the product layer and the permission layer.",
+        "Upload attachment download must re-validate access permissions; it must not assume that having the link is sufficient to download.",
+        "High-risk operations use explicit feedback mechanisms."
+      ]
+    }
+  },
+  "audit": {
+    "fields": {
+      "id": {
+        "type": "String (cuid)",
+        "note": "Primary key"
+      },
+      "action": {
+        "type": "AuditAction",
+        "note": "Enum value (see below)"
+      },
+      "userId": {
+        "type": "String",
+        "note": "Actor who performed the action"
+      },
+      "targetId": {
+        "type": "String?",
+        "note": "ID of the affected object"
+      },
+      "targetType": {
+        "type": "String?",
+        "note": "\"comment\", \"description\", \"upload\", \"user\""
+      },
+      "metadata": {
+        "type": "Json?",
+        "note": "Extra context (body snippet, reason, etc.)"
+      },
+      "ipAddress": {
+        "type": "String?",
+        "note": "From x-forwarded-for / x-real-ip"
+      },
+      "userAgent": {
+        "type": "String?",
+        "note": "From user-agent header"
+      },
+      "createdAt": {
+        "type": "DateTime",
+        "note": "When the action occurred"
+      }
+    },
+    "actions": {
+      "comment_create": {
+        "trigger": "POST /api/comments",
+        "description": "User creates a new comment on an object."
+      },
+      "comment_edit": {
+        "trigger": "PATCH /api/comments/[id]",
+        "description": "User edits their own comment."
+      },
+      "comment_delete": {
+        "trigger": "DELETE /api/comments/[id]",
+        "description": "User or admin deletes a comment."
+      },
+      "comment_react": {
+        "trigger": "POST /api/comments/[id]/reactions",
+        "description": "User adds or removes a reaction on a comment."
+      },
+      "description_edit": {
+        "trigger": "POST /api/descriptions",
+        "description": "User updates an object description (content changed)."
+      },
+      "upload_delete": {
+        "trigger": "DELETE /api/uploads/[id]",
+        "description": "User or admin deletes an upload."
+      },
+      "admin_user_suspend": {
+        "trigger": "POST /api/admin/suspensions",
+        "description": "Admin suspends a user account."
+      },
+      "admin_user_unsuspend": {
+        "trigger": "PATCH /api/admin/suspensions/[id]",
+        "description": "Admin lifts a user suspension."
+      },
+      "admin_comment_moderate": {
+        "trigger": "PATCH /api/admin/comments/[id]",
+        "description": "Admin hides or moderates a comment."
+      },
+      "admin_description_moderate": {
+        "trigger": "Reserved",
+        "description": "Reserved for future admin description moderation actions."
+      }
+    },
+    "writer": "writeAuditLog in src/lib/audit/write-audit-log.ts writes a record. Calls are fire-and-forget (.catch(() => {})) so audit failures never block the main request."
+  }
+}

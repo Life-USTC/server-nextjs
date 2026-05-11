@@ -1,11 +1,16 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
-import { parse } from "yaml";
 
 const featuresDir = "docs/features";
 const schemaPath = "docs/features.schema.json";
 const prismaPath = "prisma/schema.prisma";
+const generatedPath = "docs/features.generated.json";
+const apiDir = "src/app/api";
+const mcpDir = "src/lib/mcp/tools";
+
+const args = new Set(process.argv.slice(2));
+const writeMode = args.has("--write");
 
 type PrismaDocs = {
   enums: Record<string, string[]>;
@@ -54,13 +59,179 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+function walkFiles(dir: string): string[] {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(path));
+      continue;
+    }
+    files.push(path);
+  }
+
+  return files;
+}
+
+function parseImplementedRoutePath(filePath: string): string {
+  const routePath = relative("src/app", filePath)
+    .replace(/\\/g, "/")
+    .replace(/\/route\.ts$/, "");
+
+  return `/${routePath
+    .split("/")
+    .map((segment) => {
+      const catchAll = segment.match(/^\[\.\.\.(.+)\]$/);
+      if (catchAll) return `{${catchAll[1]}}`;
+      return segment;
+    })
+    .join("/")}`;
+}
+
+function collectImplementedRestRoutes(): Set<string> {
+  const methodPattern =
+    /export\s+(?:async\s+function|const)\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/g;
+  const routes = new Set<string>();
+
+  for (const file of walkFiles(apiDir).filter((path) =>
+    path.endsWith("/route.ts"),
+  )) {
+    const source = readFileSync(file, "utf8");
+    const path = parseImplementedRoutePath(file);
+    for (const match of source.matchAll(methodPattern)) {
+      routes.add(`${match[1]} ${path}`);
+    }
+  }
+
+  return routes;
+}
+
+type FeatureDoc = {
+  capabilities?: Record<
+    string,
+    {
+      rest?:
+        | "stable"
+        | "planned"
+        | "unavailable"
+        | {
+            status?: string;
+            routes?: Array<{ path: string; method?: string }>;
+          };
+      mcp?:
+        | "stable"
+        | "planned"
+        | "unavailable"
+        | {
+            status?: string;
+            tools?: Array<string | { name?: string; status?: string }>;
+          };
+    }
+  >;
+};
+
+function collectDocumentedRestRoutes(
+  modules: Record<string, unknown>,
+): Set<string> {
+  const routes = new Set<string>();
+
+  for (const moduleDoc of Object.values(modules) as FeatureDoc[]) {
+    for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
+      if (!capability || typeof capability !== "object") continue;
+      if (!capability.rest || typeof capability.rest !== "object") continue;
+      for (const route of capability.rest.routes ?? []) {
+        routes.add(`${route.method ?? "GET"} ${route.path}`);
+      }
+    }
+  }
+
+  return routes;
+}
+
+function collectImplementedMcpTools(): Set<string> {
+  const toolPattern = /registerTool\(\s*["']([^"']+)["']/g;
+  const tools = new Set<string>();
+
+  for (const file of walkFiles(mcpDir).filter((path) => path.endsWith(".ts"))) {
+    const source = readFileSync(file, "utf8");
+    for (const match of source.matchAll(toolPattern)) {
+      tools.add(match[1]);
+    }
+  }
+
+  return tools;
+}
+
+function collectDocumentedMcpTools(
+  modules: Record<string, unknown>,
+): Set<string> {
+  const tools = new Set<string>();
+
+  for (const moduleDoc of Object.values(modules) as FeatureDoc[]) {
+    for (const capability of Object.values(moduleDoc.capabilities ?? {})) {
+      if (!capability || typeof capability !== "object") continue;
+      if (!capability.mcp || typeof capability.mcp !== "object") continue;
+      for (const tool of capability.mcp.tools ?? []) {
+        if (typeof tool === "string") {
+          tools.add(tool);
+          continue;
+        }
+        if (tool.status === "unavailable") continue;
+        if (tool.name) tools.add(tool.name);
+      }
+    }
+  }
+
+  return tools;
+}
+
+function isDocumentedRestRouteChecked(route: string): boolean {
+  const [, path] = route.split(" ", 2);
+  return path.startsWith("/api/") && !path.includes("/.well-known/");
+}
+
+function isImplementedRestRouteIgnored(route: string): boolean {
+  return (
+    route === "GET /api/auth/{nextauth}" ||
+    route === "PATCH /api/auth/{nextauth}" ||
+    route === "PUT /api/auth/{nextauth}" ||
+    route === "DELETE /api/auth/{nextauth}"
+  );
+}
+
+function assertGeneratedArtifact(merged: Record<string, unknown>) {
+  const next = `${stableJson(merged)}\n`;
+
+  if (writeMode) {
+    writeFileSync(generatedPath, next);
+    return;
+  }
+
+  if (!existsSync(generatedPath)) {
+    console.error(
+      `Generated feature artifact missing: ${generatedPath}. Run bun run check:features --write.`,
+    );
+    process.exit(1);
+  }
+
+  const current = JSON.parse(readFileSync(generatedPath, "utf8"));
+  if (stableJson(current) !== stableJson(merged)) {
+    console.error(
+      `Generated feature artifact is out of date: ${generatedPath}. Run bun run check:features --write.`,
+    );
+    process.exit(1);
+  }
+}
+
 // Load and merge modular feature files
 if (!existsSync(featuresDir)) {
   console.error(`Features directory not found: ${featuresDir}`);
   process.exit(1);
 }
 
-const files = readdirSync(featuresDir).filter((f) => f.endsWith(".yml"));
+const files = readdirSync(featuresDir).filter((f) => f.endsWith(".json"));
 if (files.length === 0) {
   console.error("No feature files found");
   process.exit(1);
@@ -69,13 +240,13 @@ if (files.length === 0) {
 console.log(`Found ${files.length} feature files`);
 
 const metadataTargets = {
-  "_meta.yml": "meta",
-  "_product.yml": "product",
-  "_models.yml": "models",
-  "_enums.yml": "enums",
-  "_ui.yml": "ui",
-  "_cases.yml": "cases",
-  "_audit.yml": "audit",
+  "_meta.json": "meta",
+  "_product.json": "product",
+  "_models.json": "models",
+  "_enums.json": "enums",
+  "_ui.json": "ui",
+  "_cases.json": "cases",
+  "_audit.json": "audit",
 } as const;
 
 // Merge all feature files
@@ -93,7 +264,7 @@ const merged: Record<string, unknown> & { modules: Record<string, unknown> } = {
 for (const file of files.sort()) {
   const path = join(featuresDir, file);
   const content = readFileSync(path, "utf8");
-  const data = parse(content);
+  const data = JSON.parse(content);
 
   if (file.startsWith("_")) {
     const target = metadataTargets[file as keyof typeof metadataTargets];
@@ -105,9 +276,9 @@ for (const file of files.sort()) {
     continue;
   }
 
-  const moduleName = file.replace(".yml", "");
+  const moduleName = file.replace(".json", "");
   if (!data || typeof data !== "object" || Array.isArray(data)) {
-    console.error(`Module file must contain a YAML object: ${path}`);
+    console.error(`Module file must contain a JSON object: ${path}`);
     process.exit(1);
   }
   merged.modules[moduleName] = data;
@@ -139,5 +310,53 @@ if (stableJson(actual) !== stableJson(expected)) {
   process.exit(1);
 }
 
-console.log("✅ Features validate against schema and Prisma");
+const documentedRestRoutes = collectDocumentedRestRoutes(merged.modules);
+const implementedRestRoutes = collectImplementedRestRoutes();
+
+const missingRestRoutes = [...documentedRestRoutes]
+  .filter(isDocumentedRestRouteChecked)
+  .filter((route) => !implementedRestRoutes.has(route))
+  .sort();
+
+const undocumentedRestRoutes = [...implementedRestRoutes]
+  .filter((route) => !documentedRestRoutes.has(route))
+  .filter((route) => !isImplementedRestRouteIgnored(route))
+  .sort();
+
+if (missingRestRoutes.length > 0 || undocumentedRestRoutes.length > 0) {
+  console.error("Feature document REST route parity check failed:");
+  for (const route of missingRestRoutes) {
+    console.error(`- documented but not implemented: ${route}`);
+  }
+  for (const route of undocumentedRestRoutes) {
+    console.error(`- implemented but not documented: ${route}`);
+  }
+  process.exit(1);
+}
+
+const documentedMcpTools = collectDocumentedMcpTools(merged.modules);
+const implementedMcpTools = collectImplementedMcpTools();
+
+const missingMcpTools = [...documentedMcpTools]
+  .filter((tool) => !implementedMcpTools.has(tool))
+  .sort();
+
+const undocumentedMcpTools = [...implementedMcpTools]
+  .filter((tool) => !documentedMcpTools.has(tool))
+  .sort();
+
+if (missingMcpTools.length > 0 || undocumentedMcpTools.length > 0) {
+  console.error("Feature document MCP tool parity check failed:");
+  for (const tool of missingMcpTools) {
+    console.error(`- documented but not implemented: ${tool}`);
+  }
+  for (const tool of undocumentedMcpTools) {
+    console.error(`- implemented but not documented: ${tool}`);
+  }
+  process.exit(1);
+}
+
+assertGeneratedArtifact(merged);
+
+console.log("✅ Features validate against schema, Prisma, REST, and MCP");
 console.log(`   ${files.length} files merged successfully`);
