@@ -20,7 +20,7 @@
     "check:features:write": "bun run tools/dev/check/check-features-doc.ts --write",
     "check:i18n": "bun run tools/dev/check/check-i18n-keys.ts",
     "check:routes": "bun run tools/dev/check/check-route-conventions.ts",
-    "check:static-import": "bun run tools/dev/check/check-static-import-regression.ts",
+    "check:static-import": "bun run prisma:generate && bun run tools/dev/check/check-static-import-regression.ts",
     "commitlint:last": "commitlint --from HEAD~1 --to HEAD",
     "commitlint:main": "commitlint --from origin/main --to HEAD",
     "dev": "bun run prisma:generate && bun run prisma:deploy && next dev",

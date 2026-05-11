@@ -402,10 +402,14 @@ async function prepareDatabase(databaseUrl: string) {
 }
 
 async function runImporter(importerPath: string, databaseUrl: string) {
-  await runCommand("bun", ["run", importerPath, ...buildImporterArgs()], {
-    ...process.env,
-    DATABASE_URL: databaseUrl,
-  });
+  await runCommand(
+    "bun",
+    [resolveImporterPath(importerPath), ...buildImporterArgs()],
+    {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+    },
+  );
 }
 
 async function main() {
