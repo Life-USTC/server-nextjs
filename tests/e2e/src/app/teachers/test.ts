@@ -3,7 +3,7 @@
  *
  * ## Data Represented
  * - Teachers with code, name (cn/en), department, title, sections
- * - Seed teacher: DEV-T-001 "王测试" (dynamic id, resolved via search)
+ * - Seed teacher: DEV_SEED.teacher (dynamic id, resolved via search)
  * - Department filter backed by getSeedTeacherDepartmentFixture
  *
  * ## UI/UX Elements
@@ -44,6 +44,7 @@ test.describe("/teachers", () => {
     await gotoAndWaitForReady(
       page,
       `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+      { testInfo, screenshotLabel: "teachers-list" },
     );
 
     const detailLink = page.locator("tbody a[href^='/teachers/']").first();
@@ -56,7 +57,10 @@ test.describe("/teachers", () => {
   });
 
   test("search and clear buttons work", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/teachers");
+    await gotoAndWaitForReady(page, "/teachers", {
+      testInfo,
+      screenshotLabel: "teachers",
+    });
 
     const searchbox = page.getByRole("searchbox").first();
     if ((await searchbox.count()) === 0) {
@@ -92,6 +96,7 @@ test.describe("/teachers", () => {
     await gotoAndWaitForReady(
       page,
       `/teachers?departmentId=${filter.departmentId ?? ""}`,
+      { testInfo, screenshotLabel: "teachers-department" },
     );
 
     if (!filter.departmentName) {

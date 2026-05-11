@@ -3,7 +3,7 @@
  *
  * ## Data Represented
  * - Sections with course, semester, teachers, credits, campus, capacity
- * - Seed section: DEV-CS201.01 (jwId 9902001) for course "软件工程实践"
+ * - Seed section: DEV_SEED.section (jwId 9902001) for DEV_SEED.course
  *
  * ## UI/UX Elements
  * - Search input with advanced syntax (teacher:, coursecode:, campus:, credits:, etc.)
@@ -47,6 +47,7 @@ test.describe("/sections", () => {
     await gotoAndWaitForReady(
       page,
       `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+      { testInfo, screenshotLabel: "sections-list" },
     );
 
     const detailLink = page.locator("tbody a[href^='/sections/']").first();
@@ -59,7 +60,10 @@ test.describe("/sections", () => {
   });
 
   test("search help and clear", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/sections");
+    await gotoAndWaitForReady(page, "/sections", {
+      testInfo,
+      screenshotLabel: "sections",
+    });
 
     await page
       .getByRole("button", { name: /\?|帮助|Help/i })
@@ -94,7 +98,10 @@ test.describe("/sections", () => {
   test("semester filter preserves seed results", async ({ page }, testInfo) => {
     const filter = getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
     if (!filter.semesterName) {
-      await gotoAndWaitForReady(page, "/sections");
+      await gotoAndWaitForReady(page, "/sections", {
+        testInfo,
+        screenshotLabel: "sections",
+      });
       await expect(page.locator("#main-content")).toBeVisible();
       return;
     }
@@ -102,6 +109,7 @@ test.describe("/sections", () => {
     await gotoAndWaitForReady(
       page,
       `/sections?semesterId=${filter.semesterId}`,
+      { testInfo, screenshotLabel: "sections-semester" },
     );
     await expect(page).toHaveURL(new RegExp(`semesterId=${filter.semesterId}`));
     await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();

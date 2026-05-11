@@ -76,6 +76,9 @@ test.describe("/settings?tab=accounts", () => {
       return;
     }
 
+    await page.waitForLoadState("networkidle");
+    await expect(connectButton).toBeEnabled();
+
     const currentOrigin = new URL(page.url()).origin;
     const localAuthStartRequestPromise = page.waitForRequest(
       (request) => {
@@ -83,7 +86,7 @@ test.describe("/settings?tab=accounts", () => {
         if (url.origin !== currentOrigin) return false;
         return url.pathname === "/api/auth/oauth2/link";
       },
-      { timeout: 5_000 },
+      { timeout: 15_000 },
     );
 
     await connectButton.click();

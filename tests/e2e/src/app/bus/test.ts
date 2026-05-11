@@ -18,7 +18,16 @@ async function chooseStop(page: Page, label: RegExp, option: RegExp) {
     label.source.includes("Start") || label.source.includes("出发")
       ? page.locator("[data-testid='bus-start-stop-group']")
       : page.locator("[data-testid='bus-end-stop-group']");
-  await group.getByRole("button", { name: option }).click();
+  const button = group.getByRole("button", { name: option });
+  await expect(async () => {
+    if ((await button.getAttribute("aria-pressed")) !== "true") {
+      await button.click();
+    }
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+  }).toPass({
+    timeout: 10_000,
+    intervals: [250, 500, 1_000],
+  });
 }
 
 function routeSectionRows(page: Page) {
@@ -36,7 +45,10 @@ test.describe("bus dashboard tab", () => {
   test("public bus tab shows the planner controls", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus");
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
     await expect(
       page.getByRole("button", { name: /Weekday|工作日/ }).first(),
@@ -62,8 +74,11 @@ test.describe("bus dashboard tab", () => {
 
   test("default stop pair shows every applicable route ordered by next available bus", async ({
     page,
-  }) => {
-    await gotoAndWaitForReady(page, "/?tab=bus");
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
     await expect(routeSectionRows(page)).toHaveCount(2);
     await expect(routeSectionRows(page).first()).toContainText(
@@ -77,11 +92,32 @@ test.describe("bus dashboard tab", () => {
   test("reverse swaps direction and recomputes applicable routes", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus");
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
-    await page.getByRole("button", { name: /Reverse|反向/ }).click();
-
-    await expect(routeSectionRows(page)).toHaveCount(1);
+    const reverseButton = page.getByRole("button", { name: /Reverse|反向/ });
+    const startWestButton = page
+      .locator("[data-testid='bus-start-stop-group']")
+      .getByRole("button", { name: /西区/ });
+    const endEastButton = page
+      .locator("[data-testid='bus-end-stop-group']")
+      .getByRole("button", { name: /东区/ });
+    await expect(async () => {
+      if (
+        (await startWestButton.getAttribute("aria-pressed")) !== "true" ||
+        (await endEastButton.getAttribute("aria-pressed")) !== "true"
+      ) {
+        await reverseButton.click();
+      }
+      await expect(startWestButton).toHaveAttribute("aria-pressed", "true");
+      await expect(endEastButton).toHaveAttribute("aria-pressed", "true");
+      await expect(routeSectionRows(page)).toHaveCount(1);
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
     await expect(routeSectionRows(page).first()).toContainText(
       "高新 -> 先研院 -> 西区 -> 东区",
     );
@@ -91,8 +127,11 @@ test.describe("bus dashboard tab", () => {
 
   test("selecting 东区 to 南区 narrows the list to the direct route", async ({
     page,
-  }) => {
-    await gotoAndWaitForReady(page, "/?tab=bus");
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
     await chooseStop(page, /End stop|到达站/, /南区/);
 
@@ -103,8 +142,11 @@ test.describe("bus dashboard tab", () => {
 
   test("departed toggle keeps the timetable visible and switchable", async ({
     page,
-  }) => {
-    await gotoAndWaitForReady(page, "/?tab=bus");
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
     const initialRows = await page.locator("tbody tr").count();
     const departedToggle = page.getByRole("button", {
@@ -122,7 +164,10 @@ test.describe("bus dashboard tab", () => {
   test("weekday/weekend toggle updates the selected route timetable", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=bus");
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
     await page
       .getByRole("button", { name: /Weekday|工作日/ })
@@ -150,7 +195,10 @@ test.describe("bus dashboard tab", () => {
         showDepartedTrips: false,
       },
     });
-    await gotoAndWaitForReady(page, "/?tab=bus");
+    await gotoAndWaitForReady(page, "/?tab=bus", {
+      testInfo,
+      screenshotLabel: "bus",
+    });
 
     await expect(page.getByText(/saved automatically|自动保存/)).toBeVisible();
 

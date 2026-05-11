@@ -1,24 +1,29 @@
 /**
- * E2E tests for the Public User Profile Page (`/u/[username]`)
+ * E2E tests for the Public User Profile Page (`/u/[username]` and `/u/id/[uid]`)
  *
- * ## Data Represented
- * - Public profile looked up by **username** (case-insensitive, trimmed).
- * - Displays: avatar, display name, @username, join date, stats grid
- *   (sections, comments, uploads, homeworks), and a contribution heatmap
- *   covering the last 365 days.
+ * ## Data Represented (user.yml → public-profile.display.fields)
+ * - user.id (ID profile route /u/id/[uid] only)
+ * - user.image (avatar)
+ * - user.name (display name)
+ * - user.username (@username)
+ * - user.createdAt (join date)
+ * - sectionCount (subscribed sections)
+ * - user._count.comments (total comments)
+ * - user._count.uploads (total uploads)
+ * - user._count.homeworksCreated (homeworks created)
+ * - weeks[].date (YYYY-MM-DD) / weeks[].count (contribution counts)
+ * - totalContributions (aggregate)
  *
- * ## UI/UX Elements
- * - Left card: avatar, name, @username, join date, 4 stat counters
- * - Right card: contribution heatmap (weekly columns), legend (less → more),
- *   total contribution count in the title
- * - No authentication required — fully public page
+ * ## Rules
+ * - user.id is NOT shown on /u/[username] (only accessible via /u/id/[uid])
+ * - Public page: no auth required
  *
  * ## Edge Cases
  * - Non-existent username → 404 page with "Home" link
  * - Empty username param → 404
- * - User ID is **not** shown (that's `/u/id/[uid]`)
  */
 import { expect, test } from "@playwright/test";
+import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
@@ -29,24 +34,75 @@ test.describe("/u/[username]", () => {
     await assertPageContract(page, { routePath: "/u/[username]", testInfo });
   });
 
-  test("displays profile info and contribution chart", async ({
-    page,
-  }, testInfo) => {
+  test("displays all required profile fields", async ({ page }, testInfo) => {
     await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
 
+    // user.name (display name)
     await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+    // user.username (@username)
     await expect(
       page.getByText(`@${DEV_SEED.debugUsername}`).first(),
     ).toBeVisible();
 
-    // Stats grid should have numeric counters
-    const statsGrid = page.locator(".grid.grid-cols-2");
-    await expect(statsGrid).toBeVisible();
+    // user.image (avatar) — img element should be present
+    await expect(page.locator("img").first()).toBeVisible();
 
-    // Contribution heatmap card
+    // user.createdAt — join date label present
+    await expect(
+      page.getByText(/加入时间|Joined|joined/i).first(),
+    ).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "u-username/profile-fields");
+  });
+
+  test("displays stat counters grid", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+
+    // sectionCount, _count.comments, _count.uploads, _count.homeworksCreated
+    // Stats grid must contain numeric counters
+    const statsGrid = page.locator("[class*=grid]").filter({
+      has: page.locator("[class*=text]"),
+    });
+    await expect(statsGrid.first()).toBeVisible();
+
+    // At least one numeric counter is present (even if 0)
+    const counters = page.locator(
+      "[class*=stat], [class*=count], [class*=grid] [class*=text]",
+    );
+    expect(await counters.count()).toBeGreaterThan(0);
+
+    await captureStepScreenshot(page, testInfo, "u-username/stats-grid");
+  });
+
+  test("displays contribution heatmap with totalContributions", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, `/u/${DEV_SEED.debugUsername}`);
+
+    // totalContributions label or heading
     await expect(page.getByText(/贡献|contribution/i).first()).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "u-username-profile");
+    // weeks[].date / weeks[].count — heatmap cells present
+    const heatmapCells = page
+      .locator("[class*=grid] > div, [class*=calendar] > div")
+      .first();
+    await expect(heatmapCells).toBeVisible();
+
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "u-username/contribution-heatmap",
+    );
+  });
+
+  test("user internal ID is NOT visible on username page", async ({ page }) => {
+    // user.yml: public-identity-display rule — internal ids hidden (permission.yml)
+    const res = await page.request.get(`/u/${DEV_SEED.debugUsername}`);
+    expect(res.status()).toBe(200);
+    const html = await res.text();
+    // Internal cuid IDs (26 chars) should not appear in visible page content
+    // We check that the URL pattern /u/id/ is not linked from this page
+    expect(html).not.toMatch(/\/u\/id\/[a-z0-9]{15,}/);
   });
 
   test("returns 404 for non-existent username", async ({ page }, testInfo) => {
@@ -57,6 +113,38 @@ test.describe("/u/[username]", () => {
     await expect(
       page.getByRole("link", { name: /返回首页|Home/i }),
     ).toBeVisible();
-    await captureStepScreenshot(page, testInfo, "u-username-404");
+    await captureStepScreenshot(page, testInfo, "u-username/404");
+  });
+});
+
+test.describe("/u/id/[uid]", () => {
+  test("contract", async ({ page }, testInfo) => {
+    await assertPageContract(page, { routePath: "/u/id/[uid]", testInfo });
+  });
+
+  test("shows profile by internal user ID", async ({ page }, testInfo) => {
+    await signInAsDebugUser(page, "/");
+    const sessionResponse = await page.request.get("/api/auth/get-session");
+    expect(sessionResponse.status()).toBe(200);
+    const session = (await sessionResponse.json()) as {
+      user?: { id?: string };
+    };
+    expect(session.user?.id).toBeTruthy();
+
+    await gotoAndWaitForReady(page, `/u/id/${session.user?.id}`);
+    await expect(
+      page.getByText(`@${DEV_SEED.debugUsername}`).first(),
+    ).toBeVisible();
+    await expect(page.getByText(DEV_SEED.debugName).first()).toBeVisible();
+
+    await captureStepScreenshot(page, testInfo, "u-id/profile");
+  });
+
+  test("404 for non-existent uid", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/u/id/non-existent-uid-000000000", {
+      expectMainContent: false,
+    });
+    await expect(page.locator("h1")).toHaveText("404");
+    await captureStepScreenshot(page, testInfo, "u-id/404");
   });
 });

@@ -79,14 +79,20 @@ test.describe("dashboard links", () => {
     await expect(searchInput).toBeVisible();
 
     // Search for a specific link
-    await searchInput.fill("邮箱");
-    await expect(
-      page.getByRole("button", { name: /邮箱/i }).first(),
-    ).toBeVisible();
-    // Other links should be filtered out
-    await expect(
-      page.getByRole("button", { name: /教务系统/i }).first(),
-    ).toHaveCount(0);
+    await expect(async () => {
+      await searchInput.click();
+      await searchInput.clear();
+      await searchInput.pressSequentially("邮箱");
+      await expect(
+        page.getByRole("button", { name: /邮箱/i }).first(),
+      ).toBeVisible({ timeout: 3_000 });
+      await expect(
+        page.getByRole("button", { name: /教务系统/i }).first(),
+      ).toHaveCount(0);
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
 
     await captureStepScreenshot(page, testInfo, "dashboard-links-search");
   });
@@ -128,11 +134,22 @@ test.describe("dashboard links", () => {
     const expectedInitialLabel = togglesToPinned ? PIN_LABEL : UNPIN_LABEL;
 
     // Toggle pin state
-    await pinButton.click({ force: true });
-    await expect(await locatePinButton()).toHaveAttribute(
-      "aria-label",
-      togglesToPinned ? UNPIN_LABEL : PIN_LABEL,
-    );
+    await expect(async () => {
+      const currentPinButton = await locatePinButton();
+      const currentLabel = await currentPinButton.getAttribute("aria-label");
+      if (
+        !(togglesToPinned ? UNPIN_LABEL : PIN_LABEL).test(currentLabel ?? "")
+      ) {
+        await currentPinButton.click({ force: true });
+      }
+      await expect(await locatePinButton()).toHaveAttribute(
+        "aria-label",
+        togglesToPinned ? UNPIN_LABEL : PIN_LABEL,
+      );
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
     await captureStepScreenshot(
       page,
       testInfo,

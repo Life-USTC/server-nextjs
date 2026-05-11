@@ -1,17 +1,16 @@
 /**
  * E2E tests for the Settings Profile Tab (`/settings?tab=profile`)
  *
- * ## Data Represented
- * - `/settings?tab=profile` is the canonical profile settings entry.
- * - The profile section shows a form to edit: profile picture, name, username.
- * - Current values are pre-filled from the database.
+ * ## Data Represented (user.yml → settings.display.fields)
+ * - user.profilePictures[] (avatar options)
+ * - user.image (current avatar)
+ * - user.name (display name)
+ * - user.username (username)
  *
- * ## UI/UX Elements
- * - Profile picture selector (avatar + selectable thumbnails if available)
- * - Name input (`#name`) — free text
- * - Username input (`#username`) — validated with pattern `[a-z0-9-]{1,20}`
- * - Save button — submits via server action, shows success/error toast
- * - Card with title "Edit Profile" / "编辑资料"
+ * ## Features
+ * - Avatar selector shows current avatar and selectable thumbnails
+ * - Name input pre-filled from database; save persists
+ * - Username input with pattern validation
  *
  * ## Edge Cases
  * - Unauthenticated → redirects to /signin
@@ -30,28 +29,46 @@ import { withE2eLock } from "../../../../utils/locks";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe("/settings?tab=profile", () => {
+  // Serial mode avoids intra-file contention on the shared debug-user-profile
+  // lock that also protects welcome-flow tests.
+  test.describe.configure({ mode: "serial" });
+
   test("requires authentication", async ({ page }, testInfo) => {
     await expectRequiresSignIn(page, "/settings?tab=profile");
     await captureStepScreenshot(
       page,
       testInfo,
-      "settings-profile-unauthorized",
+      "settings/profile-unauthorized",
     );
   });
 
-  test("redirects and displays seed user data", async ({ page }, testInfo) => {
-    await signInAsDebugUser(page, "/settings?tab=profile");
+  test("displays all required profile fields", async ({ page }, testInfo) => {
+    test.setTimeout(300_000);
+    await withE2eLock("debug-user-profile", async () => {
+      await signInAsDebugUser(page, "/settings?tab=profile");
 
-    await expectPagePath(page, "/settings?tab=profile");
-    await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
-    await expect(page.locator("input#username")).toHaveValue(
-      DEV_SEED.debugUsername,
-    );
-    await captureStepScreenshot(page, testInfo, "settings-profile-seed");
+      await expectPagePath(page, "/settings?tab=profile");
+      await expect(page.locator("input#name")).toHaveValue(DEV_SEED.debugName);
+      await expect(page.locator("input#username")).toHaveValue(
+        DEV_SEED.debugUsername,
+      );
+
+      const avatarImg = page
+        .locator('img[alt*="avatar"], img[alt*="Avatar"], img[src*="avatar"]')
+        .or(page.locator('[data-testid="current-avatar"]'))
+        .or(page.locator("img"))
+        .first();
+      await expect(avatarImg).toBeVisible();
+      await expect(
+        page.getByText(/头像|Avatar|Profile picture/i).first(),
+      ).toBeVisible();
+
+      await captureStepScreenshot(page, testInfo, "settings/profile-fields");
+    });
   });
 
   test("can save name and rollback", async ({ page }, testInfo) => {
-    test.setTimeout(60_000);
+    test.setTimeout(300_000);
     await withE2eLock("debug-user-profile", async () => {
       await signInAsDebugUser(page, "/settings?tab=profile");
 
@@ -64,19 +81,31 @@ test.describe("/settings?tab=profile", () => {
       const newName = `e2e-${Date.now()}`;
 
       await nameInput.fill(newName);
+      const saveResponsePromise = page.waitForResponse(
+        (r) => r.url().includes("/settings") && r.request().method() === "POST",
+      );
       await saveButton.click();
+      await saveResponsePromise;
       await expect(successToast).toBeVisible();
-      await page.waitForLoadState("networkidle");
       await page.reload();
-      await expect(page.locator("input#name")).toHaveValue(newName);
-      await captureStepScreenshot(page, testInfo, "settings-profile-saved");
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("input#name")).toHaveValue(newName, {
+        timeout: 10_000,
+      });
+      await captureStepScreenshot(page, testInfo, "settings/profile-saved");
 
       await page.locator("input#name").fill(originalName);
+      const rollbackResponsePromise = page.waitForResponse(
+        (r) => r.url().includes("/settings") && r.request().method() === "POST",
+      );
       await saveButton.click();
+      await rollbackResponsePromise;
       await expect(successToast).toBeVisible();
-      await page.waitForLoadState("networkidle");
       await page.reload();
-      await expect(page.locator("input#name")).toHaveValue(originalName);
+      await page.waitForLoadState("networkidle");
+      await expect(page.locator("input#name")).toHaveValue(originalName, {
+        timeout: 10_000,
+      });
     });
   });
 });

@@ -30,7 +30,10 @@ test.describe("dashboard", () => {
   test("unauthenticated with ?tab=homeworks shows public bus view", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=homeworks");
+    await gotoAndWaitForReady(page, "/?tab=homeworks", {
+      testInfo,
+      screenshotLabel: "dashboard",
+    });
 
     await expect(page).toHaveURL(/\/\?tab=homeworks$/);
     await expect(page.locator("#app-logo")).toBeVisible();
@@ -56,7 +59,10 @@ test.describe("dashboard", () => {
   }, testInfo) => {
     await signInAsDebugUser(page, "/");
     await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/");
+    await gotoAndWaitForReady(page, "/", {
+      testInfo,
+      screenshotLabel: "dashboard",
+    });
 
     await expect(page).toHaveURL(/\/(?:\?.*)?$/);
     await expect(page.locator("#main-content")).toBeVisible();
@@ -72,11 +78,12 @@ test.describe("dashboard", () => {
       await expect(nav.getByRole("link", { name: label })).toBeVisible();
     }
 
-    // Seed homework title visible on overview. Retry because other E2E slices
-    // exercise section subscription replacement for the shared debug user.
+    // Seed homework title visible on overview. Retry the subscription+reload
+    // because other E2E slices exercise subscription replacement for the
+    // shared debug user. The initial sign-in goto stays outside the retry.
     await expect(async () => {
       await ensureSeedSectionSubscription(page);
-      await gotoAndWaitForReady(page, "/");
+      await page.reload({ waitUntil: "domcontentloaded" });
       await expect(
         page.getByText(DEV_SEED.homeworks.title).first(),
       ).toBeVisible({

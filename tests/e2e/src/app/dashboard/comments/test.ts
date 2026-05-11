@@ -23,7 +23,10 @@ test.describe("dashboard invalid tab (comments)", () => {
   test("unauthenticated ?tab=comments falls back to public bus view", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=comments");
+    await gotoAndWaitForReady(page, "/?tab=comments", {
+      testInfo,
+      screenshotLabel: "dashboard-invalid-tab",
+    });
 
     // URL retains the invalid tab param
     await expect(page).toHaveURL(/\/\?tab=comments$/);

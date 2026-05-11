@@ -10,7 +10,10 @@ test("/mobile-app", async ({ page }, testInfo) => {
 test("/mobile-app 展示下载入口并可返回公开仪表盘", async ({
   page,
 }, testInfo) => {
-  await gotoAndWaitForReady(page, "/mobile-app");
+  await gotoAndWaitForReady(page, "/mobile-app", {
+    testInfo,
+    screenshotLabel: "mobile-app",
+  });
 
   await expect(page.locator("#app-logo")).toBeVisible();
   await expect(

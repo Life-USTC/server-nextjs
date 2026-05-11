@@ -1,11 +1,13 @@
 /**
  * E2E tests for the Subscriptions Tab (`?tab=subscriptions`)
  *
- * ## Data Represented
- * - Subscriptions grouped by subscription type, then by semester within each
- * - Each section row: code (DEV-CS201.01), course name (软件工程实践),
- *   teacher names (王测试), credits, opt-out button
- * - Seed data includes subscription to section DEV-CS201.01
+ * ## Data Represented (subscribed-sections.yml → subscribed-sections-tab.display.fields)
+ * - semester group label and count
+ * - subscription.sections[].code
+ * - subscription.sections[].course.namePrimary
+ * - section.teachers[]
+ * - section.credits
+ * - Unsubscribe button per section
  * - Calendar subscription URL for iCal feed
  *
  * ## UI/UX Elements
@@ -25,15 +27,16 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
+import { withE2eLock } from "../../../../../utils/locks";
 import {
-  getCurrentSessionUser,
-  getUserSubscribedSectionIds,
-  replaceUserSubscribedSectionIds,
-} from "../../../../../utils/e2e-db";
-import { gotoAndWaitForReady } from "../../../../../utils/page-ready";
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../../utils/screenshot";
+import { ensureSeedSectionSubscription } from "../../../../../utils/subscriptions";
 
 test.describe("dashboard subscriptions", () => {
+  test.describe.configure({ mode: "serial" });
   test("unauthenticated ?tab=subscriptions shows public view", async ({
     page,
   }, testInfo) => {
@@ -56,56 +59,108 @@ test.describe("dashboard subscriptions", () => {
     );
   });
 
-  test("authenticated shows seed section subscription", async ({
+  test("authenticated shows seed section subscription with all required fields", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=subscriptions");
+    await expect(async () => {
+      await ensureSeedSectionSubscription(page);
+      await gotoAndWaitForReady(page, "/?tab=subscriptions");
 
-    await expect(page).toHaveURL(/\/(?:\?.*)?$/);
-    await expect(page.locator("#main-content")).toBeVisible();
-    await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible();
-    await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible();
+      await expect(page).toHaveURL(/\/(?:\?.*)?$/);
+      await expect(page.locator("#main-content")).toBeVisible();
 
-    await captureStepScreenshot(page, testInfo, "dashboard-subscriptions-seed");
+      // subscription.sections[].course.namePrimary
+      await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible({
+        timeout: 3_000,
+      });
+      // subscription.sections[].code
+      await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible({
+        timeout: 3_000,
+      });
+      // section.teachers[] (locale-dependent)
+      await expect(
+        page
+          .getByText(DEV_SEED.teacher.nameCn)
+          .or(page.getByText(DEV_SEED.teacher.nameEn))
+          .first(),
+      ).toBeVisible({ timeout: 3_000 });
+      // section.credits
+      await expect(
+        page.getByText(String(DEV_SEED.section.credits)).first(),
+      ).toBeVisible({ timeout: 3_000 });
+      // semester group label — semester name shown as group header
+      await expect(page.getByText(DEV_SEED.semesterNameCn).first()).toBeVisible(
+        {
+          timeout: 3_000,
+        },
+      );
+    }).toPass({
+      timeout: 20_000,
+      intervals: [500, 1_000, 2_000],
+    });
+
+    await captureStepScreenshot(page, testInfo, "subscriptions/seed-fields");
   });
 
   test("empty state offers discovery actions", async ({ page }, testInfo) => {
     test.setTimeout(60000);
-    await signInAsDebugUser(page, "/?tab=subscriptions");
-
-    const sessionUser = await getCurrentSessionUser(page);
-    const originalSectionIds = getUserSubscribedSectionIds(sessionUser.id);
-    replaceUserSubscribedSectionIds(sessionUser.id, []);
-
-    try {
+    await withE2eLock("debug-user-subscriptions", async () => {
+      await signInAsDebugUser(page, "/?tab=subscriptions");
       await gotoAndWaitForReady(page, "/?tab=subscriptions");
-
-      await expect(
-        page.getByRole("button", {
+      await expect(async () => {
+        const bulkImportButton = page.getByRole("button", {
           name: /批量导入班级|Bulk Import Sections/i,
-        }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /浏览班级|Browse Sections/i }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("link", { name: /浏览课程|Browse Courses/i }),
-      ).toBeVisible();
+        });
+        const browseSectionsLink = page.getByRole("link", {
+          name: /浏览班级|Browse Sections/i,
+        });
+        const browseCoursesLink = page.getByRole("link", {
+          name: /浏览课程|Browse Courses/i,
+        });
+        if ((await browseSectionsLink.count()) === 0) {
+          const firstRow = page.locator("tbody tr").first();
+          await firstRow.hover();
+          const rowActionButton = firstRow
+            .getByRole("button", { name: /移除|Opt out|确认|Confirm/i })
+            .first();
+          const rowActionLabel = (await rowActionButton.textContent()) ?? "";
+          if (/确认|Confirm/i.test(rowActionLabel)) {
+            await rowActionButton.click({ force: true });
+          } else {
+            await rowActionButton.click({ force: true });
+            await expect(
+              firstRow.getByRole("button", { name: /确认|Confirm/i }),
+            ).toBeVisible({ timeout: 3_000 });
+            await firstRow
+              .getByRole("button", { name: /确认|Confirm/i })
+              .click({ force: true });
+          }
+        }
+
+        await waitForUiSettled(page);
+        await expect(bulkImportButton).toBeVisible({ timeout: 3_000 });
+        await expect(browseSectionsLink).toBeVisible({ timeout: 3_000 });
+        await expect(browseCoursesLink).toBeVisible({ timeout: 3_000 });
+      }).toPass({
+        timeout: 30_000,
+        intervals: [500, 1_000, 2_000],
+      });
 
       await captureStepScreenshot(
         page,
         testInfo,
         "dashboard-subscriptions-empty-state",
       );
-    } finally {
-      replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
-    }
+    });
   });
 
   test("can navigate to section detail from table row", async ({
     page,
   }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=subscriptions");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/?tab=subscriptions");
 
     const rowLink = page.locator("tbody a[href^='/sections/']").first();
     await expect(rowLink).toBeVisible();
@@ -121,6 +176,8 @@ test.describe("dashboard subscriptions", () => {
 
   test("opt-out button enters confirm state", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=subscriptions");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/?tab=subscriptions");
 
     const firstRow = page.locator("tbody tr").first();
     await expect(firstRow).toBeVisible();
@@ -150,6 +207,8 @@ test.describe("dashboard subscriptions", () => {
       .context()
       .grantPermissions(["clipboard-read", "clipboard-write"]);
     await signInAsDebugUser(page, "/?tab=subscriptions");
+    await ensureSeedSectionSubscription(page);
+    await gotoAndWaitForReady(page, "/?tab=subscriptions");
 
     const copyButton = page
       .getByRole("button", { name: /复制日历链接|iCal/i })

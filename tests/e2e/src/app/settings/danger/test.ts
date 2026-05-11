@@ -51,13 +51,28 @@ test.describe("/settings?tab=danger", () => {
       .first();
     await expect(openDialogButton).toBeVisible();
     await expect(openDialogButton).toBeEnabled();
-    await openDialogButton.click({ force: true });
+    await expect(async () => {
+      await openDialogButton.click({ force: true });
+      const dialog = page.getByRole("dialog").last();
+      await expect(dialog).toBeVisible();
+      await expect(
+        dialog.locator('input[placeholder="DELETE"]').first(),
+      ).toBeVisible();
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
 
-    const input = page.locator('input[placeholder="DELETE"]').first();
-    await expect(input).toBeVisible();
+    const input = page
+      .getByRole("dialog")
+      .last()
+      .locator('input[placeholder="DELETE"]')
+      .first();
 
     // Confirm button disabled until exact phrase typed
     const confirmButton = page
+      .getByRole("dialog")
+      .last()
       .getByRole("button", { name: /删除|Delete/i })
       .last();
     await expect(confirmButton).toBeDisabled();

@@ -65,7 +65,10 @@ test.describe("/settings?tab=content", () => {
       "settings-content-navigate-sections",
     );
 
-    await gotoAndWaitForReady(page, "/settings?tab=content");
+    await gotoAndWaitForReady(page, "/settings?tab=content", {
+      testInfo,
+      screenshotLabel: "settings-content",
+    });
     const guideLink = page.getByRole("link", {
       name: /评论指南|Comment guide/i,
     });

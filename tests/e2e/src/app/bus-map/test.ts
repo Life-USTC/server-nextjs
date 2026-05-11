@@ -25,7 +25,10 @@ test.describe("bus transit map", () => {
   test("renders campus nodes and route lines in SVG", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/bus-map");
+    await gotoAndWaitForReady(page, "/bus-map", {
+      testInfo,
+      screenshotLabel: "bus-map",
+    });
 
     // Page title and experimental badge
     await expect(page.getByText(/Transit Map|线路图/).first()).toBeVisible();
@@ -53,8 +56,11 @@ test.describe("bus transit map", () => {
 
   test("legend shows route descriptions and status indicators", async ({
     page,
-  }) => {
-    await gotoAndWaitForReady(page, "/bus-map");
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/bus-map", {
+      testInfo,
+      screenshotLabel: "bus-map",
+    });
 
     // Legend section should exist
     await expect(page.getByText(/Legend|图例/).first()).toBeVisible();
@@ -69,8 +75,11 @@ test.describe("bus transit map", () => {
     await expect(page.getByText(/Departing|即将发车/).first()).toBeVisible();
   });
 
-  test("back link navigates to bus tab", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/bus-map");
+  test("back link navigates to bus tab", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/bus-map", {
+      testInfo,
+      screenshotLabel: "bus-map",
+    });
 
     const backLink = page
       .getByRole("link", { name: /Back to timetable|返回时刻表/ })
@@ -79,8 +88,13 @@ test.describe("bus transit map", () => {
     await expect(backLink).toHaveAttribute("href", "/?tab=bus");
   });
 
-  test("day type and time info shown in sidebar", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/bus-map");
+  test("day type and time info shown in sidebar", async ({
+    page,
+  }, testInfo) => {
+    await gotoAndWaitForReady(page, "/bus-map", {
+      testInfo,
+      screenshotLabel: "bus-map",
+    });
 
     // Day type label (weekday or weekend)
     await expect(
@@ -88,8 +102,11 @@ test.describe("bus transit map", () => {
     ).toBeVisible();
   });
 
-  test("refresh button is present", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/bus-map");
+  test("refresh button is present", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/bus-map", {
+      testInfo,
+      screenshotLabel: "bus-map",
+    });
 
     // Refresh button with RefreshCw icon
     const refreshBtn = page.locator("button").filter({

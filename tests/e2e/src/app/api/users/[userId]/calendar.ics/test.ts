@@ -122,7 +122,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
 
         // Completed todos and deleted homework must not appear
         expect(body).not.toContain(DEV_SEED.todos.completedTitle);
-        expect(body).not.toContain("[DEV-SCENARIO] 已删除作业");
+        expect(body).not.toContain("已删除作业");
       } finally {
         await page.request.post("/api/calendar-subscriptions", {
           data: { sectionIds: originalIds },

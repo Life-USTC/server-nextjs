@@ -10,7 +10,11 @@ test("/api-docs", async ({ page }, testInfo) => {
 
 test("/api-docs 页面展示 OpenAPI 关键路径", async ({ page }, testInfo) => {
   test.setTimeout(60000);
-  await gotoAndWaitForReady(page, "/api-docs", { waitUntil: "load" });
+  await gotoAndWaitForReady(page, "/api-docs", {
+    waitUntil: "load",
+    testInfo,
+    screenshotLabel: "api-docs",
+  });
   await expect(page.locator("#swagger-ui")).toContainText("/api/sections", {
     timeout: 30000,
   });

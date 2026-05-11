@@ -11,6 +11,7 @@ import {
 } from "../../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
+import { resolveSeedSectionId } from "../../../../utils/subscriptions";
 
 test("/admin/moderation 未登录重定向到登录页", async ({ page }, testInfo) => {
   await expectRequiresSignIn(page, "/admin/moderation");
@@ -73,21 +74,26 @@ test("/admin/moderation 可更新评论状态与备注", async ({ page }, testIn
   test.setTimeout(60000);
   await signInAsDevAdmin(page, "/admin/moderation");
 
-  const activeResponse = await page.request.get(
-    "/api/admin/comments?status=active",
-  );
-  expect(activeResponse.status()).toBe(200);
-  const activeBody = (await activeResponse.json()) as {
-    comments?: Array<{ id?: string; body?: string }>;
-  };
-  const target = activeBody.comments?.find((item) => item.id && item.body);
-  expect(target?.id).toBeTruthy();
-  const keyword = target?.body?.slice(0, 16) ?? "";
-  expect(keyword.length > 0).toBe(true);
+  const sectionId = await resolveSeedSectionId(page);
 
-  await page
-    .getByPlaceholder(/搜索评论内容或用户名|Search comments/i)
-    .fill(keyword);
+  const keyword = `e2e-moderation-${Date.now()}`;
+  const createResponse = await page.request.post("/api/comments", {
+    data: {
+      targetType: "section",
+      targetId: String(sectionId),
+      body: keyword,
+      visibility: "public",
+    },
+  });
+  expect(createResponse.status()).toBe(200);
+  const createdComment = (await createResponse.json()) as { id?: string };
+  expect(createdComment.id).toBeTruthy();
+
+  await gotoAndWaitForReady(
+    page,
+    `/admin/moderation?search=${encodeURIComponent(keyword)}`,
+  );
+  await expect(page.getByText(keyword).first()).toBeVisible();
   await page.getByText(keyword).first().click();
   const dialog = page
     .getByRole("dialog", { name: /管理评论|Manage Comment/i })
@@ -246,11 +252,17 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
   let suspensionId: string | undefined;
 
   try {
-    const commentsTab = page
-      .getByRole("tab", { name: /评论|Comments/i })
-      .first();
-    await expect(commentsTab).toBeVisible();
-    await commentsTab.click();
+    await expect(async () => {
+      const commentsTab = page
+        .getByRole("tab", { name: /评论|Comments/i })
+        .first();
+      await expect(commentsTab).toBeVisible();
+      await commentsTab.click();
+      await expect(commentsTab).toHaveAttribute("aria-selected", "true");
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
 
     const body = `e2e-admin-suspend-${Date.now()}`;
     await page.locator("textarea").first().fill(body);
@@ -309,4 +321,76 @@ test("/admin/moderation 可从评论弹窗封禁并解除用户", async ({
       expect(lift.status()).toBe(200);
     }
   }
+});
+
+// ── Description governance ──────────────────────────────────────────────────
+
+test("/admin/moderation description governance table visible", async ({
+  page,
+}, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/moderation");
+
+  // admin.yml moderation.display.fields: Description moderation table
+  const descTab = page.getByRole("tab", { name: /简介|Description/i }).first();
+  if ((await descTab.count()) > 0) {
+    await descTab.click();
+    // description.content / preview visible
+    await expect(page.locator("td, [data-slot='card']").first()).toBeVisible();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "admin-moderation/description-table",
+    );
+  } else {
+    // descriptions may be on the same tab — look for the section header
+    const descSection = page.getByText(/简介管理|Descriptions/i).first();
+    if ((await descSection.count()) > 0) {
+      await expect(descSection).toBeVisible();
+    }
+    // Verify the API is accessible
+    const descResponse = await page.request.get("/api/admin/descriptions");
+    expect(descResponse.status()).toBe(200);
+    const descBody = (await descResponse.json()) as {
+      descriptions?: Array<{ id?: string }>;
+    };
+    expect(Array.isArray(descBody.descriptions)).toBe(true);
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "admin-moderation/descriptions-api",
+    );
+  }
+});
+
+// ── Homework governance ─────────────────────────────────────────────────────
+
+test("/admin/moderation homework governance accessible", async ({
+  page,
+}, testInfo) => {
+  await signInAsDevAdmin(page, "/admin/moderation");
+
+  // admin.yml moderation.display.fields (via homework.yml → homework-governance)
+  const hwTab = page.getByRole("tab", { name: /作业|Homework/i }).first();
+  if ((await hwTab.count()) > 0) {
+    await hwTab.click();
+    await captureStepScreenshot(
+      page,
+      testInfo,
+      "admin-moderation/homework-tab",
+    );
+  }
+
+  // Verify the homework governance API is accessible
+  const hwResponse = await page.request.get("/api/admin/homeworks");
+  expect(hwResponse.status()).toBe(200);
+  const hwBody = (await hwResponse.json()) as {
+    homeworks?: Array<{ id?: string }>;
+  };
+  expect(Array.isArray(hwBody.homeworks)).toBe(true);
+
+  await captureStepScreenshot(
+    page,
+    testInfo,
+    "admin-moderation/homework-governance",
+  );
 });

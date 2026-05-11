@@ -2,8 +2,8 @@
  * E2E tests for the Todos Tab (`?tab=todos`)
  *
  * ## Data Represented
- * - Seed todos: "[DEV-SCENARIO] 今天截止待办" (due today, incomplete) and
- *   "[DEV-SCENARIO] 已完成待办" (completed)
+ * - Seed todos: DEV_SEED.todos.dueTodayTitle (due today, incomplete) and
+ *   DEV_SEED.todos.completedTitle (completed)
  * - Each todo card shows: title, priority badge, due date, hover completion button,
  *   and optional markdown content
  *
@@ -29,7 +29,10 @@ test.describe("dashboard todos", () => {
   test("unauthenticated ?tab=todos shows public view", async ({
     page,
   }, testInfo) => {
-    await gotoAndWaitForReady(page, "/?tab=todos");
+    await gotoAndWaitForReady(page, "/?tab=todos", {
+      testInfo,
+      screenshotLabel: "todos",
+    });
 
     await expect(page).toHaveURL(/\/\?tab=todos$/);
     await expect(page.locator("#main-content")).toBeVisible();
@@ -71,14 +74,17 @@ test.describe("dashboard todos", () => {
   test("completed filter shows completed todo", async ({ page }, testInfo) => {
     await signInAsDebugUser(page, "/?tab=todos");
 
-    await page
+    const completedFilter = page
       .getByRole("button", { name: /已完成|Completed/i })
-      .first()
-      .click();
-
-    await expect(
-      page.getByText(DEV_SEED.todos.completedTitle).first(),
-    ).toBeVisible();
+      .first();
+    const completedTodo = page.getByText(DEV_SEED.todos.completedTitle).first();
+    await expect(async () => {
+      await completedFilter.click();
+      await expect(completedTodo).toBeVisible({ timeout: 3_000 });
+    }).toPass({
+      timeout: 15_000,
+      intervals: [250, 500, 1_000],
+    });
 
     await captureStepScreenshot(page, testInfo, "dashboard-todos-completed");
   });
@@ -90,11 +96,20 @@ test.describe("dashboard todos", () => {
     const title = `e2e-dashboard-todo-${Date.now()}`;
 
     // Create a new todo via sheet form
-    await page
+    const addTodoButton = page
       .getByRole("button", { name: /添加待办|Add Todo/i })
-      .first()
-      .click();
-    await page.getByLabel(/标题|Title/i).fill(title);
+      .first();
+    await expect(addTodoButton).toBeVisible();
+    await expect(addTodoButton).toBeEnabled();
+    const titleInput = page.getByLabel(/标题|Title/i);
+    await expect(async () => {
+      await addTodoButton.click();
+      await expect(titleInput).toBeVisible({ timeout: 3_000 });
+    }).toPass({
+      timeout: 10_000,
+      intervals: [250, 500, 1_000],
+    });
+    await titleInput.fill(title);
     await page
       .getByRole("button", { name: /创建待办|Create Todo/i })
       .first()

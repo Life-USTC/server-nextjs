@@ -3,7 +3,7 @@
  *
  * ## Data Represented
  * - Courses with nameCn/nameEn, code, educationLevel, category, classType
- * - Seed course: DEV-CS201 "软件工程实践" (jwId 9901001)
+ * - Seed course: DEV_SEED.course (jwId 9901001)
  *
  * ## UI/UX Elements
  * - Search input (searchbox) with search/clear buttons
@@ -43,14 +43,20 @@ test.describe("/courses", () => {
   });
 
   test("language switching works", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/courses");
+    await gotoAndWaitForReady(page, "/courses", {
+      testInfo,
+      screenshotLabel: "courses",
+    });
 
     const localeResponse = await page.request.post("/api/locale", {
       data: { locale: "en-us" },
     });
     expect(localeResponse.status()).toBe(200);
 
-    await gotoAndWaitForReady(page, "/courses");
+    await gotoAndWaitForReady(page, "/courses", {
+      testInfo,
+      screenshotLabel: "courses",
+    });
     await expect(page.locator("html")).toHaveAttribute("lang", "en-us");
     await captureStepScreenshot(page, testInfo, "courses-en-us");
 
@@ -70,6 +76,7 @@ test.describe("/courses", () => {
     await gotoAndWaitForReady(
       page,
       `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+      { testInfo, screenshotLabel: "courses-list" },
     );
     const detailLink = page.locator("tbody a[href^='/courses/']").first();
     await expect(detailLink).toBeVisible();
@@ -81,7 +88,10 @@ test.describe("/courses", () => {
   });
 
   test("search and clear button", async ({ page }, testInfo) => {
-    await gotoAndWaitForReady(page, "/courses");
+    await gotoAndWaitForReady(page, "/courses", {
+      testInfo,
+      screenshotLabel: "courses",
+    });
 
     const searchbox = page.getByRole("searchbox").first();
     if ((await searchbox.count()) === 0) {
@@ -126,7 +136,10 @@ test.describe("/courses", () => {
       params.set("classTypeId", String(filters.classTypeId));
     }
 
-    await gotoAndWaitForReady(page, `/courses?${params.toString()}`);
+    await gotoAndWaitForReady(page, `/courses?${params.toString()}`, {
+      testInfo,
+      screenshotLabel: "courses-filter",
+    });
 
     await expect(page.getByText(DEV_SEED.course.code).first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "courses-filter-seed");

@@ -31,7 +31,7 @@ test("/admin/users 管理员可看到 seed 用户", async ({ page }, testInfo) =
   await expect(page).toHaveURL(/\/admin\/users(?:\?.*)?$/);
   await expect(page.locator("#main-content")).toBeVisible();
   await expect(page.getByText(DEV_SEED.debugUsername).first()).toBeVisible();
-  await expect(page.getByText("dev-admin").first()).toBeVisible();
+  await expect(page.getByText(DEV_SEED.adminUsername).first()).toBeVisible();
   await captureStepScreenshot(page, testInfo, "admin-users-seed");
 });
 
@@ -83,15 +83,16 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
   test.setTimeout(60000);
   await signInAsDevAdmin(page, "/admin/users");
 
+  await page.waitForLoadState("networkidle");
   const row = page
     .locator("tr")
     .filter({ hasText: DEV_SEED.debugUsername })
     .first();
-  await expect(row).toBeVisible();
+  await expect(row).toBeVisible({ timeout: 10_000 });
   await row.click();
 
   const dialog = page.getByRole("dialog", { name: /管理用户|Manage User/i });
-  await expect(dialog).toBeVisible();
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
 
   const usernameInput = dialog.getByPlaceholder(/用户名|Username/i).first();
   await expect(usernameInput).toBeVisible();

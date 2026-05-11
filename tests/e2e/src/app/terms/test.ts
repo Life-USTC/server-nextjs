@@ -15,8 +15,11 @@ test.describe("/terms", () => {
     await assertPageContract(page, { routePath: "/terms", testInfo });
   });
 
-  test("renders terms of service with sections", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/terms");
+  test("renders terms of service with sections", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/terms", {
+      testInfo,
+      screenshotLabel: "terms",
+    });
     await waitForUiSettled(page);
 
     await expect(page.locator("#main-content")).toBeVisible();

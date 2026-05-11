@@ -9,7 +9,7 @@ test("/api/sections/match-codes", async ({ request }) => {
 test("/api/sections/match-codes 返回 matched 与 unmatched", async ({
   request,
 }) => {
-  const unknownCode = "DEV-NOT-EXIST";
+  const unknownCode = "ZZ9999.99";
   const response = await request.post("/api/sections/match-codes", {
     data: { codes: [DEV_SEED.section.code, unknownCode] },
   });

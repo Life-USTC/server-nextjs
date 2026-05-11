@@ -15,8 +15,11 @@ test.describe("/privacy", () => {
     await assertPageContract(page, { routePath: "/privacy", testInfo });
   });
 
-  test("renders privacy policy with sections", async ({ page }) => {
-    await gotoAndWaitForReady(page, "/privacy");
+  test("renders privacy policy with sections", async ({ page }, testInfo) => {
+    await gotoAndWaitForReady(page, "/privacy", {
+      testInfo,
+      screenshotLabel: "privacy",
+    });
     await waitForUiSettled(page);
 
     await expect(page.locator("#main-content")).toBeVisible();
