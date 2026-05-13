@@ -6,6 +6,7 @@
  *
  * This is idempotent — it upserts by clientId so it's safe to re-run.
  */
+import type { Prisma } from "@/generated/prisma/client";
 import { createToolPrisma } from "../../shared/tool-prisma";
 
 const prisma = createToolPrisma();
@@ -22,7 +23,10 @@ const IOS_CLIENT = {
   requirePKCE: true,
   disabled: false,
   clientSecret: null,
-  metadata: { source: "first-party", platform: "ios" },
+  metadata: {
+    source: "first-party",
+    platform: "ios",
+  } satisfies Prisma.InputJsonObject,
 } as const;
 
 async function main() {
@@ -44,7 +48,7 @@ async function main() {
         public: IOS_CLIENT.public,
         requirePKCE: IOS_CLIENT.requirePKCE,
         disabled: IOS_CLIENT.disabled,
-        metadata: IOS_CLIENT.metadata as Record<string, unknown>,
+        metadata: IOS_CLIENT.metadata,
       },
     });
     console.log(
@@ -64,7 +68,7 @@ async function main() {
         requirePKCE: IOS_CLIENT.requirePKCE,
         disabled: IOS_CLIENT.disabled,
         clientSecret: null,
-        metadata: IOS_CLIENT.metadata as Record<string, unknown>,
+        metadata: IOS_CLIENT.metadata,
       },
     });
     console.log(`✅ Created iOS client (clientId: ${IOS_CLIENT.clientId})`);

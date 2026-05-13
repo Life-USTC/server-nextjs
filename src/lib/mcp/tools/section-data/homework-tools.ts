@@ -1,8 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { findActiveSuspension } from "@/features/comments/server/comment-utils";
+import * as z from "zod";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import {
   getUserId,

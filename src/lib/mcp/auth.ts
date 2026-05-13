@@ -8,10 +8,11 @@ import {
   resourceIndicatorsMatch,
 } from "@/lib/oauth/utils";
 import {
-  getBetterAuthBaseUrl,
   getJwksUrlForOAuthVerification,
+  getOAuthMcpAudienceUrls,
   getOAuthMcpResourceUrl,
   getOAuthProtectedResourceMetadataUrl,
+  getOAuthTokenVerificationIssuers,
 } from "./urls";
 
 const INVALID_TOKEN_ERROR = "invalid_token";
@@ -118,17 +119,15 @@ export async function verifyAccessToken(
   request: Request,
   token: string,
 ): Promise<AuthInfo | AuthFailure> {
-  const issuer = getBetterAuthBaseUrl();
   const mcpAudience = getOAuthMcpResourceUrl();
-  const userinfoAudience = `${issuer}/oauth2/userinfo`;
 
   if (accessTokenLooksLikeJwt(token)) {
     try {
       const jwt = await verifyOAuthAccessToken(token, {
         jwksUrl: getJwksUrlForOAuthVerification(),
         verifyOptions: {
-          issuer,
-          audience: [mcpAudience, userinfoAudience, issuer],
+          issuer: getOAuthTokenVerificationIssuers(),
+          audience: getOAuthMcpAudienceUrls(),
         },
       });
 

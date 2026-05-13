@@ -4,63 +4,35 @@ Playwright browser tests.
 
 ## Commands
 
+Use the root `AGENTS.md` command list for the canonical E2E workflow. Common
+focused variants still include:
+
 ```bash
-bun run test:e2e                    # All
-bun run test:e2e -- path/to/test   # Focused
-bun run test:e2e:headed             # Headed
-bun run test:e2e:ui                 # Playwright UI
-bun run check:e2e                   # Convention check
+bun run test:e2e -- path/to/test
+PLAYWRIGHT_REUSE_SERVER=1 bun run test:e2e -- path/to/test
+bun run test:e2e:headed
+bun run test:e2e:ui
 ```
 
 ## Local Setup
 
-1. **Start local infra** (once; data persists across restarts):
-   ```bash
-   docker compose -f docker-compose.dev.yml up -d
-   ```
-   This starts Postgres, MinIO, and `minio-setup` (which auto-creates bucket `life-ustc-dev`).
-   Playwright global setup also provisions the dedicated E2E bucket `life-ustc-e2e`
-   unless you override it with `PLAYWRIGHT_S3_BUCKET`.
-   Console: <http://127.0.0.1:9001> (user/pass: `minioadmin`)
+Use the root `AGENTS.md` for the shared setup flow. E2E-only caveats:
 
-2. **Build the app**:
-   ```bash
-   bun run build && bun run test:e2e:prepare-server
-   ```
-
-3. **Start the standalone server** (keep running across test runs):
-   ```bash
-   HOSTNAME=127.0.0.1 PORT=3000 \
-   APP_PUBLIC_ORIGIN=http://127.0.0.1:3000 \
-   AUTH_TRUST_HOST=true E2E_DEBUG_AUTH=1 \
-   AUTH_URL=http://127.0.0.1:3000 \
-   BETTER_AUTH_URL=http://127.0.0.1:3000 \
-   NEXTAUTH_URL=http://127.0.0.1:3000 \
-   DEV_DEBUG_USERNAME=liuyang DEV_DEBUG_NAME=刘洋 \
-   DEV_DEBUG_PASSWORD=e2e-debug-local-only \
-   DEV_ADMIN_USERNAME=dev-admin DEV_ADMIN_NAME=校园管理员 \
-   DEV_ADMIN_PASSWORD=e2e-admin-local-only \
-   S3_BUCKET=life-ustc-e2e AWS_REGION=us-east-1 \
-   AWS_ACCESS_KEY_ID=minioadmin AWS_SECRET_ACCESS_KEY=minioadmin \
-   AWS_ENDPOINT_URL_S3=http://127.0.0.1:9000 \
-   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres \
-   bun .next/standalone/server.js
-   ```
-
-4. **Run tests**:
-   ```bash
-   bun run test:e2e
-   ```
+- `bun run dev:minio:e2e` starts the standalone MinIO variant used by CI when
+  you do not want the full local dev stack.
+- Playwright bootstrap handles standalone prep, default auth env, and the
+  `life-ustc-e2e` bucket automatically unless you override `PLAYWRIGHT_S3_BUCKET`.
+- `bun run test:e2e:server` keeps the standalone server hot; pair it with
+  `PLAYWRIGHT_REUSE_SERVER=1` for focused reruns.
 
 ## Test Data
 
-All seeded catalog data is defined in **`tests/e2e/fixtures/scenario.json`**.
-Changes there propagate automatically to:
-- `tools/dev/seed/dev-seed.ts` — TypeScript constants imported by tests
-- `tools/dev/seed/seed-dev-scenarios.ts` — DB creation on every test run
+Use the repo root `AGENTS.md` for the canonical shared seed/setup flow and
+`DEV_SEED_ANCHOR` guidance. E2E-specific fixture edits still follow this path:
 
-To add a new seed entity: update `scenario.json`, update the seed script,
-add/update the export in `dev-seed.ts`.
+- Update `tests/e2e/fixtures/scenario.json`
+- Update `tools/dev/seed/seed-dev-scenarios.ts` if new entities must be created
+- Update `tools/dev/seed/dev-seed.ts` when tests need a named export
 
 ## Structure
 

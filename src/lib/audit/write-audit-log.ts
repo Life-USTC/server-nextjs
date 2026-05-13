@@ -1,6 +1,8 @@
 import type { AuditAction, Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 
+export { getAuditRequestMetadata } from "@/lib/audit/request-metadata";
+
 export async function writeAuditLog(params: {
   action: AuditAction;
   userId: string;

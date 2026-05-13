@@ -36,7 +36,10 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser, signInAsDevAdmin } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -556,7 +559,7 @@ test.describe("/sections/[jwId]", () => {
       .getByRole("button", { name: /创建作业|Create homework/i })
       .click();
     await createResponse;
-    await page.waitForLoadState("networkidle");
+    await waitForUiSettled(page);
 
     const hwCard = page
       .locator('[data-slot="card"]')

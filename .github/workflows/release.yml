@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
 
 jobs:
   semantic-release:
@@ -25,57 +23,10 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: .bun-version
+      - name: Setup workspace
+        uses: ./.github/actions/setup-bun-env
 
-      - name: Install release tools with Bun
-        run: bun add --global semantic-release@24.2.9 @semantic-release/commit-analyzer@13 @semantic-release/release-notes-generator@14 @semantic-release/changelog@6 @semantic-release/github@10 @semantic-release/git@10
-
-      - name: Run semantic-release with Bun
-        run: bun "$(bun pm bin -g)/semantic-release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  github-release:
-    name: GitHub
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Generate changelog for this release
-        id: changelog
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          PREV_TAG=$(git tag -l "v*" --sort=-version:refname | sed -n '2p')
-
-          if [ -z "$PREV_TAG" ]; then
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --reverse)
-          else
-            CHANGELOG=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" --reverse)
-          fi
-
-          {
-            echo "changelog<<EOF"
-            echo "$CHANGELOG"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        run: |
-          cat <<'EOF' > release-notes.md
-          ## Changes in this Release
-
-          ${{ steps.changelog.outputs.changelog }}
-          EOF
-          gh release create "$GITHUB_REF_NAME" --generate-notes --notes-file release-notes.md
+      - name: Run semantic-release
+        run: bun run release:semantic
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

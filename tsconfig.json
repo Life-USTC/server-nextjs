@@ -20,7 +20,7 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@coss/ui/base-ui/*": ["./src/lib/coss-base-ui/*"]
+      "@tools/*": ["./tools/*"]
     }
   },
   "include": [

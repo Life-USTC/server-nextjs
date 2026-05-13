@@ -27,9 +27,8 @@ test.describe("/guides/markdown-support", () => {
     await waitForUiSettled(page);
 
     await expect(page.locator("#main-content")).toBeVisible();
-
-    // Should contain code examples
-    await expect(page.locator("pre").first()).toBeVisible();
+    await expect(page.locator("h1")).toBeVisible();
+    await expect(page.locator("pre").first()).toContainText("**Bold**");
 
     // Should contain a table
     await expect(page.locator("table").first()).toBeVisible();

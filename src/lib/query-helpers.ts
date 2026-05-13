@@ -153,18 +153,10 @@ export function parseSectionSearchQuery(
   if (orderMatch) result.order = orderMatch[1].toLowerCase() as "asc" | "desc";
 
   const generalSearch = search
-    .replace(/teacher:\S+/gi, "")
-    .replace(/coursecode:\S+/gi, "")
-    .replace(/(?:lecturecode|sectioncode):\S+/gi, "")
-    .replace(/campus:\S+/gi, "")
-    .replace(/credits?:\S+/gi, "")
-    .replace(/(?:department|dept):\S+/gi, "")
-    .replace(/semester:\S+/gi, "")
-    .replace(/category:\S+/gi, "")
-    .replace(/(?:level|edulevel):\S+/gi, "")
-    .replace(/(?:classtype|type):\S+/gi, "")
-    .replace(/(?:sort|sortby):\S+/gi, "")
-    .replace(/order:(?:asc|desc)/gi, "")
+    .replace(
+      /\b(?:teacher|coursecode|lecturecode|sectioncode|campus|credits?|department|dept|semester|category|level|edulevel|classtype|type|sort|sortby|order):\S+/gi,
+      "",
+    )
     .trim();
 
   if (generalSearch) result.general = generalSearch;

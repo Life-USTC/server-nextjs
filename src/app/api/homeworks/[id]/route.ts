@@ -1,22 +1,19 @@
 import { NextResponse } from "next/server";
 import {
-  findActiveSuspension,
-  getViewerContext,
-} from "@/features/comments/server/comment-utils";
-import {
   badRequest,
   forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
-  suspensionForbidden,
-  unauthorized,
+  parseRouteInput,
+  parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import {
   homeworkUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireWriteAuth } from "@/lib/auth/helpers";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
@@ -26,12 +23,16 @@ async function parseHomeworkId(
   params: Promise<{ id: string }>,
 ): Promise<string | NextResponse> {
   const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
+  const parsed = parseRouteInput(
+    raw,
+    resourceIdPathParamsSchema,
+    "Invalid homework ID",
+  );
+  if (parsed instanceof Response) {
     return badRequest("Invalid homework ID");
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -50,36 +51,29 @@ export async function PATCH(
     return parsed;
   }
   const id = parsed;
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid homework update", error, 400);
-  }
-
-  const parsedBody = homeworkUpdateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid homework update", parsedBody.error, 400);
-  }
-
-  const title = parsedBody.data.title;
-
-  const hasPublishedAt = Object.hasOwn(parsedBody.data, "publishedAt");
-  const hasSubmissionStartAt = Object.hasOwn(
-    parsedBody.data,
-    "submissionStartAt",
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    homeworkUpdateRequestSchema,
+    "Invalid homework update",
   );
-  const hasSubmissionDueAt = Object.hasOwn(parsedBody.data, "submissionDueAt");
+  if (parsedBody instanceof Response) {
+    return parsedBody;
+  }
+
+  const title = parsedBody.title;
+
+  const hasPublishedAt = Object.hasOwn(parsedBody, "publishedAt");
+  const hasSubmissionStartAt = Object.hasOwn(parsedBody, "submissionStartAt");
+  const hasSubmissionDueAt = Object.hasOwn(parsedBody, "submissionDueAt");
 
   const publishedAt = hasPublishedAt
-    ? parseDateInput(parsedBody.data.publishedAt)
+    ? parseDateInput(parsedBody.publishedAt)
     : undefined;
   const submissionStartAt = hasSubmissionStartAt
-    ? parseDateInput(parsedBody.data.submissionStartAt)
+    ? parseDateInput(parsedBody.submissionStartAt)
     : undefined;
   const submissionDueAt = hasSubmissionDueAt
-    ? parseDateInput(parsedBody.data.submissionDueAt)
+    ? parseDateInput(parsedBody.submissionDueAt)
     : undefined;
 
   if (hasPublishedAt && publishedAt === undefined) {
@@ -100,15 +94,11 @@ export async function PATCH(
     return badRequest("Submission start must be before due");
   }
 
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
   }
-
-  const suspension = await findActiveSuspension(userId);
-  if (suspension) {
-    return suspensionForbidden(suspension.reason);
-  }
+  const { userId } = auth;
 
   try {
     const homework = await prisma.homework.findUnique({
@@ -129,11 +119,11 @@ export async function PATCH(
     };
 
     if (title !== undefined) updates.title = title;
-    if (parsedBody.data.isMajor !== undefined) {
-      updates.isMajor = parsedBody.data.isMajor === true;
+    if (parsedBody.isMajor !== undefined) {
+      updates.isMajor = parsedBody.isMajor === true;
     }
-    if (parsedBody.data.requiresTeam !== undefined) {
-      updates.requiresTeam = parsedBody.data.requiresTeam === true;
+    if (parsedBody.requiresTeam !== undefined) {
+      updates.requiresTeam = parsedBody.requiresTeam === true;
     }
     if (publishedAt !== undefined) updates.publishedAt = publishedAt;
     if (submissionStartAt !== undefined) {
@@ -172,16 +162,11 @@ export async function DELETE(
     return parsed;
   }
   const id = parsed;
-  const userId = await resolveApiUserId(request);
-
-  if (!userId) {
-    return unauthorized();
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
   }
-
-  const suspension = await findActiveSuspension(userId);
-  if (suspension) {
-    return suspensionForbidden(suspension.reason);
-  }
+  const { userId } = auth;
 
   try {
     const viewer = await getViewerContext({

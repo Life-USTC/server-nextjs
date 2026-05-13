@@ -39,19 +39,22 @@ export async function resolveSeedSectionMatch(
         entry.code === DEV_SEED.section.code,
     );
 
-    if (!section) {
+    if (
+      !section ||
+      typeof section.id !== "number" ||
+      typeof section.code !== "string"
+    ) {
       throw new Error(
         `Seed section ${DEV_SEED.section.code} not found via /api/sections/match-codes`,
       );
     }
 
-    return {
-      id: section.id,
-      jwId: section.jwId ?? null,
-      code: section.code,
-    };
+    return { id: section.id, jwId: section.jwId ?? null, code: section.code };
   })();
 
+  if (!seedSectionMatchPromise) {
+    throw new Error("Seed section lookup did not initialize");
+  }
   return seedSectionMatchPromise;
 }
 

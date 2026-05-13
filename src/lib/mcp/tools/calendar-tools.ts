@@ -1,10 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import * as z from "zod";
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
-import { getSubscribedSectionIds } from "@/features/home/server/subscribed-data";
 import {
+  getSubscribedSectionIds,
   getUserCalendarSubscription,
   SECTION_SUBSCRIPTION_NOTE,
+} from "@/features/home/server/subscription-read-model";
+import {
+  addUserSectionSubscriptions,
   subscribeUserToSectionByJwId,
   unsubscribeUserFromSectionByJwId,
 } from "@/features/home/server/subscriptions";
@@ -268,26 +271,13 @@ export function registerCalendarTools(server: McpServer) {
       }
       const matchedSections = matches.sections;
 
-      const existingIds = new Set(await getSubscribedSectionIds(userId));
-      const existingIdsBefore = new Set(existingIds);
+      const existingIdsBefore = new Set(await getSubscribedSectionIds(userId));
       const matchedIds = matchedSections.map((section) => section.id);
-      for (const id of matchedIds) {
-        existingIds.add(id);
-      }
-      const nextIds = Array.from(existingIds);
       const addedCount = matchedIds.filter(
         (id) => !existingIdsBefore.has(id),
       ).length;
 
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          subscribedSections: {
-            set: nextIds.map((id) => ({ id })),
-          },
-        },
-      });
-
+      await addUserSectionSubscriptions(userId, matchedIds);
       const subscription = await getUserCalendarSubscription(userId, locale);
 
       return jsonToolResult(

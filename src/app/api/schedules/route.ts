@@ -4,6 +4,7 @@ import {
   getPagination,
   handleRouteError,
   jsonResponse,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma, prisma } from "@/lib/db/prisma";
@@ -24,22 +25,27 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const parsedQuery = schedulesQuerySchema.safeParse({
-      sectionId: searchParams.get("sectionId") ?? undefined,
-      sectionJwId: searchParams.get("sectionJwId") ?? undefined,
-      sectionCode: searchParams.get("sectionCode") ?? undefined,
-      teacherId: searchParams.get("teacherId") ?? undefined,
-      teacherCode: searchParams.get("teacherCode") ?? undefined,
-      roomId: searchParams.get("roomId") ?? undefined,
-      roomJwId: searchParams.get("roomJwId") ?? undefined,
-      dateFrom: searchParams.get("dateFrom") ?? undefined,
-      dateTo: searchParams.get("dateTo") ?? undefined,
-      weekday: searchParams.get("weekday") ?? undefined,
-      page: searchParams.get("page") ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-    });
-    if (!parsedQuery.success) {
-      return handleRouteError("Invalid schedule query", parsedQuery.error, 400);
+    const parsedQuery = parseRouteInput(
+      {
+        sectionId: searchParams.get("sectionId") ?? undefined,
+        sectionJwId: searchParams.get("sectionJwId") ?? undefined,
+        sectionCode: searchParams.get("sectionCode") ?? undefined,
+        teacherId: searchParams.get("teacherId") ?? undefined,
+        teacherCode: searchParams.get("teacherCode") ?? undefined,
+        roomId: searchParams.get("roomId") ?? undefined,
+        roomJwId: searchParams.get("roomJwId") ?? undefined,
+        dateFrom: searchParams.get("dateFrom") ?? undefined,
+        dateTo: searchParams.get("dateTo") ?? undefined,
+        weekday: searchParams.get("weekday") ?? undefined,
+        page: searchParams.get("page") ?? undefined,
+        limit: searchParams.get("limit") ?? undefined,
+      },
+      schedulesQuerySchema,
+      "Invalid schedule query",
+      { logErrors: true },
+    );
+    if (parsedQuery instanceof Response) {
+      return parsedQuery;
     }
 
     const pagination = getPagination(searchParams);
@@ -54,7 +60,7 @@ export async function GET(request: NextRequest) {
       dateFrom,
       dateTo,
       weekday,
-    } = parsedQuery.data;
+    } = parsedQuery;
 
     let parsedDateFrom: Date | undefined;
     if (dateFrom) {

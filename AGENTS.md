@@ -7,6 +7,8 @@ Next.js campus workspace with REST + MCP APIs.
 ```bash
 # Development
 bun install --frozen-lockfile
+bun run app:prepare
+bun run app:prepare:dev
 bun run dev        # Host app dev; auto-runs prisma generate + migrate deploy
 bun run dev:infra  # Infra only (postgres, minio, minio-setup)
 bun run dev:docker # Full dev stack in Docker
@@ -14,20 +16,32 @@ bun run dev:down   # Stop dev Docker stack
 
 # Quality
 bun run check --write        # Lint + format fixes
-bun run verify:fast         # Default local gate: checks + prebuild + typecheck + unit tests
+bun run verify:fast         # Default local gate: static checks + typecheck + unit tests
 bun run verify:full         # Full gate: fast verification + integration + E2E
-bun run verify:e2e          # E2E prerequisites before Playwright
+bun run check:static-import -- --baseline-ref HEAD~1
+                             # Explicit DB-backed importer regression check when touching static import
+bun run verify:e2e          # Canonical E2E env prep (e.g. check:e2e, MinIO, migrations)
 
 # Tests
 bun run test                # Unit only
-bun run test:integration    # Integration (needs DATABASE_URL + seed)
+bun run test:integration    # Integration; runs shared dev-seed setup automatically
 bun run test:e2e            # E2E (full build)
+bun run test:e2e:artifacts  # Prebuild + typecheck + standalone E2E runtime
+bun run test:e2e:prepare    # Build and stage standalone output for E2E
+bun run test:e2e:server     # One-command standalone E2E server
 
 # Build
-bun run prebuild            # Generate Prisma + OpenAPI
+bun run build:artifacts      # Generate Prisma + OpenAPI
 bun run build
 docker build .
 ```
+
+## Shared Test Seed
+
+- Canonical seeded fixture data lives in `tests/e2e/fixtures/scenario.json`; `tools/dev/seed/seed-dev-scenarios.ts` materializes it and `tools/dev/seed/dev-seed.ts` exports the named constants used by tests.
+- The shared anchor comes from `DEV_SEED_ANCHOR` in `tools/dev/seed/dev-seed.ts`. Use `.date` for bare date filters, `.recommendedAtTime` for time-sensitive tool calls, and `.startOfDayAtTime` when a test needs the seed day boundary.
+- `bun run test:integration` already runs `bun run test:integration:setup`; if you invoke Vitest integration specs directly, run the setup command first.
+- Scoped `tests/**/AGENTS.md` files should only add layer-specific caveats and link shared commands/setup back here or to helper files such as `tests/integration/utils/mcp-harness.ts`.
 
 ## Local Dev Environment
 
@@ -98,16 +112,14 @@ const data = schema.parse(input);
 
 ### Pagination
 ```typescript
-buildPaginatedResponse(items, total, page, limit)
+buildPaginatedResponse(items, page, pageSize, total)
 ```
 
 ## File Rules
 
 **Generated - DO NOT EDIT**:
 - `src/generated/prisma/`
-- `src/generated/openapi.ts`
 - `public/openapi.generated.json`
-- `docs/features.generated.json`
 
 **Feature Changes**:
 1. Update `docs/features/<module>.json` first
@@ -121,8 +133,9 @@ buildPaginatedResponse(items, total, page, limit)
 
 **Default Verification**:
 - Use `bun run verify:fast` for most commits and PR updates.
+- Use `bun run check:static-import -- --baseline-ref <git-ref>` only when changing `tools/production/load/load-from-static.ts` and you need a DB-backed regression comparison against a real baseline.
 - Use `bun run verify:full` before pushing changes that affect data flows, auth, browser flows, docs contracts, or shared tooling.
-- Use `bun run verify:e2e` before `bun run test:e2e`; Playwright still requires the right local stack and env.
+- Use `bun run verify:e2e` before `bun run test:e2e`; `test:e2e:bootstrap` is now just a compatibility alias.
 
 **No Stray Reports**:
 - Do not leave migration plans, improvement reports, or status summaries in the repo
@@ -139,7 +152,7 @@ buildPaginatedResponse(items, total, page, limit)
 - **Features**: `src/features/AGENTS.md` - Business logic
 - **Components**: `src/components/AGENTS.md` - UI
 - **Prisma**: `prisma/AGENTS.md` - Schema
-- **Tests**: `tests/{e2e,integration,unit}/AGENTS.md`
+- **Tests**: `tests/{e2e,integration,unit}/AGENTS.md` (layer-specific notes only)
 - **Tools**: `tools/AGENTS.md` - Scripts
 - **CI/CD**: `.github/workflows/AGENTS.md`
 

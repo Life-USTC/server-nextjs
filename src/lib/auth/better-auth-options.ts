@@ -3,7 +3,9 @@ import type { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { genericOAuth, jwt, oAuthProxy } from "better-auth/plugins";
 import {
-  AUTH_BASE_URL,
+  AUTH_GITHUB,
+  AUTH_GOOGLE,
+  AUTH_OIDC,
   AUTH_PUBLIC_ORIGIN,
   AUTH_PUBLIC_PROTOCOL,
   allowDebugAuth,
@@ -31,6 +33,10 @@ import { webhookLoginPlugin } from "@/lib/auth/webhook-login-plugin";
 import { prisma } from "@/lib/db/prisma";
 import { logAppEvent } from "@/lib/log/app-logger";
 import { isOAuthDebugLogging, logOAuthDebug } from "@/lib/log/oauth-debug";
+import {
+  getCanonicalOAuthIssuer,
+  getOAuthProviderValidAudiences,
+} from "@/lib/mcp/urls";
 
 export function buildBetterAuthOptions() {
   const options = {
@@ -53,11 +59,11 @@ export function buildBetterAuthOptions() {
     },
     trustedOrigins: getAuthTrustedOrigins(),
     socialProviders: {
-      ...(process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET
+      ...(AUTH_GITHUB
         ? {
             github: {
-              clientId: process.env.AUTH_GITHUB_ID,
-              clientSecret: process.env.AUTH_GITHUB_SECRET,
+              clientId: AUTH_GITHUB.clientId,
+              clientSecret: AUTH_GITHUB.clientSecret,
               mapProfileToUser: (profile: {
                 email?: string | null;
                 id: string;
@@ -81,11 +87,11 @@ export function buildBetterAuthOptions() {
             },
           }
         : {}),
-      ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+      ...(AUTH_GOOGLE
         ? {
             google: {
-              clientId: process.env.AUTH_GOOGLE_ID,
-              clientSecret: process.env.AUTH_GOOGLE_SECRET,
+              clientId: AUTH_GOOGLE.clientId,
+              clientSecret: AUTH_GOOGLE.clientSecret,
               mapProfileToUser: (profile: {
                 email?: string;
                 sub: string;
@@ -171,7 +177,7 @@ export function buildBetterAuthOptions() {
     plugins: [
       jwt({
         jwt: {
-          issuer: AUTH_BASE_URL.replace(/\/$/, ""),
+          issuer: getCanonicalOAuthIssuer(),
         },
         schema: {
           jwks: {
@@ -199,11 +205,7 @@ export function buildBetterAuthOptions() {
         scopes: [...OAUTH_PROVIDER_SCOPES],
         clientRegistrationDefaultScopes: [...OAUTH_PROVIDER_SCOPES],
         clientRegistrationAllowedScopes: [...OAUTH_PROVIDER_SCOPES],
-        validAudiences: [
-          AUTH_PUBLIC_ORIGIN,
-          `${AUTH_PUBLIC_ORIGIN}/api/mcp`,
-          AUTH_BASE_URL.replace(/\/$/, ""),
-        ],
+        validAudiences: getOAuthProviderValidAudiences(),
         silenceWarnings: {
           oauthAuthServerConfig: true,
           openidConfig: true,
@@ -256,8 +258,8 @@ export function buildBetterAuthOptions() {
             providerId: "oidc",
             discoveryUrl: OIDC_DISCOVERY_URL,
             issuer: OIDC_ISSUER,
-            clientId: process.env.AUTH_OIDC_CLIENT_ID || "",
-            clientSecret: process.env.AUTH_OIDC_CLIENT_SECRET || "",
+            clientId: AUTH_OIDC.clientId,
+            clientSecret: AUTH_OIDC.clientSecret,
             scopes: ["openid"],
             pkce: true,
             mapProfileToUser: mapOidcProfileToUser,

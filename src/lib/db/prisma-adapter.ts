@@ -1,8 +1,9 @@
 import { PrismaPg } from "@prisma/adapter-pg";
+import { getOptionalTrimmedEnv } from "@/env";
 import { logAppEvent } from "@/lib/log/app-logger";
 
 export function createPrismaAdapter(
-  connectionString = process.env.DATABASE_URL,
+  connectionString = getOptionalTrimmedEnv("DATABASE_URL"),
 ) {
   if (!connectionString) {
     throw new Error("DATABASE_URL is required to initialize Prisma");

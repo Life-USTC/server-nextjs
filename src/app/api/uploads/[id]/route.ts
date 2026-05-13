@@ -1,17 +1,21 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { NextResponse } from "next/server";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseRouteJsonBody,
+  parseRouteParams,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
   resourceIdPathParamsSchema,
   uploadRenameRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  getAuditRequestMetadata,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
@@ -20,14 +24,17 @@ export const dynamic = "force-dynamic";
 
 async function parseUploadId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid upload ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid upload ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 function sanitizeFilename(filename: string) {
@@ -53,25 +60,20 @@ export async function PATCH(
   }
 
   const parsed = await parseUploadId(context.params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
-
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid update payload", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    uploadRenameRequestSchema,
+    "Invalid update payload",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = uploadRenameRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid update payload", parsedBody.error, 400);
-  }
-
-  const trimmed = sanitizeFilename(parsedBody.data.filename);
+  const trimmed = sanitizeFilename(parsedBody.filename);
   if (!trimmed) {
     return badRequest("Filename required");
   }
@@ -129,7 +131,7 @@ export async function DELETE(
   }
 
   const parsed = await parseUploadId(context.params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
@@ -156,11 +158,7 @@ export async function DELETE(
       targetId: upload.id,
       targetType: "upload",
       metadata: { key: upload.key, size: upload.size },
-      ipAddress:
-        request.headers.get("x-forwarded-for") ??
-        request.headers.get("x-real-ip") ??
-        undefined,
-      userAgent: request.headers.get("user-agent") ?? undefined,
+      ...getAuditRequestMetadata(request),
     }).catch(() => {});
 
     return jsonResponse({

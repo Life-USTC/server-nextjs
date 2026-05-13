@@ -1,5 +1,5 @@
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
-import { z } from "zod";
+import * as z from "zod";
 import { DEFAULT_LOCALE, localeSchema } from "@/i18n/config";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { compactMcpPayload } from "@/lib/mcp/compact-payload";
@@ -75,28 +75,11 @@ function summarizeMcpPayload(value: unknown): unknown {
 
   const out: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(value)) {
-    if (key === "events" && Array.isArray(v)) {
-      out.events = summarizeArray(v, 25);
-      continue;
-    }
-    if (
-      (key === "todos" ||
-        key === "homeworks" ||
-        key === "schedules" ||
-        key === "exams" ||
-        key === "courses" ||
-        key === "sections") &&
-      Array.isArray(v)
-    ) {
-      out[key] = summarizeArray(v, 10);
-      continue;
-    }
-
     if (Array.isArray(v)) {
-      out[key] = summarizeArray(v, 10);
-      continue;
+      out[key] = summarizeArray(v, key === "events" ? 25 : 10);
+    } else {
+      out[key] = compactMcpPayload(v);
     }
-    out[key] = compactMcpPayload(v);
   }
 
   return out;

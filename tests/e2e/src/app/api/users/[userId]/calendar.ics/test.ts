@@ -33,11 +33,13 @@ import {
   ensureUserCalendarFeedFixture,
   getCurrentSessionUser,
 } from "../../../../../../utils/e2e-db";
-import { withE2eLock } from "../../../../../../utils/locks";
+import {
+  DEBUG_USER_SUBSCRIPTIONS_LOCK,
+  withE2eLock,
+} from "../../../../../../utils/locks";
 import { assertApiContract } from "../../../../_shared/api-contract";
 
 const ROUTE_PATH = "/api/users/[userId]/calendar.ics";
-const DEBUG_USER_CALENDAR_LOCK = "debug-user-calendar";
 
 test.describe("GET /api/users/[userId]/calendar.ics", () => {
   test("contract", async ({ request }) => {
@@ -72,7 +74,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
   test("returns valid iCalendar for own calendar via session auth", async ({
     page,
   }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       await signInAsDebugUser(page, "/");
       const { id: userId } = await getCurrentSessionUser(page);
 
@@ -137,7 +139,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
   }) => {
     await signInAsDebugUser(page, "/");
     const { id: userId } = await getCurrentSessionUser(page);
-    const feed = ensureUserCalendarFeedFixture(userId);
+    const feed = await ensureUserCalendarFeedFixture(userId);
 
     // Request with path token, no session
     const response = await request.get(feed.path);
@@ -155,7 +157,7 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
   }) => {
     await signInAsDebugUser(page, "/");
     const { id: userId } = await getCurrentSessionUser(page);
-    const feed = ensureUserCalendarFeedFixture(userId);
+    const feed = await ensureUserCalendarFeedFixture(userId);
 
     // Request with query param token instead of path token
     const response = await request.get(

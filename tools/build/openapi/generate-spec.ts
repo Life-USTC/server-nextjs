@@ -2,15 +2,14 @@
  * Custom OpenAPI spec generator replacing next-openapi-gen.
  *
  * Reads route files, extracts JSDoc annotations, and generates
- * public/openapi.generated.json in OpenAPI 3.0 format.
- * Then runs postprocess-spec.ts to finalize the output.
+ * the pre-postprocessed OpenAPI document consumed by postprocess-spec.ts.
  */
 
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { z } from "zod";
-import * as requestSchemas from "../../../src/lib/api/schemas/request-schemas";
-import * as responseSchemas from "../../../src/lib/api/schemas/response-schemas";
+import * as apiSchemas from "../../../src/lib/api/schemas";
+import { OPENAPI_SPEC_RELATIVE_PATH } from "../../../src/lib/openapi/spec";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
 
@@ -44,16 +43,30 @@ type OpenApiDocument = {
   components: { schemas: Record<string, JsonSchema> };
 };
 
+const generatorConfigSchema = z.object({
+  openapi: z.string().optional(),
+  info: z
+    .object({
+      title: z.string(),
+      version: z.string(),
+      description: z.string().optional(),
+    })
+    .optional(),
+  servers: z
+    .array(
+      z.object({
+        url: z.string(),
+        description: z.string().optional(),
+      }),
+    )
+    .optional(),
+});
+
 // ── Schema registry ────────────────────────────────────────────────────────────
 
 const allSchemas: Record<string, z.ZodTypeAny> = {};
 
-for (const [name, value] of Object.entries(requestSchemas)) {
-  if (value && typeof value === "object" && "_def" in value) {
-    allSchemas[name] = value as z.ZodTypeAny;
-  }
-}
-for (const [name, value] of Object.entries(responseSchemas)) {
+for (const [name, value] of Object.entries(apiSchemas)) {
   if (value && typeof value === "object" && "_def" in value) {
     allSchemas[name] = value as z.ZodTypeAny;
   }
@@ -101,15 +114,52 @@ type HandlerAnnotations = {
   responses: Array<{ status: number | null; schemaName: string | null }>;
 };
 
+type RouteExportKind = "function" | "const" | "destructured";
+
+function getRouteExportKind(
+  source: string,
+  httpMethod: (typeof HTTP_METHODS)[number],
+): RouteExportKind | null {
+  if (
+    new RegExp(`export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`).test(
+      source,
+    )
+  ) {
+    return "function";
+  }
+
+  if (new RegExp(`export\\s+const\\s+${httpMethod}\\s*=`).test(source)) {
+    return "const";
+  }
+
+  if (
+    new RegExp(
+      `export\\s+const\\s*\\{(?=[^}]*\\b${httpMethod}\\b)[^}]*\\}\\s*=`,
+      "s",
+    ).test(source)
+  ) {
+    return "destructured";
+  }
+
+  return null;
+}
+
 function extractJsDocAnnotations(
   source: string,
   httpMethod: string,
+  exportKind: RouteExportKind,
 ): HandlerAnnotations | null {
   // Find the exported handler function preceded by a JSDoc comment
-  const pattern = new RegExp(
-    `/\\*\\*[\\s\\S]*?\\*/\\s*export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`,
-    "g",
-  );
+  const pattern =
+    exportKind === "destructured"
+      ? new RegExp(
+          `/\\*\\*[\\s\\S]*?\\*/\\s*export\\s+const\\s*\\{(?=[^}]*\\b${httpMethod}\\b)[^}]*\\}\\s*=`,
+          "g",
+        )
+      : new RegExp(
+          `/\\*\\*[\\s\\S]*?\\*/\\s*export\\s+(?:async\\s+)?function\\s+${httpMethod}\\b`,
+          "g",
+        );
   const match = pattern.exec(source);
   if (!match) return null;
 
@@ -158,6 +208,26 @@ function extractJsDocAnnotations(
   }
 
   return annotations;
+}
+
+function buildDefaultResponses(source: string, method: string) {
+  if (
+    method === "OPTIONS" &&
+    /createDiscovery(?:Metadata|Redirect)Route\(/.test(source)
+  ) {
+    return {
+      "204": {
+        description: "Response 204",
+      },
+    };
+  }
+
+  return {
+    "200": {
+      description: "Successful response",
+      content: { "application/json": { schema: {} } },
+    },
+  };
 }
 
 // ── Parameter building ─────────────────────────────────────────────────────────
@@ -308,21 +378,16 @@ async function processRouteFile(
   const pathItem: OpenApiPathItem = {};
 
   for (const method of HTTP_METHODS) {
-    // Check if the handler is exported (as function or const arrow)
-    const isFunctionExport = new RegExp(
-      `export\\s+(?:async\\s+)?function\\s+${method}\\b`,
-    ).test(source);
-    const isConstExport = new RegExp(`export\\s+const\\s+${method}\\s*=`).test(
-      source,
-    );
-    if (!isFunctionExport && !isConstExport) {
+    const exportKind = getRouteExportKind(source, method);
+    if (!exportKind) {
       continue;
     }
 
-    // Only try to extract JSDoc annotations from function exports (const arrows typically lack JSDoc)
-    const annotations = isFunctionExport
-      ? extractJsDocAnnotations(source, method)
-      : null;
+    const annotations =
+      exportKind === "function" ||
+      (exportKind === "destructured" && method !== "OPTIONS")
+        ? extractJsDocAnnotations(source, method, exportKind)
+        : null;
     if (!annotations) {
       // Handler exists but no JSDoc - create minimal operation
       const operationId = `${method.toLowerCase()}-${apiPath.replace(/\//g, "-").replace(/[{}]/g, "").replace(/^-/, "")}`;
@@ -332,12 +397,7 @@ async function processRouteFile(
         description: "",
         tags: [],
         parameters: [],
-        responses: {
-          "200": {
-            description: "Successful response",
-            content: { "application/json": { schema: {} } },
-          },
-        },
+        responses: buildDefaultResponses(source, method),
       };
       continue;
     }
@@ -393,11 +453,9 @@ async function collectRouteFiles(dirPath: string): Promise<string[]> {
 
 async function main() {
   const configPath = path.join(ROOT, "next.openapi.json");
-  const config = JSON.parse(await readFile(configPath, "utf8")) as {
-    openapi?: string;
-    info?: { title: string; version: string; description?: string };
-    servers?: Array<{ url: string; description?: string }>;
-  };
+  const config = generatorConfigSchema.parse(
+    JSON.parse(await readFile(configPath, "utf8")),
+  );
 
   const usedSchemas = new Set<string>();
 
@@ -434,7 +492,7 @@ async function main() {
     components: { schemas: componentSchemas },
   };
 
-  const outputPath = path.join(ROOT, "public/openapi.generated.json");
+  const outputPath = path.join(ROOT, OPENAPI_SPEC_RELATIVE_PATH);
   await writeFile(outputPath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
   console.log(
     `Generated ${pathEntries.length} paths, ${usedSchemas.size} component schemas.`,

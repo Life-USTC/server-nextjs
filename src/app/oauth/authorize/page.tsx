@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth, authApi } from "@/auth";
+import { buildSignInRedirectUrl } from "@/lib/auth/auth-routing";
 import { asOAuthProviderApi } from "@/lib/oauth/provider-api";
 import { OAuthConsentForm } from "./consent-form";
 
@@ -35,7 +36,7 @@ export default async function OAuthAuthorizePage({
 
   if (!session?.user?.id) {
     redirect(
-      `/signin?callbackUrl=${encodeURIComponent(`/oauth/authorize?${queryString.toString()}`)}`,
+      buildSignInRedirectUrl({}, `/oauth/authorize?${queryString.toString()}`),
     );
   }
 

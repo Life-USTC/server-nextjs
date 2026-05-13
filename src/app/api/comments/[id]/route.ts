@@ -3,21 +3,26 @@ import {
   buildCommentNodes,
   type CommentNode,
 } from "@/features/comments/server/comment-serialization";
-import { getViewerContext } from "@/features/comments/server/comment-utils";
 import {
   badRequest,
   forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseRouteInput,
+  parseRouteJsonBody,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
   commentUpdateRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import {
+  getAuditRequestMetadata,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
 import { resolveApiUserId } from "@/lib/auth/helpers";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -35,12 +40,16 @@ async function parseCommentId(
   params: Promise<{ id: string }>,
 ): Promise<string | NextResponse> {
   const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
+  const parsed = parseRouteInput(
+    raw,
+    resourceIdPathParamsSchema,
+    "Invalid comment ID",
+  );
+  if (parsed instanceof Response) {
     return badRequest("Invalid comment ID");
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -217,33 +226,29 @@ export async function PATCH(
     return parsed;
   }
   const id = parsed;
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid comment update", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    commentUpdateRequestSchema,
+    "Invalid comment update",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = commentUpdateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid comment update", parsedBody.error, 400);
-  }
-
-  const content = parsedBody.data.body;
+  const content = parsedBody.body;
 
   const visibility =
-    typeof parsedBody.data.visibility === "string"
-      ? parsedBody.data.visibility
+    typeof parsedBody.visibility === "string"
+      ? parsedBody.visibility
       : undefined;
   const isAnonymous =
-    typeof parsedBody.data.isAnonymous === "boolean"
-      ? parsedBody.data.isAnonymous
+    typeof parsedBody.isAnonymous === "boolean"
+      ? parsedBody.isAnonymous
       : undefined;
 
-  const hasAttachmentUpdate = Array.isArray(parsedBody.data.attachmentIds);
+  const hasAttachmentUpdate = Array.isArray(parsedBody.attachmentIds);
   const attachmentIds = hasAttachmentUpdate
-    ? (parsedBody.data.attachmentIds ?? [])
+    ? (parsedBody.attachmentIds ?? [])
     : [];
 
   try {
@@ -368,11 +373,7 @@ export async function PATCH(
       targetId: id,
       targetType: "comment",
       metadata: { body: content?.slice(0, 200) },
-      ipAddress:
-        request.headers.get("x-forwarded-for") ??
-        request.headers.get("x-real-ip") ??
-        undefined,
-      userAgent: request.headers.get("user-agent") ?? undefined,
+      ...getAuditRequestMetadata(request),
     }).catch(() => {});
 
     return jsonResponse({ success: true, comment: roots[0] });
@@ -429,11 +430,7 @@ export async function DELETE(
       userId,
       targetId: id,
       targetType: "comment",
-      ipAddress:
-        request.headers.get("x-forwarded-for") ??
-        request.headers.get("x-real-ip") ??
-        undefined,
-      userAgent: request.headers.get("user-agent") ?? undefined,
+      ...getAuditRequestMetadata(request),
     }).catch(() => {});
 
     return jsonResponse({ success: true });

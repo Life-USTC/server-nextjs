@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveSignInCallbackUrl } from "@/lib/auth/signin-callback-url";
+import { resolveSignInCallbackUrl } from "@/lib/auth/auth-routing";
 
 describe("resolveSignInCallbackUrl", () => {
   it("prefers explicit callbackUrl", () => {

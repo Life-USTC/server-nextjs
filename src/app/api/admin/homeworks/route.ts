@@ -1,21 +1,15 @@
-import { requireAdmin } from "@/lib/admin-utils";
+import { withAdminRoute } from "@/lib/admin-utils";
 import {
-  handleRouteError,
+  getPagination,
+  getRequestSearchParams,
   jsonResponse,
-  parseOptionalInt,
-  unauthorized,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { adminHomeworksQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 import { ilike } from "@/lib/query-helpers";
 
 export const dynamic = "force-dynamic";
-
-function parseLimit(value: string | null) {
-  const parsed = parseOptionalInt(value);
-  if (!parsed) return 50;
-  return Math.min(Math.max(parsed, 1), 200);
-}
 
 /**
  * List moderation homeworks.
@@ -24,94 +18,94 @@ function parseLimit(value: string | null) {
  * @response 400:openApiErrorSchema
  */
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
+  return withAdminRoute(
+    "Failed to fetch homework moderation queue",
+    async () => {
+      const searchParams = getRequestSearchParams(request);
+      const parsedQuery = parseRouteInput(
+        {
+          status: searchParams.get("status") ?? undefined,
+          limit: searchParams.get("limit") ?? undefined,
+          search: searchParams.get("search") ?? undefined,
+        },
+        adminHomeworksQuerySchema,
+        "Invalid homework moderation query",
+        { logErrors: true },
+      );
+      if (parsedQuery instanceof Response) {
+        return parsedQuery;
+      }
 
-  const { searchParams } = new URL(request.url);
-  const parsedQuery = adminHomeworksQuerySchema.safeParse({
-    status: searchParams.get("status") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-    search: searchParams.get("search") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError(
-      "Invalid homework moderation query",
-      parsedQuery.error,
-      400,
-    );
-  }
+      const status = parsedQuery.status ?? "all";
+      const { pageSize: limit } = getPagination(searchParams, {
+        defaultPageSize: 50,
+        maxPageSize: 200,
+      });
+      const search = parsedQuery.search?.trim() ?? "";
 
-  const status = parsedQuery.data.status ?? "all";
-  const limit = parseLimit(parsedQuery.data.limit ?? null);
-  const search = parsedQuery.data.search?.trim() ?? "";
+      const deletedAtFilter =
+        status === "active"
+          ? { deletedAt: null }
+          : status === "deleted"
+            ? { deletedAt: { not: null } }
+            : {};
 
-  const deletedAtFilter =
-    status === "active"
-      ? { deletedAt: null }
-      : status === "deleted"
-        ? { deletedAt: { not: null } }
+      const searchFilter = search
+        ? {
+            OR: [
+              { title: ilike(search) },
+              {
+                section: {
+                  code: ilike(search),
+                },
+              },
+              {
+                section: {
+                  course: {
+                    code: ilike(search),
+                  },
+                },
+              },
+              {
+                section: {
+                  course: {
+                    nameCn: ilike(search),
+                  },
+                },
+              },
+            ],
+          }
         : {};
 
-  const searchFilter = search
-    ? {
-        OR: [
-          { title: ilike(search) },
-          {
-            section: {
-              code: ilike(search),
+      const homeworks = await prisma.homework.findMany({
+        where: {
+          ...deletedAtFilter,
+          ...searchFilter,
+        },
+        include: {
+          section: {
+            select: {
+              id: true,
+              jwId: true,
+              code: true,
+              course: { select: { jwId: true, code: true, nameCn: true } },
             },
           },
-          {
-            section: {
-              course: {
-                code: ilike(search),
-              },
-            },
+          createdBy: {
+            select: { id: true, name: true, username: true, image: true },
           },
-          {
-            section: {
-              course: {
-                nameCn: ilike(search),
-              },
-            },
+          updatedBy: {
+            select: { id: true, name: true, username: true, image: true },
           },
-        ],
-      }
-    : {};
+          deletedBy: {
+            select: { id: true, name: true, username: true, image: true },
+          },
+        },
+        orderBy: [{ deletedAt: "desc" }, { createdAt: "desc" }],
+        take: limit,
+      });
 
-  try {
-    const homeworks = await prisma.homework.findMany({
-      where: {
-        ...deletedAtFilter,
-        ...searchFilter,
-      },
-      include: {
-        section: {
-          select: {
-            id: true,
-            jwId: true,
-            code: true,
-            course: { select: { jwId: true, code: true, nameCn: true } },
-          },
-        },
-        createdBy: {
-          select: { id: true, name: true, username: true, image: true },
-        },
-        updatedBy: {
-          select: { id: true, name: true, username: true, image: true },
-        },
-        deletedBy: {
-          select: { id: true, name: true, username: true, image: true },
-        },
-      },
-      orderBy: [{ deletedAt: "desc" }, { createdAt: "desc" }],
-      take: limit,
-    });
-
-    return jsonResponse({ homeworks });
-  } catch (error) {
-    return handleRouteError("Failed to fetch homework moderation queue", error);
-  }
+      return jsonResponse({ homeworks });
+    },
+  );
 }

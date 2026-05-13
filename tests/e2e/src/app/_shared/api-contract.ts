@@ -1,9 +1,11 @@
 import { type APIRequestContext, expect } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
+import { absoluteTestUrl } from "../../../utils/request-url";
 import { resolveSeedSectionMatch } from "../../../utils/seed-lookups";
 
 type ApiContractCase = {
   routePath: string;
+  baseURL?: string;
 };
 
 const probeOnlyRoutes = new Set([
@@ -59,7 +61,7 @@ async function expectProbeRoute(
 
 export async function assertApiContract(
   request: APIRequestContext,
-  { routePath }: ApiContractCase,
+  { routePath, baseURL }: ApiContractCase,
 ) {
   switch (routePath) {
     case "/api/sections": {
@@ -306,11 +308,15 @@ export async function assertApiContract(
     }
 
     case "/api/locale": {
-      const response = await request.post("/api/locale", {
-        data: { locale: "zh-cn" },
+      const response = await fetch(absoluteTestUrl("/api/locale", baseURL), {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ locale: "zh-cn" }),
       });
-      expect(response.status()).toBe(200);
-      expect(response.headers()["set-cookie"]).toContain("NEXT_LOCALE=zh-cn");
+      expect(response.status).toBe(200);
+      expect(response.headers.get("set-cookie")).toContain("NEXT_LOCALE=zh-cn");
       return;
     }
 

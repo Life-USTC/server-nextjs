@@ -1,58 +1,48 @@
-import { z } from "zod";
+import * as z from "zod";
 import {
-  DescriptionModelSchema,
-  HomeworkAuditLogModelSchema,
-  HomeworkModelSchema,
-  UserModelSchema,
-} from "@/lib/api/model-schemas";
-import {
-  dateTimeSchema,
   localizedCourseBaseSchema,
   sectionBaseSchema,
   semesterSchema,
-  viewerContextSchema,
-} from "./response-schema-core";
+} from "./academic-response-schema-core";
+import { viewerContextSchema } from "./misc-response-schema-core";
+import { dateTimeSchema } from "./response-schema-primitives";
+import { homeworkAuditActionSchema } from "./shared-enum-schemas";
 
-export const homeworkUserSummarySchema = UserModelSchema.pick({
-  id: true,
-  name: true,
-  username: true,
-  image: true,
+export const homeworkUserSummarySchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  username: z.string().nullable(),
+  image: z.string().nullable(),
 });
 
-const homeworkDescriptionSchema = DescriptionModelSchema.pick({
-  id: true,
-  content: true,
-  createdAt: true,
-  updatedAt: true,
-  lastEditedAt: true,
-  lastEditedById: true,
-  sectionId: true,
-  courseId: true,
-  teacherId: true,
-  homeworkId: true,
-}).extend({
+const homeworkDescriptionSchema = z.object({
+  id: z.string(),
+  content: z.string(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
   lastEditedAt: dateTimeSchema.nullable(),
+  lastEditedById: z.string().nullable(),
+  sectionId: z.number().int().nullable(),
+  courseId: z.number().int().nullable(),
+  teacherId: z.number().int().nullable(),
+  homeworkId: z.string().nullable(),
 });
 
-const homeworkListItemSchema = HomeworkModelSchema.omit({
-  section: true,
-  createdBy: true,
-  updatedBy: true,
-  deletedBy: true,
-  description: true,
-  comments: true,
-  auditLogs: true,
-  homeworkCompletions: true,
-}).extend({
+const homeworkListItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  isMajor: z.boolean(),
+  requiresTeam: z.boolean(),
   publishedAt: dateTimeSchema.nullable(),
   submissionStartAt: dateTimeSchema.nullable(),
   submissionDueAt: dateTimeSchema.nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
   deletedAt: dateTimeSchema.nullable(),
+  sectionId: z.number().int(),
+  createdById: z.string().nullable(),
+  updatedById: z.string().nullable(),
+  deletedById: z.string().nullable(),
   section: sectionBaseSchema.extend({
     course: localizedCourseBaseSchema,
     semester: semesterSchema.nullable(),
@@ -69,12 +59,14 @@ const homeworkListItemSchema = HomeworkModelSchema.omit({
   commentCount: z.number().int().nonnegative(),
 });
 
-const homeworkAuditLogSchema = HomeworkAuditLogModelSchema.omit({
-  section: true,
-  homework: true,
-  actor: true,
-}).extend({
+const homeworkAuditLogSchema = z.object({
+  id: z.string(),
+  action: homeworkAuditActionSchema,
+  titleSnapshot: z.string(),
   createdAt: dateTimeSchema,
+  sectionId: z.number().int(),
+  homeworkId: z.string().nullable(),
+  actorId: z.string().nullable(),
   actor: homeworkUserSummarySchema.nullable(),
 });
 

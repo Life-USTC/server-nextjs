@@ -5,6 +5,7 @@ import {
   jsonResponse,
   notFound,
   parseInteger,
+  parseRouteParams,
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { findCourseDetailByJwId } from "@/lib/course-section-queries";
@@ -22,13 +23,16 @@ export async function GET(
   context: { params: Promise<{ jwId: string }> },
 ) {
   try {
-    const rawParams = await context.params;
-    const parsedParams = jwIdPathParamsSchema.safeParse(rawParams);
-    if (!parsedParams.success) {
+    const parsedParams = await parseRouteParams(
+      context.params,
+      jwIdPathParamsSchema,
+      "Invalid course ID",
+    );
+    if (parsedParams instanceof Response) {
       return invalidParamResponse("course ID");
     }
 
-    const parsedJwId = parseInteger(parsedParams.data.jwId);
+    const parsedJwId = parseInteger(parsedParams.jwId);
     if (parsedJwId === null) {
       return invalidParamResponse("course ID");
     }

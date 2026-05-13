@@ -24,6 +24,7 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedCourseFilterFixture } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -32,26 +33,45 @@ test.describe("/courses", () => {
     await assertPageContract(page, { routePath: "/courses", testInfo });
   });
 
-  test("SSR output contains search query", async ({ request }) => {
-    const response = await request.get(
-      `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+  test("SSR output contains search query", async ({ baseURL }) => {
+    const response = await fetch(
+      absoluteTestUrl(
+        `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+        baseURL,
+      ),
     );
-    expect(response.status()).toBe(200);
+    expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain('id="main-content"');
     expect(html).toContain(DEV_SEED.course.code);
   });
 
-  test("language switching works", async ({ page }, testInfo) => {
+  test("language switching works", async ({ page, baseURL }, testInfo) => {
     await gotoAndWaitForReady(page, "/courses", {
       testInfo,
       screenshotLabel: "courses",
     });
 
-    const localeResponse = await page.request.post("/api/locale", {
-      data: { locale: "en-us" },
-    });
-    expect(localeResponse.status()).toBe(200);
+    const localeResponse = await fetch(
+      absoluteTestUrl("/api/locale", baseURL),
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ locale: "en-us" }),
+      },
+    );
+    expect(localeResponse.status).toBe(200);
+
+    await page.context().addCookies([
+      {
+        name: "NEXT_LOCALE",
+        value: "en-us",
+        url: absoluteTestUrl("/", baseURL),
+        sameSite: "Lax",
+      },
+    ]);
 
     await gotoAndWaitForReady(page, "/courses", {
       testInfo,
@@ -124,7 +144,7 @@ test.describe("/courses", () => {
   test("filter by seed dimensions preserves results", async ({
     page,
   }, testInfo) => {
-    const filters = getSeedCourseFilterFixture(DEV_SEED.course.jwId);
+    const filters = await getSeedCourseFilterFixture(DEV_SEED.course.jwId);
     const params = new URLSearchParams();
     if (filters.educationLevelId) {
       params.set("educationLevelId", String(filters.educationLevelId));

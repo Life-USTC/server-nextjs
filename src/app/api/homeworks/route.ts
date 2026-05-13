@@ -1,22 +1,19 @@
-import {
-  findActiveSuspension,
-  getViewerContext,
-} from "@/features/comments/server/comment-utils";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
-  parseOptionalInt,
-  suspensionForbidden,
-  unauthorized,
+  parseInteger,
+  parseRouteInput,
+  parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import {
   homeworkCreateRequestSchema,
   homeworksQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 export const dynamic = "force-dynamic";
@@ -29,24 +26,29 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = homeworksQuerySchema.safeParse({
-    sectionId: searchParams.get("sectionId") ?? undefined,
-    sectionIds: searchParams.get("sectionIds") ?? undefined,
-    includeDeleted: searchParams.get("includeDeleted") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid homework query", parsedQuery.error, 400);
+  const parsedQuery = parseRouteInput(
+    {
+      sectionId: searchParams.get("sectionId") ?? undefined,
+      sectionIds: searchParams.get("sectionIds") ?? undefined,
+      includeDeleted: searchParams.get("includeDeleted") ?? undefined,
+    },
+    homeworksQuerySchema,
+    "Invalid homework query",
+    { logErrors: true },
+  );
+  if (parsedQuery instanceof Response) {
+    return parsedQuery;
   }
 
   // Support single sectionId or comma-separated sectionIds
   const sectionIdList: number[] = [];
-  if (parsedQuery.data.sectionIds) {
-    for (const s of parsedQuery.data.sectionIds.split(",")) {
-      const id = parseOptionalInt(s.trim());
+  if (parsedQuery.sectionIds) {
+    for (const s of parsedQuery.sectionIds.split(",")) {
+      const id = parseInteger(s.trim());
       if (id) sectionIdList.push(id);
     }
-  } else if (parsedQuery.data.sectionId) {
-    const id = parseOptionalInt(parsedQuery.data.sectionId);
+  } else if (parsedQuery.sectionId) {
+    const id = parseInteger(parsedQuery.sectionId);
     if (id) sectionIdList.push(id);
   }
 
@@ -54,7 +56,7 @@ export async function GET(request: Request) {
     return badRequest("Invalid section — provide sectionId or sectionIds");
   }
 
-  const includeDeleted = parsedQuery.data.includeDeleted === "true";
+  const includeDeleted = parsedQuery.includeDeleted === "true";
   const sectionFilter =
     sectionIdList.length === 1
       ? { sectionId: sectionIdList[0] }
@@ -160,31 +162,27 @@ export async function GET(request: Request) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid homework request", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    homeworkCreateRequestSchema,
+    "Invalid homework request",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = homeworkCreateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid homework request", parsedBody.error, 400);
-  }
-
-  const sectionId = parseOptionalInt(parsedBody.data.sectionId);
+  const sectionId = parseInteger(parsedBody.sectionId);
 
   if (!sectionId) {
     return badRequest("Invalid section");
   }
 
-  const title = parsedBody.data.title;
-  const description = (parsedBody.data.description ?? "").trim();
+  const title = parsedBody.title;
+  const description = (parsedBody.description ?? "").trim();
 
-  const publishedAt = parseDateInput(parsedBody.data.publishedAt);
-  const submissionStartAt = parseDateInput(parsedBody.data.submissionStartAt);
-  const submissionDueAt = parseDateInput(parsedBody.data.submissionDueAt);
+  const publishedAt = parseDateInput(parsedBody.publishedAt);
+  const submissionStartAt = parseDateInput(parsedBody.submissionStartAt);
+  const submissionDueAt = parseDateInput(parsedBody.submissionDueAt);
 
   if (publishedAt === undefined) {
     return badRequest("Invalid publish date");
@@ -204,15 +202,11 @@ export async function POST(request: Request) {
     return badRequest("Submission start must be before due");
   }
 
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
   }
-
-  const suspension = await findActiveSuspension(userId);
-  if (suspension) {
-    return suspensionForbidden(suspension.reason);
-  }
+  const { userId } = auth;
 
   try {
     const section = await prisma.section.findUnique({
@@ -229,8 +223,8 @@ export async function POST(request: Request) {
         data: {
           sectionId,
           title,
-          isMajor: parsedBody.data.isMajor === true,
-          requiresTeam: parsedBody.data.requiresTeam === true,
+          isMajor: parsedBody.isMajor === true,
+          requiresTeam: parsedBody.requiresTeam === true,
           publishedAt,
           submissionStartAt,
           submissionDueAt,

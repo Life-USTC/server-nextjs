@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { getMcpServerUrl, getOAuthIssuerUrl } from "@/lib/mcp/urls";
-import { getDiscoveryOptionsResponse } from "@/lib/oauth/discovery-metadata";
+import {
+  createDiscoveryMetadataRoute,
+  getDiscoveryOptionsResponse,
+} from "@/lib/oauth/discovery-metadata";
 import { MCP_TOOLS_SCOPE } from "@/lib/oauth/utils";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +12,7 @@ export const dynamic = "force-dynamic";
  * Canonical RFC 9728 protected resource metadata for MCP.
  * @response 200
  */
-export async function GET(request: Request) {
+async function getProtectedResourceMetadataResponse(request: Request) {
   const issuerUrl = getOAuthIssuerUrl(request);
 
   return NextResponse.json(
@@ -29,6 +32,10 @@ export async function GET(request: Request) {
     },
   );
 }
+
+export const { GET } = createDiscoveryMetadataRoute(
+  getProtectedResourceMetadataResponse,
+);
 
 /**
  * CORS preflight for protected resource metadata.

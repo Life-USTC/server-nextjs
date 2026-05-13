@@ -15,8 +15,10 @@ type CleanupDevScenarioOptions = {
 };
 
 const scenario = scenarioData;
-const { sectionJwIds, courseJwIds, teacherCodes, scheduleGroupJwIds } =
-  DEV_SCENARIO_IDS;
+const sectionJwIds = [...DEV_SCENARIO_IDS.sectionJwIds];
+const courseJwIds = [...DEV_SCENARIO_IDS.courseJwIds];
+const teacherCodes = [...DEV_SCENARIO_IDS.teacherCodes];
+const scheduleGroupJwIds = [...DEV_SCENARIO_IDS.scheduleGroupJwIds];
 
 export async function cleanupDevScenarioData(
   prisma: ToolPrismaClient,

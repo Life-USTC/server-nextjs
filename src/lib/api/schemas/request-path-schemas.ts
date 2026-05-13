@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { integerStringSchema } from "./request-schema-primitives";
 
 export const resourceIdPathParamsSchema = z.object({

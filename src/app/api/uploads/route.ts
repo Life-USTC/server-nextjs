@@ -8,7 +8,8 @@ import {
   badRequest,
   handleRouteError,
   jsonResponse,
-  parseOptionalInt,
+  parseInteger,
+  parseRouteJsonBody,
   payloadTooLarge,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -22,7 +23,7 @@ export const dynamic = "force-dynamic";
 const MAX_UPLOAD_EXPIRES_SECONDS = 300;
 
 function parseFileSize(value: unknown) {
-  return parseOptionalInt(value);
+  return parseInteger(value);
 }
 
 function normalizeContentType(value: unknown) {
@@ -100,25 +101,21 @@ export async function POST(request: Request) {
     return unauthorized();
   }
 
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid upload request", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    uploadCreateRequestSchema,
+    "Invalid upload request",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = uploadCreateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid upload request", parsedBody.error, 400);
-  }
-
-  const filename = parsedBody.data.filename;
+  const filename = parsedBody.filename;
   if (!filename.trim()) {
     return badRequest("Filename is required");
   }
 
-  const size = parseFileSize(parsedBody.data.size);
+  const size = parseFileSize(parsedBody.size);
   if (!size || size <= 0) {
     return badRequest("Invalid file size");
   }
@@ -133,7 +130,7 @@ export async function POST(request: Request) {
       where: { userId, expiresAt: { lt: now } },
     });
 
-    const contentType = normalizeContentType(parsedBody.data.contentType);
+    const contentType = normalizeContentType(parsedBody.contentType);
     const key = buildUploadKey(userId);
     const expiresAt = new Date(Date.now() + MAX_UPLOAD_EXPIRES_SECONDS * 1000);
 

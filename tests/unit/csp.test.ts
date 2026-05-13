@@ -49,6 +49,7 @@ describe("csp helpers", () => {
   it("allows both AWS S3 URL shapes for uploads", () => {
     vi.stubEnv("S3_BUCKET", "bucket.with.dots");
     vi.stubEnv("AWS_REGION", "us-east-1");
+    vi.stubEnv("AWS_ENDPOINT_URL_S3", "");
 
     const policy = buildContentSecurityPolicy("abc123");
     const connectDirective = policy

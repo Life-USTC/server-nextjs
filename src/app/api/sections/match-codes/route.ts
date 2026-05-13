@@ -1,8 +1,10 @@
 import type { NextRequest } from "next/server";
 import {
+  badRequest,
   handleRouteError,
   jsonResponse,
   parseInteger,
+  parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import { matchSectionCodesRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { findSectionCodeMatches } from "@/lib/course-section-queries";
@@ -17,28 +19,23 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const parsedBody = matchSectionCodesRequestSchema.safeParse(body);
-    if (!parsedBody.success) {
-      return handleRouteError(
-        "Invalid match-codes payload",
-        parsedBody.error,
-        400,
-      );
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      matchSectionCodesRequestSchema,
+      "Invalid match-codes payload",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
     }
 
-    const { codes, semesterId } = parsedBody.data;
+    const { codes, semesterId } = parsedBody;
 
     const parsedSemesterId = semesterId
       ? parseInteger(String(semesterId))
       : null;
 
     if (semesterId && parsedSemesterId === null) {
-      return handleRouteError(
-        "semesterId must be a valid number",
-        new Error("Invalid semesterId"),
-        400,
-      );
+      return badRequest("semesterId must be a valid number");
     }
 
     const matches = await findSectionCodeMatches(

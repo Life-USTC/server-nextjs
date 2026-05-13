@@ -1,6 +1,10 @@
 /**
  * MCP in-process harness.
  *
+ * Shared seed/setup workflow lives in the repo root `AGENTS.md`; this helper only
+ * encapsulates the authenticated in-process client/server wiring used by
+ * integration tests.
+ *
  * Creates a real McpServer connected to a real MCP Client via InMemoryTransport,
  * with a synthetic AuthInfo injected so tool handlers see an authenticated user.
  * No HTTP, no browser — just direct function call overhead.
@@ -18,6 +22,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
+import type {
+  Transport,
+  TransportSendOptions,
+} from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpServer } from "@/lib/mcp/server";
 
@@ -46,30 +54,76 @@ export type McpHarness = {
   close(): Promise<void>;
 };
 
+class AuthenticatedInMemoryTransport implements Transport {
+  constructor(
+    private readonly transport: InMemoryTransport,
+    private readonly authInfo: AuthInfo,
+  ) {}
+
+  get onclose() {
+    return this.transport.onclose;
+  }
+
+  set onclose(callback) {
+    this.transport.onclose = callback;
+  }
+
+  get onerror() {
+    return this.transport.onerror;
+  }
+
+  set onerror(callback) {
+    this.transport.onerror = callback;
+  }
+
+  get onmessage() {
+    return this.transport.onmessage;
+  }
+
+  set onmessage(callback) {
+    this.transport.onmessage = callback;
+  }
+
+  get sessionId() {
+    return this.transport.sessionId;
+  }
+
+  set sessionId(value) {
+    this.transport.sessionId = value;
+  }
+
+  start() {
+    return this.transport.start();
+  }
+
+  send(message: JSONRPCMessage, options?: TransportSendOptions) {
+    return this.transport.send(message, {
+      ...options,
+      authInfo: this.authInfo,
+    });
+  }
+
+  close() {
+    return this.transport.close();
+  }
+}
+
 /**
  * Spin up an in-process MCP client + server pair authenticated as `userId`.
  *
  * The trick: `InMemoryTransport.createLinkedPair()` links two transports A and B
  * so that `A.send(msg, { authInfo })` calls `B.onmessage(msg, { authInfo })`.
- * We patch `clientTransport.send` to always inject the test AuthInfo, so every
- * MCP request the Client sends is seen by the Server as authenticated.
+ * The client receives a wrapper transport that adds the test AuthInfo to every
+ * outbound message, so every MCP request the server receives is authenticated.
  */
 export async function createMcpHarness(userId: string): Promise<McpHarness> {
   const authInfo = makeTestAuthInfo(userId);
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-
-  // Patch the client-side send to inject authInfo into every outgoing message.
-  // InMemoryTransport.send(message, { authInfo }) forwards authInfo to the
-  // other transport's onmessage handler — exactly what McpServer reads.
-  const originalSend = clientTransport.send.bind(clientTransport);
-  clientTransport.send = (
-    message: JSONRPCMessage,
-    options?: { relatedRequestId?: unknown },
-  ) =>
-    originalSend(message, { ...options, authInfo } as Parameters<
-      typeof originalSend
-    >[1]);
+  const authenticatedClientTransport = new AuthenticatedInMemoryTransport(
+    clientTransport,
+    authInfo,
+  );
 
   const mcpServer = createMcpServer();
   const client = new Client({
@@ -78,14 +132,26 @@ export async function createMcpHarness(userId: string): Promise<McpHarness> {
   });
 
   await mcpServer.connect(serverTransport);
-  await client.connect(clientTransport);
+  await client.connect(authenticatedClientTransport);
+
+  function isTextContentItem(
+    value: unknown,
+  ): value is { type: "text"; text: string } {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      "type" in value &&
+      value.type === "text" &&
+      "text" in value &&
+      typeof value.text === "string"
+    );
+  }
 
   function parseResult(
     result: Awaited<ReturnType<typeof client.callTool>>,
   ): unknown {
-    const textItem = result.content.find(
-      (c): c is { type: "text"; text: string } => c.type === "text",
-    );
+    const content = Array.isArray(result.content) ? result.content : [];
+    const textItem = content.find(isTextContentItem);
     if (!textItem) {
       throw new Error("MCP tool returned no text content");
     }

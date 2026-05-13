@@ -26,6 +26,7 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../../utils/request-url";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -95,10 +96,14 @@ test.describe("/u/[username]", () => {
     );
   });
 
-  test("user internal ID is NOT visible on username page", async ({ page }) => {
+  test("user internal ID is NOT visible on username page", async ({
+    baseURL,
+  }) => {
     // user.yml: public-identity-display rule — internal ids hidden (permission.yml)
-    const res = await page.request.get(`/u/${DEV_SEED.debugUsername}`);
-    expect(res.status()).toBe(200);
+    const res = await fetch(
+      absoluteTestUrl(`/u/${DEV_SEED.debugUsername}`, baseURL),
+    );
+    expect(res.status).toBe(200);
     const html = await res.text();
     // Internal cuid IDs (26 chars) should not appear in visible page content
     // We check that the URL pattern /u/id/ is not linked from this page

@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import * as z from "zod";
 import { buildPaginatedResponse, normalizePagination } from "@/lib/api/helpers";
 import { getPrisma } from "@/lib/db/prisma";
 import {

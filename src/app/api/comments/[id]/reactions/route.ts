@@ -1,32 +1,34 @@
-import { NextResponse } from "next/server";
-import { findActiveSuspension } from "@/features/comments/server/comment-utils";
 import {
-  badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
-  suspensionForbidden,
+  parseRouteInput,
+  parseRouteJsonBody,
+  parseRouteParams,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
   commentReactionRequestSchema,
   resourceIdPathParamsSchema,
 } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
 
 async function parseCommentId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid comment ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid comment ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -39,34 +41,26 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
   }
+  const { userId } = auth;
 
   const parsed = await parseCommentId(params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
-
-  let body: unknown = {};
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid reaction", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    commentReactionRequestSchema,
+    "Invalid reaction",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
-
-  const parsedBody = commentReactionRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid reaction", parsedBody.error, 400);
-  }
-  const type = parsedBody.data.type;
-
-  const suspension = await findActiveSuspension(userId);
-  if (suspension) {
-    return suspensionForbidden(suspension.reason);
-  }
+  const type = parsedBody.type;
 
   try {
     const comment = await prisma.comment.findUnique({
@@ -116,18 +110,23 @@ export async function DELETE(
   }
 
   const parsed = await parseCommentId(params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
   const { searchParams } = new URL(request.url);
-  const parsedBody = commentReactionRequestSchema.safeParse({
-    type: searchParams.get("type"),
-  });
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid reaction", parsedBody.error, 400);
+  const parsedBody = parseRouteInput(
+    {
+      type: searchParams.get("type"),
+    },
+    commentReactionRequestSchema,
+    "Invalid reaction",
+    { logErrors: true },
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
-  const type = parsedBody.data.type;
+  const type = parsedBody.type;
 
   try {
     await prisma.commentReaction.deleteMany({

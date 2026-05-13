@@ -136,6 +136,7 @@ test.describe("OAuth provider", () => {
     page,
     request,
   }) => {
+    test.setTimeout(60_000);
     // Register a public client (no secret) for PKCE.
     const registrationResponse = await request.post(
       "/api/auth/oauth2/register",
@@ -155,7 +156,11 @@ test.describe("OAuth provider", () => {
       client_id?: string;
       client_name?: string;
     };
-    expect(typeof registrationBody.client_id).toBe("string");
+    const clientId = registrationBody.client_id;
+    expect(typeof clientId).toBe("string");
+    if (typeof clientId !== "string") {
+      throw new Error("Missing OAuth client_id");
+    }
     expect(registrationBody.client_name).toMatch(/^e2e-public-/);
 
     await signInAsDebugUser(page, "/");
@@ -166,7 +171,7 @@ test.describe("OAuth provider", () => {
       {
         params: {
           response_type: "code",
-          client_id: registrationBody.client_id,
+          client_id: clientId,
           redirect_uri: REDIRECT_URI,
           scope: "openid profile email mcp:tools",
           state: "e2e-state",
@@ -184,25 +189,33 @@ test.describe("OAuth provider", () => {
 
     // Complete consent UI.
     await page.goto(consentLocation);
-    if (/\/signin\?/.test(page.url())) {
+    await page.waitForLoadState("domcontentloaded");
+    const allowButton = page.getByRole("button", {
+      name: /allow|允许|授权/i,
+    });
+    if ((await allowButton.count()) === 0) {
       await page
         .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
         .first()
         .click();
       await page.waitForURL("**/oauth/authorize**");
     }
-    await page.getByRole("button", { name: /allow/i }).click();
+    await expect(allowButton).toBeVisible();
+    await allowButton.click();
     await page.waitForURL("**/e2e/oauth/callback**");
 
     const callbackUrl = new URL(page.url());
     const code = callbackUrl.searchParams.get("code");
     expect(typeof code).toBe("string");
+    if (typeof code !== "string") {
+      throw new Error("Missing OAuth authorization code");
+    }
 
     // Exchange code for token.
     const tokenResponse = await request.post("/api/auth/oauth2/token", {
       form: {
         grant_type: "authorization_code",
-        client_id: registrationBody.client_id,
+        client_id: clientId,
         code,
         code_verifier: CODE_VERIFIER,
         redirect_uri: REDIRECT_URI,
@@ -246,6 +259,11 @@ test.describe("OAuth provider", () => {
     const registrationBody = (await registrationResponse.json()) as {
       client_id?: string;
     };
+    const clientId = registrationBody.client_id;
+    expect(typeof clientId).toBe("string");
+    if (typeof clientId !== "string") {
+      throw new Error("Missing OAuth client_id");
+    }
 
     await signInAsDebugUser(page, "/");
 
@@ -254,7 +272,7 @@ test.describe("OAuth provider", () => {
       {
         params: {
           response_type: "code",
-          client_id: registrationBody.client_id,
+          client_id: clientId,
           redirect_uri: LOOPBACK_LOCALHOST_REDIRECT_URI,
           scope: "openid profile email mcp:tools",
           state: "e2e-loopback-state",

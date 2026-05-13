@@ -21,7 +21,7 @@ function getContractWaitUntil(routePath: string) {
   if (routePath === "/api-docs" || routePath === "/guides/markdown-support") {
     return "load" as const;
   }
-  return "networkidle" as const;
+  return "domcontentloaded" as const;
 }
 
 async function maybeCapture(

@@ -1,3 +1,16 @@
+x-minio-env: &minio-env
+  MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-minioadmin}
+  MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+  MINIO_API_CORS_ALLOW_ORIGIN: ${MINIO_API_CORS_ALLOW_ORIGIN:-http://127.0.0.1:3000,http://localhost:3000}
+
+x-minio-aws-env: &minio-aws-env
+  AWS_REGION: ${AWS_REGION:-us-east-1}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+
+x-minio-dev-bucket: &minio-dev-bucket ${S3_BUCKET:-life-ustc-dev}
+x-minio-internal-endpoint: &minio-internal-endpoint ${MINIO_INTERNAL_ENDPOINT:-http://minio:9000}
+
 services:
   postgres:
     image: postgres:16
@@ -17,16 +30,13 @@ services:
       - postgres-data-dev:/var/lib/postgresql/data
 
   minio:
-    image: minio/minio:latest
-    container_name: life-ustc-minio-dev
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-      MINIO_API_CORS_ALLOW_ORIGIN: "http://127.0.0.1:3000,http://localhost:3000"
+    image: ${MINIO_IMAGE:-minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1}
+    container_name: ${MINIO_CONTAINER_NAME:-life-ustc-minio-dev}
+    environment: *minio-env
     command: server /data --console-address ":9001"
     ports:
-      - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9000/minio/health/live || exit 1"]
       interval: 5s
@@ -36,16 +46,19 @@ services:
       - minio-data-dev:/data
 
   minio-setup:
-    image: minio/mc:latest
+    image: ${MINIO_CLIENT_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z-cpuv1}
     container_name: life-ustc-minio-setup-dev
     depends_on:
       minio:
         condition: service_healthy
     restart: "no"
+    environment:
+      <<: *minio-env
+      MINIO_BUCKET: *minio-dev-bucket
     entrypoint: >
       /bin/sh -c '
-      mc alias set local http://minio:9000 minioadmin minioadmin &&
-      mc mb --ignore-existing local/life-ustc-dev
+      mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD" &&
+      mc mb --ignore-existing "local/$$MINIO_BUCKET"
       '
 
   app:
@@ -55,31 +68,22 @@ services:
     working_dir: /usr/src/app
     env_file:
       - .env
-    command: >
-      sh -lc "
-      mkdir -p /home/bun/.bun/install/cache /usr/src/app/.next /usr/src/app/node_modules &&
-      chown -R bun:bun /home/bun/.bun /usr/src/app/.next /usr/src/app/node_modules /usr/src/app/src/generated/prisma &&
-      su -m bun -s /bin/sh -c 'cd /usr/src/app && bun install --frozen-lockfile && bun run dev --hostname 0.0.0.0 --port 3000'
-      "
+    command: ["sh", "/usr/src/app/docker-entrypoint.dev.sh"]
     environment:
+      <<: *minio-aws-env
       NODE_ENV: development
+      APP_HOST: 0.0.0.0
+      PORT: 3000
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/life_ustc_dev
       APP_PUBLIC_ORIGIN: http://127.0.0.1:3000
       BETTER_AUTH_URL: http://127.0.0.1:3000
-      S3_BUCKET: life-ustc-dev
-      AWS_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_ENDPOINT_URL_S3: http://minio:9000
+      S3_BUCKET: *minio-dev-bucket
+      AWS_ENDPOINT_URL_S3: *minio-internal-endpoint
       CHOKIDAR_USEPOLLING: "1"
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "cd /tmp && bun -e \"fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
-        ]
+      test: ["CMD-SHELL", "bun run health"]
       interval: 10s
       timeout: 10s
       retries: 12

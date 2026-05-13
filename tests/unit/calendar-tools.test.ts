@@ -61,7 +61,7 @@ describe("summarizeCalendarSubscription", () => {
     expect(summary.currentSemesterSections).toHaveLength(2);
     expect(summary.calendarPath).toContain("/api/users/user-1/calendar.ics");
     expect(summary.calendarUrl).toContain("/api/users/user-1/calendar.ics");
-    expect(brief.currentSemesterSections).toBeUndefined();
+    expect(brief).not.toHaveProperty("currentSemesterSections");
     expect(brief.sectionCount).toBe(2);
     expect(brief.calendarPath).toContain("/api/users/user-1/calendar.ics");
   });

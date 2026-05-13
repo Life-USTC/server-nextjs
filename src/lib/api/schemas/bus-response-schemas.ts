@@ -1,5 +1,6 @@
-import { z } from "zod";
-import { busCampusSchema, dateTimeSchema } from "./response-schema-core";
+import * as z from "zod";
+import { busCampusSchema } from "./misc-response-schema-core";
+import { dateTimeSchema } from "./response-schema-primitives";
 
 const busTripStopTimeSummarySchema = z.object({
   stopOrder: z.number().int(),

@@ -7,7 +7,7 @@ import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import {
   createWeekDayFormatter,
-  getWeekStartSunday,
+  getDefaultWeekRange,
 } from "@/shared/lib/date-utils";
 import {
   buildExams,
@@ -30,6 +30,11 @@ import type {
   HomeworkWithSection,
   SessionItem,
 } from "./dashboard-types";
+import {
+  getSubscribedSectionIds,
+  listSubscribedDashboardSections,
+  listSubscribedHomeworks,
+} from "./subscription-read-model";
 
 export type OverviewDataOptions = {
   /** Calendar tab: show semester/month/week grid for this semester (any known term). */
@@ -54,22 +59,22 @@ export async function getDashboardNavStats(
   const tomorrowStart = todayStart.add(1, "day");
   const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
 
-  const user = await basePrisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      username: true,
-      subscribedSections: { select: { id: true } },
-    },
-  });
+  const [user, sectionIds, pendingTodosCount] = await Promise.all([
+    basePrisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+      },
+    }),
+    getSubscribedSectionIds(userId),
+    basePrisma.todo.count({
+      where: { userId, completed: false },
+    }),
+  ]);
 
   if (!user) return null;
-
-  const sectionIds = user.subscribedSections.map((section) => section.id);
-  const pendingTodosCount = await basePrisma.todo.count({
-    where: { userId, completed: false },
-  });
 
   if (sectionIds.length === 0) {
     return {
@@ -191,9 +196,6 @@ export async function getDashboardOverviewData(
   const referenceNow = shanghaiDayjs();
   const referenceDate = referenceNow.toDate();
 
-  // Fetch semesters and user data in parallel. Subscribed sections are
-  // semester-specific, so their schedules are naturally bounded; no date filter
-  // is needed at the DB level. We post-filter in memory once semester dates are known.
   const [semesters, user] = await Promise.all([
     localizedPrisma.semester.findMany({
       select: {
@@ -204,55 +206,12 @@ export async function getDashboardOverviewData(
       },
       orderBy: { startDate: "asc" },
     }),
-    localizedPrisma.user.findUnique({
+    basePrisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         name: true,
         username: true,
-        subscribedSections: {
-          select: {
-            id: true,
-            jwId: true,
-            course: { select: { namePrimary: true } },
-            semester: { select: { id: true } },
-            schedules: {
-              select: {
-                id: true,
-                date: true,
-                startTime: true,
-                endTime: true,
-                customPlace: true,
-                room: {
-                  select: {
-                    namePrimary: true,
-                    building: {
-                      select: {
-                        namePrimary: true,
-                        campus: { select: { namePrimary: true } },
-                      },
-                    },
-                  },
-                },
-                teachers: { select: { namePrimary: true } },
-              },
-              orderBy: [{ date: "asc" }, { startTime: "asc" }],
-            },
-            exams: {
-              select: {
-                id: true,
-                examDate: true,
-                startTime: true,
-                endTime: true,
-                examType: true,
-                examTakeCount: true,
-                examMode: true,
-                examRooms: { select: { room: true, count: true } },
-              },
-              orderBy: { examDate: "asc" },
-            },
-          },
-        },
       },
     }),
   ]);
@@ -297,21 +256,11 @@ export async function getDashboardOverviewData(
       ? new Date(Math.max(...candidateEnds.map((date) => date.getTime())))
       : fallbackEnd;
 
-  // Post-filter schedules to the semester date window now that we have semester data.
-  const userWithFilteredSchedules = {
-    ...user,
-    subscribedSections: user.subscribedSections.map((section) => ({
-      ...section,
-      schedules: section.schedules.filter(
-        (schedule) =>
-          schedule.date != null &&
-          schedule.date >= scheduleDateStart &&
-          schedule.date <= scheduleDateEnd,
-      ),
-    })),
-  };
-
-  const allSections = userWithFilteredSchedules.subscribedSections;
+  const allSections = await listSubscribedDashboardSections(userId, {
+    locale,
+    dateFrom: scheduleDateStart,
+    dateTo: scheduleDateEnd,
+  });
   const {
     hasAnySelection,
     hasCurrentTermSelection,
@@ -352,34 +301,6 @@ export async function getDashboardOverviewData(
         : []
       : dashboardSectionIds;
 
-  const homeworksPromise: Promise<HomeworkWithSection[]> =
-    homeworkSectionIds.length
-      ? localizedPrisma.homework.findMany({
-          where: {
-            sectionId: { in: homeworkSectionIds },
-            deletedAt: null,
-            homeworkCompletions: { none: { userId } },
-          },
-          select: {
-            id: true,
-            title: true,
-            submissionDueAt: true,
-            description: { select: { content: true } },
-            homeworkCompletions: {
-              where: { userId },
-              select: { completedAt: true },
-            },
-            section: {
-              select: {
-                jwId: true,
-                course: { select: { namePrimary: true } },
-              },
-            },
-          },
-          orderBy: [{ submissionDueAt: "asc" }, { createdAt: "desc" }],
-        })
-      : Promise.resolve([]);
-
   const linksPromise = options.skipLinks
     ? Promise.resolve({
         dashboardLinks: [],
@@ -393,10 +314,16 @@ export async function getDashboardOverviewData(
   const now = referenceNow;
   const todayStart = now.startOf("day");
   const tomorrowStart = todayStart.add(1, "day");
-  const weekStart = getWeekStartSunday(now);
-  const weekEnd = weekStart.add(7, "day");
+  const { start: weekStart, endExclusive: weekEnd } = getDefaultWeekRange(now);
 
-  const homeworks = await homeworksPromise;
+  const homeworks: HomeworkWithSection[] = await listSubscribedHomeworks(
+    userId,
+    {
+      locale,
+      completed: false,
+      sectionIds: homeworkSectionIds,
+    },
+  );
   const todaySessions = filterSessionsByDay(sessions, todayStart);
   const tomorrowSessions = filterSessionsByDay(sessions, tomorrowStart);
   const weeklySessions = selectWeeklySessions(sessions, weekStart, weekEnd);

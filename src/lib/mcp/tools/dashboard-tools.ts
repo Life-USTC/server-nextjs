@@ -1,5 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import * as z from "zod";
 import { getAssistantDashboardSnapshot } from "@/features/home/server/assistant-dashboard-snapshot";
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import {

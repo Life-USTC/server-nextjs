@@ -22,6 +22,7 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedTeacherDepartmentFixture } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -30,11 +31,14 @@ test.describe("/teachers", () => {
     await assertPageContract(page, { routePath: "/teachers", testInfo });
   });
 
-  test("SSR output includes search params", async ({ request }) => {
-    const response = await request.get(
-      `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+  test("SSR output includes search params", async ({ baseURL }) => {
+    const response = await fetch(
+      absoluteTestUrl(
+        `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+        baseURL,
+      ),
     );
-    expect(response.status()).toBe(200);
+    expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain('id="main-content"');
     expect(html).toContain(DEV_SEED.teacher.nameCn);
@@ -92,7 +96,7 @@ test.describe("/teachers", () => {
   test("department filter preserves teacher results", async ({
     page,
   }, testInfo) => {
-    const filter = getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
+    const filter = await getSeedTeacherDepartmentFixture(DEV_SEED.teacher.code);
     await gotoAndWaitForReady(
       page,
       `/teachers?departmentId=${filter.departmentId ?? ""}`,

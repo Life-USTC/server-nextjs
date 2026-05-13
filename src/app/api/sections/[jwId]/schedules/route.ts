@@ -5,6 +5,7 @@ import {
   jsonResponse,
   notFound,
   parseInteger,
+  parseRouteParams,
 } from "@/lib/api/helpers";
 import { jwIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma } from "@/lib/db/prisma";
@@ -22,13 +23,16 @@ export async function GET(
   context: { params: Promise<{ jwId: string }> },
 ) {
   try {
-    const rawParams = await context.params;
-    const parsedParams = jwIdPathParamsSchema.safeParse(rawParams);
-    if (!parsedParams.success) {
+    const parsedParams = await parseRouteParams(
+      context.params,
+      jwIdPathParamsSchema,
+      "Invalid section ID",
+    );
+    if (parsedParams instanceof Response) {
       return invalidParamResponse("section ID");
     }
 
-    const { jwId } = parsedParams.data;
+    const { jwId } = parsedParams;
     const parsedJwId = parseInteger(jwId);
 
     if (parsedJwId === null) {

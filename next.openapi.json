@@ -3,22 +3,12 @@
   "info": {
     "title": "Life@USTC API",
     "version": "1.0.0",
-    "description": "OpenAPI document generated from Next.js routes by next-openapi-gen"
+    "description": "OpenAPI document generated from Next.js route handlers"
   },
   "servers": [
     {
       "url": "http://localhost:3000",
       "description": "Local server"
     }
-  ],
-  "apiDir": "src/app",
-  "routerType": "app",
-  "schemaDir": ["src/lib/api/schemas"],
-  "schemaType": "zod",
-  "outputFile": "openapi.generated.json",
-  "outputDir": "./public",
-  "docsUrl": "/api-docs",
-  "includeOpenApiRoutes": false,
-  "ignoreRoutes": ["/api/openapi"],
-  "debug": false
+  ]
 }

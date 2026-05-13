@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import path from "node:path";
 import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,11 @@ export const dynamic = "force-dynamic";
  */
 export async function GET() {
   try {
-    const specPath = join(process.cwd(), "public", "openapi.generated.json");
+    const specPath = path.join(
+      process.cwd(),
+      "public",
+      "openapi.generated.json",
+    );
     const spec = await readFile(specPath, "utf-8");
 
     return jsonResponse(JSON.parse(spec));

@@ -1,3 +1,4 @@
+import { getOptionalTrimmedEnv } from "@/env";
 import { getCanonicalOrigin, getPublicOrigin } from "@/lib/site-url";
 
 const LOCALHOST_DEV_PORT = 3000;
@@ -80,6 +81,5 @@ export function getOAuthProxyCurrentUrl(): string {
 }
 
 export function getOAuthProxySecret(): string | undefined {
-  const configured = process.env.OAUTH_PROXY_SECRET?.trim();
-  return configured && configured.length > 0 ? configured : undefined;
+  return getOptionalTrimmedEnv("OAUTH_PROXY_SECRET");
 }

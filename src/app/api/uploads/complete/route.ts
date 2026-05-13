@@ -9,6 +9,7 @@ import {
   forbidden,
   handleRouteError,
   jsonResponse,
+  parseRouteJsonBody,
   payloadTooLarge,
   unauthorized,
 } from "@/lib/api/helpers";
@@ -37,24 +38,16 @@ export async function POST(request: Request) {
     return unauthorized();
   }
 
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid upload completion payload", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    uploadCompleteRequestSchema,
+    "Invalid upload completion payload",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = uploadCompleteRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError(
-      "Invalid upload completion payload",
-      parsedBody.error,
-      400,
-    );
-  }
-
-  const { key, filename } = parsedBody.data;
+  const { key, filename } = parsedBody;
 
   if (!key || !filename) {
     return badRequest("Missing upload data");
@@ -124,7 +117,7 @@ export async function POST(request: Request) {
     }
 
     const contentType =
-      normalizeContentType(parsedBody.data.contentType) ?? head.ContentType;
+      normalizeContentType(parsedBody.contentType) ?? head.ContentType;
 
     const reservation = await runUploadSerializableTransaction(async (tx) => {
       const pending = await tx.uploadPending.findUnique({ where: { key } });

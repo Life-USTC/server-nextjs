@@ -19,6 +19,6 @@ describe("Prisma toolchain versions", () => {
     expect(packageJson.dependencies["@prisma/client"]).toBe(
       prismaVersion.client,
     );
-    expect(packageJson.devDependencies.prisma).toBe(prismaVersion.client);
+    expect(packageJson.dependencies.prisma).toBe(prismaVersion.client);
   });
 });

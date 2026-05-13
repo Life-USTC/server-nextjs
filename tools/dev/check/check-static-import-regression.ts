@@ -14,11 +14,14 @@ type DatasetResult = {
   hash: string;
 };
 
+type BaselineSource = {
+  description: string;
+  materialize: () => Promise<void>;
+};
+
 const repoRoot = process.cwd();
-const currentImporterPath = path.join(
-  repoRoot,
-  "tools/production/load/load-from-static.ts",
-);
+const importerRepoPath = "tools/production/load/load-from-static.ts";
+const currentImporterPath = path.join(repoRoot, importerRepoPath);
 const baselineImporterPath = path.join(
   repoRoot,
   "tools/production/load/load-from-static.baseline.ts",
@@ -26,7 +29,8 @@ const baselineImporterPath = path.join(
 
 const { values: args } = parseArgs({
   options: {
-    "baseline-importer": { type: "string", default: currentImporterPath },
+    "baseline-importer": { type: "string" },
+    "baseline-ref": { type: "string" },
     "min-semester": { type: "string", default: "401" },
     "cache-dir": { type: "string" },
     "skip-bus": { type: "boolean", default: false },
@@ -41,12 +45,15 @@ if (args.help) {
 
 Options:
   --baseline-importer <path>
-                          Importer script used as the baseline (default: current workspace importer)
-  --min-semester <id>     Minimum semester jwId to import (default: 401)
-  --cache-dir <path>      Snapshot download cache directory
-  --skip-bus              Skip bus import in both baseline and candidate runs
-  --keep-databases        Keep temporary comparison databases for inspection
-  -h, --help              Show this help message`);
+                           Importer file used as the baseline
+  --baseline-ref <git-ref> Compare against ${importerRepoPath} from a Git ref
+  --min-semester <id>      Minimum semester jwId to import (default: 401)
+  --cache-dir <path>       Snapshot download cache directory
+  --skip-bus               Skip bus import in both baseline and candidate runs
+  --keep-databases         Keep temporary comparison databases for inspection
+  -h, --help               Show this help message
+
+Exactly one of --baseline-importer or --baseline-ref is required.`);
   process.exit(0);
 }
 
@@ -93,6 +100,40 @@ async function runCommand(
       reject(
         new Error(
           `${command} ${commandArgs.join(" ")} exited with code ${code ?? "unknown"}`,
+        ),
+      );
+    });
+  });
+}
+
+async function captureCommand(
+  command: string,
+  commandArgs: string[],
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  return await new Promise<string>((resolve, reject) => {
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    const child = spawn(command, commandArgs, {
+      cwd: repoRoot,
+      env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
+    child.on("error", reject);
+    child.on("exit", (code) => {
+      if (code === 0) {
+        resolve(Buffer.concat(stdout).toString("utf8"));
+        return;
+      }
+
+      const details = Buffer.concat(stderr).toString("utf8").trim();
+      reject(
+        new Error(
+          details ||
+            `${command} ${commandArgs.join(" ")} exited with code ${code ?? "unknown"}`,
         ),
       );
     });
@@ -180,6 +221,52 @@ function firstDifference(left: unknown[], right: unknown[]) {
     }
   }
   return null;
+}
+
+function resolveImporterPath(importerPath: string) {
+  return path.resolve(repoRoot, importerPath);
+}
+
+async function materializeBaselineImporter(importerPath: string) {
+  await fs.copyFile(resolveImporterPath(importerPath), baselineImporterPath);
+}
+
+async function materializeBaselineImporterFromRef(ref: string) {
+  const file = await captureCommand("git", [
+    "--no-pager",
+    "show",
+    `${ref}:${importerRepoPath}`,
+  ]);
+  await fs.writeFile(baselineImporterPath, file);
+}
+
+function resolveBaselineSource(): BaselineSource {
+  const baselineImporter = args["baseline-importer"]?.trim();
+  const baselineRef = args["baseline-ref"]?.trim();
+
+  if (baselineImporter && baselineRef) {
+    throw new Error(
+      "Pass exactly one of --baseline-importer or --baseline-ref, not both",
+    );
+  }
+
+  if (baselineImporter) {
+    return {
+      description: resolveImporterPath(baselineImporter),
+      materialize: () => materializeBaselineImporter(baselineImporter),
+    };
+  }
+
+  if (baselineRef) {
+    return {
+      description: `${importerRepoPath} @ ${baselineRef}`,
+      materialize: () => materializeBaselineImporterFromRef(baselineRef),
+    };
+  }
+
+  throw new Error(
+    "check:static-import requires a real baseline. Pass --baseline-ref <git-ref> or --baseline-importer <path>.",
+  );
 }
 
 const DATASET_QUERIES = [
@@ -345,6 +432,24 @@ const DATASET_QUERIES = [
   },
 ] as const;
 
+async function prepareDatabase(databaseUrl: string) {
+  await runCommand("bun", ["run", "prisma:deploy"], {
+    ...process.env,
+    DATABASE_URL: databaseUrl,
+  });
+}
+
+async function runImporter(importerPath: string, databaseUrl: string) {
+  await runCommand(
+    "bun",
+    [resolveImporterPath(importerPath), ...buildImporterArgs()],
+    {
+      ...process.env,
+      DATABASE_URL: databaseUrl,
+    },
+  );
+}
+
 async function compareDatasets(
   baselineDatabaseUrl: string,
   candidateDatabaseUrl: string,
@@ -386,33 +491,8 @@ async function compareDatasets(
   return summaries;
 }
 
-function resolveImporterPath(importerPath: string) {
-  return path.resolve(repoRoot, importerPath);
-}
-
-async function materializeBaselineImporter(importerPath: string) {
-  await fs.copyFile(resolveImporterPath(importerPath), baselineImporterPath);
-}
-
-async function prepareDatabase(databaseUrl: string) {
-  await runCommand("bun", ["run", "prisma:deploy"], {
-    ...process.env,
-    DATABASE_URL: databaseUrl,
-  });
-}
-
-async function runImporter(importerPath: string, databaseUrl: string) {
-  await runCommand(
-    "bun",
-    [resolveImporterPath(importerPath), ...buildImporterArgs()],
-    {
-      ...process.env,
-      DATABASE_URL: databaseUrl,
-    },
-  );
-}
-
 async function main() {
+  const baselineSource = resolveBaselineSource();
   const baseDatabaseUrl = requireDatabaseUrl();
   const controlDatabaseUrl = buildControlDatabaseUrl(baseDatabaseUrl);
   const runId = randomUUID().replaceAll("-", "").slice(0, 12);
@@ -424,14 +504,12 @@ async function main() {
     candidateDbName,
   );
   const importerArgs = buildImporterArgs();
-  const baselineImporterSource =
-    args["baseline-importer"] ?? currentImporterPath;
 
   console.log(
-    `[static-import] comparing ${baselineImporterSource} against workspace with args: ${importerArgs.join(" ")}`,
+    `[static-import] comparing ${baselineSource.description} against workspace with args: ${importerArgs.join(" ")}`,
   );
 
-  await materializeBaselineImporter(baselineImporterSource);
+  await baselineSource.materialize();
 
   try {
     await withAdminClient(controlDatabaseUrl, async (client) => {

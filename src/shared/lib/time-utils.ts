@@ -1,22 +1,10 @@
-import type { Dayjs } from "dayjs";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
+import { isSameDefaultWeek } from "@/shared/lib/date-utils";
 
 function isZhLocale(locale: string): boolean {
   const l = locale.toLowerCase().replace(/_/g, "-");
   return l === "zh-cn" || l.startsWith("zh-") || l === "zh";
-}
-
-/** Monday-based week start (aligned with common 本周 usage). */
-function mondayStart(d: Dayjs): Dayjs {
-  const x = d.clone().startOf("day");
-  const dow = x.day();
-  const diff = dow === 0 ? -6 : 1 - dow;
-  return x.add(diff, "day");
-}
-
-function sameMondayWeek(a: Dayjs, b: Dayjs): boolean {
-  return mondayStart(a).isSame(mondayStart(b), "day");
 }
 
 function intlLocale(locale: string): string {
@@ -50,7 +38,7 @@ export function formatSmartDateTime(
     return isZh ? `昨天 ${time}` : `Yesterday, ${time}`;
   }
 
-  if (sameMondayWeek(due, ref)) {
+  if (isSameDefaultWeek(due, ref)) {
     const wk = new Intl.DateTimeFormat(il, {
       timeZone: APP_TIME_ZONE,
       weekday: "short",
@@ -109,7 +97,7 @@ export function formatSmartDate(
     return isZh ? "昨天" : "Yesterday";
   }
 
-  if (sameMondayWeek(due, ref)) {
+  if (isSameDefaultWeek(due, ref)) {
     return new Intl.DateTimeFormat(il, {
       timeZone: APP_TIME_ZONE,
       weekday: "long",

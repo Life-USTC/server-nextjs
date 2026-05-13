@@ -4,6 +4,7 @@ import {
   getPagination,
   handleRouteError,
   jsonResponse,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -19,12 +20,17 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const parsedQuery = semestersQuerySchema.safeParse({
-      page: searchParams.get("page") ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-    });
-    if (!parsedQuery.success) {
-      return handleRouteError("Invalid semester query", parsedQuery.error, 400);
+    const parsedQuery = parseRouteInput(
+      {
+        page: searchParams.get("page") ?? undefined,
+        limit: searchParams.get("limit") ?? undefined,
+      },
+      semestersQuerySchema,
+      "Invalid semester query",
+      { logErrors: true },
+    );
+    if (parsedQuery instanceof Response) {
+      return parsedQuery;
     }
     const { page, pageSize, skip } = getPagination(searchParams);
 

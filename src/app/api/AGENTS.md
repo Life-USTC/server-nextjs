@@ -5,10 +5,13 @@ REST route handlers.
 ## Pattern
 
 ```typescript
-import { jsonResponse } from "@/lib/api/json-response";
-import { handleRouteError } from "@/lib/api/error-handler";
-import { unauthorized, notFound } from "@/lib/api/status-responses";
-import { resolveApiUserId } from "@/lib/auth/resolve-api-user-id";
+import {
+  handleRouteError,
+  jsonResponse,
+  notFound,
+  unauthorized,
+} from "@/lib/api/helpers";
+import { resolveApiUserId } from "@/lib/auth/helpers";
 
 export async function GET(request: Request) {
   try {
@@ -19,7 +22,7 @@ export async function GET(request: Request) {
     const data = await fetchData();
     return jsonResponse(data);
   } catch (error) {
-    return handleRouteError(error);
+    return handleRouteError("Failed to fetch data", error);
   }
 }
 ```
@@ -44,6 +47,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {}
 ```
 
-Run `bun run prebuild` after changes.
+Run `bun run build:artifacts` after changes.
 
 See root `AGENTS.md` for auth, dates, errors, validation.

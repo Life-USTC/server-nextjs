@@ -1,7 +1,12 @@
 import type { NextRequest } from "next/server";
 import { getLocale } from "next-intl/server";
 import { getBusTimetableData } from "@/features/bus/lib/bus-service";
-import { handleRouteError, jsonResponse, notFound } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  notFound,
+  parseRouteInput,
+} from "@/lib/api/helpers";
 import { busQueryResponseSchema } from "@/lib/api/schemas";
 import { busQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
@@ -16,12 +21,17 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = busQuerySchema.safeParse({
-    versionKey: searchParams.get("versionKey") ?? undefined,
-  });
+  const parsedQuery = parseRouteInput(
+    {
+      versionKey: searchParams.get("versionKey") ?? undefined,
+    },
+    busQuerySchema,
+    "Invalid bus query",
+    { logErrors: true },
+  );
 
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid bus query", parsedQuery.error, 400);
+  if (parsedQuery instanceof Response) {
+    return parsedQuery;
   }
 
   const locale = await getLocale();
@@ -30,7 +40,7 @@ export async function GET(request: NextRequest) {
   try {
     const result = await getBusTimetableData({
       locale: locale === "en-us" ? "en-us" : "zh-cn",
-      versionKey: parsedQuery.data.versionKey ?? null,
+      versionKey: parsedQuery.versionKey ?? null,
       userId,
     });
 

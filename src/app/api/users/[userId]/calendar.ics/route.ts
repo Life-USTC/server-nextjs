@@ -4,6 +4,7 @@ import {
   handleRouteError,
   invalidParamResponse,
   notFound,
+  parseRouteParams,
   unauthorized,
 } from "@/lib/api/helpers";
 import { userCalendarPathParamsSchema } from "@/lib/api/schemas/request-schemas";
@@ -41,13 +42,16 @@ export async function GET(
   context: { params: Promise<{ userId: string }> },
 ) {
   try {
-    const rawParams = await context.params;
-    const parsedParams = userCalendarPathParamsSchema.safeParse(rawParams);
-    if (!parsedParams.success) {
+    const parsedParams = await parseRouteParams(
+      context.params,
+      userCalendarPathParamsSchema,
+      "Invalid user ID",
+    );
+    if (parsedParams instanceof Response) {
       return invalidParamResponse("user ID");
     }
 
-    const { userId: rawUserId } = parsedParams.data;
+    const { userId: rawUserId } = parsedParams;
     const { userId, tokenFromPath } = parseUserCalendarIdentifier(rawUserId);
     const token =
       tokenFromPath?.trim() ||

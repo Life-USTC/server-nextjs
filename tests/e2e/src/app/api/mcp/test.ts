@@ -22,12 +22,15 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, type Page, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
-import { DEV_SEED } from "../../../../utils/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import {
   getCurrentSessionUser,
   PLAYWRIGHT_BASE_URL,
 } from "../../../../utils/e2e-db";
-import { withE2eLock } from "../../../../utils/locks";
+import {
+  DEBUG_USER_SUBSCRIPTIONS_LOCK,
+  withE2eLock,
+} from "../../../../utils/locks";
 
 function generateCodeChallenge(codeVerifier: string) {
   return createHash("sha256").update(codeVerifier).digest("base64url");
@@ -37,7 +40,6 @@ const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
 const TRUSTED_BROWSER_ORIGIN = PLAYWRIGHT_BASE_URL.includes("127.0.0.1")
   ? PLAYWRIGHT_BASE_URL.replace("127.0.0.1", "localhost")
   : PLAYWRIGHT_BASE_URL.replace("localhost", "127.0.0.1");
-const DEBUG_USER_CALENDAR_LOCK = "debug-user-calendar";
 
 async function resumeConsentIfSignInPage(page: Page) {
   const allowButton = page.getByRole("button", { name: /允许|Allow/i });
@@ -187,19 +189,28 @@ async function issueAccessToken(
   };
 }
 
-function getTextContent(result: {
-  content: Array<{ type: string; text?: string }>;
-}) {
-  const textContent = result.content.find(
-    (item): item is { type: "text"; text: string } => item.type === "text",
+function getTextContent(result: unknown) {
+  const content =
+    typeof result === "object" &&
+    result !== null &&
+    "content" in result &&
+    Array.isArray(result.content)
+      ? result.content
+      : [];
+  const textContent = content.find(
+    (item): item is { type: "text"; text: string } =>
+      typeof item === "object" &&
+      item !== null &&
+      "type" in item &&
+      "text" in item &&
+      item.type === "text" &&
+      typeof item.text === "string",
   );
   expect(textContent).toBeDefined();
   return textContent?.text ?? "{}";
 }
 
-function parseTextContent(result: {
-  content: Array<{ type: string; text?: string }>;
-}) {
+function parseTextContent(result: unknown) {
   return JSON.parse(getTextContent(result)) as Record<string, unknown>;
 }
 
@@ -506,7 +517,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     page,
     request,
   }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
       await signInAsDebugUser(page, "/");
       const currentUser = await getCurrentSessionUser(page);
@@ -796,7 +807,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
             sectionCode: DEV_SEED.section.code,
             teacherCode: DEV_SEED.teacher.code,
             roomJwId: 9910031,
-            dateFrom: "2026-04-29T00:00:00+08:00",
+            dateFrom: DEV_SEED_ANCHOR.startOfDayAtTime,
             dateTo: "2026-05-10T23:59:59+08:00",
             locale: "zh-cn",
           },
@@ -1127,7 +1138,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           name: "get_my_7days_timeline",
           arguments: {
             locale: "zh-cn",
-            atTime: DEV_SEED.seedAnchorAtTime,
+            atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
           },
         });
         const timelinePayload = parseTextContent(timelineResult) as {
@@ -1156,7 +1167,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           name: "get_my_7days_timeline",
           arguments: {
             locale: "zh-cn",
-            atTime: DEV_SEED.seedAnchorAtTime,
+            atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
             mode: "summary",
           },
         });
@@ -1187,7 +1198,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         const calendarEventsResult = await mcpClient.callTool({
           name: "list_my_calendar_events",
           arguments: {
-            dateFrom: "2026-04-29T00:00:00+08:00",
+            dateFrom: DEV_SEED_ANCHOR.startOfDayAtTime,
             dateTo: "2026-05-10T23:59:59+08:00",
             locale: "zh-cn",
           },
@@ -1202,7 +1213,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         const calendarEventsSummaryResult = await mcpClient.callTool({
           name: "list_my_calendar_events",
           arguments: {
-            dateFrom: "2026-04-29T00:00:00+08:00",
+            dateFrom: DEV_SEED_ANCHOR.startOfDayAtTime,
             dateTo: "2026-05-10T23:59:59+08:00",
             locale: "zh-cn",
             mode: "summary",
@@ -1322,6 +1333,9 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
           timeout: 10_000,
           intervals: [250, 500, 1_000],
         });
+        if (!busPayload) {
+          throw new Error("query_bus_timetable returned no payload");
+        }
 
         const busFullResult = await mcpClient.callTool({
           name: "query_bus_timetable",

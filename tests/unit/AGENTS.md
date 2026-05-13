@@ -4,9 +4,8 @@ Unit tests for pure helpers.
 
 ## Run
 
-```bash
-bun run test
-```
+Use the canonical command list in the repo root `AGENTS.md`; for this layer that
+is `bun run test`.
 
 ## Scope
 

@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { OPENAPI_SPEC_RELATIVE_PATH } from "../../../src/lib/openapi/spec";
 
 type OpenApiDocument = {
   openapi?: string;
@@ -11,116 +12,123 @@ type OpenApiDocument = {
 
 type OpenApiOperation = Record<string, unknown>;
 
-function tagForPath(path: string): { name: string; description: string } {
-  const table: Array<{
-    match: (p: string) => boolean;
-    name: string;
-    description: string;
-  }> = [
-    {
-      match: (p) => p.startsWith("/api/admin/"),
-      name: "Admin",
-      description: "Admin and moderation endpoints",
-    },
-    {
-      match: (p) => p.startsWith("/api/comments"),
-      name: "Comments",
-      description: "Comment threads, reactions, and moderation",
-    },
-    {
-      match: (p) => p.startsWith("/api/homeworks"),
-      name: "Homeworks",
-      description: "Homework management and completion status",
-    },
-    {
-      match: (p) => p.startsWith("/api/uploads"),
-      name: "Uploads",
-      description: "Upload presign, finalize, and file management",
-    },
-    {
-      match: (p) => p.startsWith("/api/descriptions"),
-      name: "Descriptions",
-      description: "User-generated description content and history",
-    },
-    {
-      match: (p) => p.startsWith("/api/sections"),
-      name: "Sections",
-      description: "Course sections, calendars, and schedules",
-    },
-    {
-      match: (p) => p.startsWith("/api/courses"),
-      name: "Courses",
-      description: "Course catalog and search",
-    },
-    {
-      match: (p) => p.startsWith("/api/teachers"),
-      name: "Teachers",
-      description: "Teacher directory and search",
-    },
-    {
-      match: (p) => p.startsWith("/api/schedules"),
-      name: "Schedules",
-      description: "Schedules search and filtering",
-    },
-    {
-      match: (p) => p.startsWith("/api/semesters"),
-      name: "Semesters",
-      description: "Semester listing and current semester",
-    },
-    {
-      match: (p) => p.startsWith("/api/calendar-subscriptions"),
-      name: "Calendar",
-      description: "Calendar selections",
-    },
-    {
-      match: (p) => p.startsWith("/api/users/") && p.endsWith("/calendar.ics"),
-      name: "Calendar",
-      description: "User calendar export",
-    },
-    {
-      match: (p) => p.startsWith("/api/bus"),
-      name: "Bus",
-      description: "Shuttle bus schedules and preferences",
-    },
-    {
-      match: (p) => p.startsWith("/api/todos"),
-      name: "Todos",
-      description: "Personal todo management",
-    },
-    {
-      match: (p) => p.startsWith("/api/metadata"),
-      name: "Metadata",
-      description: "Metadata dictionaries for filters",
-    },
-    {
-      match: (p) => p.startsWith("/api/me"),
-      name: "Me",
-      description: "Current user profile, subscriptions, and personal data",
-    },
-    {
-      match: (p) => p.startsWith("/api/dashboard-links"),
-      name: "DashboardLinks",
-      description: "Dashboard link pinning and click tracking",
-    },
-    {
-      match: (p) => p.startsWith("/api/locale"),
-      name: "Locale",
-      description: "Locale switching and locale cookies",
-    },
-    {
-      match: (p) => p.startsWith("/api/openapi"),
-      name: "OpenAPI",
-      description: "OpenAPI document endpoint",
-    },
-  ];
+const TAG_DESCRIPTIONS: Record<string, string> = {
+  Admin: "Admin and moderation endpoints",
+  Comments: "Comment threads, reactions, and moderation",
+  Homeworks: "Homework management and completion status",
+  Uploads: "Upload presign, finalize, and file management",
+  Descriptions: "User-generated description content and history",
+  Sections: "Course sections, calendars, and schedules",
+  Courses: "Course catalog and search",
+  Teachers: "Teacher directory and search",
+  Schedules: "Schedules search and filtering",
+  Semesters: "Semester listing and current semester",
+  Calendar: "Calendar selections and exports",
+  Bus: "Shuttle bus schedules and preferences",
+  Todos: "Personal todo management",
+  Metadata: "Metadata dictionaries for filters",
+  Me: "Current user profile, subscriptions, and personal data",
+  DashboardLinks: "Dashboard link pinning and click tracking",
+  Locale: "Locale switching and locale cookies",
+  OpenAPI: "OpenAPI document endpoint",
+  Api: "General API endpoints",
+};
 
-  const found = table.find((entry) => entry.match(path));
+const TAG_ORDER = [
+  "Admin",
+  "Comments",
+  "Homeworks",
+  "Uploads",
+  "Descriptions",
+  "Sections",
+  "Courses",
+  "Teachers",
+  "Schedules",
+  "Semesters",
+  "Calendar",
+  "Bus",
+  "Todos",
+  "Me",
+  "DashboardLinks",
+  "Locale",
+  "Metadata",
+  "OpenAPI",
+  "Api",
+];
+
+const TAG_BY_SEGMENT: Record<string, string> = {
+  comments: "Comments",
+  homeworks: "Homeworks",
+  uploads: "Uploads",
+  descriptions: "Descriptions",
+  sections: "Sections",
+  courses: "Courses",
+  teachers: "Teachers",
+  schedules: "Schedules",
+  semesters: "Semesters",
+  "calendar-subscriptions": "Calendar",
+  bus: "Bus",
+  todos: "Todos",
+  metadata: "Metadata",
+  me: "Me",
+  "dashboard-links": "DashboardLinks",
+  locale: "Locale",
+  openapi: "OpenAPI",
+};
+
+const SINGULAR_RESOURCE_NAMES: Record<string, string> = {
+  comments: "Comment",
+  homeworks: "Homework",
+  uploads: "Upload",
+  descriptions: "Description",
+  sections: "Section",
+  courses: "Course",
+  teachers: "Teacher",
+  schedules: "Schedule",
+  semesters: "Semester",
+  todos: "Todo",
+  users: "User",
+  suspensions: "Suspension",
+  "calendar-subscriptions": "CalendarSubscription",
+  "dashboard-links": "DashboardLink",
+};
+
+function getApiSegments(path: string) {
+  return path.split("/").filter(Boolean).slice(1);
+}
+
+function toPascalCase(value: string) {
+  return value
+    .split(/[-_.]/g)
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join("");
+}
+
+function getCollectionName(segment: string) {
+  return toPascalCase(segment);
+}
+
+function getSingularName(segment: string) {
   return (
-    found ?? {
-      name: "Api",
-      description: "General API endpoints",
-    }
+    SINGULAR_RESOURCE_NAMES[segment] ??
+    getCollectionName(segment).replace(/s$/, "")
   );
+}
+
+function tagForPath(path: string): { name: string; description: string } {
+  const segments = getApiSegments(path);
+  const name =
+    segments[0] === "admin"
+      ? "Admin"
+      : segments[0] === "users" && segments.at(-1) === "calendar.ics"
+        ? "Calendar"
+        : ((segments[0] ? TAG_BY_SEGMENT[segments[0]] : undefined) ?? "Api");
+
+  return {
+    name,
+    description: TAG_DESCRIPTIONS[name] ?? TAG_DESCRIPTIONS.Api,
+  };
 }
 
 function isOperationKey(key: string) {
@@ -136,287 +144,200 @@ function isOperationKey(key: string) {
   ].includes(key);
 }
 
-// ── OperationId rewriting ──────────────────────────────────────────────────────
-
-type OperationIdRule = {
-  match: (method: string, path: string) => boolean;
-  operationId: string;
-};
-
-const operationIdRules: OperationIdRule[] = [
-  // Admin
-  {
-    match: (m, p) => m === "get" && p === "/api/admin/users",
-    operationId: "listAdminUsers",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/admin/users/{id}",
-    operationId: "updateAdminUser",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/admin/comments",
-    operationId: "listAdminComments",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/admin/comments/{id}",
-    operationId: "moderateAdminComment",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/admin/descriptions",
-    operationId: "listAdminDescriptions",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/admin/homeworks",
-    operationId: "listAdminHomeworks",
-  },
-  {
-    match: (m, p) => m === "delete" && p === "/api/admin/homeworks/{id}",
-    operationId: "deleteAdminHomework",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/admin/suspensions",
-    operationId: "listAdminSuspensions",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/admin/suspensions",
-    operationId: "createAdminSuspension",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/admin/suspensions/{id}",
-    operationId: "updateAdminSuspension",
-  },
-  // Comments
-  {
-    match: (m, p) => m === "get" && p === "/api/comments",
-    operationId: "listComments",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/comments",
-    operationId: "createComment",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/comments/{id}",
-    operationId: "getComment",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/comments/{id}",
-    operationId: "updateComment",
-  },
-  {
-    match: (m, p) => m === "delete" && p === "/api/comments/{id}",
-    operationId: "deleteComment",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/comments/{id}/reactions",
-    operationId: "addCommentReaction",
-  },
-  {
-    match: (m, p) => m === "delete" && p === "/api/comments/{id}/reactions",
-    operationId: "removeCommentReaction",
-  },
-  // Homeworks
-  {
-    match: (m, p) => m === "get" && p === "/api/homeworks",
-    operationId: "listHomeworks",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/homeworks",
-    operationId: "createHomework",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/homeworks/{id}",
-    operationId: "updateHomework",
-  },
-  {
-    match: (m, p) => m === "delete" && p === "/api/homeworks/{id}",
-    operationId: "deleteHomework",
-  },
-  {
-    match: (m, p) => m === "put" && p === "/api/homeworks/{id}/completion",
-    operationId: "setHomeworkCompletion",
-  },
-  // Uploads
-  {
-    match: (m, p) => m === "get" && p === "/api/uploads",
-    operationId: "listUploads",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/uploads",
-    operationId: "createUpload",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/uploads/{id}",
-    operationId: "renameUpload",
-  },
-  {
-    match: (m, p) => m === "delete" && p === "/api/uploads/{id}",
-    operationId: "deleteUpload",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/uploads/{id}/download",
-    operationId: "downloadUpload",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/uploads/complete",
-    operationId: "completeUpload",
-  },
-  // Descriptions
-  {
-    match: (m, p) => m === "get" && p === "/api/descriptions",
-    operationId: "getDescription",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/descriptions",
-    operationId: "upsertDescription",
-  },
-  // Sections
-  {
-    match: (m, p) => m === "get" && p === "/api/sections",
-    operationId: "listSections",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/sections/{jwId}",
-    operationId: "getSection",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/sections/match-codes",
-    operationId: "matchSectionCodes",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/sections/{jwId}/schedules",
-    operationId: "getSectionSchedules",
-  },
-  {
-    match: (m, p) =>
-      m === "get" && p === "/api/sections/{jwId}/schedule-groups",
-    operationId: "getSectionScheduleGroups",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/sections/{jwId}/calendar.ics",
-    operationId: "getSectionCalendar",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/sections/calendar.ics",
-    operationId: "getSectionsCalendar",
-  },
-  // Courses
-  {
-    match: (m, p) => m === "get" && p === "/api/courses",
-    operationId: "listCourses",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/courses/{jwId}",
-    operationId: "getCourse",
-  },
-  // Teachers
-  {
-    match: (m, p) => m === "get" && p === "/api/teachers",
-    operationId: "listTeachers",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/teachers/{id}",
-    operationId: "getTeacher",
-  },
-  // Schedules
-  {
-    match: (m, p) => m === "get" && p === "/api/schedules",
-    operationId: "listSchedules",
-  },
-  // Semesters
-  {
-    match: (m, p) => m === "get" && p === "/api/semesters",
-    operationId: "listSemesters",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/semesters/current",
-    operationId: "getCurrentSemester",
-  },
-  // Calendar
-  {
-    match: (m, p) => m === "post" && p === "/api/calendar-subscriptions",
-    operationId: "setCalendarSubscription",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/calendar-subscriptions/current",
-    operationId: "getCurrentCalendarSubscription",
-  },
-  {
-    match: (m, p) => m === "get" && p === "/api/users/{userId}/calendar.ics",
-    operationId: "getUserCalendar",
-  },
-  // Bus
-  { match: (m, p) => m === "get" && p === "/api/bus", operationId: "queryBus" },
-  {
-    match: (m, p) => m === "get" && p === "/api/bus/preferences",
-    operationId: "getBusPreferences",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/bus/preferences",
-    operationId: "setBusPreferences",
-  },
-  // Todos
-  {
-    match: (m, p) => m === "get" && p === "/api/todos",
-    operationId: "listTodos",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/todos",
-    operationId: "createTodo",
-  },
-  {
-    match: (m, p) => m === "patch" && p === "/api/todos/{id}",
-    operationId: "updateTodo",
-  },
-  {
-    match: (m, p) => m === "delete" && p === "/api/todos/{id}",
-    operationId: "deleteTodo",
-  },
-  // Me
-  { match: (m, p) => m === "get" && p === "/api/me", operationId: "getMe" },
-  {
-    match: (m, p) => m === "get" && p === "/api/me/subscriptions/homeworks",
-    operationId: "getSubscribedHomeworks",
-  },
-  // Dashboard Links
-  {
-    match: (m, p) => m === "get" && p === "/api/dashboard-links/visit",
-    operationId: "visitDashboardLink",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/dashboard-links/visit",
-    operationId: "recordDashboardLinkVisit",
-  },
-  {
-    match: (m, p) => m === "post" && p === "/api/dashboard-links/pin",
-    operationId: "pinDashboardLink",
-  },
-  // Metadata
-  {
-    match: (m, p) => m === "get" && p === "/api/metadata",
-    operationId: "getMetadata",
-  },
-  // Locale
-  {
-    match: (m, p) => m === "post" && p === "/api/locale",
-    operationId: "setLocale",
-  },
-  // OpenAPI
-  {
-    match: (m, p) => m === "get" && p === "/api/openapi",
-    operationId: "getOpenApiSpec",
-  },
-];
-
 function rewriteOperationId(
   method: string,
   path: string,
   currentId: string,
 ): string {
-  for (const rule of operationIdRules) {
-    if (rule.match(method, path)) {
-      return rule.operationId;
+  const segments = getApiSegments(path);
+  if (segments.length === 0) {
+    return currentId;
+  }
+
+  const isAdmin = segments[0] === "admin";
+  const resourceSegments = isAdmin ? segments.slice(1) : segments;
+  const [resource, secondSegment, thirdSegment] = resourceSegments;
+  const adminPrefix = isAdmin ? "Admin" : "";
+  const hasResourceId = secondSegment?.startsWith("{") ?? false;
+
+  if (!resource) {
+    return currentId;
+  }
+
+  if (resource === "bus" && resourceSegments.length === 1 && method === "get") {
+    return "queryBus";
+  }
+
+  if (resource === "bus" && secondSegment === "preferences") {
+    return method === "get" ? "getBusPreferences" : "setBusPreferences";
+  }
+
+  if (resource === "descriptions" && resourceSegments.length === 1) {
+    return method === "get" ? "getDescription" : "upsertDescription";
+  }
+
+  if (
+    resource === "semesters" &&
+    secondSegment === "current" &&
+    method === "get"
+  ) {
+    return "getCurrentSemester";
+  }
+
+  if (resource === "metadata" && method === "get") {
+    return "getMetadata";
+  }
+
+  if (resource === "locale" && method === "post") {
+    return "setLocale";
+  }
+
+  if (resource === "openapi" && method === "get") {
+    return "getOpenApiSpec";
+  }
+
+  if (
+    resource === "me" &&
+    secondSegment === "subscriptions" &&
+    thirdSegment === "homeworks" &&
+    method === "get"
+  ) {
+    return "getSubscribedHomeworks";
+  }
+
+  if (resource === "me" && resourceSegments.length === 1 && method === "get") {
+    return "getMe";
+  }
+
+  if (resource === "dashboard-links" && secondSegment === "visit") {
+    return method === "get" ? "visitDashboardLink" : "recordDashboardLinkVisit";
+  }
+
+  if (
+    resource === "dashboard-links" &&
+    secondSegment === "pin" &&
+    method === "post"
+  ) {
+    return "pinDashboardLink";
+  }
+
+  if (resource === "calendar-subscriptions" && secondSegment === "current") {
+    return "getCurrentCalendarSubscription";
+  }
+
+  if (
+    resource === "calendar-subscriptions" &&
+    resourceSegments.length === 1 &&
+    method === "post"
+  ) {
+    return "setCalendarSubscription";
+  }
+
+  if (
+    resource === "users" &&
+    segments.at(-1) === "calendar.ics" &&
+    method === "get"
+  ) {
+    return "getUserCalendar";
+  }
+
+  if (
+    resource === "sections" &&
+    secondSegment === "match-codes" &&
+    method === "post"
+  ) {
+    return "matchSectionCodes";
+  }
+
+  if (
+    resource === "sections" &&
+    segments.at(-1) === "calendar.ics" &&
+    method === "get"
+  ) {
+    return hasResourceId ? "getSectionCalendar" : "getSectionsCalendar";
+  }
+
+  if (
+    resource === "sections" &&
+    thirdSegment === "schedules" &&
+    method === "get"
+  ) {
+    return "getSectionSchedules";
+  }
+
+  if (
+    resource === "sections" &&
+    thirdSegment === "schedule-groups" &&
+    method === "get"
+  ) {
+    return "getSectionScheduleGroups";
+  }
+
+  if (
+    resource === "uploads" &&
+    secondSegment === "complete" &&
+    method === "post"
+  ) {
+    return "completeUpload";
+  }
+
+  if (
+    resource === "uploads" &&
+    thirdSegment === "download" &&
+    method === "get"
+  ) {
+    return "downloadUpload";
+  }
+
+  if (
+    resource === "homeworks" &&
+    thirdSegment === "completion" &&
+    method === "put"
+  ) {
+    return "setHomeworkCompletion";
+  }
+
+  if (resource === "comments" && thirdSegment === "reactions") {
+    return method === "post" ? "addCommentReaction" : "removeCommentReaction";
+  }
+
+  if (
+    isAdmin &&
+    resource === "comments" &&
+    hasResourceId &&
+    method === "patch"
+  ) {
+    return "moderateAdminComment";
+  }
+
+  if (!hasResourceId && resourceSegments.length === 1) {
+    if (method === "get") {
+      return `list${adminPrefix}${getCollectionName(resource)}`;
+    }
+    if (method === "post") {
+      return `create${adminPrefix}${getSingularName(resource)}`;
     }
   }
+
+  if (hasResourceId && resourceSegments.length === 2) {
+    const verb =
+      method === "get"
+        ? "get"
+        : method === "patch"
+          ? "update"
+          : method === "delete"
+            ? "delete"
+            : method === "put"
+              ? "set"
+              : method === "post"
+                ? "create"
+                : "";
+
+    if (verb) {
+      return `${verb}${adminPrefix}${getSingularName(resource)}`;
+    }
+  }
+
   return currentId;
 }
 
@@ -459,27 +380,7 @@ function buildTopLevelTags(paths: NonNullable<OpenApiDocument["paths"]>) {
     byName.set(tag.name, tag);
   }
 
-  const preferredOrder = [
-    "Admin",
-    "Comments",
-    "Homeworks",
-    "Uploads",
-    "Descriptions",
-    "Sections",
-    "Courses",
-    "Teachers",
-    "Schedules",
-    "Semesters",
-    "Calendar",
-    "Bus",
-    "Todos",
-    "Me",
-    "DashboardLinks",
-    "Locale",
-    "Metadata",
-    "OpenAPI",
-    "Api",
-  ];
+  const preferredOrder = TAG_ORDER;
 
   const tags = Array.from(byName.values());
   tags.sort((a, b) => {
@@ -819,7 +720,7 @@ function simplifyAnyOfUnions(obj: unknown): void {
 
 async function main() {
   const filePath = new URL(
-    "../../../public/openapi.generated.json",
+    `../../../${OPENAPI_SPEC_RELATIVE_PATH}`,
     import.meta.url,
   );
   const raw = await readFile(filePath, "utf8");

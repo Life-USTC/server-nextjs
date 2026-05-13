@@ -1,5 +1,6 @@
-import { z } from "zod";
-import { CommentVisibilitySchema } from "../model-schemas";
+import * as z from "zod";
+import { parseInteger } from "../request-integers";
+import { commentVisibilitySchema } from "./shared-enum-schemas";
 
 const parseOptionalIntLike = (value: unknown) => {
   if (value === null || value === undefined || value === "") {
@@ -18,27 +19,15 @@ const parseOptionalIntLike = (value: unknown) => {
 };
 
 const parseOptionalInt = (value: unknown) => {
-  if (typeof value === "number") {
-    return Number.isSafeInteger(value) ? value : null;
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  if (!normalized || !/^-?\d+$/.test(normalized)) {
-    return null;
-  }
-
-  const parsed = Number(normalized);
-  return Number.isSafeInteger(parsed) ? parsed : null;
+  return parseInteger(value);
 };
 
 export const integerStringSchema = z
   .string()
   .trim()
-  .regex(/^-?\d+$/);
+  .refine((value) => parseInteger(value) !== null, {
+    message: "Invalid integer",
+  });
 
 export const commentReactionTypeSchema = z.enum([
   "upvote",
@@ -58,7 +47,7 @@ export const sectionCodeSchema = z
   .max(64)
   .regex(/^[A-Za-z0-9_.-]+$/);
 
-export const commentVisibilitySchema = CommentVisibilitySchema;
+export { commentVisibilitySchema };
 
 export const commentTargetTypeSchema = z.enum([
   "section",

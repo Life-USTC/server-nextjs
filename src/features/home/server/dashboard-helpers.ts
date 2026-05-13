@@ -1,7 +1,7 @@
 import type dayjs from "dayjs";
 import { formatScheduleLocation } from "@/lib/location-utils";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
-import { getWeekStartSunday } from "@/shared/lib/date-utils";
+import { getDefaultWeekStart } from "@/shared/lib/date-utils";
 import { toMinutes } from "@/shared/lib/time-utils";
 import type {
   ExamItem,
@@ -98,8 +98,8 @@ export const getSemesterWeeks = (
   semesterEnd: dayjs.Dayjs,
 ): dayjs.Dayjs[][] => {
   const weeks: dayjs.Dayjs[][] = [];
-  let weekStart = getWeekStartSunday(semesterStart.startOf("day"));
-  const lastWeekStart = getWeekStartSunday(semesterEnd.startOf("day"));
+  let weekStart = getDefaultWeekStart(semesterStart);
+  const lastWeekStart = getDefaultWeekStart(semesterEnd);
 
   while (
     weekStart.isBefore(lastWeekStart, "day") ||

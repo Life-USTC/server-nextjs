@@ -11,7 +11,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
-import { resolveSignInCallbackUrl } from "@/lib/auth/signin-callback-url";
+import { allowDebugAuth } from "@/lib/auth/auth-config";
+import {
+  resolveAuthRedirectTarget,
+  resolveSignInCallbackUrl,
+} from "@/lib/auth/auth-routing";
+import {
+  DEV_ADMIN_PROVIDER_ID,
+  DEV_DEBUG_PROVIDER_ID,
+  getSignInProviderIds,
+  OIDC_PROVIDER_ID,
+} from "@/lib/auth/provider-ids";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -25,7 +35,13 @@ async function signInWithProvider(formData: FormData) {
   "use server";
 
   const providerId = String(formData.get("providerId") ?? "");
-  const redirectTo = String(formData.get("callbackUrl") ?? "/");
+  const callbackUrl = formData.get("callbackUrl");
+  const redirectTo = resolveAuthRedirectTarget(
+    {
+      callbackUrl: typeof callbackUrl === "string" ? callbackUrl : undefined,
+    },
+    "/",
+  );
 
   await signIn(providerId, { redirectTo });
 }
@@ -43,20 +59,20 @@ export default async function SignInPage({
   }
 
   const t = await getTranslations("signIn");
-  const showDebugProviders =
-    process.env.NODE_ENV === "development" ||
-    process.env.E2E_DEBUG_AUTH === "1";
-  const providers = [
-    { id: "oidc", name: "USTC" },
-    { id: "github", name: "GitHub" },
-    { id: "google", name: "Google" },
-    ...(showDebugProviders
-      ? [
-          { id: "dev-debug", name: t("devDebugProvider") },
-          { id: "dev-admin", name: t("devAdminProvider") },
-        ]
-      : []),
-  ];
+  const showDebugProviders = allowDebugAuth;
+  const providers = getSignInProviderIds(showDebugProviders).map((id) => ({
+    id,
+    name:
+      id === OIDC_PROVIDER_ID
+        ? "USTC"
+        : id === DEV_DEBUG_PROVIDER_ID
+          ? t("devDebugProvider")
+          : id === DEV_ADMIN_PROVIDER_ID
+            ? t("devAdminProvider")
+            : id === "github"
+              ? "GitHub"
+              : "Google",
+  }));
 
   return (
     <main className="page-main flex min-h-[calc(100vh-8rem)] items-center justify-center">

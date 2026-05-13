@@ -1,6 +1,7 @@
 import { createAuthEndpoint } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import * as z from "zod";
+import { getOptionalTrimmedEnv } from "@/env";
 import { prisma } from "@/lib/db/prisma";
 import { logOAuthDebug } from "@/lib/log/oauth-debug";
 
@@ -36,7 +37,7 @@ export function webhookLoginPlugin() {
               },
             });
 
-          const webhookSecret = process.env.WEBHOOK_SECRET;
+          const webhookSecret = getOptionalTrimmedEnv("WEBHOOK_SECRET");
           if (!webhookSecret || secret !== webhookSecret) {
             logOAuthDebug("webhook-login.auth-failed", ctx.request, {
               reason: "invalid_or_missing_secret",

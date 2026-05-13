@@ -42,7 +42,7 @@ test.describe("PATCH /api/admin/suspensions/[id]", () => {
 
   test("admin can lift a temporary suspension", async ({ page }) => {
     const prefix = `e2e-lift-sus-${Date.now()}`;
-    const { usernames } = createTempUsersFixture({ prefix, count: 1 });
+    const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
     await signInAsDevAdmin(page, "/admin");
 
     try {
@@ -83,7 +83,7 @@ test.describe("PATCH /api/admin/suspensions/[id]", () => {
       expect(patchBody.suspension?.liftedAt).toBeTruthy();
       expect(patchBody.suspension?.liftedById).toBeTruthy();
     } finally {
-      deleteUsersByPrefix(prefix);
+      await deleteUsersByPrefix(prefix);
     }
   });
 });

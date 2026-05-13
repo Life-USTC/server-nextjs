@@ -2,13 +2,30 @@
 
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { buildSignInRedirectUrl } from "@/lib/auth/auth-routing";
 import { prisma } from "@/lib/db/prisma";
 import { DEVICE_CODE_STATUS, normalizeUserCode } from "@/lib/oauth/device-code";
+
+function buildDeviceCallbackUrl(rawCode: FormDataEntryValue | null) {
+  if (typeof rawCode !== "string" || !rawCode.trim()) {
+    return "/oauth/device";
+  }
+
+  return `/oauth/device?${new URLSearchParams({
+    code: rawCode.trim(),
+    step: "approve",
+  }).toString()}`;
+}
 
 export async function approveDeviceCode(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect(
+      buildSignInRedirectUrl(
+        {},
+        buildDeviceCallbackUrl(formData.get("userCode")),
+      ),
+    );
   }
 
   const rawCode = formData.get("userCode");
@@ -44,7 +61,12 @@ export async function approveDeviceCode(formData: FormData) {
 export async function denyDeviceCode(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect(
+      buildSignInRedirectUrl(
+        {},
+        buildDeviceCallbackUrl(formData.get("userCode")),
+      ),
+    );
   }
 
   const rawCode = formData.get("userCode");

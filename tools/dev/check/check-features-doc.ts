@@ -1,16 +1,14 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020";
+import { walkFiles } from "../../shared/file-utils";
 
 const featuresDir = "docs/features";
 const schemaPath = "docs/features.schema.json";
 const prismaPath = "prisma/schema.prisma";
-const generatedPath = "docs/features.generated.json";
 const apiDir = "src/app/api";
 const mcpDir = "src/lib/mcp/tools";
-
-const args = new Set(process.argv.slice(2));
-const writeMode = args.has("--write");
 
 type PrismaDocs = {
   enums: Record<string, string[]>;
@@ -18,6 +16,11 @@ type PrismaDocs = {
     string,
     { fields: Record<string, string>; constraints?: string[] }
   >;
+};
+
+type FeatureMeta = {
+  query: "sh" | "yq";
+  queries: Record<string, string>;
 };
 
 function parsePrismaSchema(source: string): PrismaDocs {
@@ -59,20 +62,37 @@ function stableJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-function walkFiles(dir: string): string[] {
-  const entries = readdirSync(dir, { withFileTypes: true });
-  const files: string[] = [];
-
-  for (const entry of entries) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      files.push(...walkFiles(path));
-      continue;
-    }
-    files.push(path);
+function validateFeatureQueries(meta: FeatureMeta) {
+  if (meta.query !== "sh") {
+    console.error(
+      `Feature query validation only supports shell commands; got ${meta.query}`,
+    );
+    process.exit(1);
   }
 
-  return files;
+  for (const [name, command] of Object.entries(meta.queries)) {
+    const result = spawnSync(meta.query, ["-c", command], {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    if (result.status === 0) {
+      continue;
+    }
+
+    console.error(
+      `Feature doc query validation failed for meta.queries.${name}`,
+    );
+    console.error(`Command: ${command}`);
+    if (result.stdout.trim()) {
+      console.error(result.stdout.trim());
+    }
+    if (result.stderr.trim()) {
+      console.error(result.stderr.trim());
+    }
+    process.exit(result.status ?? 1);
+  }
 }
 
 function parseImplementedRoutePath(filePath: string): string {
@@ -201,30 +221,6 @@ function isImplementedRestRouteIgnored(route: string): boolean {
   );
 }
 
-function assertGeneratedArtifact(merged: Record<string, unknown>) {
-  const next = `${stableJson(merged)}\n`;
-
-  if (writeMode) {
-    writeFileSync(generatedPath, next);
-    return;
-  }
-
-  if (!existsSync(generatedPath)) {
-    console.error(
-      `Generated feature artifact missing: ${generatedPath}. Run bun run check:features --write.`,
-    );
-    process.exit(1);
-  }
-
-  const current = JSON.parse(readFileSync(generatedPath, "utf8"));
-  if (stableJson(current) !== stableJson(merged)) {
-    console.error(
-      `Generated feature artifact is out of date: ${generatedPath}. Run bun run check:features --write.`,
-    );
-    process.exit(1);
-  }
-}
-
 // Load and merge modular feature files
 if (!existsSync(featuresDir)) {
   console.error(`Features directory not found: ${featuresDir}`);
@@ -299,6 +295,8 @@ if (!validate(merged)) {
   process.exit(1);
 }
 
+validateFeatureQueries(merged.meta as FeatureMeta);
+
 // Validate Prisma sync
 const expected = parsePrismaSchema(readFileSync(prismaPath, "utf8"));
 const actual = { enums: merged.enums, models: merged.models };
@@ -355,8 +353,6 @@ if (missingMcpTools.length > 0 || undocumentedMcpTools.length > 0) {
   }
   process.exit(1);
 }
-
-assertGeneratedArtifact(merged);
 
 console.log("✅ Features validate against schema, Prisma, REST, and MCP");
 console.log(`   ${files.length} files merged successfully`);

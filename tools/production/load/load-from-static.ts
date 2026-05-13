@@ -171,9 +171,19 @@ const JOIN_WRITE_BATCH_SIZE = 5_000;
 
 type LookupCache = Map<string, number>;
 type ImportDbClient = PrismaClient | Prisma.TransactionClient;
+type NamedLookupFindManyArgs = {
+  where: { nameCn: { in: string[] } };
+  select: { id: true; nameCn: true };
+};
+type NamedLookupCreateManyArgs = {
+  data: Array<{ nameCn: string }>;
+  skipDuplicates: boolean;
+};
 type NamedLookupDelegate = {
-  findMany: (args: unknown) => Promise<Array<{ id: number; nameCn: string }>>;
-  createMany: (args: unknown) => Promise<unknown>;
+  findMany: (
+    args: NamedLookupFindManyArgs,
+  ) => Promise<Array<{ id: number; nameCn: string }>>;
+  createMany: (args: NamedLookupCreateManyArgs) => Promise<unknown>;
 };
 
 type ImportLookupState = {
@@ -570,7 +580,11 @@ async function forEachChunk<T>(
 
 function uniqueNames(values: Iterable<string | null | undefined>) {
   return [
-    ...new Set([...values].map((value) => value?.trim()).filter(Boolean)),
+    ...new Set(
+      [...values]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
   ];
 }
 

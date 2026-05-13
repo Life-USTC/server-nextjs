@@ -19,7 +19,7 @@ import {
 } from "@/features/bus/lib/bus-client";
 import type { BusTimetableData } from "@/features/bus/lib/bus-types";
 import { extractApiErrorMessage } from "@/lib/api/client";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import { AUTO_SAVE_DELAY_MS } from "./bus-panel-shared";
 import { BusPlannerControls } from "./bus-planner-controls";
 import { BusRouteTable } from "./bus-route-table";

@@ -3,25 +3,27 @@
 FROM oven/bun:1.3.13 AS base
 WORKDIR /usr/src/app
 
-# Install all dependencies (dev) in a temp dir for caching
-FROM base AS install
+# Install build dependencies in a temp dir for caching
+FROM base AS install-dev
 RUN mkdir -p /temp/dev
 COPY package.json bun.lock /temp/dev/
 RUN cd /temp/dev && bun install --frozen-lockfile
 
+# Install production dependencies separately for the runtime image
+FROM base AS install-prod
+RUN mkdir -p /temp/prod
+COPY package.json bun.lock /temp/prod/
+RUN cd /temp/prod && bun install --frozen-lockfile --production
+
 # Builder: bring dev node_modules and project files, then build
 FROM base AS builder
 
-COPY --from=install /temp/dev/node_modules node_modules
+COPY --from=install-dev /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
 
-RUN export DATABASE_URL="postgresql://user:password@localhost:5432/dummy" \
- && export JWT_SECRET="docker-build-secret-0123456789abcdef0123456789abcdef" \
- && export AUTH_SECRET="docker-build-secret-0123456789abcdef0123456789abcdef" \
- && bun run build \
- && bun run build:tools
+RUN bun run build:release
 
 # Collect all runtime files into a single staging directory
 RUN mkdir -p /output/.next /output/dist \
@@ -48,17 +50,17 @@ USER bun
 ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
 
-# Copy all build output in one layer, then overlay full node_modules
+# Copy all build output in one layer, then overlay production dependencies
 COPY --chown=bun:bun --from=builder /output ./
-COPY --chown=bun:bun --from=install /temp/dev/node_modules node_modules
+COPY --chown=bun:bun --from=install-prod /temp/prod/node_modules node_modules
 
 # Expose default Next.js port
 EXPOSE 3000/tcp
 
 # Health check (optional, lightweight)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-    CMD bun run health || exit 1
+    CMD bun --eval 'const port = process.env.PORT?.trim() || "3000"; const url = process.env.HEALTHCHECK_URL?.trim() || `http://127.0.0.1:${port}/`; fetch(url).then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1));'
 
 ENTRYPOINT ["docker-entrypoint.sh"]
-# Run the Next.js standalone server with Bun directly.
+# Run the staged Next.js standalone server directly.
 CMD ["bun", "server.js"]

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMock = vi.fn();
 const verifyAccessTokenMock = vi.fn();
+const getViewerAuthDataForUserIdMock = vi.fn();
 
 vi.mock("@/auth", () => ({
   auth: authMock,
@@ -15,13 +16,20 @@ vi.mock("better-auth/oauth2", () => ({
   verifyAccessToken: verifyAccessTokenMock,
 }));
 
-vi.mock("@/lib/mcp/urls", () => ({
-  getJwksUrlForOAuthVerification: () => "https://life.example/api/auth/jwks",
-  getOAuthIssuerUrl: () => new URL("https://life.example/api/auth"),
+vi.mock("@/lib/auth/viewer-context", () => ({
+  getViewerAuthDataForUserId: getViewerAuthDataForUserIdMock,
 }));
 
-vi.mock("@/lib/site-url", () => ({
-  getPublicOrigin: () => "https://life.example",
+vi.mock("@/lib/mcp/urls", () => ({
+  getJwksUrlForOAuthVerification: () => "https://life.example/api/auth/jwks",
+  getOAuthRestAudienceUrls: () => [
+    "https://life.example",
+    "https://life.example/api/auth",
+  ],
+  getOAuthTokenVerificationIssuers: () => [
+    "https://life.example/api/auth",
+    "https://life.example",
+  ],
 }));
 
 describe("auth helpers", () => {
@@ -29,6 +37,7 @@ describe("auth helpers", () => {
     vi.resetModules();
     authMock.mockReset();
     verifyAccessTokenMock.mockReset();
+    getViewerAuthDataForUserIdMock.mockReset();
   });
 
   it("uses the route request headers for session-cookie fallback", async () => {
@@ -61,7 +70,29 @@ describe("auth helpers", () => {
       "access-token",
       expect.objectContaining({
         jwksUrl: "https://life.example/api/auth/jwks",
+        verifyOptions: {
+          issuer: ["https://life.example/api/auth", "https://life.example"],
+          audience: ["https://life.example", "https://life.example/api/auth"],
+        },
       }),
     );
+  });
+
+  it("rejects write auth when the resolved user no longer exists", async () => {
+    verifyAccessTokenMock.mockResolvedValue({ sub: "deleted-user" });
+    getViewerAuthDataForUserIdMock.mockResolvedValue(null);
+    const { requireWriteAuth } = await import("@/lib/auth/helpers");
+    const request = new Request("https://life.example/api/comments", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer access-token",
+      },
+    });
+
+    const result = await requireWriteAuth(request);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(401);
+    expect(getViewerAuthDataForUserIdMock).toHaveBeenCalledWith("deleted-user");
   });
 });

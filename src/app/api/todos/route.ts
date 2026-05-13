@@ -2,6 +2,8 @@ import {
   badRequest,
   handleRouteError,
   jsonResponse,
+  parseRouteInput,
+  parseRouteJsonBody,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
@@ -26,26 +28,29 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const parsedQuery = todosQuerySchema.safeParse({
-    completed: searchParams.get("completed") ?? undefined,
-    priority: searchParams.get("priority") ?? undefined,
-    dueBefore: searchParams.get("dueBefore") ?? undefined,
-    dueAfter: searchParams.get("dueAfter") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid todo query", parsedQuery.error, 400);
+  const parsedQuery = parseRouteInput(
+    {
+      completed: searchParams.get("completed") ?? undefined,
+      priority: searchParams.get("priority") ?? undefined,
+      dueBefore: searchParams.get("dueBefore") ?? undefined,
+      dueAfter: searchParams.get("dueAfter") ?? undefined,
+    },
+    todosQuerySchema,
+    "Invalid todo query",
+    { logErrors: true },
+  );
+  if (parsedQuery instanceof Response) {
+    return parsedQuery;
   }
 
   const where: Record<string, unknown> = { userId };
-  if (parsedQuery.data.completed === "true") where.completed = true;
-  else if (parsedQuery.data.completed === "false") where.completed = false;
-  if (parsedQuery.data.priority) where.priority = parsedQuery.data.priority;
-  if (parsedQuery.data.dueBefore || parsedQuery.data.dueAfter) {
+  if (parsedQuery.completed === "true") where.completed = true;
+  else if (parsedQuery.completed === "false") where.completed = false;
+  if (parsedQuery.priority) where.priority = parsedQuery.priority;
+  if (parsedQuery.dueBefore || parsedQuery.dueAfter) {
     const dueAtFilter: Record<string, Date> = {};
-    if (parsedQuery.data.dueBefore)
-      dueAtFilter.lt = new Date(parsedQuery.data.dueBefore);
-    if (parsedQuery.data.dueAfter)
-      dueAtFilter.gte = new Date(parsedQuery.data.dueAfter);
+    if (parsedQuery.dueBefore) dueAtFilter.lt = new Date(parsedQuery.dueBefore);
+    if (parsedQuery.dueAfter) dueAtFilter.gte = new Date(parsedQuery.dueAfter);
     where.dueAt = dueAtFilter;
   }
 
@@ -73,19 +78,16 @@ export async function POST(request: Request) {
     return unauthorized();
   }
 
-  let body: unknown = {};
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid todo request", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    todoCreateRequestSchema,
+    "Invalid todo request",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = todoCreateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid todo request", parsedBody.error, 400);
-  }
-
-  const dueAt = parseDateInput(parsedBody.data.dueAt);
+  const dueAt = parseDateInput(parsedBody.dueAt);
   if (dueAt === undefined) {
     return badRequest("Invalid due date");
   }
@@ -94,9 +96,9 @@ export async function POST(request: Request) {
     const todo = await prisma.todo.create({
       data: {
         userId,
-        title: parsedBody.data.title,
-        content: parsedBody.data.content?.trim() || null,
-        priority: parsedBody.data.priority ?? "medium",
+        title: parsedBody.title,
+        content: parsedBody.content?.trim() || null,
+        priority: parsedBody.priority ?? "medium",
         dueAt,
       },
     });

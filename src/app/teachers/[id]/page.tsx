@@ -19,9 +19,9 @@ import {
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { CommentAwareTabs } from "@/features/comments/components/comment-aware-tabs";
 import { CommentsSection } from "@/features/comments/components/comments-section";
-import { getViewerContext } from "@/features/comments/server/comment-utils";
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
 import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 
 export async function generateMetadata({

@@ -1,5 +1,5 @@
-import path from "node:path";
 import { defineConfig } from "vitest/config";
+import { sharedAlias } from "./vitest.base";
 
 export default defineConfig({
   test: {
@@ -13,9 +13,6 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-      "@coss/ui/base-ui": path.resolve(__dirname, "src/lib/coss-base-ui"),
-    },
+    alias: sharedAlias,
   },
 });

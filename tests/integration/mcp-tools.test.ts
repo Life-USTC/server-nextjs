@@ -1,27 +1,21 @@
 /**
  * MCP tool integration tests.
  *
- * These tests run against the real database using an in-process MCP harness.
- * Prerequisites:
- *   - A running PostgreSQL database with the dev seed applied (bun run dev:seed-scenarios)
- *   - The .env / DATABASE_URL environment variable configured
+ * Shared seed/setup guidance lives in the repo root `AGENTS.md`.
+ * Use `bun run test:integration` for the normal entry point.
  *
- * Run:
- *   bun run test:integration
- *
- * The seed anchor used throughout is 2026-04-29 — schedules, exams, and homeworks
- * in the dev seed are populated around that date, so using it as atTime gives
- * deterministic results regardless of when the tests actually execute.
+ * The shared dev-seed anchor comes from `DEV_SEED_ANCHOR`, so date filters and
+ * deterministic atTime calls stay aligned with the seeded schedules, exams, and
+ * homeworks.
  */
 
-import { DEV_SEED } from "@tools/dev/seed/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "@tools/dev/seed/dev-seed";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db/prisma";
 import { createMcpHarness, type McpHarness } from "./utils/mcp-harness";
 
-// The seed anchor — all seeded schedules/homeworks/exams live around this date.
-const SEED_DATE = "2026-04-29";
-const SEED_AT_TIME = `${SEED_DATE}T08:00:00+08:00`;
+const SEED_DATE = DEV_SEED_ANCHOR.date;
+const SEED_AT_TIME = DEV_SEED_ANCHOR.recommendedAtTime;
 
 let devUserId: string;
 let mcp: McpHarness;
@@ -34,7 +28,7 @@ beforeAll(async () => {
   if (!user) {
     throw new Error(
       `Dev seed user "${DEV_SEED.debugUsername}" not found. ` +
-        "Run `bun run dev:seed-scenarios` before executing integration tests.",
+        "See the repo root `AGENTS.md` for the required DB + seed setup.",
     );
   }
   devUserId = user.id;
@@ -211,7 +205,7 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     });
 
     // Range anchored to seed date
-    expect(result.range?.from).toMatch(/^2026-04-29/);
+    expect(result.range?.from).toMatch(new RegExp(`^${SEED_DATE}`));
     expect(result.range?.to).toMatch(/^2026-05-06/);
     expect(typeof result.total).toBe("number");
     expect(Array.isArray(result.events)).toBe(true);
@@ -313,7 +307,7 @@ describe("list_schedules_by_section — date range filter", () => {
       schedules?: Array<{ id?: number; date?: string }>;
     }>("list_schedules_by_section", {
       sectionJwId: DEV_SEED.section.jwId,
-      dateFrom: "2026-04-29",
+      dateFrom: SEED_DATE,
       dateTo: "2026-05-05",
       locale: "zh-cn",
     });
@@ -323,7 +317,7 @@ describe("list_schedules_by_section — date range filter", () => {
     for (const s of week.schedules ?? []) {
       if (s.date) {
         const d = s.date.slice(0, 10);
-        expect(d >= "2026-04-29").toBe(true);
+        expect(d >= SEED_DATE).toBe(true);
         expect(d <= "2026-05-05").toBe(true);
       }
     }
@@ -368,7 +362,7 @@ describe("query_schedules — flexible date filters", () => {
       pagination?: { total?: number };
     }>("query_schedules", {
       sectionJwId: DEV_SEED.section.jwId,
-      dateFrom: "2026-04-29",
+      dateFrom: SEED_DATE,
       dateTo: "2026-05-05",
       locale: "zh-cn",
     });
@@ -377,7 +371,7 @@ describe("query_schedules — flexible date filters", () => {
     for (const s of result.data ?? []) {
       if (s.date) {
         const d = s.date.slice(0, 10);
-        expect(d >= "2026-04-29").toBe(true);
+        expect(d >= SEED_DATE).toBe(true);
         expect(d <= "2026-05-05").toBe(true);
       }
     }
@@ -454,7 +448,7 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
       locale: "zh-cn",
       originCampusId: DEV_SEED.bus.originCampusId,
       destinationCampusId: DEV_SEED.bus.destinationCampusId,
-      atTime: "2026-04-29",
+      atTime: SEED_DATE,
     });
 
     expect(result.totalRoutes).toBeGreaterThan(0);

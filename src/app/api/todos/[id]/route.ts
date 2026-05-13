@@ -1,10 +1,11 @@
-import { NextResponse } from "next/server";
 import {
   badRequest,
   forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseRouteJsonBody,
+  parseRouteParams,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
@@ -19,13 +20,16 @@ export const dynamic = "force-dynamic";
 
 async function parseTodoId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid todo ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid todo ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -40,7 +44,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseTodoId(params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
@@ -50,20 +54,17 @@ export async function PATCH(
     return unauthorized();
   }
 
-  let body: unknown = {};
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid todo update", error, 400);
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    todoUpdateRequestSchema,
+    "Invalid todo update",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
-  const parsedBody = todoUpdateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid todo update", parsedBody.error, 400);
-  }
-
-  const hasDueAt = Object.hasOwn(parsedBody.data, "dueAt");
-  const dueAt = hasDueAt ? parseDateInput(parsedBody.data.dueAt) : undefined;
+  const hasDueAt = Object.hasOwn(parsedBody, "dueAt");
+  const dueAt = hasDueAt ? parseDateInput(parsedBody.dueAt) : undefined;
   if (hasDueAt && dueAt === undefined) {
     return badRequest("Invalid due date");
   }
@@ -83,16 +84,15 @@ export async function PATCH(
     }
 
     const updates: Record<string, unknown> = {};
-    if (parsedBody.data.title !== undefined)
-      updates.title = parsedBody.data.title;
-    if (Object.hasOwn(parsedBody.data, "content")) {
-      updates.content = parsedBody.data.content?.trim() || null;
+    if (parsedBody.title !== undefined) updates.title = parsedBody.title;
+    if (Object.hasOwn(parsedBody, "content")) {
+      updates.content = parsedBody.content?.trim() || null;
     }
-    if (parsedBody.data.priority !== undefined)
-      updates.priority = parsedBody.data.priority;
+    if (parsedBody.priority !== undefined)
+      updates.priority = parsedBody.priority;
     if (hasDueAt) updates.dueAt = dueAt;
-    if (parsedBody.data.completed !== undefined)
-      updates.completed = parsedBody.data.completed;
+    if (parsedBody.completed !== undefined)
+      updates.completed = parsedBody.completed;
 
     if (Object.keys(updates).length === 0) {
       return badRequest("No changes");
@@ -117,7 +117,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseTodoId(params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;

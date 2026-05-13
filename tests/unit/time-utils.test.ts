@@ -8,6 +8,18 @@ describe("formatSmartDateTime", () => {
     expect(formatSmartDateTime(due, ref, "zh-cn")).toBe("今天 23:00");
   });
 
+  it("uses Monday-based same-week labels across the shared week helper", () => {
+    const ref = new Date("2026-03-16T10:00:00+08:00");
+    const due = new Date("2026-03-22T09:00:00+08:00");
+    expect(formatSmartDateTime(due, ref, "en-us")).toBe("Sun, 09:00");
+  });
+
+  it("does not treat the previous Sunday as this week", () => {
+    const ref = new Date("2026-03-18T10:00:00+08:00");
+    const due = new Date("2026-03-15T09:00:00+08:00");
+    expect(formatSmartDateTime(due, ref, "zh-cn")).toBe("3月15日 09:00");
+  });
+
   it("omits year when same year but not same week (zh)", () => {
     const ref = new Date("2026-03-17T10:00:00+08:00");
     const due = new Date("2026-04-20T15:30:00+08:00");
@@ -26,5 +38,11 @@ describe("formatSmartDate", () => {
     const ref = new Date("2026-03-17T10:00:00+08:00");
     const due = new Date("2026-03-17T08:00:00+08:00");
     expect(formatSmartDate(due, ref, "zh-cn")).toBe("今天");
+  });
+
+  it("reuses the same Monday-based week boundary", () => {
+    const ref = new Date("2026-03-16T10:00:00+08:00");
+    const due = new Date("2026-03-22T08:00:00+08:00");
+    expect(formatSmartDate(due, ref, "en-us")).toBe("Sunday");
   });
 });

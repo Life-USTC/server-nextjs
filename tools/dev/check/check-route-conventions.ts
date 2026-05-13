@@ -59,6 +59,8 @@ function usesJsonHelpers(source: string) {
   return (
     source.includes("jsonResponse(") ||
     source.includes("handleRouteError(") ||
+    source.includes("createDiscoveryMetadataRoute(") ||
+    source.includes("createDiscoveryRedirectRoute(") ||
     source.includes("getDiscoveryRedirectResponse(") ||
     source.includes("getDiscoveryOptionsResponse(")
   );

@@ -112,7 +112,7 @@ test("/admin/oauth 管理员可创建并删除客户端", async ({ page }, testI
     });
     await captureStepScreenshot(page, testInfo, "admin-oauth-deleted");
   } finally {
-    deleteOAuthClientsByName(clientName);
+    await deleteOAuthClientsByName(clientName);
   }
 });
 
@@ -188,6 +188,6 @@ test("/admin/oauth created client shows all required fields", async ({
 
     await captureStepScreenshot(page, testInfo, "admin-oauth/client-fields");
   } finally {
-    deleteOAuthClientsByName(clientName);
+    await deleteOAuthClientsByName(clientName);
   }
 });

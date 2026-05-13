@@ -16,9 +16,6 @@ Shared metadata
 
 Feature modules
   <module>.json
-
-Generated artifact
-  ../features.generated.json
 ```
 
 ## Workflow
@@ -27,7 +24,7 @@ When behavior, API, MCP, parameters, or outputs change:
 
 1. Update the affected `docs/features/<module>.json` first.
 2. Implement code changes.
-3. Run `bun run check:features` and refresh the generated artifact with `bun run check:features:write` when the merged contract changes.
+3. Run `bun run check:features` to validate the merged contract against schema, Prisma, REST, and MCP parity checks.
 4. Update relevant tests.
 
 If the user did not explicitly ask for documentation changes, ask before broad restructures or rewrites and keep any required doc edits tightly scoped.

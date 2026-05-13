@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import {
-  badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseRouteJsonBody,
+  parseRouteParams,
   unauthorized,
 } from "@/lib/api/helpers";
 import {
@@ -17,14 +17,17 @@ export const dynamic = "force-dynamic";
 
 async function parseHomeworkId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid homework ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid homework ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -39,25 +42,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const parsed = await parseHomeworkId(params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid completion payload", error, 400);
-  }
-
-  const parsedBody = homeworkCompletionRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError(
-      "Invalid completion payload",
-      parsedBody.error,
-      400,
-    );
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    homeworkCompletionRequestSchema,
+    "Invalid completion payload",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
   }
 
   const userId = await resolveApiUserId(request);
@@ -75,7 +70,7 @@ export async function PUT(
       return notFound();
     }
 
-    if (parsedBody.data.completed) {
+    if (parsedBody.completed) {
       const completion = await prisma.homeworkCompletion.upsert({
         where: { userId_homeworkId: { userId, homeworkId: id } },
         update: { completedAt: new Date() },

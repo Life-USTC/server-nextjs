@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/welcome-redirect";
+import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 
 function shouldRedirect(path: string, url = `http://localhost:3000${path}`) {
   return shouldRedirectIncompleteProfileToWelcome({

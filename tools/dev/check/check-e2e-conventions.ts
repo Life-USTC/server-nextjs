@@ -10,6 +10,7 @@ type Violation = {
 
 const repoRoot = process.cwd();
 const e2eRoot = join(repoRoot, "tests/e2e");
+const prismaFixtureRoot = join(e2eRoot, "utils/e2e-db");
 const violations: Violation[] = [];
 
 function addViolation(file: string, rule: string, line: number) {
@@ -37,13 +38,12 @@ for (const file of walkFiles(e2eRoot)) {
       addViolation(file, "Do not commit skipped e2e tests", lineNumber);
     }
     if (
-      file.endsWith(".ts") &&
-      file.includes("/tests/e2e/") &&
-      line.includes('from "@/lib/db/prisma"')
+      line.includes('from "@/lib/db/prisma"') &&
+      !file.startsWith(prismaFixtureRoot)
     ) {
       addViolation(
         file,
-        "Do not import Prisma directly in Playwright tests; use e2e-db.ts",
+        "Do not import Prisma directly in Playwright tests; use tests/e2e/utils/e2e-db helpers",
         lineNumber,
       );
     }

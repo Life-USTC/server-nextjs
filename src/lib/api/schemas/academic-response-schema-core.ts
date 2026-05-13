@@ -1,33 +1,4 @@
-import { z } from "zod";
-import {
-  AdminClassModelSchema,
-  BuildingModelSchema,
-  BusCampusModelSchema,
-  CampusModelSchema,
-  ClassTypeModelSchema,
-  CourseCategoryModelSchema,
-  CourseClassifyModelSchema,
-  CourseGradationModelSchema,
-  CourseModelSchema,
-  CourseTypeModelSchema,
-  DepartmentModelSchema,
-  EducationLevelModelSchema,
-  ExamBatchModelSchema,
-  ExamModelSchema,
-  ExamModeModelSchema,
-  ExamRoomModelSchema,
-  RoomModelSchema,
-  RoomTypeModelSchema,
-  ScheduleGroupModelSchema,
-  ScheduleModelSchema,
-  SectionModelSchema,
-  SemesterModelSchema,
-  TeacherAssignmentModelSchema,
-  TeacherLessonTypeModelSchema,
-  TeacherModelSchema,
-  TeacherTitleModelSchema,
-  TeachLanguageModelSchema,
-} from "@/lib/api/model-schemas";
+import * as z from "zod";
 import {
   createPaginatedSchema,
   dateTimeSchema,
@@ -38,48 +9,98 @@ const localizedNameFields = {
   nameSecondary: z.string().nullable(),
 };
 
-const campusSchema = CampusModelSchema.omit({
-  buildings: true,
-  sections: true,
+export const campusSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  code: z.string().nullable(),
 });
 
-export const busCampusSchema = BusCampusModelSchema.omit({
-  routeStops: true,
-  preferredByOriginUsers: true,
-  preferredByDestinationUsers: true,
+export const busCampusSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  latitude: z.number(),
+  longitude: z.number(),
 });
 
-const buildingSchema = BuildingModelSchema.omit({ campus: true, rooms: true });
-const roomTypeSchema = RoomTypeModelSchema.omit({
-  rooms: true,
-  sections: true,
+export const buildingSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  code: z.string(),
+  campusId: z.number().int().nullable(),
 });
 
-const roomSchema = RoomModelSchema.omit({
-  building: true,
-  roomType: true,
-  schedules: true,
+export const roomTypeSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  code: z.string(),
 });
 
-const departmentSchema = DepartmentModelSchema.omit({
-  sections: true,
-  teachers: true,
+export const roomSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  code: z.string(),
+  floor: z.number().int().nullable(),
+  virtual: z.boolean(),
+  seatsForSection: z.number().int(),
+  remark: z.string().nullable(),
+  seats: z.number().int(),
+  buildingId: z.number().int().nullable(),
+  roomTypeId: z.number().int().nullable(),
 });
 
-const teacherTitleSchema = TeacherTitleModelSchema.omit({ teachers: true });
-const teacherLessonTypeSchema = TeacherLessonTypeModelSchema.omit({
-  teacherAssignments: true,
+const departmentSchema = z.object({
+  id: z.number().int(),
+  code: z.string(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  isCollege: z.boolean().nullable(),
 });
 
-const teacherSchema = TeacherModelSchema.omit({
-  department: true,
-  teacherTitle: true,
-  sections: true,
-  sectionTeachers: true,
-  teacherAssignments: true,
-  schedules: true,
-  comments: true,
-  description: true,
+const teacherTitleSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  code: z.string(),
+  enabled: z.boolean().nullable(),
+});
+
+const teacherLessonTypeSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  code: z.string(),
+  role: z.string().nullable(),
+  enabled: z.boolean().nullable(),
+});
+
+export const teacherSchema = z.object({
+  id: z.number().int(),
+  personId: z.number().int().nullable(),
+  teacherId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  age: z.number().int().nullable(),
+  email: z.string().nullable(),
+  telephone: z.string().nullable(),
+  mobile: z.string().nullable(),
+  address: z.string().nullable(),
+  postcode: z.string().nullable(),
+  qq: z.string().nullable(),
+  wechat: z.string().nullable(),
+  departmentId: z.number().int().nullable(),
+  teacherTitleId: z.number().int().nullable(),
 });
 
 const teacherWithDepartmentTitleSchema = teacherSchema.extend({
@@ -87,33 +108,70 @@ const teacherWithDepartmentTitleSchema = teacherSchema.extend({
   teacherTitle: teacherTitleSchema.nullable(),
 });
 
-const teacherListSchema = teacherSchema.extend({
-  department: departmentSchema.nullable(),
-  teacherTitle: teacherTitleSchema.nullable(),
+const teacherListSchema = teacherWithDepartmentTitleSchema.extend({
   _count: z.object({ sections: z.number().int() }),
 });
 
-const courseCategorySchema = CourseCategoryModelSchema.omit({ courses: true });
-const courseClassifySchema = CourseClassifyModelSchema.omit({ courses: true });
-const courseGradationSchema = CourseGradationModelSchema.omit({
-  courses: true,
+const courseCategorySchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
 });
-const courseTypeSchema = CourseTypeModelSchema.omit({ courses: true });
-const classTypeSchema = ClassTypeModelSchema.omit({ courses: true });
-const educationLevelSchema = EducationLevelModelSchema.omit({ courses: true });
-const examModeSchema = ExamModeModelSchema.omit({ sections: true });
-const teachLanguageSchema = TeachLanguageModelSchema.omit({ sections: true });
 
-const courseBaseSchema = CourseModelSchema.omit({
-  category: true,
-  classType: true,
-  classify: true,
-  educationLevel: true,
-  gradation: true,
-  type: true,
-  sections: true,
-  comments: true,
-  description: true,
+const courseClassifySchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const courseGradationSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const courseTypeSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const classTypeSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const educationLevelSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const examModeSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const teachLanguageSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const courseBaseSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  categoryId: z.number().int().nullable(),
+  classTypeId: z.number().int().nullable(),
+  classifyId: z.number().int().nullable(),
+  educationLevelId: z.number().int().nullable(),
+  gradationId: z.number().int().nullable(),
+  typeId: z.number().int().nullable(),
 });
 
 const courseSchema = courseBaseSchema.extend({
@@ -125,35 +183,64 @@ const courseSchema = courseBaseSchema.extend({
   type: courseTypeSchema.nullable(),
 });
 
-export const semesterSchema = SemesterModelSchema.omit({
-  sections: true,
-}).extend({
+export const semesterSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  nameCn: z.string(),
+  code: z.string(),
   startDate: dateTimeSchema.nullable(),
   endDate: dateTimeSchema.nullable(),
 });
 
-const adminClassSchema = AdminClassModelSchema.omit({ sections: true });
+const adminClassSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int().nullable(),
+  code: z.string().nullable(),
+  grade: z.string().nullable(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+  stdCount: z.number().int().nullable(),
+  planCount: z.number().int().nullable(),
+  enabled: z.boolean().nullable(),
+  abbrZh: z.string().nullable(),
+  abbrEn: z.string().nullable(),
+});
 
-export const sectionBaseSchema = SectionModelSchema.omit({
-  course: true,
-  semester: true,
-  campus: true,
-  examMode: true,
-  openDepartment: true,
-  teachLanguage: true,
-  roomType: true,
-  schedules: true,
-  scheduleGroups: true,
-  adminClasses: true,
-  teachers: true,
-  sectionTeachers: true,
-  teacherAssignments: true,
-  exams: true,
-  subscribedUsers: true,
-  comments: true,
-  description: true,
-  homeworks: true,
-  homeworkAuditLogs: true,
+export const sectionBaseSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  code: z.string(),
+  bizTypeId: z.number().int().nullable(),
+  credits: z.number().nullable(),
+  period: z.number().int().nullable(),
+  periodsPerWeek: z.number().int().nullable(),
+  timesPerWeek: z.number().int().nullable(),
+  stdCount: z.number().int().nullable(),
+  limitCount: z.number().int().nullable(),
+  graduateAndPostgraduate: z.boolean().nullable(),
+  dateTimePlaceText: z.string().nullable(),
+  dateTimePlacePersonText: z.unknown().nullable(),
+  actualPeriods: z.number().int().nullable(),
+  theoryPeriods: z.number().nullable(),
+  practicePeriods: z.number().nullable(),
+  experimentPeriods: z.number().nullable(),
+  machinePeriods: z.number().nullable(),
+  designPeriods: z.number().nullable(),
+  testPeriods: z.number().nullable(),
+  scheduleState: z.string().nullable(),
+  suggestScheduleWeeks: z.unknown().nullable(),
+  suggestScheduleWeekInfo: z.string().nullable(),
+  scheduleJsonParams: z.unknown().nullable(),
+  selectedStdCount: z.number().int().nullable(),
+  remark: z.string().nullable(),
+  scheduleRemark: z.string().nullable(),
+  courseId: z.number().int(),
+  semesterId: z.number().int().nullable(),
+  campusId: z.number().int().nullable(),
+  examModeId: z.number().int().nullable(),
+  openDepartmentId: z.number().int().nullable(),
+  teachLanguageId: z.number().int().nullable(),
+  roomTypeId: z.number().int().nullable(),
 });
 
 export const sectionCompactSchema = sectionBaseSchema.extend({
@@ -198,27 +285,78 @@ export const teacherDetailSchema = teacherWithDepartmentTitleSchema.extend({
 export const localizedCourseBaseSchema =
   courseBaseSchema.extend(localizedNameFields);
 
-const examRoomSchema = ExamRoomModelSchema.omit({ exam: true });
-const examBatchSchema = ExamBatchModelSchema.omit({ exams: true });
+const examRoomSchema = z.object({
+  id: z.number().int(),
+  room: z.string(),
+  count: z.number().int(),
+  examId: z.number().int(),
+});
 
-const examSchema = ExamModelSchema.omit({
-  examBatch: true,
-  section: true,
-  examRooms: true,
-}).extend({
+const examBatchSchema = z.object({
+  id: z.number().int(),
+  nameCn: z.string(),
+  nameEn: z.string().nullable(),
+});
+
+const examSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  examType: z.number().int().nullable(),
+  startTime: z.number().int().nullable(),
+  endTime: z.number().int().nullable(),
   examDate: dateTimeSchema.nullable(),
+  examTakeCount: z.number().int().nullable(),
+  examMode: z.string().nullable(),
+  examBatchId: z.number().int().nullable(),
+  sectionId: z.number().int(),
   examBatch: examBatchSchema.nullable(),
   examRooms: z.array(examRoomSchema),
 });
 
-const teacherAssignmentSchema = TeacherAssignmentModelSchema.omit({
-  teacher: true,
-  section: true,
-  teacherLessonType: true,
-}).extend({
+const teacherAssignmentBaseSchema = z.object({
+  id: z.number().int(),
+  teacherId: z.number().int(),
+  sectionId: z.number().int(),
+  role: z.string().nullable(),
+  period: z.number().int().nullable(),
   weekIndices: z.array(z.number().int()).nullable(),
+  weekIndicesMsg: z.string().nullable(),
+  teacherLessonTypeId: z.number().int().nullable(),
+});
+
+const teacherAssignmentSchema = teacherAssignmentBaseSchema.extend({
   teacher: teacherSchema,
   teacherLessonType: teacherLessonTypeSchema.nullable(),
+});
+
+export const scheduleBaseSchema = z.object({
+  id: z.number().int(),
+  periods: z.number().int(),
+  date: dateTimeSchema.nullable(),
+  weekday: z.number().int(),
+  startTime: z.string(),
+  endTime: z.string(),
+  experiment: z.string().nullable(),
+  customPlace: z.string().nullable(),
+  lessonType: z.string().nullable(),
+  weekIndex: z.number().int(),
+  exerciseClass: z.boolean().nullable(),
+  startUnit: z.number().int(),
+  endUnit: z.number().int(),
+  roomId: z.number().int().nullable(),
+  sectionId: z.number().int(),
+  scheduleGroupId: z.number().int(),
+});
+
+export const scheduleGroupSchema = z.object({
+  id: z.number().int(),
+  jwId: z.number().int(),
+  no: z.number().int(),
+  limitCount: z.number().int(),
+  stdCount: z.number().int(),
+  actualPeriods: z.number().int(),
+  isDefault: z.boolean(),
+  sectionId: z.number().int(),
 });
 
 export const sectionDetailSchema = sectionBaseSchema.extend({
@@ -229,22 +367,8 @@ export const sectionDetailSchema = sectionBaseSchema.extend({
   examMode: examModeSchema.nullable(),
   teachLanguage: teachLanguageSchema.nullable(),
   roomType: roomTypeSchema.nullable(),
-  schedules: z.array(
-    ScheduleModelSchema.omit({
-      room: true,
-      section: true,
-      scheduleGroup: true,
-      teachers: true,
-    }).extend({
-      date: dateTimeSchema.nullable(),
-    }),
-  ),
-  scheduleGroups: z.array(
-    ScheduleGroupModelSchema.omit({
-      section: true,
-      schedules: true,
-    }),
-  ),
+  schedules: z.array(scheduleBaseSchema),
+  scheduleGroups: z.array(scheduleGroupSchema),
   teachers: z.array(teacherWithDepartmentTitleSchema),
   teacherAssignments: z.array(teacherAssignmentSchema),
   exams: z.array(examSchema),
@@ -273,11 +397,3 @@ export const paginatedTeacherResponseSchema =
   createPaginatedSchema(teacherListSchema);
 export const paginatedSemesterResponseSchema =
   createPaginatedSchema(semesterSchema);
-
-export {
-  buildingSchema,
-  campusSchema,
-  roomSchema,
-  roomTypeSchema,
-  teacherSchema,
-};

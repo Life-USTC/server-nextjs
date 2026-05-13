@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 
 export const APP_LOCALES = ["en-us", "zh-cn"] as const;
 export type AppLocale = (typeof APP_LOCALES)[number];

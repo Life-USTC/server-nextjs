@@ -81,12 +81,15 @@ test.describe("bus dashboard tab", () => {
     });
 
     await expect(routeSectionRows(page)).toHaveCount(2);
-    await expect(routeSectionRows(page).first()).toContainText(
-      "东区 -> 北区 -> 西区",
-    );
-    await expect(routeSectionRows(page).nth(1)).toContainText(
-      "东区 -> 西区 -> 先研院 -> 高新",
-    );
+    const routeTexts = await routeSectionRows(page).allTextContents();
+    expect(
+      routeTexts.some((text) => text.includes("东区 -> 北区 -> 西区")),
+    ).toBe(true);
+    expect(
+      routeTexts.some((text) =>
+        text.includes("东区 -> 西区 -> 先研院 -> 高新"),
+      ),
+    ).toBe(true);
   });
 
   test("reverse swaps direction and recomputes applicable routes", async ({

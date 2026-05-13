@@ -3,12 +3,16 @@ import { toNextJsHandler } from "better-auth/next-js";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { allowDebugAuth } from "@/lib/auth/auth-config";
+import {
+  buildSignInRedirectUrl,
+  resolveAuthRedirectTarget,
+} from "@/lib/auth/auth-routing";
 import { buildBetterAuthOptions } from "@/lib/auth/better-auth-options";
 import {
   ensureDebugCredentialUser,
   getDebugProviderConfig,
-  isDebugProviderId,
 } from "@/lib/auth/debug-auth";
+import { resolveAuthProviderDecision } from "@/lib/auth/provider-ids";
 import { type AppSession, mapAppSession } from "@/lib/auth/session";
 import { asGenericOAuthApi } from "@/lib/oauth/provider-api";
 
@@ -58,10 +62,11 @@ const extractResultUrl = (result: unknown): string | null => {
 };
 
 export async function signIn(providerId?: string, options: SignInOptions = {}) {
-  const redirectTo = options.redirectTo ?? options.callbackUrl ?? "/";
+  const redirectTo = resolveAuthRedirectTarget(options);
+  const decision = resolveAuthProviderDecision(providerId);
 
-  if (!providerId) {
-    const signInUrl = `/signin?callbackUrl=${encodeURIComponent(redirectTo)}`;
+  if (decision.kind === "none") {
+    const signInUrl = buildSignInRedirectUrl(options);
     if (options.redirect === false) {
       return { redirect: false, url: signInUrl };
     }
@@ -70,33 +75,40 @@ export async function signIn(providerId?: string, options: SignInOptions = {}) {
 
   let result: unknown;
 
-  if (isDebugProviderId(providerId)) {
-    if (!allowDebugAuth) {
-      throw new Error("Debug auth is disabled");
+  switch (decision.kind) {
+    case "debug": {
+      if (!allowDebugAuth) {
+        throw new Error("Debug auth is disabled");
+      }
+      await ensureDebugCredentialUser(decision.providerId);
+      const debugConfig = getDebugProviderConfig(decision.providerId);
+      result = await authInstance.api.signInEmail({
+        body: {
+          email: debugConfig?.email ?? "",
+          password: debugConfig?.password ?? "",
+          callbackURL: redirectTo,
+        },
+      });
+      break;
     }
-    await ensureDebugCredentialUser(providerId);
-    const debugConfig = getDebugProviderConfig(providerId);
-    result = await authInstance.api.signInEmail({
-      body: {
-        email: debugConfig?.email ?? "",
-        password: debugConfig?.password ?? "",
-        callbackURL: redirectTo,
-      },
-    });
-  } else if (providerId === "oidc") {
-    result = await asGenericOAuthApi(authInstance.api).signInWithOAuth2({
-      body: {
-        providerId,
-        callbackURL: redirectTo,
-      },
-    });
-  } else {
-    result = await authInstance.api.signInSocial({
-      body: {
-        provider: providerId,
-        callbackURL: redirectTo,
-      },
-    });
+    case "oidc":
+      result = await asGenericOAuthApi(authInstance.api).signInWithOAuth2({
+        body: {
+          providerId: decision.providerId,
+          callbackURL: redirectTo,
+        },
+      });
+      break;
+    case "social":
+      result = await authInstance.api.signInSocial({
+        body: {
+          provider: decision.providerId,
+          callbackURL: redirectTo,
+        },
+      });
+      break;
+    default:
+      throw new Error("Unsupported auth provider decision");
   }
 
   if (options.redirect === false) {
@@ -111,7 +123,7 @@ export async function signOut(options: SignOutOptions = {}) {
     headers: await headers(),
   });
 
-  const redirectTo = options.redirectTo ?? options.callbackUrl ?? "/";
+  const redirectTo = resolveAuthRedirectTarget(options);
   if (options.redirect === false) {
     return { success: true };
   }

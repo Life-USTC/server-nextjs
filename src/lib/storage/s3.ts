@@ -9,32 +9,26 @@ import {
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { getStorageEnv } from "@/env";
 
-function requireEnv(name: string) {
-  const value = getOptionalEnv(name);
+function requireEnv(value: string | undefined, name: string) {
   if (!value) {
     throw new Error(`Missing required env var: ${name}`);
   }
   return value;
 }
 
-function getOptionalEnv(name: string) {
-  const value = process.env[name]?.trim();
-  return value ? value : undefined;
-}
-
 export function getS3Bucket() {
-  return requireEnv("S3_BUCKET");
+  return requireEnv(getStorageEnv().S3_BUCKET, "S3_BUCKET");
 }
 
 export function getS3Region() {
-  return getOptionalEnv("AWS_REGION") ?? "us-east-1";
+  return getStorageEnv().AWS_REGION ?? "us-east-1";
 }
 
 export function getS3Endpoint() {
-  return (
-    getOptionalEnv("AWS_ENDPOINT_URL_S3") ?? getOptionalEnv("AWS_ENDPOINT_URL")
-  );
+  const { AWS_ENDPOINT_URL_S3, AWS_ENDPOINT_URL } = getStorageEnv();
+  return AWS_ENDPOINT_URL_S3 ?? AWS_ENDPOINT_URL;
 }
 
 function toOrigin(value: string | undefined) {
@@ -54,14 +48,14 @@ export function getS3ConnectSources() {
     return [endpointOrigin];
   }
 
-  const bucket = getOptionalEnv("S3_BUCKET");
-  if (!bucket) {
+  const { S3_BUCKET } = getStorageEnv();
+  if (!S3_BUCKET) {
     return [];
   }
 
   const region = getS3Region();
   return [
-    `https://${bucket}.s3.${region}.amazonaws.com`,
+    `https://${S3_BUCKET}.s3.${region}.amazonaws.com`,
     `https://s3.${region}.amazonaws.com`,
   ];
 }
@@ -100,8 +94,6 @@ export async function getS3SignedUrl(
   command: unknown,
   options: { expiresIn: number },
 ) {
-  // Always use short-lived presigned URLs so download links expire and cannot
-  // be shared outside the authenticated download flow.
   return getSignedUrl(getS3Client(), command as never, {
     expiresIn: options.expiresIn,
   });

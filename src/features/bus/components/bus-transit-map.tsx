@@ -24,7 +24,7 @@ import {
   SVG_W,
 } from "@/features/bus/components/bus-transit-map-layout";
 import type { BusMapData } from "@/features/bus/lib/bus-types";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 const REFRESH_SPINNER_HIDE_DELAY_MS = 800;
 /* ------------------------------------------------------------------ */

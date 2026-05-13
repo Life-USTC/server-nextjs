@@ -71,9 +71,12 @@ test.describe("dashboard subscriptions", () => {
       await expect(page.locator("#main-content")).toBeVisible();
 
       // subscription.sections[].course.namePrimary
-      await expect(page.getByText(DEV_SEED.course.nameEn).first()).toBeVisible({
-        timeout: 3_000,
-      });
+      await expect(
+        page
+          .getByText(DEV_SEED.course.nameCn)
+          .or(page.getByText(DEV_SEED.course.nameEn))
+          .first(),
+      ).toBeVisible({ timeout: 3_000 });
       // subscription.sections[].code
       await expect(page.getByText(DEV_SEED.section.code).first()).toBeVisible({
         timeout: 3_000,

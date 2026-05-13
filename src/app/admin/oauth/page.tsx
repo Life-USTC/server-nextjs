@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function AdminOAuthPage() {
-  const admin = await requireAdminPage();
+  const admin = await requireAdminPage("/admin/oauth");
   if (!admin) {
     notFound();
   }

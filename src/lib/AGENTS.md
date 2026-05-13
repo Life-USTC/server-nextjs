@@ -20,26 +20,27 @@ log/       Structured logging
 
 ```typescript
 // API
-import { jsonResponse } from "@/lib/api/json-response";
-import { handleRouteError } from "@/lib/api/error-handler";
-import { buildPaginatedResponse } from "@/lib/api/pagination";
+import {
+  buildPaginatedResponse,
+  handleRouteError,
+  jsonResponse,
+} from "@/lib/api/helpers";
 
 // Auth
-import { requireSignedInUserId } from "@/lib/auth/require-signed-in-user-id";
-import { resolveApiUserId } from "@/lib/auth/resolve-api-user-id";
+import { requireSignedInUserId, resolveApiUserId } from "@/lib/auth/helpers";
 
 // DB
 import { prisma, getPrisma } from "@/lib/db/prisma";
 
 // Time
 import { parseDateInput } from "@/lib/time/parse-date-input";
-import { getShanghaiDay } from "@/lib/time/shanghai-helpers";
+import { formatShanghaiDate } from "@/lib/time/shanghai-format";
 ```
 
 ## Rules
 
 - No business logic (use `src/features/`)
-- No direct Prisma imports
+- No raw `@prisma/client` imports outside approved adapters/scripts
 - Use shared helpers
 - OAuth: never log tokens/secrets
 

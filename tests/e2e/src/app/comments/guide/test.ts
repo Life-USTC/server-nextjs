@@ -1,22 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
-import { captureStepScreenshot } from "../../../../utils/screenshot";
-import { assertPageContract } from "../../_shared/page-contract";
 
-test("/guides/markdown-support", async ({ page }, testInfo) => {
-  await assertPageContract(page, {
-    routePath: "/guides/markdown-support",
-    testInfo,
-  });
-});
-
-test("/guides/markdown-support 包含 markdown 示例段落", async ({
+test("/comments/guide redirects to the canonical markdown guide", async ({
   page,
-}, testInfo) => {
-  await gotoAndWaitForReady(page, "/guides/markdown-support", {
+}) => {
+  await gotoAndWaitForReady(page, "/comments/guide", {
     waitUntil: "load",
   });
-  await expect(page.locator("h1")).toBeVisible();
-  await expect(page.locator("pre").first()).toContainText("**Bold**");
-  await captureStepScreenshot(page, testInfo, "comments-guide-markdown");
+  await expect(page).toHaveURL(/\/guides\/markdown-support$/);
 });

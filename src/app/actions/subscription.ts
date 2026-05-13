@@ -1,13 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import type { Prisma } from "@/generated/prisma/client";
+import { getUserSectionSubscriptionState } from "@/features/home/server/subscription-read-model";
 import {
-  buildUserCalendarFeedPath,
-  ensureUserCalendarFeedToken,
-} from "@/lib/calendar-feed-token";
-import { prisma } from "@/lib/db/prisma";
+  addUserSectionSubscriptions,
+  removeUserSectionSubscriptions,
+} from "@/features/home/server/subscriptions";
 
 export interface SubscriptionState {
   userId: string | null;
@@ -16,57 +14,42 @@ export interface SubscriptionState {
   isAuthenticated: boolean;
 }
 
-type AuthenticatedUserWithSections = Prisma.UserGetPayload<{
-  select: {
-    id: true;
-    calendarFeedToken: true;
-    subscribedSections: { select: { id: true } };
+function buildUnauthenticatedState(): SubscriptionState {
+  return {
+    userId: null,
+    subscriptionIcsUrl: null,
+    subscribedSections: [],
+    isAuthenticated: false,
   };
-}>;
+}
 
-async function getAuthenticatedUserWithSections(): Promise<AuthenticatedUserWithSections | null> {
+function buildAuthenticatedState(state: {
+  userId: string;
+  subscriptionIcsUrl: string;
+  subscribedSections: number[];
+}): SubscriptionState {
+  return {
+    ...state,
+    isAuthenticated: true,
+  };
+}
+
+async function getAuthenticatedUserId() {
   const session = await auth();
-
-  if (!session?.user?.id) {
-    return null;
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      calendarFeedToken: true,
-      subscribedSections: { select: { id: true } },
-    },
-  });
-
-  return user;
+  return session?.user?.id ?? null;
 }
 
 /**
  * Get current subscription state from server
  */
 export async function getSubscriptionState(): Promise<SubscriptionState> {
-  const user = await getAuthenticatedUserWithSections();
-
-  if (!user) {
-    return {
-      userId: null,
-      subscriptionIcsUrl: null,
-      subscribedSections: [],
-      isAuthenticated: false,
-    };
+  const userId = await getAuthenticatedUserId();
+  if (!userId) {
+    return buildUnauthenticatedState();
   }
 
-  const calendarFeedToken =
-    user.calendarFeedToken ?? (await ensureUserCalendarFeedToken(user.id));
-
-  return {
-    userId: user.id,
-    subscriptionIcsUrl: buildUserCalendarFeedPath(user.id, calendarFeedToken),
-    subscribedSections: user.subscribedSections.map((s) => s.id),
-    isAuthenticated: true,
-  };
+  const state = await getUserSectionSubscriptionState(userId);
+  return state ? buildAuthenticatedState(state) : buildUnauthenticatedState();
 }
 
 /**
@@ -75,27 +58,17 @@ export async function getSubscriptionState(): Promise<SubscriptionState> {
 export async function addSectionToSubscription(
   sectionId: number,
 ): Promise<SubscriptionState> {
-  const user = await getAuthenticatedUserWithSections();
-
-  if (!user) {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) {
     throw new Error("Authentication required");
   }
 
-  const currentSectionIds = user.subscribedSections.map((s) => s.id);
-
-  if (!currentSectionIds.includes(sectionId)) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        subscribedSections: { connect: { id: sectionId } },
-      },
-    });
+  const state = await addUserSectionSubscriptions(userId, [sectionId]);
+  if (!state) {
+    throw new Error("Authentication required");
   }
 
-  revalidatePath("/");
-  revalidatePath("/me/subscriptions/sections");
-
-  return getSubscriptionState();
+  return buildAuthenticatedState(state);
 }
 
 /**
@@ -104,30 +77,17 @@ export async function addSectionToSubscription(
 export async function addSectionsToSubscription(
   sectionIds: number[],
 ): Promise<SubscriptionState> {
-  const user = await getAuthenticatedUserWithSections();
-
-  if (!user) {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) {
     throw new Error("Authentication required");
   }
 
-  const existingSectionIds = new Set(user.subscribedSections.map((s) => s.id));
-  const idsToConnect = sectionIds.filter((id) => !existingSectionIds.has(id));
-
-  if (idsToConnect.length > 0) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        subscribedSections: {
-          connect: idsToConnect.map((id) => ({ id })),
-        },
-      },
-    });
+  const state = await addUserSectionSubscriptions(userId, sectionIds);
+  if (!state) {
+    throw new Error("Authentication required");
   }
 
-  revalidatePath("/");
-  revalidatePath("/me/subscriptions/sections");
-
-  return getSubscriptionState();
+  return buildAuthenticatedState(state);
 }
 
 /**
@@ -136,25 +96,15 @@ export async function addSectionsToSubscription(
 export async function removeSectionFromSubscription(
   sectionId: number,
 ): Promise<SubscriptionState> {
-  const user = await getAuthenticatedUserWithSections();
-
-  if (!user) {
+  const userId = await getAuthenticatedUserId();
+  if (!userId) {
     throw new Error("Authentication required");
   }
 
-  const currentSectionIds = user.subscribedSections.map((s) => s.id);
-
-  if (currentSectionIds.includes(sectionId)) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        subscribedSections: { disconnect: { id: sectionId } },
-      },
-    });
+  const state = await removeUserSectionSubscriptions(userId, [sectionId]);
+  if (!state) {
+    throw new Error("Authentication required");
   }
 
-  revalidatePath("/");
-  revalidatePath("/me/subscriptions/sections");
-
-  return getSubscriptionState();
+  return buildAuthenticatedState(state);
 }

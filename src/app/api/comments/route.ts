@@ -1,24 +1,23 @@
 import { buildCommentNodes } from "@/features/comments/server/comment-serialization";
-import {
-  findActiveSuspension,
-  getViewerContext,
-  resolveSectionTeacherId,
-} from "@/features/comments/server/comment-utils";
+import { resolveCommentTarget } from "@/features/comments/server/comment-utils";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
-  parseOptionalInt,
-  suspensionForbidden,
-  unauthorized,
+  parseRouteInput,
+  parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import {
   commentCreateRequestSchema,
   commentsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import {
+  getAuditRequestMetadata,
+  writeAuditLog,
+} from "@/lib/audit/write-audit-log";
+import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -31,51 +30,32 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = commentsQuerySchema.safeParse({
-    targetType: searchParams.get("targetType"),
-    targetId: searchParams.get("targetId") ?? undefined,
-    sectionId: searchParams.get("sectionId") ?? undefined,
-    teacherId: searchParams.get("teacherId") ?? undefined,
-  });
-  if (!parsedQuery.success) {
+  const parsedQuery = parseRouteInput(
+    {
+      targetType: searchParams.get("targetType"),
+      targetId: searchParams.get("targetId") ?? undefined,
+      sectionId: searchParams.get("sectionId") ?? undefined,
+      teacherId: searchParams.get("teacherId") ?? undefined,
+    },
+    commentsQuerySchema,
+    "Invalid target",
+  );
+  if (parsedQuery instanceof Response) {
     return badRequest("Invalid target");
   }
 
-  const targetType = parsedQuery.data.targetType;
-  const targetIdParam = parsedQuery.data.targetId ?? null;
-  const targetId = parseOptionalInt(targetIdParam);
-  const sectionId = parseOptionalInt(parsedQuery.data.sectionId);
-  const teacherId = parseOptionalInt(parsedQuery.data.teacherId);
+  const targetType = parsedQuery.targetType;
+  const targetIdParam = parsedQuery.targetId ?? null;
 
   try {
-    let whereTarget: Record<string, number | string> | null = null;
-    let resolvedSectionTeacherId: number | null = null;
-
-    if (targetType === "section" && targetId) {
-      whereTarget = { sectionId: targetId };
-    } else if (targetType === "course" && targetId) {
-      whereTarget = { courseId: targetId };
-    } else if (targetType === "teacher" && targetId) {
-      whereTarget = { teacherId: targetId };
-    } else if (targetType === "homework" && targetIdParam) {
-      whereTarget = { homeworkId: targetIdParam };
-    } else if (targetType === "section-teacher") {
-      const sectionTeacherId = targetId ?? null;
-      if (sectionTeacherId) {
-        resolvedSectionTeacherId = sectionTeacherId;
-      } else if (sectionId && teacherId) {
-        resolvedSectionTeacherId = await resolveSectionTeacherId(
-          sectionId,
-          teacherId,
-        );
-      }
-
-      if (resolvedSectionTeacherId) {
-        whereTarget = { sectionTeacherId: resolvedSectionTeacherId };
-      }
-    }
-
-    if (!whereTarget) {
+    const target = await resolveCommentTarget({
+      allowDirectSectionTeacherId: true,
+      rawTargetId: targetIdParam,
+      sectionId: parsedQuery.sectionId,
+      targetType,
+      teacherId: parsedQuery.teacherId,
+    });
+    if (!target) {
       return badRequest("Invalid target");
     }
 
@@ -83,7 +63,7 @@ export async function GET(request: Request) {
     const [viewer, comments] = await Promise.all([
       getViewerContext({ includeAdmin: false, userId: viewerUserId }),
       prisma.comment.findMany({
-        where: whereTarget,
+        where: target.whereTarget,
         include: {
           user: {
             select: {
@@ -128,11 +108,11 @@ export async function GET(request: Request) {
       viewer,
       target: {
         type: targetType,
-        targetId: targetType === "homework" ? targetIdParam : targetId,
-        sectionId,
-        teacherId,
-        sectionTeacherId: resolvedSectionTeacherId,
-        homeworkId: targetType === "homework" ? targetIdParam : null,
+        targetId: target.targetId,
+        sectionId: target.sectionId,
+        teacherId: target.teacherId,
+        sectionTeacherId: target.sectionTeacherId,
+        homeworkId: target.homeworkId,
       },
     });
   } catch (error) {
@@ -147,84 +127,49 @@ export async function GET(request: Request) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  let body: unknown = {};
+  const parsedBody = await parseRouteJsonBody(
+    request,
+    commentCreateRequestSchema,
+    "Invalid comment request",
+  );
+  if (parsedBody instanceof Response) {
+    return parsedBody;
+  }
+
+  const targetType = parsedBody.targetType;
+  const content = parsedBody.body;
+
+  const visibility = parsedBody.visibility ?? "public";
+  const isAnonymous = parsedBody.isAnonymous === true;
+
+  const auth = await requireWriteAuth(request);
+  if (auth instanceof Response) {
+    return auth;
+  }
+  const { userId } = auth;
 
   try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid comment request", error, 400);
-  }
-
-  const parsedBody = commentCreateRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid comment request", parsedBody.error, 400);
-  }
-
-  const targetType = parsedBody.data.targetType;
-  const content = parsedBody.data.body;
-
-  const visibility = parsedBody.data.visibility ?? "public";
-  const isAnonymous = parsedBody.data.isAnonymous === true;
-
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
-
-  const suspension = await findActiveSuspension(userId);
-  if (suspension) {
-    return suspensionForbidden(suspension.reason);
-  }
-
-  try {
-    const normalizedTargetId = parseOptionalInt(parsedBody.data.targetId);
-    const normalizedHomeworkId =
-      typeof parsedBody.data.targetId === "string" &&
-      parsedBody.data.targetId.trim().length > 0
-        ? parsedBody.data.targetId.trim()
-        : null;
-    const normalizedSectionId = parseOptionalInt(parsedBody.data.sectionId);
-    const normalizedTeacherId = parseOptionalInt(parsedBody.data.teacherId);
-    let targetData: Record<string, number | string> | null = null;
-    let resolvedSectionTeacherId: number | null = null;
-
-    if (targetType === "section" && normalizedTargetId) {
-      targetData = { sectionId: normalizedTargetId };
-    } else if (targetType === "course" && normalizedTargetId) {
-      targetData = { courseId: normalizedTargetId };
-    } else if (targetType === "teacher" && normalizedTargetId) {
-      targetData = { teacherId: normalizedTargetId };
-    } else if (targetType === "homework" && normalizedHomeworkId) {
-      targetData = { homeworkId: normalizedHomeworkId };
-    } else if (
-      targetType === "section-teacher" &&
-      normalizedSectionId &&
-      normalizedTeacherId
-    ) {
-      resolvedSectionTeacherId = await resolveSectionTeacherId(
-        normalizedSectionId,
-        normalizedTeacherId,
-      );
-      if (resolvedSectionTeacherId) {
-        targetData = { sectionTeacherId: resolvedSectionTeacherId };
-      }
-    }
-
-    if (!targetData) {
+    const target = await resolveCommentTarget({
+      rawTargetId: parsedBody.targetId,
+      sectionId: parsedBody.sectionId,
+      targetType,
+      teacherId: parsedBody.teacherId,
+    });
+    if (!target) {
       return badRequest("Invalid target");
     }
 
     let parentId: string | null = null;
     let rootId: string | null = null;
-    if (parsedBody.data.parentId) {
+    if (parsedBody.parentId) {
       const parent = await prisma.comment.findUnique({
-        where: { id: parsedBody.data.parentId },
+        where: { id: parsedBody.parentId },
       });
       if (!parent) {
         return notFound("Parent not found");
       }
 
-      const sameTarget = Object.entries(targetData).every(
+      const sameTarget = Object.entries(target.whereTarget).every(
         ([key, value]) => parent[key as keyof typeof parent] === value,
       );
       if (!sameTarget) {
@@ -244,7 +189,7 @@ export async function POST(request: Request) {
         userId,
         parentId,
         rootId,
-        ...targetData,
+        ...target.whereTarget,
       },
     });
 
@@ -255,7 +200,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const attachmentIds = parsedBody.data.attachmentIds ?? [];
+    const attachmentIds = parsedBody.attachmentIds ?? [];
 
     if (attachmentIds.length > 0) {
       const uploads = await prisma.upload.findMany({
@@ -279,20 +224,13 @@ export async function POST(request: Request) {
       });
     }
 
-    const ipAddress =
-      request.headers.get("x-forwarded-for") ??
-      request.headers.get("x-real-ip") ??
-      undefined;
-    const userAgent = request.headers.get("user-agent") ?? undefined;
-
     writeAuditLog({
       action: "comment_create",
       userId,
       targetId: comment.id,
       targetType: "comment",
       metadata: { body: content.slice(0, 200) },
-      ipAddress,
-      userAgent,
+      ...getAuditRequestMetadata(request),
     }).catch(() => {});
 
     return jsonResponse({ id: comment.id });

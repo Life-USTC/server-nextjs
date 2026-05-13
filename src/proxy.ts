@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { LOCALE_COOKIE, negotiateLocale } from "@/i18n/config";
-import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/welcome-redirect";
+import { shouldRedirectIncompleteProfileToWelcome } from "@/lib/auth/auth-routing";
 import { logApiRequest, shouldLog } from "@/lib/log/app-logger";
 import {
   buildContentSecurityPolicy,

@@ -58,7 +58,7 @@ test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) =
   const prefix = `e2e-p-${Date.now().toString(36)}`;
 
   try {
-    createTempUsersFixture({ prefix, count: 21 });
+    await createTempUsersFixture({ prefix, count: 21 });
     await signInAsDevAdmin(page, "/admin/users");
 
     const listResponse = await page.request.get("/api/admin/users");
@@ -75,7 +75,7 @@ test("/admin/users 分页控件可进入下一页", async ({ page }, testInfo) =
     await expect(page.locator("tbody tr").first()).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-users-pagination");
   } finally {
-    deleteUsersByPrefix(prefix);
+    await deleteUsersByPrefix(prefix);
   }
 });
 
@@ -112,7 +112,7 @@ test("/admin/users 用户名非法保存返回 400", async ({ page }, testInfo) 
 test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testInfo) => {
   test.setTimeout(60000);
   const prefix = `e2e-n-${Date.now().toString(36)}`;
-  const { usernames } = createTempUsersFixture({ prefix, count: 1 });
+  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 
   try {
     await signInAsDevAdmin(page, "/admin/users");
@@ -149,7 +149,7 @@ test("/admin/users 可打开管理弹窗并保存姓名", async ({ page }, testI
     );
     await expect(page.locator("tr").filter({ hasText: newName })).toBeVisible();
   } finally {
-    deleteUsersByPrefix(prefix);
+    await deleteUsersByPrefix(prefix);
   }
 });
 
@@ -157,7 +157,7 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
   page,
 }, testInfo) => {
   const prefix = `e2e-cs-${Date.now().toString(36)}`;
-  const { usernames } = createTempUsersFixture({ prefix, count: 1 });
+  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 
   try {
     await signInAsDevAdmin(page, "/admin/users");
@@ -199,7 +199,7 @@ test("/admin/users 自定义封禁时长会展示到期时间输入框", async (
     await expect(suspendButton).toBeVisible();
     await captureStepScreenshot(page, testInfo, "admin-users-suspended-custom");
   } finally {
-    deleteUsersByPrefix(prefix);
+    await deleteUsersByPrefix(prefix);
   }
 });
 
@@ -208,7 +208,7 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
 }, testInfo) => {
   test.setTimeout(60000);
   const prefix = `e2e-s-${Date.now().toString(36)}`;
-  const { usernames } = createTempUsersFixture({ prefix, count: 1 });
+  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
   let suspensionId: string | undefined;
 
   try {
@@ -263,6 +263,6 @@ test("/admin/users 可创建默认时长封禁并通过 API 解除", async ({
     if (suspensionId) {
       await page.request.patch(`/api/admin/suspensions/${suspensionId}`);
     }
-    deleteUsersByPrefix(prefix);
+    await deleteUsersByPrefix(prefix);
   }
 });

@@ -95,3 +95,26 @@ export function getDiscoveryRedirectResponse(url: URL | string, status = 307) {
   });
   return response;
 }
+
+type DiscoveryRouteHandlers = {
+  GET: (request: Request) => Promise<Response> | Response;
+  OPTIONS: typeof getDiscoveryOptionsResponse;
+};
+
+export function createDiscoveryMetadataRoute(
+  getResponse: (request: Request) => Promise<Response> | Response,
+): DiscoveryRouteHandlers {
+  return {
+    GET: getResponse,
+    OPTIONS: getDiscoveryOptionsResponse,
+  };
+}
+
+export function createDiscoveryRedirectRoute(
+  resolveUrl: (request: Request) => URL | string,
+  status = 307,
+): DiscoveryRouteHandlers {
+  return createDiscoveryMetadataRoute((request) =>
+    getDiscoveryRedirectResponse(resolveUrl(request), status),
+  );
+}

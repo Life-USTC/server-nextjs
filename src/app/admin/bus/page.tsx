@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const dynamic = "force-dynamic";
 
 export default async function AdminBusPage() {
-  const admin = await requireAdminPage();
+  const admin = await requireAdminPage("/admin/bus");
   if (!admin) {
     notFound();
   }

@@ -19,11 +19,13 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../../utils/auth";
 import { DEV_SEED } from "../../../../../utils/dev-seed";
-import { withE2eLock } from "../../../../../utils/locks";
+import {
+  DEBUG_USER_SUBSCRIPTIONS_LOCK,
+  withE2eLock,
+} from "../../../../../utils/locks";
 import { assertApiContract } from "../../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions/current";
-const DEBUG_USER_CALENDAR_LOCK = "debug-user-calendar";
 
 test.describe("GET /api/calendar-subscriptions/current", () => {
   test("contract", async ({ request }) => {
@@ -38,7 +40,7 @@ test.describe("GET /api/calendar-subscriptions/current", () => {
   test("returns subscription with seed section for authenticated user", async ({
     page,
   }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       await signInAsDebugUser(page, "/");
 
       // Resolve seed section ID
@@ -86,7 +88,7 @@ test.describe("GET /api/calendar-subscriptions/current", () => {
   });
 
   test("reflects changes made via POST", async ({ page }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       await signInAsDebugUser(page, "/");
 
       // Save original state

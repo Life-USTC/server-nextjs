@@ -1,11 +1,9 @@
-import { NextResponse } from "next/server";
 import type { CommentStatus } from "@/generated/prisma/client";
-import { requireAdmin } from "@/lib/admin-utils";
+import { withAdminRoute } from "@/lib/admin-utils";
 import {
-  badRequest,
-  handleRouteError,
   jsonResponse,
-  unauthorized,
+  parseRouteJsonBody,
+  parseRouteParams,
 } from "@/lib/api/helpers";
 import {
   adminModerateCommentRequestSchema,
@@ -18,14 +16,17 @@ export const dynamic = "force-dynamic";
 
 async function parseCommentId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid comment ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid comment ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -39,36 +40,22 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
-
-  const parsed = await parseCommentId(params);
-  if (parsed instanceof NextResponse) {
-    return parsed;
-  }
-  const id = parsed;
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid moderation request", error, 400);
-  }
-
-  const parsedBody = adminModerateCommentRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError(
+  return withAdminRoute("Failed to update comment", async (admin) => {
+    const parsed = await parseCommentId(params);
+    if (parsed instanceof Response) {
+      return parsed;
+    }
+    const id = parsed;
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      adminModerateCommentRequestSchema,
       "Invalid moderation request",
-      parsedBody.error,
-      400,
     );
-  }
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
 
-  const { status, moderationNote } = parsedBody.data;
-
-  try {
+    const { status, moderationNote } = parsedBody;
     const updated = await prisma.comment.update({
       where: { id },
       data: {
@@ -89,7 +76,5 @@ export async function PATCH(
     }).catch(() => {});
 
     return jsonResponse({ comment: updated });
-  } catch (error) {
-    return handleRouteError("Failed to update comment", error);
-  }
+  });
 }

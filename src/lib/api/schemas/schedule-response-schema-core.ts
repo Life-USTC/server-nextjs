@@ -1,41 +1,22 @@
-import { z } from "zod";
-import {
-  ScheduleGroupModelSchema,
-  ScheduleModelSchema,
-} from "@/lib/api/model-schemas";
+import * as z from "zod";
 import {
   buildingSchema,
   campusSchema,
   localizedCourseBaseSchema,
   roomSchema,
   roomTypeSchema,
+  scheduleBaseSchema,
+  scheduleGroupSchema,
   sectionBaseSchema,
   semesterSchema,
   teacherSchema,
 } from "./academic-response-schema-core";
-import {
-  createPaginatedSchema,
-  dateTimeSchema,
-} from "./response-schema-primitives";
+import { createPaginatedSchema } from "./response-schema-primitives";
 
 const localizedNameFields = {
   namePrimary: z.string(),
   nameSecondary: z.string().nullable(),
 };
-
-const scheduleBaseSchema = ScheduleModelSchema.omit({
-  room: true,
-  section: true,
-  scheduleGroup: true,
-  teachers: true,
-}).extend({
-  date: dateTimeSchema.nullable(),
-});
-
-const scheduleGroupSchema = ScheduleGroupModelSchema.omit({
-  section: true,
-  schedules: true,
-});
 
 const localizedCampusSchema = campusSchema.extend(localizedNameFields);
 

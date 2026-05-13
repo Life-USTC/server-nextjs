@@ -1,0 +1,24 @@
+name: Setup Bun environment
+description: Install Bun dependencies for this repository checkout.
+
+inputs:
+  install-playwright:
+    description: Install the Chromium Playwright runtime.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version-file: .bun-version
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install --frozen-lockfile
+
+    - name: Install Playwright browser
+      if: ${{ inputs.install-playwright == 'true' }}
+      shell: bash
+      run: bunx playwright install --with-deps chromium

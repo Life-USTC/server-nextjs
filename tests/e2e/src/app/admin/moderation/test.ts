@@ -199,7 +199,7 @@ test("/admin/moderation 可切换状态筛选下拉", async ({ page }, testInfo)
 
 test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo) => {
   const prefix = `e2e-moderation-sus-${Date.now()}`;
-  const { usernames } = createTempUsersFixture({ prefix, count: 1 });
+  const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
   await signInAsDevAdmin(page, "/admin/moderation");
 
   const usersResponse = await page.request.get(
@@ -240,7 +240,7 @@ test("/admin/moderation 封禁列表可解除封禁", async ({ page }, testInfo)
       `/api/admin/suspensions/${suspensionId}`,
     );
     expect(lift.status()).toBe(200);
-    deleteUsersByPrefix(prefix);
+    await deleteUsersByPrefix(prefix);
   }
 });
 

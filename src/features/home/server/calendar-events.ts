@@ -8,7 +8,7 @@ import {
   listSubscribedExams,
   listSubscribedHomeworks,
   listSubscribedSchedules,
-} from "./subscribed-data";
+} from "./subscription-read-model";
 
 function startOfShanghaiDay(date: Date) {
   return new Date(`${formatShanghaiDate(date)}T00:00:00+08:00`);

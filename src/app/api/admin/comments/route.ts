@@ -1,10 +1,10 @@
 import type { CommentStatus } from "@/generated/prisma/client";
-import { requireAdmin } from "@/lib/admin-utils";
+import { withAdminRoute } from "@/lib/admin-utils";
 import {
-  handleRouteError,
+  getPagination,
+  getRequestSearchParams,
   jsonResponse,
-  parseOptionalInt,
-  unauthorized,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { adminCommentsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -13,12 +13,6 @@ export const dynamic = "force-dynamic";
 
 const STATUS_FILTERS = ["active", "softbanned", "deleted"] as const;
 
-function parseLimit(value: string | null) {
-  const parsed = parseOptionalInt(value);
-  if (!parsed) return 50;
-  return Math.min(Math.max(parsed, 1), 200);
-}
-
 /**
  * List moderation comments.
  * @params adminCommentsQuerySchema
@@ -26,41 +20,43 @@ function parseLimit(value: string | null) {
  * @response 400:openApiErrorSchema
  */
 export async function GET(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
+  return withAdminRoute("Failed to fetch moderation queue", async () => {
+    const searchParams = getRequestSearchParams(request);
+    const parsedQuery = parseRouteInput(
+      {
+        status: searchParams.get("status") ?? undefined,
+        limit: searchParams.get("limit") ?? undefined,
+      },
+      adminCommentsQuerySchema,
+      "Invalid moderation query",
+      { logErrors: true },
+    );
+    if (parsedQuery instanceof Response) {
+      return parsedQuery;
+    }
 
-  const { searchParams } = new URL(request.url);
-  const parsedQuery = adminCommentsQuerySchema.safeParse({
-    status: searchParams.get("status") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid moderation query", parsedQuery.error, 400);
-  }
+    const status = parsedQuery.status ?? "";
+    const { pageSize: limit } = getPagination(searchParams, {
+      defaultPageSize: 50,
+      maxPageSize: 200,
+    });
 
-  const status = parsedQuery.data.status ?? "";
-  const limit = parseLimit(parsedQuery.data.limit ?? null);
-
-  const now = new Date();
-  const where =
-    status === "suspended"
-      ? {
-          user: {
-            suspensions: {
-              some: {
-                liftedAt: null,
-                OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    const now = new Date();
+    const where =
+      status === "suspended"
+        ? {
+            user: {
+              suspensions: {
+                some: {
+                  liftedAt: null,
+                  OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+                },
               },
             },
-          },
-        }
-      : STATUS_FILTERS.includes(status as (typeof STATUS_FILTERS)[number])
-        ? { status: status as CommentStatus }
-        : {};
-
-  try {
+          }
+        : STATUS_FILTERS.includes(status as (typeof STATUS_FILTERS)[number])
+          ? { status: status as CommentStatus }
+          : {};
     const comments = await prisma.comment.findMany({
       where,
       include: {
@@ -113,7 +109,5 @@ export async function GET(request: Request) {
     });
 
     return jsonResponse({ comments });
-  } catch (error) {
-    return handleRouteError("Failed to fetch moderation queue", error);
-  }
+  });
 }

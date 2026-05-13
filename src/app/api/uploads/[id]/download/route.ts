@@ -1,9 +1,9 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import {
-  badRequest,
   handleRouteError,
   notFound,
+  parseRouteParams,
   unauthorized,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
@@ -15,14 +15,17 @@ export const dynamic = "force-dynamic";
 
 async function parseUploadId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid upload ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid upload ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 function buildContentDisposition(filename: string) {
@@ -47,7 +50,7 @@ export async function GET(
   }
 
   const parsed = await parseUploadId(context.params);
-  if (parsed instanceof NextResponse) {
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;

@@ -1,8 +1,5 @@
 import { getOAuthOpenIdConfigurationUrl } from "@/lib/mcp/urls";
-import {
-  getDiscoveryOptionsResponse,
-  getDiscoveryRedirectResponse,
-} from "@/lib/oauth/discovery-metadata";
+import { createDiscoveryRedirectRoute } from "@/lib/oauth/discovery-metadata";
 export const dynamic = "force-dynamic";
 
 /**
@@ -10,14 +7,6 @@ export const dynamic = "force-dynamic";
  * The canonical OIDC discovery URL remains `{issuer}/.well-known/openid-configuration`.
  * @response 307
  */
-export function GET() {
-  return getDiscoveryRedirectResponse(getOAuthOpenIdConfigurationUrl());
-}
-
-/**
- * CORS preflight for OpenID discovery alias.
- * @response 204
- */
-export function OPTIONS() {
-  return getDiscoveryOptionsResponse();
-}
+export const { GET, OPTIONS } = createDiscoveryRedirectRoute(() =>
+  getOAuthOpenIdConfigurationUrl(),
+);

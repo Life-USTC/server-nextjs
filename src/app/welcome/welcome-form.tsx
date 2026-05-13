@@ -20,7 +20,7 @@ import { Form } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@/i18n/routing";
-import { refreshAuthSessionCookieCache } from "@/lib/auth/session-refresh";
+import { refreshAuthSessionCookieCache } from "@/lib/auth/client";
 
 interface WelcomeFormProps {
   user: {

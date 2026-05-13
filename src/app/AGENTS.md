@@ -44,6 +44,6 @@ export const dynamic = "force-dynamic"; // only if truly dynamic
 export async function GET(request: Request) {}
 ```
 
-Run `bun run prebuild` after API changes.
+Run `bun run build:artifacts` after API changes.
 
 See `api/AGENTS.md` for REST handlers, root `AGENTS.md` for patterns.

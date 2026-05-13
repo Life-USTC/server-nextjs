@@ -1,5 +1,6 @@
-import { z } from "zod";
-import { dateTimeSchema, viewerContextSchema } from "./response-schema-core";
+import * as z from "zod";
+import { viewerContextSchema } from "./misc-response-schema-core";
+import { dateTimeSchema } from "./response-schema-primitives";
 
 const commentAuthorSummarySchema = z.object({
   id: z.string().optional(),

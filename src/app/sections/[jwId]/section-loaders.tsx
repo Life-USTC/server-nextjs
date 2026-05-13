@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import { CommentsSkeleton, HomeworkSkeleton } from "@/components/skeletons";
 import { CommentsSection } from "@/features/comments/components/comments-section";
-import { getViewerContext } from "@/features/comments/server/comment-utils";
 import { getCommentsPayload } from "@/features/comments/server/comments-server";
 import { HomeworkPanel } from "@/features/homeworks/components/homework-panel";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma as basePrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 

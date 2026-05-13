@@ -27,7 +27,10 @@ import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
 import { withE2eLock } from "../../../../utils/locks";
-import { gotoAndWaitForReady } from "../../../../utils/page-ready";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { assertPageContract } from "../../_shared/page-contract";
 
@@ -41,7 +44,8 @@ async function navigateToSeedTeacher(
   const detailLink = page.locator("tbody a[href^='/teachers/']").first();
   await expect(detailLink).toBeVisible();
   await detailLink.click();
-  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(/\/teachers\/\d+/);
+  await waitForUiSettled(page);
 }
 
 test.describe("/teachers/[id]", () => {
@@ -189,7 +193,7 @@ test.describe("/teachers/[id]", () => {
       );
       await descCard.getByRole("button", { name: /保存|Save/i }).click();
       await saveResponse;
-      await page.waitForLoadState("networkidle");
+      await waitForUiSettled(page);
 
       // description.content rendered
       await expect(page.getByText(content).first()).toBeVisible();
@@ -252,7 +256,7 @@ test.describe("/teachers/[id]", () => {
     );
     await page.getByRole("button", { name: /发布评论|Post comment/i }).click();
     await createResponse;
-    await page.waitForLoadState("networkidle");
+    await waitForUiSettled(page);
 
     const commentCard = page
       .locator('[id^="comment-"]')
@@ -280,7 +284,7 @@ test.describe("/teachers/[id]", () => {
     );
     await commentCard.getByRole("button", { name: /保存|Save/i }).click();
     await editResponse;
-    await page.waitForLoadState("networkidle");
+    await waitForUiSettled(page);
     await expect(page.getByText(editedBody).first()).toBeVisible();
 
     // Delete

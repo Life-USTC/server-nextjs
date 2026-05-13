@@ -1,3 +1,4 @@
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import type {
   CommentNode,
@@ -5,7 +6,7 @@ import type {
   CommentViewer,
 } from "../components/comment-types";
 import { buildCommentNodes } from "./comment-serialization";
-import { getViewerContext, resolveSectionTeacherId } from "./comment-utils";
+import { resolveSectionTeacherId } from "./comment-utils";
 
 type CommentsPayload = {
   comments: CommentNode[];

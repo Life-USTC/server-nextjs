@@ -6,7 +6,24 @@ import {
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { useMemo } from "react";
-import { getFreshSessionQuery } from "@/lib/auth/session-refresh";
+import {
+  buildSignInRedirectUrl,
+  resolveAuthRedirectTarget,
+} from "@/lib/auth/auth-routing";
+import { resolveAuthProviderDecision } from "@/lib/auth/provider-ids";
+import { normalizeSessionUser } from "@/lib/auth/session";
+
+const FRESH_SESSION_QUERY = { disableCookieCache: true } as const;
+
+export function getFreshSessionQuery() {
+  return FRESH_SESSION_QUERY;
+}
+
+export async function refreshAuthSessionCookieCache() {
+  await fetch("/api/auth/get-session?disableCookieCache=true", {
+    cache: "no-store",
+  });
+}
 
 export const authClient = createAuthClient({
   plugins: [
@@ -61,24 +78,10 @@ export function useSession() {
       return null;
     }
 
-    const user = data.user as Record<string, unknown>;
     return {
-      user: {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name || null,
-        image: data.user.image ?? null,
-        username:
-          typeof user.username === "string" && user.username.length > 0
-            ? user.username
-            : null,
-        isAdmin: Boolean(user.isAdmin),
-        profilePictures: Array.isArray(user.profilePictures)
-          ? user.profilePictures.filter(
-              (value): value is string => typeof value === "string",
-            )
-          : [],
-      },
+      user: normalizeSessionUser(
+        data.user as Record<string, unknown> & { id: string; email: string },
+      ),
     };
   }, [data]);
 
@@ -98,44 +101,18 @@ export function useSession() {
   };
 }
 
-const getCallbackUrl = (options: ClientSignInOptions | ClientSignOutOptions) =>
-  options.redirectTo ??
-  options.callbackUrl ??
-  (typeof window !== "undefined"
+const getCurrentUrl = () =>
+  typeof window !== "undefined"
     ? `${window.location.pathname}${window.location.search}`
-    : "/");
+    : "/";
 
-export async function signIn(
-  providerId?: string,
-  options: ClientSignInOptions = {},
-) {
-  const callbackURL = getCallbackUrl(options);
-  if (!providerId) {
-    const url = `/signin?callbackUrl=${encodeURIComponent(callbackURL)}`;
-    if (options.redirect !== false) {
-      window.location.href = url;
-    }
-    return { data: { url, redirect: false }, error: null };
-  }
+const getCallbackUrl = (options: ClientSignInOptions | ClientSignOutOptions) =>
+  resolveAuthRedirectTarget(options, getCurrentUrl());
 
-  if (providerId === "oidc") {
-    const result = await authClient.signIn.oauth2({
-      providerId: "oidc",
-      callbackURL,
-      disableRedirect: true,
-    });
-    const redirectUrl = result.data?.url;
-    if (options.redirect !== false && redirectUrl) {
-      window.location.href = redirectUrl;
-    }
-    return result;
-  }
-
-  const result = await authClient.signIn.social({
-    provider: providerId,
-    callbackURL,
-    disableRedirect: true,
-  });
+function maybeRedirect<T extends { data?: { url?: string } | null }>(
+  result: T,
+  options: ClientSignInOptions | ClientSignOutOptions,
+): T {
   const redirectUrl = result.data?.url;
   if (options.redirect !== false && redirectUrl) {
     window.location.href = redirectUrl;
@@ -143,34 +120,63 @@ export async function signIn(
   return result;
 }
 
+export async function signIn(
+  providerId?: string,
+  options: ClientSignInOptions = {},
+) {
+  const callbackURL = getCallbackUrl(options);
+  const decision = resolveAuthProviderDecision(providerId);
+
+  if (decision.kind === "none") {
+    const url = buildSignInRedirectUrl(options, callbackURL);
+    if (options.redirect !== false) {
+      window.location.href = url;
+    }
+    return { data: { url, redirect: false }, error: null };
+  }
+
+  if (decision.kind === "oidc") {
+    const result = await authClient.signIn.oauth2({
+      providerId: decision.providerId,
+      callbackURL,
+      disableRedirect: true,
+    });
+    return maybeRedirect(result, options);
+  }
+
+  const result = await authClient.signIn.social({
+    provider: decision.providerId,
+    callbackURL,
+    disableRedirect: true,
+  });
+  return maybeRedirect(result, options);
+}
+
 export async function linkAccount(
   providerId: string,
   options: ClientSignInOptions = {},
 ) {
   const callbackURL = getCallbackUrl(options);
+  const decision = resolveAuthProviderDecision(providerId);
 
-  if (providerId === "oidc") {
+  if (decision.kind === "none") {
+    throw new Error("providerId is required");
+  }
+
+  if (decision.kind === "oidc") {
     const result = await authClient.oauth2.link({
-      providerId: "oidc",
+      providerId: decision.providerId,
       callbackURL,
     });
-    const redirectUrl = result.data?.url;
-    if (options.redirect !== false && redirectUrl) {
-      window.location.href = redirectUrl;
-    }
-    return result;
+    return maybeRedirect(result, options);
   }
 
   const result = await authClient.linkSocial({
-    provider: providerId,
+    provider: decision.providerId,
     callbackURL,
     disableRedirect: true,
   });
-  const redirectUrl = result.data?.url;
-  if (options.redirect !== false && redirectUrl) {
-    window.location.href = redirectUrl;
-  }
-  return result;
+  return maybeRedirect(result, options);
 }
 
 export async function signOut(options: ClientSignOutOptions = {}) {

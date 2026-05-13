@@ -5,6 +5,7 @@ import {
   jsonResponse,
   notFound,
   parseInteger,
+  parseRouteParams,
 } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma } from "@/lib/db/prisma";
@@ -23,13 +24,16 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ) {
   try {
-    const rawParams = await context.params;
-    const parsedParams = resourceIdPathParamsSchema.safeParse(rawParams);
-    if (!parsedParams.success) {
+    const parsedParams = await parseRouteParams(
+      context.params,
+      resourceIdPathParamsSchema,
+      "Invalid teacher ID",
+    );
+    if (parsedParams instanceof Response) {
       return invalidParamResponse("teacher ID");
     }
 
-    const parsedId = parseInteger(parsedParams.data.id);
+    const parsedId = parseInteger(parsedParams.id);
     if (parsedId === null) {
       return invalidParamResponse("teacher ID");
     }

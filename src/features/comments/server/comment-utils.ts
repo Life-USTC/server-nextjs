@@ -1,7 +1,5 @@
-import { cache } from "react";
-import { auth } from "@/auth";
+import { parseInteger } from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
-import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export type CommentTargetType =
   | "section"
@@ -10,107 +8,14 @@ export type CommentTargetType =
   | "section-teacher"
   | "homework";
 
-export type ViewerContext = {
-  userId: string | null;
-  name: string | null;
-  image: string | null;
-  isAdmin: boolean;
-  isAuthenticated: boolean;
-  isSuspended: boolean;
-  suspensionReason: string | null;
-  suspensionExpiresAt: string | null;
+export type ResolvedCommentTarget = {
+  homeworkId: string | null;
+  sectionId: number | null;
+  sectionTeacherId: number | null;
+  targetId: number | string | null;
+  teacherId: number | null;
+  whereTarget: Record<string, number | string>;
 };
-
-/**
- * Internal per-request cached viewer data fetcher.
- * Deduplicates auth() + user lookup + suspension check within a single request.
- */
-const getViewerData = cache(async () => {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return null;
-  }
-
-  const [user, suspension] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, name: true, image: true, isAdmin: true },
-    }),
-    findActiveSuspension(session.user.id),
-  ]);
-
-  if (!user) {
-    return null;
-  }
-
-  return { user, suspension };
-});
-
-async function getViewerDataForUserId(userId: string) {
-  const [user, suspension] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, name: true, image: true, isAdmin: true },
-    }),
-    findActiveSuspension(userId),
-  ]);
-
-  if (!user) {
-    return null;
-  }
-
-  return { user, suspension };
-}
-
-export async function getViewerContext(
-  options: { includeAdmin?: boolean; userId?: string | null } = {},
-): Promise<ViewerContext> {
-  const data =
-    typeof options.userId === "string"
-      ? await getViewerDataForUserId(options.userId)
-      : await getViewerData();
-
-  if (!data) {
-    return {
-      userId: null,
-      name: null,
-      image: null,
-      isAdmin: false,
-      isAuthenticated: false,
-      isSuspended: false,
-      suspensionReason: null,
-      suspensionExpiresAt: null,
-    };
-  }
-
-  const { user, suspension } = data;
-  const shouldExposeAdmin = options.includeAdmin === true;
-
-  return {
-    userId: user.id,
-    name: user.name ?? null,
-    image: user.image ?? null,
-    isAdmin: shouldExposeAdmin ? (user.isAdmin ?? false) : false,
-    isAuthenticated: true,
-    isSuspended: Boolean(suspension),
-    suspensionReason: suspension?.reason ?? null,
-    suspensionExpiresAt: suspension?.expiresAt
-      ? toShanghaiIsoString(suspension.expiresAt)
-      : null,
-  };
-}
-
-export async function findActiveSuspension(userId: string) {
-  const now = new Date();
-  return prisma.userSuspension.findFirst({
-    where: {
-      userId,
-      liftedAt: null,
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-    },
-    orderBy: { createdAt: "desc" },
-  });
-}
 
 export async function resolveSectionTeacherId(
   sectionId: number,
@@ -140,4 +45,56 @@ export async function resolveSectionTeacherId(
   });
 
   return sectionTeacher.id as number;
+}
+
+export async function resolveCommentTarget(input: {
+  allowDirectSectionTeacherId?: boolean;
+  rawTargetId: unknown;
+  sectionId?: unknown;
+  targetType: CommentTargetType;
+  teacherId?: unknown;
+}): Promise<ResolvedCommentTarget | null> {
+  const normalizedTargetId = parseInteger(input.rawTargetId);
+  const homeworkId =
+    typeof input.rawTargetId === "string" && input.rawTargetId.trim().length > 0
+      ? input.rawTargetId.trim()
+      : null;
+  const sectionId = parseInteger(input.sectionId);
+  const teacherId = parseInteger(input.teacherId);
+
+  let whereTarget: Record<string, number | string> | null = null;
+  let sectionTeacherId: number | null = null;
+
+  if (input.targetType === "section" && normalizedTargetId) {
+    whereTarget = { sectionId: normalizedTargetId };
+  } else if (input.targetType === "course" && normalizedTargetId) {
+    whereTarget = { courseId: normalizedTargetId };
+  } else if (input.targetType === "teacher" && normalizedTargetId) {
+    whereTarget = { teacherId: normalizedTargetId };
+  } else if (input.targetType === "homework" && homeworkId) {
+    whereTarget = { homeworkId };
+  } else if (input.targetType === "section-teacher") {
+    if (input.allowDirectSectionTeacherId && normalizedTargetId) {
+      sectionTeacherId = normalizedTargetId;
+    } else if (sectionId && teacherId) {
+      sectionTeacherId = await resolveSectionTeacherId(sectionId, teacherId);
+    }
+
+    if (sectionTeacherId) {
+      whereTarget = { sectionTeacherId };
+    }
+  }
+
+  if (!whereTarget) {
+    return null;
+  }
+
+  return {
+    homeworkId,
+    sectionId,
+    sectionTeacherId,
+    targetId: input.targetType === "homework" ? homeworkId : normalizedTargetId,
+    teacherId,
+    whereTarget,
+  };
 }

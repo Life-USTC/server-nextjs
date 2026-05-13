@@ -1,19 +1,21 @@
 import { verifyAccessToken } from "better-auth/oauth2";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db/prisma";
+import { suspensionForbidden, unauthorized } from "@/lib/api/helpers";
+import { buildSignInRedirectUrl } from "@/lib/auth/auth-routing";
 import {
   getJwksUrlForOAuthVerification,
-  getOAuthIssuerUrl,
+  getOAuthRestAudienceUrls,
+  getOAuthTokenVerificationIssuers,
 } from "@/lib/mcp/urls";
-import { getPublicOrigin } from "@/lib/site-url";
+import { getViewerAuthDataForUserId } from "./viewer-context";
 
-export async function requireSignedInUserId() {
+export async function requireSignedInUserId(callbackUrl = "/") {
   const session = await auth();
   const userId = session?.user?.id;
 
   if (!userId) {
-    redirect("/signin");
+    redirect(buildSignInRedirectUrl({}, callbackUrl));
   }
 
   return userId;
@@ -36,23 +38,17 @@ export async function resolveApiUserId(
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     if (token) {
-      // Better Auth's jwt plugin sets `iss` to AUTH_BASE_URL (the bare origin,
-      // e.g. "http://localhost:3000"), while getOAuthIssuerUrl() adds the
-      // "/api/auth" path suffix. Accept both so tokens issued by either path
-      // verify correctly.
-      const issuerPath = getOAuthIssuerUrl().toString();
-      const siteOrigin = getPublicOrigin();
-
       try {
         const jwt = await verifyAccessToken(token, {
           jwksUrl: getJwksUrlForOAuthVerification(),
           // General protected REST endpoints only accept issuer-bound JWT access
           // tokens. Opaque/no-resource tokens are reserved for the MCP transport,
           // where resource and scope checks happen in src/lib/mcp/auth.ts.
-          // Accept both the bare origin (CLI resource) and the issuer path as audiences.
+          // Keep the legacy bare-origin audience in one helper while the
+          // canonical issuer remains path-based at `/api/auth`.
           verifyOptions: {
-            issuer: [siteOrigin, issuerPath],
-            audience: [siteOrigin, issuerPath],
+            issuer: getOAuthTokenVerificationIssuers(),
+            audience: getOAuthRestAudienceUrls(),
           },
         });
 
@@ -72,24 +68,22 @@ export async function resolveApiUserId(
   return session?.user?.id ?? null;
 }
 
-export async function resolveApiUser(request: Request): Promise<{
-  id: string;
-  name: string | null;
-  image: string | null;
-  isAdmin: boolean;
-} | null> {
+/**
+ * Check auth + suspension for collaborative write routes.
+ *
+ * Returns `{ userId }` on success, or a Response (401/403) on failure.
+ * Usage:
+ *   const auth = await requireWriteAuth(request);
+ *   if (auth instanceof Response) return auth;
+ *   const { userId } = auth;
+ */
+export async function requireWriteAuth(
+  request: Request,
+): Promise<{ userId: string } | Response> {
   const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return null;
-  }
-
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      isAdmin: true,
-    },
-  });
+  if (!userId) return unauthorized();
+  const data = await getViewerAuthDataForUserId(userId);
+  if (!data) return unauthorized();
+  if (data?.suspension) return suspensionForbidden(data.suspension.reason);
+  return { userId };
 }

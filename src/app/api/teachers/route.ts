@@ -4,7 +4,8 @@ import {
   getPagination,
   handleRouteError,
   jsonResponse,
-  parseOptionalInt,
+  parseInteger,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { ilike, paginatedTeacherQuery } from "@/lib/query-helpers";
@@ -19,23 +20,28 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = teachersQuerySchema.safeParse({
-    departmentId: searchParams.get("departmentId") ?? undefined,
-    search: searchParams.get("search") ?? undefined,
-    page: searchParams.get("page") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid teacher query", parsedQuery.error, 400);
+  const parsedQuery = parseRouteInput(
+    {
+      departmentId: searchParams.get("departmentId") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    },
+    teachersQuerySchema,
+    "Invalid teacher query",
+    { logErrors: true },
+  );
+  if (parsedQuery instanceof Response) {
+    return parsedQuery;
   }
 
   const pagination = getPagination(searchParams);
-  const { departmentId, search } = parsedQuery.data;
+  const { departmentId, search } = parsedQuery;
 
   const where: Prisma.TeacherWhereInput = {};
 
   if (departmentId) {
-    const parsedDepartmentId = parseOptionalInt(departmentId);
+    const parsedDepartmentId = parseInteger(departmentId);
     if (parsedDepartmentId !== null) {
       where.departmentId = parsedDepartmentId;
     }

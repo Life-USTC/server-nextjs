@@ -27,27 +27,37 @@ type RawSessionLike = {
   } & Record<string, unknown>;
 };
 
-export function mapAppSession(session: RawSessionLike): AppSession {
-  const profilePictures = Array.isArray(session.user.profilePictures)
-    ? session.user.profilePictures.filter(
+type RawUserLike = {
+  id: string;
+  email: string;
+  name?: string | null;
+  image?: string | null;
+} & Record<string, unknown>;
+
+export function normalizeSessionUser(user: RawUserLike): AppSession["user"] {
+  const profilePictures = Array.isArray(user.profilePictures)
+    ? user.profilePictures.filter(
         (value): value is string => typeof value === "string",
       )
     : [];
 
   return {
+    id: user.id,
+    email: user.email,
+    name: user.name || null,
+    image: user.image ?? null,
+    username:
+      typeof user.username === "string" && user.username.length > 0
+        ? user.username
+        : null,
+    isAdmin: Boolean(user.isAdmin),
+    profilePictures,
+  };
+}
+
+export function mapAppSession(session: RawSessionLike): AppSession {
+  return {
     session: session.session,
-    user: {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name || null,
-      image: session.user.image ?? null,
-      username:
-        typeof session.user.username === "string" &&
-        session.user.username.length > 0
-          ? session.user.username
-          : null,
-      isAdmin: Boolean(session.user.isAdmin),
-      profilePictures,
-    },
+    user: normalizeSessionUser(session.user),
   };
 }

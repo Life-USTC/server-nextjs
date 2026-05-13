@@ -69,7 +69,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
 
   test("admin can create a suspension for a temp user", async ({ page }) => {
     const prefix = `e2e-sus-${Date.now()}`;
-    const { usernames } = createTempUsersFixture({ prefix, count: 1 });
+    const { usernames } = await createTempUsersFixture({ prefix, count: 1 });
 
     try {
       await signInAsDevAdmin(page, "/admin");
@@ -110,7 +110,7 @@ test.describe("GET/POST /api/admin/suspensions", () => {
         await page.request.patch(`${BASE}/${postBody.suspension.id}`);
       }
     } finally {
-      deleteUsersByPrefix(prefix);
+      await deleteUsersByPrefix(prefix);
     }
   });
 });

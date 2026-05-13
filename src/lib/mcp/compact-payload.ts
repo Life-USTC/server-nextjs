@@ -33,12 +33,12 @@ export function redactCalendarFeedLocation(value: string | null | undefined) {
   );
 }
 
-function compactUser(value: unknown) {
+export function compactUser(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, ["id", "name", "username", "image"]);
 }
 
-function compactDepartment(value: unknown) {
+export function compactDepartment(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
     "id",
@@ -49,7 +49,7 @@ function compactDepartment(value: unknown) {
   ]);
 }
 
-function compactTeacherTitle(value: unknown) {
+export function compactTeacherTitle(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
     "id",
@@ -60,7 +60,7 @@ function compactTeacherTitle(value: unknown) {
   ]);
 }
 
-function compactCourse(value: unknown) {
+export function compactCourse(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
     "id",
@@ -75,7 +75,7 @@ function compactCourse(value: unknown) {
   ]);
 }
 
-function compactSemester(value: unknown) {
+export function compactSemester(value: unknown) {
   if (!isRecord(value)) return value;
   return pick(value, [
     "id",
@@ -88,7 +88,7 @@ function compactSemester(value: unknown) {
   ]);
 }
 
-function compactCampus(
+export function compactCampus(
   value: unknown,
   options?: {
     includeCoordinates?: boolean;
@@ -109,7 +109,7 @@ function compactCampus(
   return out;
 }
 
-function compactTeacher(value: unknown) {
+export function compactTeacher(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -137,7 +137,7 @@ function compactTeacher(value: unknown) {
   return out;
 }
 
-function compactSection(value: unknown) {
+export function compactSection(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -164,7 +164,7 @@ function compactSection(value: unknown) {
   return out;
 }
 
-function compactTodo(value: unknown) {
+export function compactTodo(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -181,7 +181,7 @@ function compactTodo(value: unknown) {
   return out;
 }
 
-function compactHomework(value: unknown) {
+export function compactHomework(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -231,7 +231,7 @@ function compactHomework(value: unknown) {
   return out;
 }
 
-function compactSchedule(value: unknown) {
+export function compactSchedule(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -275,7 +275,7 @@ function compactSchedule(value: unknown) {
   return out;
 }
 
-function compactExam(value: unknown) {
+export function compactExam(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -318,7 +318,7 @@ function compactBusRouteStop(value: unknown) {
   return pick(value, ["stopOrder", "campusId", "campusName"]);
 }
 
-function compactBusRoute(value: unknown) {
+export function compactBusRoute(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -343,7 +343,12 @@ function compactBusRoute(value: unknown) {
   return out;
 }
 
-function compactBusTrip(value: unknown) {
+function compactBusStopTimes(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(compactMcpPayload);
+  return value;
+}
+
+export function compactBusTrip(value: unknown) {
   if (!isRecord(value)) return value;
   const out: Record<string, unknown> = pick(value, [
     "id",
@@ -361,7 +366,7 @@ function compactBusTrip(value: unknown) {
     "arrivalEstimated",
   ]);
   if (Object.hasOwn(value, "stopTimes")) {
-    out.stopTimes = compactMcpPayload(value.stopTimes);
+    out.stopTimes = compactBusStopTimes(value.stopTimes);
   }
   if (Object.hasOwn(value, "route")) {
     out.route = compactBusRoute(value.route);
@@ -379,11 +384,11 @@ function compactBusTripSlot(value: unknown) {
   if (!isRecord(value)) return value;
   return {
     position: value.position,
-    stopTimes: compactMcpPayload(value.stopTimes),
+    stopTimes: compactBusStopTimes(value.stopTimes),
   };
 }
 
-function compactCalendarSubscription(value: unknown) {
+export function compactCalendarSubscription(value: unknown) {
   if (!isRecord(value)) return value;
   const sections = asRecordArray(value.sections).map(compactSection);
   return {
@@ -402,227 +407,184 @@ function compactCalendarSubscription(value: unknown) {
   };
 }
 
-function looksLikeTeacher(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "nameCn") &&
-    (Object.hasOwn(value, "teacherId") ||
-      Object.hasOwn(value, "personId") ||
-      Object.hasOwn(value, "teacherTitleId") ||
-      Object.hasOwn(value, "departmentId"))
-  );
-}
+// Explicit ordered dispatch registry.
+// Order matters when shapes overlap (e.g. BusTrip before BusTripSlot).
+const COMPACT_DISPATCH: {
+  test: (v: Record<string, unknown>) => boolean;
+  compact: (v: unknown) => unknown;
+}[] = [
+  {
+    test: (v) =>
+      Object.hasOwn(v, "sections") &&
+      (Object.hasOwn(v, "calendarPath") || Object.hasOwn(v, "calendarUrl")),
+    compact: compactCalendarSubscription,
+  },
+  {
+    // BusTrip: has routeId + position + dayType (weekday|weekend) + stopTimes array
+    test: (v) =>
+      Object.hasOwn(v, "routeId") &&
+      Object.hasOwn(v, "position") &&
+      (v.dayType === "weekday" || v.dayType === "weekend") &&
+      Object.hasOwn(v, "stopTimes") &&
+      Array.isArray(v.stopTimes),
+    compact: compactBusTrip,
+  },
+  {
+    // BusTripSlot: has position + stopTimes but no routeId (distinguishes from BusTrip)
+    test: (v) =>
+      Object.hasOwn(v, "position") &&
+      Array.isArray(v.stopTimes) &&
+      !Object.hasOwn(v, "routeId"),
+    compact: compactBusTripSlot,
+  },
+  {
+    // BusRoute: has stops array where each stop has stopOrder + campus/campusId
+    test: (v) => {
+      if (!Object.hasOwn(v, "stops") || !Array.isArray(v.stops)) return false;
+      if (!Object.hasOwn(v, "id")) return false;
+      if (
+        !Object.hasOwn(v, "nameCn") &&
+        !Object.hasOwn(v, "descriptionPrimary")
+      )
+        return false;
+      const stops = v.stops.filter(isRecord);
+      if (stops.length === 0) return false;
+      return stops.every(
+        (stop) =>
+          Object.hasOwn(stop, "stopOrder") &&
+          (Object.hasOwn(stop, "campus") || Object.hasOwn(stop, "campusId")),
+      );
+    },
+    compact: compactBusRoute,
+  },
+  {
+    // BusCampus: has nameCn + coordinates but no stops
+    test: (v) =>
+      Object.hasOwn(v, "nameCn") &&
+      Object.hasOwn(v, "latitude") &&
+      Object.hasOwn(v, "longitude") &&
+      !Object.hasOwn(v, "stops"),
+    compact: (v) => compactCampus(v, { includeCoordinates: true }),
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "nameCn") &&
+      (Object.hasOwn(v, "teacherId") ||
+        Object.hasOwn(v, "personId") ||
+        Object.hasOwn(v, "teacherTitleId") ||
+        Object.hasOwn(v, "departmentId")),
+    compact: compactTeacher,
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "code") &&
+      (Object.hasOwn(v, "courseId") ||
+        Object.hasOwn(v, "semesterId") ||
+        Object.hasOwn(v, "campusId") ||
+        Object.hasOwn(v, "openDepartmentId") ||
+        (Object.hasOwn(v, "course") && Object.hasOwn(v, "semester"))),
+    compact: compactSection,
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "code") &&
+      (Object.hasOwn(v, "credit") ||
+        Object.hasOwn(v, "hours") ||
+        Object.hasOwn(v, "educationLevelId") ||
+        Object.hasOwn(v, "sections")),
+    compact: compactCourse,
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "jwId") &&
+      Object.hasOwn(v, "code") &&
+      Object.hasOwn(v, "nameCn") &&
+      (Object.hasOwn(v, "startDate") || Object.hasOwn(v, "endDate")),
+    compact: compactSemester,
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "title") &&
+      Object.hasOwn(v, "submissionDueAt") &&
+      (Object.hasOwn(v, "sectionId") ||
+        Object.hasOwn(v, "requiresTeam") ||
+        Object.hasOwn(v, "isMajor")),
+    compact: compactHomework,
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "date") &&
+      Object.hasOwn(v, "weekday") &&
+      Object.hasOwn(v, "startTime") &&
+      Object.hasOwn(v, "endTime") &&
+      (Object.hasOwn(v, "sectionId") || Object.hasOwn(v, "weekIndex")),
+    compact: compactSchedule,
+  },
+  {
+    test: (v) =>
+      Object.hasOwn(v, "sectionId") &&
+      (Object.hasOwn(v, "examDate") ||
+        Object.hasOwn(v, "examBatch") ||
+        Object.hasOwn(v, "examRooms")),
+    compact: compactExam,
+  },
+  {
+    test: (v) => Object.hasOwn(v, "completed") && Object.hasOwn(v, "priority"),
+    compact: compactTodo,
+  },
+];
 
-function looksLikeSection(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "code") &&
-    (Object.hasOwn(value, "courseId") ||
-      Object.hasOwn(value, "semesterId") ||
-      Object.hasOwn(value, "campusId") ||
-      Object.hasOwn(value, "openDepartmentId") ||
-      (Object.hasOwn(value, "course") && Object.hasOwn(value, "semester")))
-  );
-}
+// Per-key compactors for unknown wrapper objects (e.g. { section: ..., user: ... }).
+// When none of the top-level dispatch entries match, each known key is compacted individually.
+const KEY_COMPACTORS: Record<string, (v: unknown) => unknown> = {
+  calendarPath: (v) =>
+    typeof v === "string" ? redactCalendarFeedLocation(v) : v,
+  calendarUrl: (v) =>
+    typeof v === "string" ? redactCalendarFeedLocation(v) : v,
+  user: compactUser,
+  course: compactCourse,
+  semester: compactSemester,
+  campus: compactCampus,
+  openDepartment: compactDepartment,
+  department: compactDepartment,
+  teacherTitle: compactTeacherTitle,
+  teacher: compactTeacher,
+  todo: compactTodo,
+  homework: compactHomework,
+  schedule: compactSchedule,
+  exam: compactExam,
+  section: compactSection,
+};
 
-function looksLikeCourse(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "code") &&
-    (Object.hasOwn(value, "credit") ||
-      Object.hasOwn(value, "hours") ||
-      Object.hasOwn(value, "educationLevelId") ||
-      Object.hasOwn(value, "sections"))
-  );
-}
-
-function looksLikeSemester(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "jwId") &&
-    Object.hasOwn(value, "code") &&
-    Object.hasOwn(value, "nameCn") &&
-    (Object.hasOwn(value, "startDate") || Object.hasOwn(value, "endDate"))
-  );
-}
-
-function looksLikeHomework(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "title") &&
-    Object.hasOwn(value, "submissionDueAt") &&
-    (Object.hasOwn(value, "sectionId") ||
-      Object.hasOwn(value, "requiresTeam") ||
-      Object.hasOwn(value, "isMajor"))
-  );
-}
-
-function looksLikeSchedule(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "date") &&
-    Object.hasOwn(value, "weekday") &&
-    Object.hasOwn(value, "startTime") &&
-    Object.hasOwn(value, "endTime") &&
-    (Object.hasOwn(value, "sectionId") || Object.hasOwn(value, "weekIndex"))
-  );
-}
-
-function looksLikeExam(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "sectionId") &&
-    (Object.hasOwn(value, "examDate") ||
-      Object.hasOwn(value, "examBatch") ||
-      Object.hasOwn(value, "examRooms"))
-  );
-}
-
-function looksLikeBusCampus(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "nameCn") &&
-    Object.hasOwn(value, "latitude") &&
-    Object.hasOwn(value, "longitude") &&
-    !Object.hasOwn(value, "stops")
-  );
-}
-
-function looksLikeBusRoute(value: Record<string, unknown>) {
-  if (!Object.hasOwn(value, "stops") || !Array.isArray(value.stops))
-    return false;
-  if (!Object.hasOwn(value, "id")) return false;
-  if (
-    !Object.hasOwn(value, "nameCn") &&
-    !Object.hasOwn(value, "descriptionPrimary")
-  )
-    return false;
-  const stops = value.stops.filter(isRecord);
-  if (stops.length === 0) return false;
-  return stops.every(
-    (stop) =>
-      Object.hasOwn(stop, "stopOrder") &&
-      (Object.hasOwn(stop, "campus") || Object.hasOwn(stop, "campusId")),
-  );
-}
-
-function looksLikeBusTrip(value: Record<string, unknown>) {
-  if (!Object.hasOwn(value, "routeId") || !Object.hasOwn(value, "position"))
-    return false;
-  const dayType = value.dayType;
-  if (dayType !== "weekday" && dayType !== "weekend") return false;
-  return Object.hasOwn(value, "stopTimes") && Array.isArray(value.stopTimes);
-}
-
-function looksLikeBusTripSlot(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "position") &&
-    Array.isArray(value.stopTimes) &&
-    !Object.hasOwn(value, "routeId")
-  );
-}
-
-function looksLikeCalendarSubscription(value: Record<string, unknown>) {
-  return (
-    Object.hasOwn(value, "sections") &&
-    (Object.hasOwn(value, "calendarPath") ||
-      Object.hasOwn(value, "calendarUrl"))
-  );
-}
+// Per-key array compactors for known plural array fields.
+const ARRAY_KEY_COMPACTORS: Record<string, (v: unknown) => unknown> = {
+  todos: compactTodo,
+  courses: compactCourse,
+  sections: compactSection,
+  teachers: compactTeacher,
+  homeworks: compactHomework,
+  schedules: compactSchedule,
+  exams: compactExam,
+  routes: compactBusRoute,
+  trips: compactBusTrip,
+};
 
 export function compactMcpPayload(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(compactMcpPayload);
   if (!isRecord(value)) return value;
 
-  if (looksLikeCalendarSubscription(value))
-    return compactCalendarSubscription(value);
-  if (looksLikeBusTrip(value)) return compactBusTrip(value);
-  if (looksLikeBusTripSlot(value)) return compactBusTripSlot(value);
-  if (looksLikeBusRoute(value)) return compactBusRoute(value);
-  if (looksLikeBusCampus(value)) {
-    return compactCampus(value, { includeCoordinates: true });
-  }
-  if (looksLikeTeacher(value)) return compactTeacher(value);
-  if (looksLikeSection(value)) return compactSection(value);
-  if (looksLikeCourse(value)) return compactCourse(value);
-  if (looksLikeSemester(value)) return compactSemester(value);
-  if (looksLikeHomework(value)) return compactHomework(value);
-  if (looksLikeSchedule(value)) return compactSchedule(value);
-  if (looksLikeExam(value)) return compactExam(value);
-  if (Object.hasOwn(value, "completed") && Object.hasOwn(value, "priority")) {
-    return compactTodo(value);
+  for (const { test, compact } of COMPACT_DISPATCH) {
+    if (test(value)) return compact(value);
   }
 
   const out: Record<string, unknown> = {};
   for (const [key, fieldValue] of Object.entries(value)) {
-    if (key === "calendarPath" || key === "calendarUrl") {
-      out[key] =
-        typeof fieldValue === "string"
-          ? redactCalendarFeedLocation(fieldValue)
-          : fieldValue;
+    if (Object.hasOwn(KEY_COMPACTORS, key)) {
+      out[key] = KEY_COMPACTORS[key](fieldValue);
       continue;
     }
-    if (key === "user") {
-      out.user = compactUser(fieldValue);
-      continue;
-    }
-    if (key === "course") {
-      out.course = compactCourse(fieldValue);
-      continue;
-    }
-    if (key === "semester") {
-      out.semester = compactSemester(fieldValue);
-      continue;
-    }
-    if (key === "campus") {
-      out.campus = compactCampus(fieldValue);
-      continue;
-    }
-    if (key === "openDepartment" || key === "department") {
-      out[key] = compactDepartment(fieldValue);
-      continue;
-    }
-    if (key === "teacherTitle") {
-      out.teacherTitle = compactTeacherTitle(fieldValue);
-      continue;
-    }
-    if (key === "teacher") {
-      out.teacher = compactTeacher(fieldValue);
-      continue;
-    }
-    if (key === "todo") {
-      out.todo = compactTodo(fieldValue);
-      continue;
-    }
-    if (key === "homework") {
-      out.homework = compactHomework(fieldValue);
-      continue;
-    }
-    if (key === "schedule") {
-      out.schedule = compactSchedule(fieldValue);
-      continue;
-    }
-    if (key === "exam") {
-      out.exam = compactExam(fieldValue);
-      continue;
-    }
-    if (key === "section") {
-      out.section = compactSection(fieldValue);
-      continue;
-    }
-    if (key === "subscription") {
-      out.subscription =
-        isRecord(fieldValue) && looksLikeCalendarSubscription(fieldValue)
-          ? compactCalendarSubscription(fieldValue)
-          : compactMcpPayload(fieldValue);
-      continue;
-    }
-    if (key === "todos" && Array.isArray(fieldValue)) {
-      out.todos = asRecordArray(fieldValue).map(compactTodo);
-      continue;
-    }
-    if (key === "courses" && Array.isArray(fieldValue)) {
-      out.courses = asRecordArray(fieldValue).map(compactCourse);
-      continue;
-    }
-    if (key === "sections" && Array.isArray(fieldValue)) {
-      out.sections = asRecordArray(fieldValue).map(compactSection);
-      continue;
-    }
-    if (key === "teachers" && Array.isArray(fieldValue)) {
-      out.teachers = asRecordArray(fieldValue).map(compactTeacher);
+    if (Object.hasOwn(ARRAY_KEY_COMPACTORS, key) && Array.isArray(fieldValue)) {
+      out[key] = asRecordArray(fieldValue).map(ARRAY_KEY_COMPACTORS[key]);
       continue;
     }
     if (key === "campuses" && Array.isArray(fieldValue)) {
@@ -631,28 +593,18 @@ export function compactMcpPayload(value: unknown): unknown {
       );
       continue;
     }
-    if (key === "routes" && Array.isArray(fieldValue)) {
-      out.routes = asRecordArray(fieldValue).map(compactBusRoute);
-      continue;
-    }
-    if (key === "trips" && Array.isArray(fieldValue)) {
-      out.trips = asRecordArray(fieldValue).map(compactBusTrip);
-      continue;
-    }
     if ((key === "weekday" || key === "weekend") && Array.isArray(fieldValue)) {
       out[key] = asRecordArray(fieldValue).map(compactBusTripSlot);
       continue;
     }
-    if (key === "homeworks" && Array.isArray(fieldValue)) {
-      out.homeworks = asRecordArray(fieldValue).map(compactHomework);
-      continue;
-    }
-    if (key === "schedules" && Array.isArray(fieldValue)) {
-      out.schedules = asRecordArray(fieldValue).map(compactSchedule);
-      continue;
-    }
-    if (key === "exams" && Array.isArray(fieldValue)) {
-      out.exams = asRecordArray(fieldValue).map(compactExam);
+    if (key === "subscription") {
+      out.subscription =
+        isRecord(fieldValue) &&
+        Object.hasOwn(fieldValue, "sections") &&
+        (Object.hasOwn(fieldValue, "calendarPath") ||
+          Object.hasOwn(fieldValue, "calendarUrl"))
+          ? compactCalendarSubscription(fieldValue)
+          : compactMcpPayload(fieldValue);
       continue;
     }
     if (key === "events" && Array.isArray(fieldValue)) {

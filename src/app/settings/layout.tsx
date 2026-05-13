@@ -11,7 +11,7 @@ export default async function SettingsLayout({
 }: {
   children: ReactNode;
 }) {
-  await requireSignedInUserId();
+  await requireSignedInUserId("/settings");
 
   const [tCommon, tSettings] = await Promise.all([
     getTranslations("common"),

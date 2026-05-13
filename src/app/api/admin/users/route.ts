@@ -1,13 +1,12 @@
 import type { NextRequest } from "next/server";
 import { ADMIN_USERS_PAGE_SIZE } from "@/app/admin/users/constants";
-import { requireAdmin } from "@/lib/admin-utils";
+import { withAdminRoute } from "@/lib/admin-utils";
 import {
   buildPaginatedResponse,
-  handleRouteError,
+  getPagination,
+  getRequestSearchParams,
   jsonResponse,
-  normalizePagination,
-  parseOptionalInt,
-  unauthorized,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -22,29 +21,27 @@ export const dynamic = "force-dynamic";
  * @response 400:openApiErrorSchema
  */
 export async function GET(request: NextRequest) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
+  return withAdminRoute("Failed to fetch users", async () => {
+    const searchParams = getRequestSearchParams(request);
+    const parsedQuery = parseRouteInput(
+      {
+        search: searchParams.get("search") ?? undefined,
+        page: searchParams.get("page") ?? undefined,
+        limit: searchParams.get("limit") ?? undefined,
+      },
+      adminUsersQuerySchema,
+      "Invalid user query",
+      { logErrors: true },
+    );
+    if (parsedQuery instanceof Response) {
+      return parsedQuery;
+    }
 
-  const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = adminUsersQuerySchema.safeParse({
-    search: searchParams.get("search") ?? undefined,
-    page: searchParams.get("page") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid user query", parsedQuery.error, 400);
-  }
-
-  const pagination = normalizePagination({
-    page: parseOptionalInt(parsedQuery.data.page) ?? undefined,
-    pageSize: parseOptionalInt(parsedQuery.data.limit) ?? ADMIN_USERS_PAGE_SIZE,
-    maxPageSize: 100,
-  });
-  const search = parsedQuery.data.search ?? "";
-
-  try {
+    const pagination = getPagination(searchParams, {
+      defaultPageSize: ADMIN_USERS_PAGE_SIZE,
+      maxPageSize: 100,
+    });
+    const search = parsedQuery.search ?? "";
     const where = search
       ? {
           OR: [
@@ -98,7 +95,5 @@ export async function GET(request: NextRequest) {
         total,
       ),
     );
-  } catch (error) {
-    return handleRouteError("Failed to fetch users", error);
-  }
+  });
 }

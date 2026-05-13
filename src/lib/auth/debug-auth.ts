@@ -1,14 +1,13 @@
 import { hashPassword } from "better-auth/crypto";
+import { getOptionalLowercaseEnv, getOptionalTrimmedEnv } from "@/env";
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { allowDebugAuth, isDevelopment } from "./auth-config";
-
-export const DEV_DEBUG_PROVIDER_ID = "dev-debug";
-export const DEV_ADMIN_PROVIDER_ID = "dev-admin";
-
-export type DebugProviderId =
-  | typeof DEV_DEBUG_PROVIDER_ID
-  | typeof DEV_ADMIN_PROVIDER_ID;
+import {
+  DEV_DEBUG_PROVIDER_ID,
+  type DebugProviderId,
+  isDebugProviderId,
+} from "./provider-ids";
 
 type DebugProviderConfig = {
   username: string;
@@ -20,20 +19,22 @@ type DebugProviderConfig = {
 };
 
 const DEV_DEBUG_USERNAME =
-  process.env.DEV_DEBUG_USERNAME?.trim().toLowerCase() || "dev-user";
-const DEV_DEBUG_NAME = process.env.DEV_DEBUG_NAME?.trim() || "Dev Debug User";
+  getOptionalLowercaseEnv("DEV_DEBUG_USERNAME") ?? "dev-user";
+const DEV_DEBUG_NAME =
+  getOptionalTrimmedEnv("DEV_DEBUG_NAME") ?? "Dev Debug User";
 const DEV_ADMIN_USERNAME =
-  process.env.DEV_ADMIN_USERNAME?.trim().toLowerCase() || "dev-admin";
-const DEV_ADMIN_NAME = process.env.DEV_ADMIN_NAME?.trim() || "Dev Admin User";
+  getOptionalLowercaseEnv("DEV_ADMIN_USERNAME") ?? "dev-admin";
+const DEV_ADMIN_NAME =
+  getOptionalTrimmedEnv("DEV_ADMIN_NAME") ?? "Dev Admin User";
 const DEV_DEBUG_EMAIL =
-  process.env.DEV_DEBUG_EMAIL?.trim().toLowerCase() ||
+  getOptionalLowercaseEnv("DEV_DEBUG_EMAIL") ??
   `${DEV_DEBUG_USERNAME}@debug.local`;
 const DEV_ADMIN_EMAIL =
-  process.env.DEV_ADMIN_EMAIL?.trim().toLowerCase() ||
+  getOptionalLowercaseEnv("DEV_ADMIN_EMAIL") ??
   `${DEV_ADMIN_USERNAME}@debug.local`;
 
 const DEV_DEBUG_PASSWORD = (() => {
-  const value = process.env.DEV_DEBUG_PASSWORD?.trim();
+  const value = getOptionalTrimmedEnv("DEV_DEBUG_PASSWORD");
   if (allowDebugAuth && !isDevelopment) {
     if (!value) {
       throw new Error(
@@ -46,7 +47,7 @@ const DEV_DEBUG_PASSWORD = (() => {
 })();
 
 const DEV_ADMIN_PASSWORD = (() => {
-  const value = process.env.DEV_ADMIN_PASSWORD?.trim();
+  const value = getOptionalTrimmedEnv("DEV_ADMIN_PASSWORD");
   if (allowDebugAuth && !isDevelopment) {
     if (!value) {
       throw new Error(
@@ -57,14 +58,6 @@ const DEV_ADMIN_PASSWORD = (() => {
   }
   return value || "dev-admin-password";
 })();
-
-export function isDebugProviderId(
-  providerId: string,
-): providerId is DebugProviderId {
-  return (
-    providerId === DEV_DEBUG_PROVIDER_ID || providerId === DEV_ADMIN_PROVIDER_ID
-  );
-}
 
 export function getDebugProviderConfig(
   providerId: DebugProviderId,
@@ -164,3 +157,5 @@ export async function ensureDebugCredentialUser(providerId: DebugProviderId) {
     },
   });
 }
+
+export { isDebugProviderId };

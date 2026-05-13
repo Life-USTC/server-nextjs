@@ -1,9 +1,12 @@
+import { NextRequest } from "next/server";
 import { describe, expect, it } from "vitest";
+import * as z from "zod";
 import {
+  getRequestSearchParams,
   jsonResponse,
   parseInteger,
   parseIntegerList,
-  parseOptionalInt,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 
 describe("api helpers", () => {
@@ -34,8 +37,34 @@ describe("api helpers", () => {
     expect(parseIntegerList(null)).toEqual([]);
   });
 
-  it("parseOptionalInt shares integer semantics", () => {
-    expect(parseOptionalInt("100")).toBe(100);
-    expect(parseOptionalInt("10x")).toBeNull();
+  it("reads search params from both Request and NextRequest", () => {
+    const request = new Request("https://example.test/path?page=2");
+    const nextRequest = new NextRequest("https://example.test/path?limit=10");
+
+    expect(getRequestSearchParams(request).get("page")).toBe("2");
+    expect(getRequestSearchParams(nextRequest).get("limit")).toBe("10");
+  });
+
+  it("parses route input with zod schemas", () => {
+    const result = parseRouteInput(
+      { page: "2" },
+      z.object({ page: z.string() }),
+      "Invalid query",
+    );
+
+    expect(result).toEqual({ page: "2" });
+  });
+
+  it("returns a response for invalid route input", async () => {
+    const result = parseRouteInput(
+      { page: 2 },
+      z.object({ page: z.string() }),
+      "Invalid query",
+    );
+
+    expect(result).toBeInstanceOf(Response);
+    expect(await (result as Response).json()).toEqual({
+      error: "Invalid query",
+    });
   });
 });

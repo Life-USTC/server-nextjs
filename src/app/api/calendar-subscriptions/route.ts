@@ -2,6 +2,7 @@ import { replaceUserSectionSubscriptions } from "@/features/home/server/subscrip
 import {
   handleRouteError,
   jsonResponse,
+  parseRouteJsonBody,
   unauthorized,
 } from "@/lib/api/helpers";
 import { calendarSubscriptionCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
@@ -22,17 +23,16 @@ export async function POST(request: Request) {
       return unauthorized();
     }
 
-    const body = await request.json();
-    const parsedBody = calendarSubscriptionCreateRequestSchema.safeParse(body);
-    if (!parsedBody.success) {
-      return handleRouteError(
-        "Invalid subscription request",
-        parsedBody.error,
-        400,
-      );
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      calendarSubscriptionCreateRequestSchema,
+      "Invalid subscription request",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
     }
 
-    const sectionIds = parsedBody.data.sectionIds ?? [];
+    const sectionIds = parsedBody.sectionIds ?? [];
     const subscription = await replaceUserSectionSubscriptions(
       userId,
       sectionIds,

@@ -47,9 +47,9 @@ test("/welcome displays required fields", async ({ page }, testInfo) => {
   await withE2eLock("debug-user-profile", async () => {
     await signInAsDebugUser(page, "/");
     const sessionUser = await getCurrentSessionUser(page);
-    const originalUser = getUserProfileById(sessionUser.id);
+    const originalUser = await getUserProfileById(sessionUser.id);
 
-    updateUserProfileById(sessionUser.id, { name: null, username: null });
+    await updateUserProfileById(sessionUser.id, { name: null, username: null });
 
     try {
       await gotoAndWaitForReady(page, "/welcome", {
@@ -96,7 +96,7 @@ test("/welcome displays required fields", async ({ page }, testInfo) => {
 
       await captureStepScreenshot(page, testInfo, "welcome/fields");
     } finally {
-      updateUserProfileById(sessionUser.id, {
+      await updateUserProfileById(sessionUser.id, {
         name: originalUser.name ?? DEV_SEED.debugName,
         username: originalUser.username ?? DEV_SEED.debugUsername,
         image: originalUser.image ?? null,
@@ -113,9 +113,9 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
     await signInAsDebugUser(page, "/");
 
     const sessionUser = await getCurrentSessionUser(page);
-    const originalUser = getUserProfileById(sessionUser.id);
+    const originalUser = await getUserProfileById(sessionUser.id);
 
-    updateUserProfileById(sessionUser.id, {
+    await updateUserProfileById(sessionUser.id, {
       name: null,
       username: null,
     });
@@ -141,12 +141,12 @@ test("/welcome 未完善资料的用户可完成资料并返回首页", async ({
       });
       await expect(page.locator("#main-content")).toBeVisible();
 
-      const updatedUser = getUserProfileById(sessionUser.id);
+      const updatedUser = await getUserProfileById(sessionUser.id);
       expect(updatedUser.name).toBe(DEV_SEED.debugName);
       expect(updatedUser.username).toBe(DEV_SEED.debugUsername);
       await captureStepScreenshot(page, testInfo, "welcome/completed");
     } finally {
-      updateUserProfileById(sessionUser.id, {
+      await updateUserProfileById(sessionUser.id, {
         name: originalUser.name ?? DEV_SEED.debugName,
         username: originalUser.username ?? DEV_SEED.debugUsername,
         image: originalUser.image ?? null,
@@ -161,9 +161,9 @@ test("/welcome 提供浏览班级与批量匹配入口", async ({ page }, testIn
     await signInAsDebugUser(page, "/");
 
     const sessionUser = await getCurrentSessionUser(page);
-    const originalUser = getUserProfileById(sessionUser.id);
+    const originalUser = await getUserProfileById(sessionUser.id);
 
-    updateUserProfileById(sessionUser.id, {
+    await updateUserProfileById(sessionUser.id, {
       name: null,
       username: null,
     });
@@ -188,7 +188,7 @@ test("/welcome 提供浏览班级与批量匹配入口", async ({ page }, testIn
 
       await captureStepScreenshot(page, testInfo, "welcome/next-steps");
     } finally {
-      updateUserProfileById(sessionUser.id, {
+      await updateUserProfileById(sessionUser.id, {
         name: originalUser.name ?? DEV_SEED.debugName,
         username: originalUser.username ?? DEV_SEED.debugUsername,
         image: originalUser.image ?? null,

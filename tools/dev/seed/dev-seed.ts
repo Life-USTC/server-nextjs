@@ -2,8 +2,14 @@ import scenarioData from "../../../tests/e2e/fixtures/scenario.json";
 
 const s = scenarioData;
 
+export const DEV_SEED_ANCHOR = {
+  date: "2026-04-29",
+  startOfDayAtTime: "2026-04-29T00:00:00+08:00",
+  recommendedAtTime: "2026-04-29T08:00:00+08:00",
+} as const;
+
 export const DEV_SEED = {
-  seedAnchorAtTime: "2026-04-29T00:00:00+08:00",
+  seedAnchorAtTime: DEV_SEED_ANCHOR.startOfDayAtTime,
   debugUsername: s.users.debug.username,
   debugName: s.users.debug.name,
   debugAvatarSeed: s.users.debug.avatarSeed,

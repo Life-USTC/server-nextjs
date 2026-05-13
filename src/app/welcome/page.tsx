@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { auth } from "@/auth";
+import { buildSignInRedirectUrl } from "@/lib/auth/auth-routing";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { prisma } from "@/lib/db/prisma";
 import { WelcomeForm } from "./welcome-form";
@@ -16,7 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function WelcomePage() {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect(buildSignInRedirectUrl({}, "/welcome"));
   }
 
   const [user, semesters, currentSemester] = await Promise.all([
@@ -44,7 +45,7 @@ export default async function WelcomePage() {
   ]);
 
   if (!user) {
-    redirect("/signin");
+    redirect(buildSignInRedirectUrl({}, "/welcome"));
   }
 
   // If profile is already complete, redirect to home

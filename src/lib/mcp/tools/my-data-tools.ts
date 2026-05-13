@@ -1,12 +1,12 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import * as z from "zod";
 import { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import {
   getSubscribedSectionIds,
   listSubscribedExams,
   listSubscribedHomeworks,
   listSubscribedSchedules,
-} from "@/features/home/server/subscribed-data";
+} from "@/features/home/server/subscription-read-model";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import { prisma } from "@/lib/db/prisma";
 import {

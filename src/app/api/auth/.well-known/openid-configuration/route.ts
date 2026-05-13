@@ -1,5 +1,5 @@
 import {
-  getDiscoveryOptionsResponse,
+  createDiscoveryMetadataRoute,
   getOpenIdMetadataResponse,
 } from "@/lib/oauth/discovery-metadata";
 
@@ -9,14 +9,6 @@ export const dynamic = "force-dynamic";
  * Canonical OpenID Connect Discovery metadata for issuer `/api/auth`.
  * @response 200
  */
-export async function GET(request: Request) {
-  return getOpenIdMetadataResponse(request);
-}
-
-/**
- * CORS preflight for canonical OpenID discovery metadata.
- * @response 204
- */
-export function OPTIONS() {
-  return getDiscoveryOptionsResponse();
-}
+export const { GET, OPTIONS } = createDiscoveryMetadataRoute(
+  getOpenIdMetadataResponse,
+);

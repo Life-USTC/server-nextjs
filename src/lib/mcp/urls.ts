@@ -1,7 +1,4 @@
-import {
-  getBetterAuthBaseUrl as getConfiguredBetterAuthBaseUrl,
-  getPublicOrigin,
-} from "@/lib/site-url";
+import { getBetterAuthBaseUrl, getPublicOrigin } from "@/lib/site-url";
 
 export const MCP_ROUTE_PATH = "/api/mcp";
 export const OAUTH_AUTHORIZATION_PATH = "/api/auth/oauth2/authorize";
@@ -9,7 +6,10 @@ export const OAUTH_REGISTRATION_PATH = "/api/auth/oauth2/register";
 export const OAUTH_TOKEN_PATH = "/api/auth/oauth2/token";
 export const OAUTH_OPENID_CONFIGURATION_PATH =
   "/.well-known/openid-configuration";
-export const OAUTH_ISSUER_PATH = "/api/auth";
+
+function uniqueUrls(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.replace(/\/$/, "")))];
+}
 
 function normalizePathname(pathname: string): string {
   if (!pathname || pathname === "/") {
@@ -37,28 +37,40 @@ function appendWellKnownPath(target: URL | string, suffix: string): URL {
 }
 
 /**
- * Canonical Better Auth public base (no trailing slash). Must match `AUTH_BASE_URL` in `auth.ts`
- * so JWT `iss` / `aud` line up with MCP verification and metadata.
- */
-export function getBetterAuthBaseUrl(): string {
-  return getConfiguredBetterAuthBaseUrl();
-}
-
-/** Public origin for non-auth routes on the current deployment. */
-export function getSiteOrigin(): string {
-  return getPublicOrigin();
-}
-
-/**
  * OAuth resource indicator / access-token audience for MCP. This is the public
  * MCP endpoint, not a Better Auth route under `/api/auth`.
  */
 export function getOAuthMcpResourceUrl(): string {
-  return `${getSiteOrigin()}${MCP_ROUTE_PATH}`;
+  return `${getPublicOrigin()}${MCP_ROUTE_PATH}`;
+}
+
+export function getCanonicalOAuthIssuer(): string {
+  return getBetterAuthBaseUrl();
+}
+
+export function getOAuthTokenVerificationIssuers(): string[] {
+  return uniqueUrls([getCanonicalOAuthIssuer(), getPublicOrigin()]);
+}
+
+export function getOAuthRestAudienceUrls(): string[] {
+  return uniqueUrls([getPublicOrigin(), getCanonicalOAuthIssuer()]);
+}
+
+export function getOAuthMcpAudienceUrls(): string[] {
+  const issuer = getCanonicalOAuthIssuer();
+  return uniqueUrls([
+    getOAuthMcpResourceUrl(),
+    `${issuer}/oauth2/userinfo`,
+    issuer,
+  ]);
+}
+
+export function getOAuthProviderValidAudiences(): string[] {
+  return uniqueUrls([...getOAuthRestAudienceUrls(), getOAuthMcpResourceUrl()]);
 }
 
 export function getJwksUrlForOAuthVerification(): string {
-  return new URL("/api/auth/jwks", `${getBetterAuthBaseUrl()}/`).toString();
+  return new URL("/api/auth/jwks", `${getCanonicalOAuthIssuer()}/`).toString();
 }
 
 export function getMcpServerUrl(_request?: Request): URL {
@@ -66,7 +78,7 @@ export function getMcpServerUrl(_request?: Request): URL {
 }
 
 export function getOAuthIssuerUrl(_request?: Request): URL {
-  return new URL(OAUTH_ISSUER_PATH, `${getSiteOrigin()}/`);
+  return new URL(getCanonicalOAuthIssuer());
 }
 
 export function getOAuthAuthorizationServerMetadataUrl(

@@ -2,45 +2,21 @@
 
 Integration tests with in-process MCP harness.
 
-## Setup
+## Shared Setup
 
-```bash
-# Requires DATABASE_URL; test:integration applies the seed automatically.
-bun run test:integration
-```
+Use the repo root `AGENTS.md` for the canonical command list, shared dev-seed flow,
+and `DEV_SEED_ANCHOR` guidance. This scoped guide only adds integration-specific
+notes.
 
 ## Harness
 
-```typescript
-import { createMcpHarness } from "../utils/mcp-harness";
-import { DEV_SEED } from "../utils/seed-constants";
-import { prisma } from "@/lib/db/prisma";
-
-let harness, userId;
-
-beforeAll(async () => {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: { username: DEV_SEED.debugUsername },
-  });
-  userId = user.id;
-  harness = await createMcpHarness(userId);
-});
-
-afterAll(async () => {
-  await harness.close();
-  await prisma.$disconnect();
-});
-
-test("list_my_todos", async () => {
-  const result = await harness.callTool("list_my_todos", {});
-  expect(result.todos).toBeInstanceOf(Array);
-});
-```
+Use `tests/integration/utils/mcp-harness.ts` for the in-process authenticated
+MCP client/server pair. Keep setup examples there; this guide only records
+integration-specific caveats.
 
 ## Conventions
 
-- Seed anchor date: `2026-04-29`
-- Pass `atTime: "2026-04-29T08:00:00+08:00"` for time-sensitive tools
+- Use `DEV_SEED_ANCHOR.date` / `.recommendedAtTime` from `@tools/dev/seed/dev-seed` instead of hardcoding shared seed dates.
 - Write mutations use unique markers `[integration-test] ...`
 - Clean up created data within test group
 - Read-only assertions against seed need no cleanup

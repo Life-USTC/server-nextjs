@@ -41,12 +41,19 @@ test.describe("GET /api/openapi", () => {
     const response = await request.get("/api/openapi");
     expect(response.status()).toBe(200);
     const body = (await response.json()) as {
-      paths?: Record<string, unknown>;
+      paths?: Record<string, { get?: unknown; options?: unknown }>;
     };
     expect(body.paths).toBeDefined();
     expect(body.paths?.["/api/sections/match-codes"]).toBeTruthy();
     expect(body.paths?.["/api/homeworks"]).toBeTruthy();
     expect(body.paths?.["/api/descriptions"]).toBeTruthy();
+    expect(
+      body.paths?.["/api/auth/.well-known/openid-configuration"]?.get,
+    ).toBeTruthy();
+    expect(body.paths?.["/.well-known/openid-configuration"]?.get).toBeTruthy();
+    expect(
+      body.paths?.["/.well-known/openid-configuration"]?.options,
+    ).toBeTruthy();
   });
 
   test("redirect-only endpoints keep redirect response codes in the spec", async ({

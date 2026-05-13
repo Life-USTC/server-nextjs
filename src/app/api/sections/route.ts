@@ -3,6 +3,7 @@ import {
   getPagination,
   handleRouteError,
   jsonResponse,
+  parseRouteInput,
 } from "@/lib/api/helpers";
 import { sectionsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { buildSectionListQuery } from "@/lib/course-section-queries";
@@ -18,23 +19,28 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = sectionsQuerySchema.safeParse({
-    courseId: searchParams.get("courseId") ?? undefined,
-    courseJwId: searchParams.get("courseJwId") ?? undefined,
-    semesterId: searchParams.get("semesterId") ?? undefined,
-    semesterJwId: searchParams.get("semesterJwId") ?? undefined,
-    campusId: searchParams.get("campusId") ?? undefined,
-    departmentId: searchParams.get("departmentId") ?? undefined,
-    teacherId: searchParams.get("teacherId") ?? undefined,
-    teacherCode: searchParams.get("teacherCode") ?? undefined,
-    search: searchParams.get("search") ?? undefined,
-    ids: searchParams.get("ids") ?? undefined,
-    jwIds: searchParams.get("jwIds") ?? undefined,
-    page: searchParams.get("page") ?? undefined,
-    limit: searchParams.get("limit") ?? undefined,
-  });
-  if (!parsedQuery.success) {
-    return handleRouteError("Invalid section query", parsedQuery.error, 400);
+  const parsedQuery = parseRouteInput(
+    {
+      courseId: searchParams.get("courseId") ?? undefined,
+      courseJwId: searchParams.get("courseJwId") ?? undefined,
+      semesterId: searchParams.get("semesterId") ?? undefined,
+      semesterJwId: searchParams.get("semesterJwId") ?? undefined,
+      campusId: searchParams.get("campusId") ?? undefined,
+      departmentId: searchParams.get("departmentId") ?? undefined,
+      teacherId: searchParams.get("teacherId") ?? undefined,
+      teacherCode: searchParams.get("teacherCode") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      ids: searchParams.get("ids") ?? undefined,
+      jwIds: searchParams.get("jwIds") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+    },
+    sectionsQuerySchema,
+    "Invalid section query",
+    { logErrors: true },
+  );
+  if (parsedQuery instanceof Response) {
+    return parsedQuery;
   }
 
   const pagination = getPagination(searchParams);
@@ -50,7 +56,7 @@ export async function GET(request: NextRequest) {
     search,
     ids: idsParam,
     jwIds,
-  } = parsedQuery.data;
+  } = parsedQuery;
   const { where, orderBy } = buildSectionListQuery({
     courseId,
     courseJwId,

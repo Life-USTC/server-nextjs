@@ -1,10 +1,5 @@
-import { requireAdmin } from "@/lib/admin-utils";
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  unauthorized,
-} from "@/lib/api/helpers";
+import { withAdminRoute } from "@/lib/admin-utils";
+import { jsonResponse, notFound, parseRouteJsonBody } from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { writeAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
@@ -22,12 +17,7 @@ function parseDate(value: string | null) {
  * @response adminSuspensionsResponseSchema
  */
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
-
-  try {
+  return withAdminRoute("Failed to fetch suspensions", async () => {
     const suspensions = await prisma.userSuspension.findMany({
       include: {
         user: {
@@ -38,9 +28,7 @@ export async function GET() {
     });
 
     return jsonResponse({ suspensions });
-  } catch (error) {
-    return handleRouteError("Failed to fetch suspensions", error);
-  }
+  });
 }
 
 /**
@@ -50,31 +38,17 @@ export async function GET() {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
-
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid suspension request", error, 400);
-  }
-
-  const parsedBody = adminCreateSuspensionRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError(
+  return withAdminRoute("Failed to suspend user", async (admin) => {
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      adminCreateSuspensionRequestSchema,
       "Invalid suspension request",
-      parsedBody.error,
-      400,
     );
-  }
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
 
-  const userId = parsedBody.data.userId.trim();
-
-  try {
+    const userId = parsedBody.userId.trim();
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { id: true },
@@ -87,9 +61,9 @@ export async function POST(request: Request) {
       data: {
         userId,
         createdById: admin.userId,
-        reason: parsedBody.data.reason?.trim() || null,
-        note: parsedBody.data.note?.trim() || null,
-        expiresAt: parseDate(parsedBody.data.expiresAt ?? null),
+        reason: parsedBody.reason?.trim() || null,
+        note: parsedBody.note?.trim() || null,
+        expiresAt: parseDate(parsedBody.expiresAt ?? null),
       },
     });
 
@@ -98,11 +72,9 @@ export async function POST(request: Request) {
       userId: admin.userId,
       targetId: userId,
       targetType: "user",
-      metadata: { reason: parsedBody.data.reason ?? null },
+      metadata: { reason: parsedBody.reason ?? null },
     }).catch(() => {});
 
     return jsonResponse({ suspension });
-  } catch (error) {
-    return handleRouteError("Failed to suspend user", error);
-  }
+  });
 }

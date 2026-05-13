@@ -1,14 +1,11 @@
-import { z } from "zod";
-import { UploadModelSchema } from "@/lib/api/model-schemas";
-import { dateTimeSchema } from "./response-schema-core";
+import * as z from "zod";
+import { dateTimeSchema } from "./response-schema-primitives";
 
-const uploadSummarySchema = UploadModelSchema.pick({
-  id: true,
-  key: true,
-  filename: true,
-  size: true,
-  createdAt: true,
-}).extend({
+const uploadSummarySchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  filename: z.string(),
+  size: z.number().int(),
   createdAt: dateTimeSchema,
 });
 

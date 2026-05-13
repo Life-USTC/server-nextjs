@@ -1,32 +1,35 @@
-import { z } from "zod";
-import {
-  CommentModelSchema,
-  DescriptionModelSchema,
-  UserModelSchema,
-  UserSuspensionModelSchema,
-} from "@/lib/api/model-schemas";
+import * as z from "zod";
 import { homeworkUserSummarySchema } from "./homeworks-response-schemas";
-import { createCollectionSchema, dateTimeSchema } from "./response-schema-core";
+import {
+  createCollectionSchema,
+  dateTimeSchema,
+} from "./response-schema-primitives";
+import {
+  commentStatusSchema,
+  commentVisibilitySchema,
+} from "./shared-enum-schemas";
 
-const adminCommentBaseSchema = CommentModelSchema.omit({
-  user: true,
-  moderatedBy: true,
-  parent: true,
-  replies: true,
-  root: true,
-  thread: true,
-  section: true,
-  course: true,
-  teacher: true,
-  sectionTeacher: true,
-  homework: true,
-  attachments: true,
-  reactions: true,
-}).extend({
+const adminCommentBaseSchema = z.object({
+  id: z.string(),
+  body: z.string(),
+  visibility: commentVisibilitySchema,
+  status: commentStatusSchema,
+  isAnonymous: z.boolean(),
+  authorName: z.string().nullable(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
   deletedAt: dateTimeSchema.nullable(),
   moderatedAt: dateTimeSchema.nullable(),
+  moderationNote: z.string().nullable(),
+  userId: z.string().nullable(),
+  moderatedById: z.string().nullable(),
+  parentId: z.string().nullable(),
+  rootId: z.string().nullable(),
+  sectionId: z.number().int().nullable(),
+  courseId: z.number().int().nullable(),
+  teacherId: z.number().int().nullable(),
+  sectionTeacherId: z.number().int().nullable(),
+  homeworkId: z.string().nullable(),
 });
 
 const adminCommentSchema = adminCommentBaseSchema.extend({
@@ -82,17 +85,17 @@ export const adminModeratedCommentResponseSchema = z.object({
   comment: adminCommentBaseSchema,
 });
 
-const adminDescriptionSchema = DescriptionModelSchema.omit({
-  section: true,
-  course: true,
-  teacher: true,
-  homework: true,
-  edits: true,
-  lastEditedBy: true,
-}).extend({
+const adminDescriptionSchema = z.object({
+  id: z.string(),
+  content: z.string(),
   createdAt: dateTimeSchema,
   updatedAt: dateTimeSchema,
   lastEditedAt: dateTimeSchema.nullable(),
+  lastEditedById: z.string().nullable(),
+  sectionId: z.number().int().nullable(),
+  courseId: z.number().int().nullable(),
+  teacherId: z.number().int().nullable(),
+  homeworkId: z.string().nullable(),
   lastEditedBy: homeworkUserSummarySchema.nullable(),
   section: z
     .object({
@@ -137,14 +140,16 @@ export const adminDescriptionsResponseSchema = createCollectionSchema(
   adminDescriptionSchema,
 );
 
-const adminSuspensionSchema = UserSuspensionModelSchema.omit({
-  user: true,
-  createdBy: true,
-  liftedBy: true,
-}).extend({
+const adminSuspensionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  createdById: z.string(),
   createdAt: dateTimeSchema,
+  reason: z.string().nullable(),
+  note: z.string().nullable(),
   expiresAt: dateTimeSchema.nullable(),
   liftedAt: dateTimeSchema.nullable(),
+  liftedById: z.string().nullable(),
   user: z
     .object({
       id: z.string(),
@@ -163,15 +168,13 @@ export const adminSuspensionResponseSchema = z.object({
   suspension: adminSuspensionSchema,
 });
 
-const adminUserListItemSchema = UserModelSchema.pick({
-  id: true,
-  name: true,
-  username: true,
-  isAdmin: true,
-  createdAt: true,
-}).extend({
-  email: z.string().nullable(),
+const adminUserListItemSchema = z.object({
+  id: z.string(),
+  name: z.string().nullable(),
+  username: z.string().nullable(),
+  isAdmin: z.boolean(),
   createdAt: dateTimeSchema,
+  email: z.string().nullable(),
 });
 
 export const adminUsersResponseSchema = z.object({

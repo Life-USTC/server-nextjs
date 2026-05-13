@@ -39,13 +39,13 @@ Start local infra first when a script needs DB/storage:
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 bun run dev:seed-scenarios  # Create
-bun run dev:seed:reset      # Clean
+bun run dev:reset-scenarios # Clean
 ```
 
 Seed data:
 - Debug users (admin, normal, suspended)
 - Current-semester scenarios
-- Anchor date: `2026-04-29`
+- Shared seed anchor/setup guidance lives in the repo root `AGENTS.md` (`DEV_SEED_ANCHOR`)
 
 ## Import
 
@@ -60,7 +60,7 @@ bun tools/production/load/load-from-static.ts
 ## OpenAPI
 
 ```bash
-bun run prebuild  # Generate + postprocess
+bun run build:artifacts  # Generate + postprocess
 ```
 
 ## Verification
@@ -78,5 +78,4 @@ bun run verify:full  # Shared tooling, seed flows, or integration-sensitive edit
 bun run check:all      # Lint + docs + i18n + route/static import checks
 bun run check:e2e      # E2E conventions
 bun run check:features # Feature docs
-bun run check:features:write # Refresh docs/features.generated.json
 ```

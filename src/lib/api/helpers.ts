@@ -1,6 +1,9 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import type { z } from "zod";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
+import { parseInteger, parseIntegerList } from "./request-integers";
 
 export type PaginatedResponse<T> = {
   data: T[];
@@ -13,18 +16,32 @@ export type PaginatedResponse<T> = {
 };
 
 export type PaginationInput = {
-  page?: number;
-  pageSize?: number;
+  page?: number | string | null;
+  pageSize?: number | string | null;
+  defaultPage?: number;
+  defaultPageSize?: number;
   maxPageSize?: number;
 };
 
+type GetPaginationOptions = Pick<
+  PaginationInput,
+  "defaultPage" | "defaultPageSize" | "maxPageSize"
+> & {
+  pageParam?: string;
+  pageSizeParam?: string;
+};
+
+type ParseRouteOptions = {
+  logErrors?: boolean;
+};
+
 /**
- * Normalize and validate pagination parameters
+ * Normalize pagination values from query params or parsed route input.
  */
 export function normalizePagination(input: PaginationInput = {}) {
-  const page = Math.max(input.page ?? 1, 1);
+  const page = Math.max(parseInteger(input.page) ?? input.defaultPage ?? 1, 1);
   const pageSize = Math.min(
-    Math.max(input.pageSize ?? 20, 1),
+    Math.max(parseInteger(input.pageSize) ?? input.defaultPageSize ?? 20, 1),
     input.maxPageSize ?? 100,
   );
   return {
@@ -35,18 +52,23 @@ export function normalizePagination(input: PaginationInput = {}) {
 }
 
 /**
- * Parse pagination from URL search params
+ * Parse pagination from URL search params using the shared normalizer.
  */
-export function getPagination(searchParams: URLSearchParams) {
+export function getPagination(
+  searchParams: URLSearchParams,
+  options: GetPaginationOptions = {},
+) {
   return normalizePagination({
-    page: parseOptionalInt(searchParams.get("page")) ?? undefined,
-    pageSize: parseOptionalInt(searchParams.get("limit")) ?? undefined,
-    maxPageSize: 100,
+    page: searchParams.get(options.pageParam ?? "page"),
+    pageSize: searchParams.get(options.pageSizeParam ?? "limit"),
+    defaultPage: options.defaultPage,
+    defaultPageSize: options.defaultPageSize,
+    maxPageSize: options.maxPageSize ?? 100,
   });
 }
 
 /**
- * Build paginated response object
+ * Build a standard `{ data, pagination }` API response envelope.
  */
 export function buildPaginatedResponse<T>(
   data: T[],
@@ -82,6 +104,14 @@ export function jsonResponse(body: unknown, init?: ResponseInit) {
   return NextResponse.json(serializeDatesDeep(body), init);
 }
 
+export function getRequestSearchParams(request: Request | NextRequest) {
+  if ("nextUrl" in request) {
+    return request.nextUrl.searchParams;
+  }
+
+  return new URL(request.url).searchParams;
+}
+
 export function badRequest(message: string) {
   return errorResponse(message, 400);
 }
@@ -109,39 +139,66 @@ export function payloadTooLarge(message = "Payload too large") {
   return errorResponse(message, 413);
 }
 
-export function parseInteger(value: unknown): number | null {
-  if (typeof value === "number") {
-    return Number.isSafeInteger(value) ? value : null;
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  if (!normalized || !/^-?\d+$/.test(normalized)) {
-    return null;
-  }
-
-  const parsed = Number(normalized);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-}
-
-export function parseOptionalInt(value: unknown): number | null {
-  return parseInteger(value);
-}
-
-export function parseIntegerList(value: unknown, separator = ","): number[] {
-  if (typeof value !== "string") {
-    return [];
-  }
-
-  return value
-    .split(separator)
-    .map((entry) => parseInteger(entry))
-    .filter((entry): entry is number => entry !== null);
-}
-
 export function invalidParamResponse(paramName: string) {
   return badRequest(`Invalid ${paramName}`);
 }
+
+function routeValidationResponse(
+  message: string,
+  error: unknown,
+  options?: ParseRouteOptions,
+) {
+  if (options?.logErrors) {
+    return handleRouteError(message, error, 400);
+  }
+
+  return badRequest(message);
+}
+
+export function parseRouteInput<TSchema extends z.ZodTypeAny>(
+  input: unknown,
+  schema: TSchema,
+  message: string,
+  options?: ParseRouteOptions,
+): z.output<TSchema> | Response {
+  const parsed = schema.safeParse(input);
+  if (!parsed.success) {
+    return routeValidationResponse(message, parsed.error, options);
+  }
+
+  return parsed.data;
+}
+
+export async function parseRouteParams<TSchema extends z.ZodTypeAny>(
+  params: Promise<unknown>,
+  schema: TSchema,
+  message: string,
+  options?: ParseRouteOptions,
+): Promise<z.output<TSchema> | Response> {
+  return parseRouteInput(await params, schema, message, options);
+}
+
+export async function parseRouteJsonBody<TSchema extends z.ZodTypeAny>(
+  request: Request,
+  schema: TSchema,
+  message: string,
+  options?: ParseRouteOptions,
+): Promise<z.output<TSchema> | Response> {
+  let body: unknown = {};
+
+  try {
+    body = await request.json();
+  } catch (error) {
+    return routeValidationResponse(message, error, {
+      ...options,
+      logErrors: true,
+    });
+  }
+
+  return parseRouteInput(body, schema, message, {
+    ...options,
+    logErrors: options?.logErrors ?? true,
+  });
+}
+
+export { parseInteger, parseIntegerList };

@@ -1,12 +1,5 @@
-import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-utils";
-import {
-  badRequest,
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  unauthorized,
-} from "@/lib/api/helpers";
+import { withAdminRoute } from "@/lib/admin-utils";
+import { jsonResponse, notFound, parseRouteParams } from "@/lib/api/helpers";
 import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 
@@ -14,14 +7,17 @@ export const dynamic = "force-dynamic";
 
 async function parseHomeworkId(
   params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return badRequest("Invalid homework ID");
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    "Invalid homework ID",
+  );
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -34,18 +30,12 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
-
-  const parsed = await parseHomeworkId(params);
-  if (parsed instanceof NextResponse) {
-    return parsed;
-  }
-  const id = parsed;
-
-  try {
+  return withAdminRoute("Failed to delete homework (admin)", async (admin) => {
+    const parsed = await parseHomeworkId(params);
+    if (parsed instanceof Response) {
+      return parsed;
+    }
+    const id = parsed;
     const homework = await prisma.homework.findUnique({
       where: { id },
       select: { id: true, title: true, deletedAt: true, sectionId: true },
@@ -81,7 +71,5 @@ export async function DELETE(
     });
 
     return jsonResponse({ success: true });
-  } catch (error) {
-    return handleRouteError("Failed to delete homework (admin)", error);
-  }
+  });
 }

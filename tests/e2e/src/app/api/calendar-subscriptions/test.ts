@@ -23,11 +23,13 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
-import { withE2eLock } from "../../../../utils/locks";
+import {
+  DEBUG_USER_SUBSCRIPTIONS_LOCK,
+  withE2eLock,
+} from "../../../../utils/locks";
 import { assertApiContract } from "../../_shared/api-contract";
 
 const BASE = "/api/calendar-subscriptions";
-const DEBUG_USER_CALENDAR_LOCK = "debug-user-calendar";
 
 test.describe("POST /api/calendar-subscriptions", () => {
   test("contract", async ({ request }) => {
@@ -44,7 +46,7 @@ test.describe("POST /api/calendar-subscriptions", () => {
   test("subscribes to seed section and returns correct shape", async ({
     page,
   }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       await signInAsDebugUser(page, "/");
 
       const matchRes = await page.request.post("/api/sections/match-codes", {
@@ -99,7 +101,7 @@ test.describe("POST /api/calendar-subscriptions", () => {
   });
 
   test("omitting sectionIds clears subscriptions", async ({ page }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       await signInAsDebugUser(page, "/");
 
       // Save current subscriptions for restoration
@@ -129,7 +131,7 @@ test.describe("POST /api/calendar-subscriptions", () => {
   });
 
   test("non-existent section IDs are silently dropped", async ({ page }) => {
-    await withE2eLock(DEBUG_USER_CALENDAR_LOCK, async () => {
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
       await signInAsDebugUser(page, "/");
 
       const matchRes = await page.request.post("/api/sections/match-codes", {

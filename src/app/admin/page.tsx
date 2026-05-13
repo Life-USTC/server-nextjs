@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminHomePage() {
-  const admin = await requireAdminPage();
+  const admin = await requireAdminPage("/admin");
   if (!admin) {
     notFound();
   }

@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 import { LOCALE_COOKIE } from "@/i18n/config";
-import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import {
+  handleRouteError,
+  jsonResponse,
+  parseRouteJsonBody,
+} from "@/lib/api/helpers";
 import { localeUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +17,16 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const parsedBody = localeUpdateRequestSchema.safeParse(body);
-    if (!parsedBody.success) {
-      return handleRouteError("Invalid locale", parsedBody.error, 400);
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      localeUpdateRequestSchema,
+      "Invalid locale",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
     }
 
-    const locale = parsedBody.data.locale;
+    const locale = parsedBody.locale;
 
     const response = jsonResponse({ success: true });
     response.cookies.set(LOCALE_COOKIE, locale, {

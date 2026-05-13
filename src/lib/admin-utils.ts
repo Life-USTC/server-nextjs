@@ -1,35 +1,61 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { handleRouteError, unauthorized } from "@/lib/api/helpers";
+import { buildSignInRedirectUrl } from "@/lib/auth/auth-routing";
 import { prisma } from "@/lib/db/prisma";
 
-export async function requireAdmin() {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+type AdminSession = {
+  userId: string;
+};
+
+async function resolveAdminByUserId(
+  userId: string | null | undefined,
+): Promise<AdminSession | null> {
+  if (!userId) return null;
 
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: userId },
     select: { id: true, isAdmin: true },
   });
 
-  const isAdmin = user?.isAdmin ?? false;
-  if (!user || !isAdmin) return null;
+  if (!user?.isAdmin) {
+    return null;
+  }
 
   return { userId: user.id };
 }
 
-export async function requireAdminPage() {
+export async function requireAdmin() {
+  const session = await auth();
+  return resolveAdminByUserId(session?.user?.id);
+}
+
+export async function requireAdminPage(callbackUrl = "/") {
   const session = await auth();
   if (!session?.user?.id) {
-    redirect("/signin");
+    redirect(buildSignInRedirectUrl({}, callbackUrl));
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, isAdmin: true },
-  });
+  return resolveAdminByUserId(session.user.id);
+}
 
-  const isAdmin = user?.isAdmin ?? false;
-  if (!user || !isAdmin) return null;
+export async function requireAdminRoute() {
+  const admin = await requireAdmin();
+  return admin ?? unauthorized();
+}
 
-  return { userId: user.id };
+export async function withAdminRoute(
+  errorMessage: string,
+  handler: (admin: AdminSession) => Promise<Response>,
+) {
+  const admin = await requireAdminRoute();
+  if (admin instanceof Response) {
+    return admin;
+  }
+
+  try {
+    return await handler(admin);
+  } catch (error) {
+    return handleRouteError(errorMessage, error);
+  }
 }

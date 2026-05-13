@@ -1,8 +1,10 @@
-import { getViewerContext } from "@/features/comments/server/comment-utils";
+import {
+  type DescriptionTargetType,
+  resolveDescriptionTarget,
+} from "@/features/descriptions/lib/description-targets";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
-
-type TargetType = "section" | "course" | "teacher" | "homework";
 
 type EditorSummary = {
   id: string;
@@ -44,31 +46,16 @@ export type DescriptionPayload = {
   viewer: ViewerSummary;
 };
 
-function getTargetWhere(targetType: TargetType, targetId: number | string) {
-  switch (targetType) {
-    case "section":
-      return typeof targetId === "number" ? { sectionId: targetId } : null;
-    case "course":
-      return typeof targetId === "number" ? { courseId: targetId } : null;
-    case "teacher":
-      return typeof targetId === "number" ? { teacherId: targetId } : null;
-    case "homework":
-      return typeof targetId === "string" ? { homeworkId: targetId } : null;
-    default:
-      return null;
-  }
-}
-
 export async function getDescriptionPayload(
-  targetType: TargetType,
+  targetType: DescriptionTargetType,
   targetId: number | string,
   viewerOverride?: ViewerSummary,
 ): Promise<DescriptionPayload> {
-  const whereTarget = getTargetWhere(targetType, targetId);
+  const target = resolveDescriptionTarget(targetType, targetId);
   const viewer =
     viewerOverride ?? (await getViewerContext({ includeAdmin: false }));
 
-  if (!whereTarget) {
+  if (!target) {
     return {
       description: {
         id: null,
@@ -83,7 +70,7 @@ export async function getDescriptionPayload(
   }
 
   const description = await prisma.description.findFirst({
-    where: whereTarget,
+    where: target.where,
     include: {
       lastEditedBy: {
         select: { id: true, name: true, image: true, username: true },

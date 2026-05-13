@@ -125,7 +125,7 @@
       "title": "Comment Auxiliary Pages",
       "auth": "anon",
       "web": {
-        "pages": ["/comments/[id]", "/comments/guide"]
+        "pages": ["/comments/[id]", "/guides/markdown-support"]
       },
       "display": {
         "fields": ["Comment guidelines/help pages"]

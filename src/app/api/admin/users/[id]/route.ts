@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/admin-utils";
+import { withAdminRoute } from "@/lib/admin-utils";
 import {
   badRequest,
-  handleRouteError,
   jsonResponse,
-  unauthorized,
+  parseRouteInput,
+  parseRouteJsonBody,
 } from "@/lib/api/helpers";
 import {
   adminUpdateUserRequestSchema,
@@ -31,12 +31,16 @@ async function parseUserId(
   params: Promise<{ id: string }>,
 ): Promise<string | NextResponse> {
   const raw = await params;
-  const parsed = resourceIdPathParamsSchema.safeParse(raw);
-  if (!parsed.success) {
+  const parsed = parseRouteInput(
+    raw,
+    resourceIdPathParamsSchema,
+    "Invalid user ID",
+  );
+  if (parsed instanceof Response) {
     return badRequest("Invalid user ID");
   }
 
-  return parsed.data.id;
+  return parsed.id;
 }
 
 /**
@@ -50,42 +54,33 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const admin = await requireAdmin();
-  if (!admin) {
-    return unauthorized();
-  }
+  return withAdminRoute("Failed to update user", async () => {
+    const parsed = await parseUserId(params);
+    if (parsed instanceof NextResponse) {
+      return parsed;
+    }
+    const id = parsed;
+    const parsedBody = await parseRouteJsonBody(
+      request,
+      adminUpdateUserRequestSchema,
+      "Invalid update request",
+    );
+    if (parsedBody instanceof Response) {
+      return parsedBody;
+    }
 
-  const parsed = await parseUserId(params);
-  if (parsed instanceof NextResponse) {
-    return parsed;
-  }
-  const id = parsed;
-  let body: unknown = {};
-
-  try {
-    body = await request.json();
-  } catch (error) {
-    return handleRouteError("Invalid update request", error, 400);
-  }
-
-  const parsedBody = adminUpdateUserRequestSchema.safeParse(body);
-  if (!parsedBody.success) {
-    return handleRouteError("Invalid update request", parsedBody.error, 400);
-  }
-
-  try {
     const data: {
       name?: string;
       username?: string | null;
       isAdmin?: boolean;
     } = {};
 
-    if ("name" in parsedBody.data) {
-      data.name = normalizeName(parsedBody.data.name);
+    if ("name" in parsedBody) {
+      data.name = normalizeName(parsedBody.name);
     }
 
-    if ("username" in parsedBody.data) {
-      const username = normalizeUsername(parsedBody.data.username);
+    if ("username" in parsedBody) {
+      const username = normalizeUsername(parsedBody.username);
       if (username) {
         if (!/^[a-z0-9-]{1,20}$/.test(username)) {
           return badRequest("Invalid username");
@@ -101,11 +96,8 @@ export async function PATCH(
       data.username = username;
     }
 
-    if (
-      "isAdmin" in parsedBody.data &&
-      typeof parsedBody.data.isAdmin === "boolean"
-    ) {
-      data.isAdmin = parsedBody.data.isAdmin;
+    if ("isAdmin" in parsedBody && typeof parsedBody.isAdmin === "boolean") {
+      data.isAdmin = parsedBody.isAdmin;
     }
 
     const updated = await prisma.user.update({
@@ -136,7 +128,5 @@ export async function PATCH(
         createdAt: updated.createdAt,
       },
     });
-  } catch (error) {
-    return handleRouteError("Failed to update user", error);
-  }
+  });
 }

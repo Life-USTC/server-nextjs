@@ -1,3 +1,5 @@
+import { getOptionalTrimmedEnv } from "@/env";
+
 const DEFAULT_LOCAL_ORIGIN = "http://localhost:3000";
 
 function normalizeAbsoluteOrigin(value: string, envName: string): string {
@@ -21,12 +23,17 @@ function normalizeVercelHost(value: string, envName: string): string {
  * fall back to Vercel runtime metadata, then localhost for local development.
  */
 export function getPublicOrigin(): string {
-  const configured = process.env.APP_PUBLIC_ORIGIN?.trim();
+  const configured = getOptionalTrimmedEnv("APP_PUBLIC_ORIGIN");
   if (configured) {
     return normalizeAbsoluteOrigin(configured, "APP_PUBLIC_ORIGIN");
   }
 
-  const vercelUrl = process.env.VERCEL_URL?.trim();
+  const legacyBetterAuthUrl = getOptionalTrimmedEnv("BETTER_AUTH_URL");
+  if (legacyBetterAuthUrl) {
+    return normalizeAbsoluteOrigin(legacyBetterAuthUrl, "BETTER_AUTH_URL");
+  }
+
+  const vercelUrl = getOptionalTrimmedEnv("VERCEL_URL");
   if (vercelUrl) {
     return normalizeVercelHost(vercelUrl, "VERCEL_URL");
   }
@@ -39,12 +46,14 @@ export function getPublicOrigin(): string {
  * production host even in previews, which is a useful fallback when unset.
  */
 export function getCanonicalOrigin(): string {
-  const configured = process.env.APP_CANONICAL_ORIGIN?.trim();
+  const configured = getOptionalTrimmedEnv("APP_CANONICAL_ORIGIN");
   if (configured) {
     return normalizeAbsoluteOrigin(configured, "APP_CANONICAL_ORIGIN");
   }
 
-  const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  const vercelProductionUrl = getOptionalTrimmedEnv(
+    "VERCEL_PROJECT_PRODUCTION_URL",
+  );
   if (vercelProductionUrl) {
     return normalizeVercelHost(
       vercelProductionUrl,

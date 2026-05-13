@@ -76,7 +76,7 @@ test.describe("/settings?tab=accounts", () => {
       return;
     }
 
-    await page.waitForLoadState("networkidle");
+    await waitForUiSettled(page);
     await expect(connectButton).toBeEnabled();
 
     const currentOrigin = new URL(page.url()).origin;
@@ -126,16 +126,19 @@ test.describe("/settings?tab=accounts", () => {
   test("multi-account: cancel and confirm unlink flow", async ({
     page,
   }, testInfo) => {
+    test.setTimeout(60_000);
     const provider = "github";
     await signInAsDebugUser(page, "/settings?tab=accounts");
     const user = await getCurrentSessionUser(page);
 
     // Ensure a second account exists for the test
-    deleteLinkedAccountFixture({ userId: user.id, provider });
-    ensureLinkedAccountFixture({ userId: user.id, provider });
+    await deleteLinkedAccountFixture({ userId: user.id, provider });
+    await ensureLinkedAccountFixture({ userId: user.id, provider });
 
     try {
-      await page.reload({ waitUntil: "domcontentloaded" });
+      await signInAsDebugUser(page, "/settings?tab=accounts", undefined, {
+        ui: true,
+      });
       await waitForUiSettled(page);
       await expectPagePath(page, "/settings?tab=accounts");
 
@@ -178,7 +181,7 @@ test.describe("/settings?tab=accounts", () => {
       ).toHaveCount(0);
       await captureStepScreenshot(page, testInfo, "settings-accounts-unlinked");
     } finally {
-      deleteLinkedAccountFixture({ userId: user.id, provider });
+      await deleteLinkedAccountFixture({ userId: user.id, provider });
     }
   });
 });

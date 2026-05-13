@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { listUserCalendarEvents } from "@/features/home/server/calendar-events";
 import {
   summarizeBusDeparture,
   summarizeCalendarEventCollection,
@@ -68,7 +69,7 @@ describe("summarizeCalendarEventCollection", () => {
           content: "trim me",
         },
       },
-    ];
+    ] as unknown as Awaited<ReturnType<typeof listUserCalendarEvents>>;
 
     const summary = summarizeCalendarEventCollection(events, {
       itemLimit: 2,

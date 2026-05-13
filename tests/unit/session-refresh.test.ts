@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getFreshSessionQuery,
   refreshAuthSessionCookieCache,
-} from "@/lib/auth/session-refresh";
+} from "@/lib/auth/client";
 
 describe("session refresh helper", () => {
   afterEach(() => {

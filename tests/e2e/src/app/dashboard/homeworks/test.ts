@@ -24,6 +24,10 @@
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED } from "../../../../utils/dev-seed";
+import {
+  DEBUG_USER_SUBSCRIPTIONS_LOCK,
+  withE2eLock,
+} from "../../../../utils/locks";
 import { gotoAndWaitForReady } from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 import { ensureSeedSectionSubscription } from "../../../../utils/subscriptions";
@@ -205,40 +209,52 @@ test.describe("dashboard homeworks", () => {
       screenshotLabel: "homeworks",
     });
 
-    const detailLink = page.locator('a[href*="/sections/"]').first();
+    await page
+      .getByRole("button", { name: /全部|All/i })
+      .first()
+      .click();
+
+    const detailLink = page
+      .locator('[data-slot="card"]')
+      .filter({ hasText: DEV_SEED.homeworks.title })
+      .first()
+      .locator(`a[href*="/sections/${DEV_SEED.section.jwId}#homework-"]`)
+      .first();
     await expect(detailLink).toBeVisible();
     await detailLink.click();
 
-    await expect(page).toHaveURL(/\/sections\/\d+/);
+    await expect(page).toHaveURL(/\/sections\/\d+#homework-/);
     await captureStepScreenshot(page, testInfo, "homeworks/view-details");
   });
 
   test("can create a new homework", async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await signInAsDebugUser(page, "/?tab=homeworks");
-    await ensureSeedSectionSubscription(page);
-    await gotoAndWaitForReady(page, "/?tab=homeworks", {
-      testInfo,
-      screenshotLabel: "homeworks",
-    });
+    await withE2eLock(DEBUG_USER_SUBSCRIPTIONS_LOCK, async () => {
+      await signInAsDebugUser(page, "/?tab=homeworks");
+      await ensureSeedSectionSubscription(page);
+      await gotoAndWaitForReady(page, "/?tab=homeworks", {
+        testInfo,
+        screenshotLabel: "homeworks",
+      });
 
-    const addButton = page.getByTestId("dashboard-homeworks-add").first();
-    const title = `e2e-dashboard-homework-${Date.now()}`;
-    const titleInput = page.getByTestId("dashboard-homework-title");
-    await expect(async () => {
-      await expect(addButton).toBeVisible({ timeout: 3_000 });
-      await addButton.click();
-      await expect(titleInput).toBeVisible({ timeout: 3_000 });
-    }).toPass({
-      timeout: 10_000,
-      intervals: [250, 500, 1_000],
-    });
-    await titleInput.fill(title);
-    await page.getByTestId("dashboard-homework-create").click();
+      const addButton = page.getByTestId("dashboard-homeworks-add").first();
+      const title = `e2e-dashboard-homework-${Date.now()}`;
+      const titleInput = page.getByTestId("dashboard-homework-title");
+      await expect(async () => {
+        await expect(addButton).toBeVisible({ timeout: 3_000 });
+        await addButton.click();
+        await expect(titleInput).toBeVisible({ timeout: 3_000 });
+      }).toPass({
+        timeout: 10_000,
+        intervals: [250, 500, 1_000],
+      });
+      await titleInput.fill(title);
+      await page.getByTestId("dashboard-homework-create").click();
 
-    await expect(page.getByText(title).first()).toBeVisible({
-      timeout: 15_000,
+      await expect(page.getByText(title).first()).toBeVisible({
+        timeout: 15_000,
+      });
+      await captureStepScreenshot(page, testInfo, "homeworks/created");
     });
-    await captureStepScreenshot(page, testInfo, "homeworks/created");
   });
 });

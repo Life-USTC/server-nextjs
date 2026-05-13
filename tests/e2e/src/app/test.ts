@@ -83,16 +83,18 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
       await signInAsDebugUser(page, "/");
 
       const sessionUser = await getCurrentSessionUser(page);
-      const originalProfile = getUserProfileById(sessionUser.id);
-      const originalSectionIds = getUserSubscribedSectionIds(sessionUser.id);
+      const originalProfile = await getUserProfileById(sessionUser.id);
+      const originalSectionIds = await getUserSubscribedSectionIds(
+        sessionUser.id,
+      );
 
-      updateUserProfileById(sessionUser.id, {
+      await updateUserProfileById(sessionUser.id, {
         name: originalProfile.name ?? DEV_SEED.debugName,
         username: originalProfile.username ?? DEV_SEED.debugUsername,
         image: originalProfile.image,
       });
-      replaceUserSubscribedSectionIds(sessionUser.id, []);
-      expect(getUserSubscribedSectionIds(sessionUser.id)).toEqual([]);
+      await replaceUserSubscribedSectionIds(sessionUser.id, []);
+      expect(await getUserSubscribedSectionIds(sessionUser.id)).toEqual([]);
 
       try {
         await page.reload({ waitUntil: "domcontentloaded" });
@@ -111,8 +113,11 @@ test("/ 登录用户在空状态总览页可看到班级发现入口", async ({
 
         await captureStepScreenshot(page, testInfo, "dashboard-overview-empty");
       } finally {
-        updateUserProfileById(sessionUser.id, originalProfile);
-        replaceUserSubscribedSectionIds(sessionUser.id, originalSectionIds);
+        await updateUserProfileById(sessionUser.id, originalProfile);
+        await replaceUserSubscribedSectionIds(
+          sessionUser.id,
+          originalSectionIds,
+        );
       }
     });
   });

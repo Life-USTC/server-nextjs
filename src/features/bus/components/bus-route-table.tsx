@@ -2,7 +2,7 @@
 
 import { type ReactNode, useMemo } from "react";
 import type { BusApplicableRoute } from "@/features/bus/lib/bus-client";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 import {
   BUS_ROUTE_TABLE_SHELL_CLASS,
   type BusTranslator,

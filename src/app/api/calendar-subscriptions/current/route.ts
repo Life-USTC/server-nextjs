@@ -1,4 +1,4 @@
-import { getUserCalendarSubscription } from "@/features/home/server/subscriptions";
+import { getUserCalendarSubscription } from "@/features/home/server/subscription-read-model";
 import {
   handleRouteError,
   jsonResponse,

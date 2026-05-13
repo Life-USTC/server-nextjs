@@ -1,9 +1,8 @@
-import { getViewerContext } from "@/features/comments/server/comment-utils";
 import {
   getSubscribedSectionIds,
   listSubscribedHomeworkAuditLogs,
   listSubscribedHomeworks,
-} from "@/features/home/server/subscribed-data";
+} from "@/features/home/server/subscription-read-model";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
 import {
   handleRouteError,
@@ -11,6 +10,7 @@ import {
   unauthorized,
 } from "@/lib/api/helpers";
 import { resolveApiUserId } from "@/lib/auth/helpers";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 
 export const dynamic = "force-dynamic";
 

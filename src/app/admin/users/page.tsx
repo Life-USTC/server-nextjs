@@ -42,12 +42,22 @@ export default async function AdminUsersPage({
 }: {
   searchParams: Promise<{ page?: string; search?: string }>;
 }) {
-  const admin = await requireAdminPage();
+  const searchP = await searchParams;
+  const callbackParams = new URLSearchParams();
+  if (searchP.page) {
+    callbackParams.set("page", searchP.page);
+  }
+  if (searchP.search) {
+    callbackParams.set("search", searchP.search);
+  }
+  const callbackUrl = callbackParams.size
+    ? `/admin/users?${callbackParams.toString()}`
+    : "/admin/users";
+  const admin = await requireAdminPage(callbackUrl);
   if (!admin) {
     notFound();
   }
 
-  const searchP = await searchParams;
   const page = Math.max(parseInt(searchP.page ?? "1", 10) || 1, 1);
   const search = searchP.search?.trim() ?? "";
   const skip = (page - 1) * ADMIN_USERS_PAGE_SIZE;

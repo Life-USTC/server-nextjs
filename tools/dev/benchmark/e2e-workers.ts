@@ -3,6 +3,10 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import "dotenv/config";
+import {
+  buildPlaywrightServerEnv,
+  resolvePlaywrightServerRuntime,
+} from "../util/playwright-runtime";
 
 type BenchmarkRun = {
   workers: number;
@@ -26,8 +30,6 @@ type BenchmarkResult = {
 const DEFAULT_WORKERS = [1, 2, 4, 8, 12, 16, 20, 24, 32];
 const DEFAULT_REPEAT = 2;
 const DEFAULT_WARMUP = 1;
-const LOCAL_NO_PROXY = "127.0.0.1,localhost,::1";
-
 function parseArgs() {
   const args = process.argv.slice(2);
   const options: {
@@ -83,24 +85,15 @@ function parseArgs() {
   return options;
 }
 
-function appendNoProxy(value: string | undefined) {
-  return value ? `${value},${LOCAL_NO_PROXY}` : LOCAL_NO_PROXY;
-}
-
 function benchmarkEnv(workers?: number) {
+  const { host, port, baseUrl } = resolvePlaywrightServerRuntime(process.env);
   return {
-    ...process.env,
-    AUTH_TRUST_HOST: "true",
-    AUTH_URL: baseUrl,
-    BETTER_AUTH_URL: baseUrl,
-    NEXTAUTH_URL: baseUrl,
-    E2E_DEBUG_AUTH: "1",
-    DEV_DEBUG_PASSWORD:
-      process.env.DEV_DEBUG_PASSWORD ?? "e2e-debug-local-only",
-    DEV_ADMIN_PASSWORD:
-      process.env.DEV_ADMIN_PASSWORD ?? "e2e-admin-local-only",
-    NO_PROXY: appendNoProxy(process.env.NO_PROXY),
-    no_proxy: appendNoProxy(process.env.no_proxy),
+    ...buildPlaywrightServerEnv({
+      host,
+      port,
+      baseUrl,
+      env: process.env,
+    }),
     PLAYWRIGHT_HOST: host,
     PLAYWRIGHT_PORT: port,
     PLAYWRIGHT_REUSE_SERVER: "1",
@@ -242,9 +235,7 @@ function runPlaywright(workers: number, repeat: number): BenchmarkRun {
 
 const options = parseArgs();
 const repoRoot = process.cwd();
-const host = process.env.PLAYWRIGHT_HOST ?? "127.0.0.1";
-const port = process.env.PLAYWRIGHT_PORT ?? "3000";
-const baseUrl = `http://${host}:${port}`;
+const { host, port, baseUrl } = resolvePlaywrightServerRuntime(process.env);
 let serverStopping = false;
 let server: ChildProcess | null = null;
 

@@ -6,7 +6,7 @@ import {
   dashboardTabToolbarItemClass,
 } from "@/components/filters/dashboard-tab-toolbar";
 import type { BusTimetableData } from "@/features/bus/lib/bus-types";
-import { cn } from "@/shared/lib/utils";
+import { cn } from "@/lib/utils";
 
 function PlannerDayTypePills({
   value,

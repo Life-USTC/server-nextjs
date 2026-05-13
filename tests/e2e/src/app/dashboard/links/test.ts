@@ -22,6 +22,10 @@
  */
 import { expect, test } from "@playwright/test";
 import { signInAsDebugUser } from "../../../../utils/auth";
+import {
+  gotoAndWaitForReady,
+  waitForUiSettled,
+} from "../../../../utils/page-ready";
 import { captureStepScreenshot } from "../../../../utils/screenshot";
 
 test.describe.configure({ mode: "serial" });
@@ -33,7 +37,7 @@ test.describe("dashboard links", () => {
   test("public ?tab=links shows search and links without pin controls", async ({
     page,
   }, testInfo) => {
-    await page.goto("/?tab=links", { waitUntil: "networkidle" });
+    await gotoAndWaitForReady(page, "/?tab=links");
 
     const searchInput = page.getByRole("searchbox", {
       name: /搜索网站名称或描述|Search by name or description/i,
@@ -170,7 +174,8 @@ test.describe("dashboard links", () => {
     );
     expect(restoreResponse.status()).toBe(200);
 
-    await page.reload({ waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await waitForUiSettled(page);
     await expect(await locatePinButton()).toHaveAttribute(
       "aria-label",
       expectedInitialLabel,

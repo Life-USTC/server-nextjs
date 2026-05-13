@@ -1,46 +1,47 @@
+import { revalidatePath } from "next/cache";
 import { DEFAULT_LOCALE } from "@/i18n/config";
+import { prisma } from "@/lib/db/prisma";
 import {
-  buildUserCalendarFeedPath,
-  ensureUserCalendarFeedToken,
-} from "@/lib/calendar-feed-token";
-import { getPrisma, prisma } from "@/lib/db/prisma";
-import { sectionCompactInclude } from "@/lib/query-helpers";
-import { getPublicOrigin } from "@/lib/site-url";
+  getUserCalendarSubscription,
+  getUserSectionSubscriptionState,
+} from "./subscription-read-model";
 
-export const SECTION_SUBSCRIPTION_NOTE =
-  "Life@USTC section subscriptions only affect your dashboard and calendar here. They are not official USTC course enrollment.";
-
-export async function getUserCalendarSubscription(
+async function replaceUserSectionIds(
   userId: string,
-  locale = DEFAULT_LOCALE,
+  nextIds: readonly number[],
 ) {
-  const localizedPrisma = getPrisma(locale);
-  const token = await ensureUserCalendarFeedToken(userId);
-  const user = await localizedPrisma.user.findUnique({
+  await prisma.user.update({
     where: { id: userId },
-    select: {
-      id: true,
+    data: {
       subscribedSections: {
-        include: sectionCompactInclude,
-        orderBy: [{ semester: { jwId: "desc" } }, { code: "asc" }],
+        set: Array.from(new Set(nextIds)).map((id) => ({ id })),
       },
     },
   });
 
-  if (!user) {
-    return null;
+  try {
+    revalidatePath("/");
+    revalidatePath("/me/subscriptions/sections");
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.startsWith("Invariant:")) {
+      throw error;
+    }
   }
-
-  const calendarPath = buildUserCalendarFeedPath(user.id, token);
-
-  return {
-    userId: user.id,
-    sections: user.subscribedSections,
-    calendarPath,
-    calendarUrl: `${getPublicOrigin()}${calendarPath}`,
-    note: SECTION_SUBSCRIPTION_NOTE,
-  };
 }
+
+async function getMutableUserSubscriptions(userId: string) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      subscribedSections: {
+        select: { id: true, jwId: true },
+      },
+    },
+  });
+}
+
+export { getUserCalendarSubscription, getUserSectionSubscriptionState };
 
 export async function replaceUserSectionSubscriptions(
   userId: string,
@@ -53,16 +54,48 @@ export async function replaceUserSectionSubscriptions(
   });
   const validSectionIds = existingSections.map((section) => section.id);
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        set: validSectionIds.map((id) => ({ id })),
-      },
-    },
-  });
+  await replaceUserSectionIds(userId, validSectionIds);
 
   return getUserCalendarSubscription(userId, locale);
+}
+
+export async function addUserSectionSubscriptions(
+  userId: string,
+  sectionIds: readonly number[],
+) {
+  const user = await getMutableUserSubscriptions(userId);
+  if (!user) {
+    return null;
+  }
+
+  const nextIds = new Set(user.subscribedSections.map((section) => section.id));
+  for (const sectionId of sectionIds) {
+    nextIds.add(sectionId);
+  }
+
+  await replaceUserSectionIds(userId, Array.from(nextIds));
+
+  return getUserSectionSubscriptionState(userId);
+}
+
+export async function removeUserSectionSubscriptions(
+  userId: string,
+  sectionIds: readonly number[],
+) {
+  const user = await getMutableUserSubscriptions(userId);
+  if (!user) {
+    return null;
+  }
+
+  const idsToRemove = new Set(sectionIds);
+  await replaceUserSectionIds(
+    userId,
+    user.subscribedSections
+      .map((section) => section.id)
+      .filter((id) => !idsToRemove.has(id)),
+  );
+
+  return getUserSectionSubscriptionState(userId);
 }
 
 export async function subscribeUserToSectionByJwId(
@@ -78,32 +111,10 @@ export async function subscribeUserToSectionByJwId(
     return null;
   }
 
-  const existingSections = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        select: { id: true },
-      },
-    },
-  });
-
-  if (!existingSections) {
+  const state = await addUserSectionSubscriptions(userId, [section.id]);
+  if (!state) {
     return null;
   }
-
-  const nextIds = new Set(
-    existingSections.subscribedSections.map(({ id }) => id),
-  );
-  nextIds.add(section.id);
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        set: Array.from(nextIds).map((id) => ({ id })),
-      },
-    },
-  });
 
   return getUserCalendarSubscription(userId, locale);
 }
@@ -113,31 +124,17 @@ export async function unsubscribeUserFromSectionByJwId(
   sectionJwId: number,
   locale = DEFAULT_LOCALE,
 ) {
-  const existingSections = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      subscribedSections: {
-        select: { id: true, jwId: true },
-      },
-    },
-  });
-
-  if (!existingSections) {
+  const user = await getMutableUserSubscriptions(userId);
+  if (!user) {
     return null;
   }
 
-  const nextIds = existingSections.subscribedSections
-    .filter((section) => section.jwId !== sectionJwId)
-    .map((section) => section.id);
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      subscribedSections: {
-        set: nextIds.map((id) => ({ id })),
-      },
-    },
-  });
+  await replaceUserSectionIds(
+    userId,
+    user.subscribedSections
+      .filter((section) => section.jwId !== sectionJwId)
+      .map((section) => section.id),
+  );
 
   return getUserCalendarSubscription(userId, locale);
 }

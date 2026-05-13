@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import SwaggerUIBundle from "swagger-ui-dist/swagger-ui-bundle";
 import "swagger-ui-dist/swagger-ui.css";
+import { OPENAPI_SPEC_PUBLIC_PATH } from "@/lib/openapi/spec";
 
 const FALLBACK_PATHS = [
   "/api/sections",
@@ -18,7 +19,7 @@ export function SwaggerViewer() {
 
     container.replaceChildren();
     SwaggerUIBundle({
-      url: "/openapi.generated.json",
+      url: OPENAPI_SPEC_PUBLIC_PATH,
       dom_id: "#swagger-ui",
       deepLinking: true,
     });

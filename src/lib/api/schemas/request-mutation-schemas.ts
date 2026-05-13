@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod";
 import { APP_LOCALES } from "@/i18n/config";
 import {
   commentReactionTypeSchema,

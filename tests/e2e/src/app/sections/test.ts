@@ -25,6 +25,7 @@ import { expect, test } from "@playwright/test";
 import { DEV_SEED } from "../../../utils/dev-seed";
 import { getSeedSectionSemesterFixture } from "../../../utils/e2e-db";
 import { gotoAndWaitForReady } from "../../../utils/page-ready";
+import { absoluteTestUrl } from "../../../utils/request-url";
 import { captureStepScreenshot } from "../../../utils/screenshot";
 import { assertPageContract } from "../_shared/page-contract";
 
@@ -33,11 +34,14 @@ test.describe("/sections", () => {
     await assertPageContract(page, { routePath: "/sections", testInfo });
   });
 
-  test("SSR output contains search query", async ({ request }) => {
-    const response = await request.get(
-      `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+  test("SSR output contains search query", async ({ baseURL }) => {
+    const response = await fetch(
+      absoluteTestUrl(
+        `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+        baseURL,
+      ),
     );
-    expect(response.status()).toBe(200);
+    expect(response.status).toBe(200);
     const html = await response.text();
     expect(html).toContain('id="main-content"');
     expect(html).toContain(DEV_SEED.section.code);
@@ -96,7 +100,7 @@ test.describe("/sections", () => {
   });
 
   test("semester filter preserves seed results", async ({ page }, testInfo) => {
-    const filter = getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
+    const filter = await getSeedSectionSemesterFixture(DEV_SEED.section.jwId);
     if (!filter.semesterName) {
       await gotoAndWaitForReady(page, "/sections", {
         testInfo,

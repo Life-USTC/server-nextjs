@@ -1,5 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { handleRouteError, parseIntegerList } from "@/lib/api/helpers";
+import {
+  badRequest,
+  handleRouteError,
+  parseIntegerList,
+  parseRouteInput,
+} from "@/lib/api/helpers";
 import { sectionsCalendarQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 import { createMultiSectionCalendar } from "@/lib/ical";
@@ -15,27 +20,24 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const parsedQuery = sectionsCalendarQuerySchema.safeParse({
-      sectionIds: searchParams.get("sectionIds") ?? "",
-    });
-    if (!parsedQuery.success) {
-      return handleRouteError(
-        "sectionIds parameter is required",
-        parsedQuery.error,
-        400,
-      );
+    const parsedQuery = parseRouteInput(
+      {
+        sectionIds: searchParams.get("sectionIds") ?? "",
+      },
+      sectionsCalendarQuerySchema,
+      "sectionIds parameter is required",
+      { logErrors: true },
+    );
+    if (parsedQuery instanceof Response) {
+      return parsedQuery;
     }
 
-    const sectionIdsParam = parsedQuery.data.sectionIds;
+    const sectionIdsParam = parsedQuery.sectionIds;
 
     const sectionIds = parseIntegerList(sectionIdsParam);
 
     if (sectionIds.length === 0) {
-      return handleRouteError(
-        "No valid section IDs provided",
-        new Error("Invalid section IDs"),
-        400,
-      );
+      return badRequest("No valid section IDs provided");
     }
 
     // Fetch all sections with their schedules and exams

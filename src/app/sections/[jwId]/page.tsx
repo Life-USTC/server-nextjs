@@ -9,10 +9,10 @@ import { SubscriptionCalendarButton } from "@/components/subscription-calendar-b
 import { Button } from "@/components/ui/button";
 import { TabsList, TabsPanel, TabsTab } from "@/components/ui/tabs";
 import { CommentAwareTabs } from "@/features/comments/components/comment-aware-tabs";
-import { getViewerContext } from "@/features/comments/server/comment-utils";
 import { DescriptionLoader } from "@/features/descriptions/components/description-loader";
 import type { Prisma } from "@/generated/prisma/client";
 import { Link } from "@/i18n/routing";
+import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma as basePrisma, getPrisma } from "@/lib/db/prisma";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 import {

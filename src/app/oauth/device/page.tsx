@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { buildSignInRedirectUrl } from "@/lib/auth/auth-routing";
 import { prisma } from "@/lib/db/prisma";
 import { DEVICE_CODE_STATUS, normalizeUserCode } from "@/lib/oauth/device-code";
 import { approveDeviceCode, denyDeviceCode } from "./actions";
@@ -38,7 +39,7 @@ export default async function DeviceVerifyPage({
     const callbackUrl = callbackParams.size
       ? `/oauth/device?${callbackParams.toString()}`
       : "/oauth/device";
-    redirect(`/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    redirect(buildSignInRedirectUrl({}, callbackUrl));
   }
 
   // Result screen after approve/deny
