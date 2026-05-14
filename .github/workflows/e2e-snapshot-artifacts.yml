@@ -1,0 +1,201 @@
+name: E2E Snapshot Artifacts
+
+on:
+  push:
+    branches-ignore:
+      - e2e-snapshot-artifacts
+  workflow_dispatch:
+
+jobs:
+  collect-commits:
+    name: Collect commits
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      shas: ${{ steps.commits.outputs.shas }}
+    steps:
+      - name: Collect commit SHAs
+        id: commits
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            shas="$(jq -c --arg sha "$GITHUB_SHA" '[.commits[].id] | if length == 0 then [$sha] else . end' "$GITHUB_EVENT_PATH")"
+          else
+            shas="$(jq -c --arg sha "$GITHUB_SHA" '[$sha]' <<< '{}')"
+          fi
+          echo "shas=$shas" >> "$GITHUB_OUTPUT"
+
+  comment-artifacts:
+    name: Comment E2E artifacts (${{ matrix.sha }})
+    needs: collect-commits
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        sha: ${{ fromJson(needs.collect-commits.outputs.shas) }}
+    concurrency:
+      group: e2e-snapshot-artifacts-publisher
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: life_ustc_e2e_snapshots
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_e2e_snapshots
+      JWT_SECRET: e2e-snapshot-ci-secret
+      WEBHOOK_SECRET: e2e-snapshot-ci-secret
+      AUTH_SECRET: e2e-snapshot-ci-secret
+      NO_PROXY: 127.0.0.1,localhost,::1
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+      E2E_SNAPSHOT_DIR: test-results/e2e-snapshots
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 0
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-bun-env
+        with:
+          install-playwright: "true"
+
+      - name: Generate Prisma client
+        shell: bash
+        run: bun run prisma:generate
+
+      - name: Build standalone app
+        shell: bash
+        run: bun run test:e2e:artifacts
+
+      - name: Bootstrap E2E services
+        shell: bash
+        run: bun run verify:e2e -- --minio --migrate
+
+      - name: Seed E2E scenarios
+        shell: bash
+        run: bun run dev:seed-scenarios
+
+      - name: Capture E2E snapshots
+        id: snapshots
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p test-results/e2e-snapshots
+          bun run test:e2e:server > test-results/e2e-snapshot-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 90); do
+            if bun run health; then
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              cat test-results/e2e-snapshot-server.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          if ! bun run health; then
+            cat test-results/e2e-snapshot-server.log
+            exit 1
+          fi
+
+          bun run snapshot:e2e
+
+      - name: Upload E2E snapshot artifact
+        id: upload
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-snapshot-artifacts-${{ matrix.sha }}
+          path: |
+            test-results/e2e-snapshots
+            test-results/e2e-snapshot-server.log
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish screenshot previews
+        id: previews
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          preview_branch="e2e-snapshot-artifacts"
+          preview_root="$(mktemp -d)"
+          git fetch origin "$preview_branch" || true
+
+          if git rev-parse --verify "origin/$preview_branch" >/dev/null 2>&1; then
+            git worktree add "$preview_root" "origin/$preview_branch"
+          else
+            git worktree add --detach "$preview_root"
+            git -C "$preview_root" switch --orphan "$preview_branch"
+            git -C "$preview_root" rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          rm -rf "$preview_root/${{ matrix.sha }}"
+          mkdir -p "$preview_root/${{ matrix.sha }}"
+
+          if [ -d test-results/e2e-snapshots/pages ]; then
+            find test-results/e2e-snapshots/pages -name screenshot.png -print0 |
+              while IFS= read -r -d '' screenshot; do
+                relative_path="${screenshot#test-results/e2e-snapshots/}"
+                mkdir -p "$preview_root/${{ matrix.sha }}/$(dirname "$relative_path")"
+                cp "$screenshot" "$preview_root/${{ matrix.sha }}/$relative_path"
+              done
+          fi
+
+          git -C "$preview_root" config user.name "github-actions[bot]"
+          git -C "$preview_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$preview_root" add "${{ matrix.sha }}"
+
+          if ! git -C "$preview_root" diff --cached --quiet; then
+            git -C "$preview_root" commit -m "chore: publish e2e screenshots for ${{ matrix.sha }}"
+            git -C "$preview_root" push origin "HEAD:$preview_branch"
+          fi
+
+          echo "base-url=https://raw.githubusercontent.com/${{ github.repository }}/$preview_branch/${{ matrix.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Render commit comment
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          bun run tools/dev/artifacts/render-e2e-snapshot-comment.ts \
+            --snapshot-dir test-results/e2e-snapshots \
+            --artifact-url "${{ steps.upload.outputs.artifact-url }}" \
+            --commit "${{ matrix.sha }}" \
+            --status "${{ steps.snapshots.outcome }}" \
+            --screenshot-base-url "${{ steps.previews.outputs.base-url }}" \
+            --workflow-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --output test-results/e2e-snapshot-comment.md
+
+      - name: Comment on commit
+        if: ${{ always() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          bun run tools/dev/artifacts/comment-e2e-snapshot-diff.ts \
+            --body-file test-results/e2e-snapshot-comment.md \
+            --commit "${{ matrix.sha }}"
+
+      - name: Fail when snapshot capture failed
+        if: ${{ steps.snapshots.outcome != 'success' }}
+        shell: bash
+        run: exit 1
