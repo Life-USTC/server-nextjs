@@ -101,16 +101,31 @@ async function authorizeMcp(baseUrl: string) {
       );
     }
 
-    await page.goto(authorizeRes.headers().location ?? "");
     const approveByText = page.getByRole("button", {
       name: /allow|approve|authorize|同意|允许|授权/i,
     });
-    if ((await approveByText.count()) === 0) {
-      const debugLogin = page
-        .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
-        .first();
+    const debugLogin = page
+      .getByRole("button", { name: /Debug User \(Dev\)|调试用户（开发）/i })
+      .first();
+    await page.goto(authorizeRes.headers().location ?? "");
+    const nextVisible = await Promise.race([
+      approveByText
+        .first()
+        .waitFor({ state: "visible", timeout: 60_000 })
+        .then(() => "approve" as const)
+        .catch(() => undefined),
+      debugLogin
+        .waitFor({ state: "visible", timeout: 60_000 })
+        .then(() => "login" as const)
+        .catch(() => undefined),
+    ]);
+    if (nextVisible === "login") {
       await debugLogin.waitFor({ state: "visible", timeout: 60_000 });
       await debugLogin.click({ timeout: 60_000 });
+    } else if (nextVisible !== "approve") {
+      throw new Error(
+        "OAuth consent page did not show approve or login action",
+      );
     }
 
     const approve = approveByText.first();

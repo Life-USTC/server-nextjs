@@ -31,6 +31,8 @@ type SnapshotManifest = {
   entries?: unknown;
 };
 
+const MAX_EMBEDDED_JSON_CHARS = 300;
+
 function usage() {
   return [
     "Usage:",
@@ -129,12 +131,15 @@ function escapeCell(value: unknown) {
   return text.replaceAll("|", "\\|").replaceAll("\n", "<br>");
 }
 
-function escapeAttribute(value: unknown) {
+function escapeHtml(value: unknown) {
   return String(value)
     .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function escapeAttribute(value: unknown) {
+  return escapeHtml(value).replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
 function shortSha(sha: string) {
@@ -151,7 +156,30 @@ function resultCell(entry: SnapshotEntry) {
 
 function linkToArtifact(label: string, artifactUrl: string, filePath?: string) {
   if (!filePath) return "-";
-  return `[${label}](${artifactUrl})<br><sub>${escapeCell(filePath)}</sub>`;
+  return `<a href="${escapeAttribute(artifactUrl)}">${escapeHtml(label)}</a><br><sub>${escapeHtml(filePath)}</sub>`;
+}
+
+async function readSnapshotJson(
+  snapshotDir: string,
+  filePath: string | undefined,
+) {
+  if (!filePath) return undefined;
+  const candidates = [
+    path.resolve(filePath),
+    path.join(snapshotDir, snapshotRelativePath(filePath)),
+  ];
+  for (const candidate of candidates) {
+    try {
+      return await fs.readFile(candidate, "utf8");
+    } catch (error) {
+      if (
+        !(error instanceof Error && "code" in error && error.code === "ENOENT")
+      ) {
+        throw error;
+      }
+    }
+  }
+  return undefined;
 }
 
 function snapshotRelativePath(filePath: string) {
@@ -177,46 +205,96 @@ function screenshotCell(
   const label = escapeAttribute(entry.id ?? "screenshot");
   return [
     `<a href="${screenshotUrl}"><img src="${screenshotUrl}" width="320" alt="${label} screenshot"></a>`,
-    `<br><sub>[artifact bundle](${options.artifactUrl}) · ${escapeCell(filePath)}</sub>`,
+    `<br><sub><a href="${escapeAttribute(options.artifactUrl)}">artifact bundle</a> &middot; ${escapeHtml(filePath)}</sub>`,
   ].join("");
 }
 
-function pageRows(
+function finePrint(items: Array<[string, unknown]>) {
+  const content = items
+    .filter(
+      ([, value]) => value !== undefined && value !== null && value !== "",
+    )
+    .map(([label, value]) => `${label}: ${escapeHtml(value)}`)
+    .join(" &middot; ");
+  return content ? `<sub>${content}</sub>` : "";
+}
+
+function detailsJson(summary: string, json: string | undefined) {
+  if (!json) return "<em>No response JSON captured.</em>";
+  const trimmed = json.trimEnd();
+  const truncated =
+    trimmed.length > MAX_EMBEDDED_JSON_CHARS
+      ? `${trimmed.slice(0, MAX_EMBEDDED_JSON_CHARS)}\n... truncated ${trimmed.length - MAX_EMBEDDED_JSON_CHARS} chars ...`
+      : trimmed;
+  return [
+    `<details><summary>${escapeHtml(trimmed.length > MAX_EMBEDDED_JSON_CHARS ? `${summary} preview` : summary)}</summary>`,
+    "",
+    `<pre><code class="language-json">${escapeHtml(truncated)}</code></pre>`,
+    "",
+    "</details>",
+  ].join("\n");
+}
+
+function cardTable(cards: string[], emptyText: string) {
+  if (cards.length === 0) return [emptyText];
+
+  const lines = ['<table role="presentation">', "<tbody>"];
+  for (let index = 0; index < cards.length; index += 2) {
+    lines.push("<tr>");
+    lines.push(`<td width="50%" valign="top">${cards[index]}</td>`);
+    lines.push(
+      `<td width="50%" valign="top">${cards[index + 1] ?? "&nbsp;"}</td>`,
+    );
+    lines.push("</tr>");
+  }
+  lines.push("</tbody>", "</table>");
+  return lines;
+}
+
+function pageCards(
   entries: SnapshotEntry[],
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  const rows = entries.map((entry) =>
+  return entries.map((entry) =>
     [
-      escapeCell(entry.id),
-      escapeCell(entry.auth),
-      resultCell(entry),
+      `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
+      "<br>",
       screenshotCell(entry, options),
-      escapeCell(entry.durationMs),
-    ].join(" | "),
+      "<br>",
+      finePrint([
+        ["auth", entry.auth],
+        ["result", resultCell(entry)],
+        ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
+      ]),
+    ].join(""),
   );
-  return [
-    "| Page | Auth | Result | Screenshot | Duration ms |",
-    "| --- | --- | --- | --- | --- |",
-    ...rows,
-  ];
 }
 
-function responseRows(entries: SnapshotEntry[], artifactUrl: string) {
-  const rows = entries.map((entry) =>
-    [
-      escapeCell(entry.id),
-      escapeCell(entry.method ?? entry.kind),
-      escapeCell(entry.auth),
-      resultCell(entry),
-      linkToArtifact("response.json", artifactUrl, asString(entry.response)),
-      escapeCell(entry.durationMs),
-    ].join(" | "),
+async function responseCards(
+  entries: SnapshotEntry[],
+  options: Pick<Options, "snapshotDir">,
+) {
+  return await Promise.all(
+    entries.map(async (entry) => {
+      const responsePath = asString(entry.response);
+      const json = await readSnapshotJson(options.snapshotDir, responsePath);
+      const type = entry.method ?? entry.kind;
+      return [
+        `<strong>${escapeHtml(entry.id ?? "response")}</strong>`,
+        "<br>",
+        detailsJson("response.json", json),
+        "<br>",
+        finePrint([
+          ["type", type],
+          ["auth", entry.auth],
+          ["result", resultCell(entry)],
+          ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
+          ["path", entry.path],
+          ["artifact path", responsePath],
+        ]),
+      ].join("");
+    }),
   );
-  return [
-    "| Case | Type | Auth | Result | JSON | Duration ms |",
-    "| --- | --- | --- | --- | --- | --- |",
-    ...rows,
-  ];
 }
 
 async function main() {
@@ -236,6 +314,10 @@ async function main() {
   const workflowLink = options.workflowUrl
     ? `Workflow run: [open](${options.workflowUrl})`
     : "Workflow run: -";
+  const [apiCards, mcpCards] = await Promise.all([
+    responseCards(apiEntries, options),
+    responseCards(mcpEntries, options),
+  ]);
 
   const lines = [
     "<!-- life-ustc-e2e-snapshot-artifacts -->",
@@ -249,19 +331,22 @@ async function main() {
     "### Screenshots",
     "",
     ...(pageEntries.length > 0
-      ? pageRows(pageEntries, options)
+      ? cardTable(
+          pageCards(pageEntries, options),
+          "No page screenshots were generated.",
+        )
       : ["No page screenshots were generated."]),
     "",
     "### API Responses",
     "",
     ...(apiEntries.length > 0
-      ? responseRows(apiEntries, options.artifactUrl)
+      ? cardTable(apiCards, "No API response snapshots were generated.")
       : ["No API response snapshots were generated."]),
     "",
     "### MCP Responses",
     "",
     ...(mcpEntries.length > 0
-      ? responseRows(mcpEntries, options.artifactUrl)
+      ? cardTable(mcpCards, "No MCP response snapshots were generated.")
       : ["No MCP response snapshots were generated."]),
     "",
     "</details>",
