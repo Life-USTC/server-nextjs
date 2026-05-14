@@ -116,6 +116,7 @@ async function main() {
     for (const snapshotCase of PAGE_SNAPSHOT_CASES) {
       const context = await browser.newContext({
         baseURL: baseUrl,
+        deviceScaleFactor: 2,
         viewport: { width: 1440, height: 1100 },
       });
       const page = await context.newPage();

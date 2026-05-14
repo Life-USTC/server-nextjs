@@ -31,7 +31,8 @@ type SnapshotManifest = {
   entries?: unknown;
 };
 
-const MAX_EMBEDDED_JSON_CHARS = 300;
+const MAX_EMBEDDED_JSON_CHARS = 600;
+const SCREENSHOT_WIDTH = 480;
 
 function usage() {
   return [
@@ -182,6 +183,37 @@ async function readSnapshotJson(
   return undefined;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function stableJson(value: unknown) {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function responsePreviewJson(entry: SnapshotEntry, json: string | undefined) {
+  if (!json) return undefined;
+
+  try {
+    const snapshot = JSON.parse(json) as unknown;
+    if (entry.kind === "api" && isRecord(snapshot)) {
+      const response = snapshot.response;
+      if (isRecord(response) && "body" in response) {
+        return stableJson(response.body);
+      }
+    }
+
+    if (entry.kind === "mcp" && isRecord(snapshot)) {
+      if ("parsedText" in snapshot) return stableJson(snapshot.parsedText);
+      if ("tools" in snapshot) return stableJson({ tools: snapshot.tools });
+    }
+
+    return stableJson(snapshot);
+  } catch {
+    return json;
+  }
+}
+
 function snapshotRelativePath(filePath: string) {
   return filePath.replace(/^test-results\/e2e-snapshots\//, "");
 }
@@ -203,10 +235,7 @@ function screenshotCell(
 
   const screenshotUrl = `${options.screenshotBaseUrl}/${encodeUrlPath(snapshotRelativePath(filePath))}`;
   const label = escapeAttribute(entry.id ?? "screenshot");
-  return [
-    `<a href="${screenshotUrl}"><img src="${screenshotUrl}" width="320" alt="${label} screenshot"></a>`,
-    `<br><sub><a href="${escapeAttribute(options.artifactUrl)}">artifact bundle</a> &middot; ${escapeHtml(filePath)}</sub>`,
-  ].join("");
+  return `<a href="${screenshotUrl}"><img src="${screenshotUrl}" width="${SCREENSHOT_WIDTH}" alt="${label} screenshot"></a>`;
 }
 
 function finePrint(items: Array<[string, unknown]>) {
@@ -255,8 +284,9 @@ function pageCards(
   entries: SnapshotEntry[],
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  return entries.map((entry) =>
-    [
+  return entries.map((entry) => {
+    const filePath = asString(entry.screenshot);
+    return [
       `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
       "<br>",
       screenshotCell(entry, options),
@@ -265,9 +295,10 @@ function pageCards(
         ["auth", entry.auth],
         ["result", resultCell(entry)],
         ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
+        ["screenshot", filePath],
       ]),
-    ].join(""),
-  );
+    ].join("");
+  });
 }
 
 async function responseCards(
@@ -278,11 +309,15 @@ async function responseCards(
     entries.map(async (entry) => {
       const responsePath = asString(entry.response);
       const json = await readSnapshotJson(options.snapshotDir, responsePath);
+      const previewJson = responsePreviewJson(entry, json);
       const type = entry.method ?? entry.kind;
       return [
         `<strong>${escapeHtml(entry.id ?? "response")}</strong>`,
         "<br>",
-        detailsJson("response.json", json),
+        detailsJson(
+          entry.kind === "api" ? "response body" : "tool result",
+          previewJson,
+        ),
         "<br>",
         finePrint([
           ["type", type],
