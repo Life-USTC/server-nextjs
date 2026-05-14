@@ -19,6 +19,7 @@ export type ApiSnapshotCase = {
   auth: SnapshotAuth;
   data?: unknown;
   headers?: Record<string, string>;
+  expectedStatus?: number;
   resolvePath?: {
     sectionCode: string;
     target: string;
@@ -128,7 +129,13 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
 export const API_SNAPSHOT_CASES: ApiSnapshotCase[] = [
   { id: "metadata", method: "GET", path: "/api/metadata", auth: "public" },
   { id: "openapi", method: "GET", path: "/api/openapi", auth: "public" },
-  { id: "me-public", method: "GET", path: "/api/me", auth: "public" },
+  {
+    id: "me-public",
+    method: "GET",
+    path: "/api/me",
+    auth: "public",
+    expectedStatus: 401,
+  },
   { id: "me-debug", method: "GET", path: "/api/me", auth: "debug" },
   { id: "semesters", method: "GET", path: "/api/semesters", auth: "public" },
   {

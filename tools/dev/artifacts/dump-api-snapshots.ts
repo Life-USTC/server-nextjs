@@ -125,6 +125,7 @@ async function main() {
             pathTemplate: snapshotCase.path,
             auth: snapshotCase.auth,
             data: snapshotCase.data,
+            expectedStatus: snapshotCase.expectedStatus,
           },
           response: {
             status: response.status(),
@@ -145,6 +146,7 @@ async function main() {
           pathTemplate: snapshotCase.path,
           auth: snapshotCase.auth,
           status: response.status(),
+          expectedStatus: snapshotCase.expectedStatus,
           ok: response.ok(),
           contentType,
           note: snapshotCase.note,

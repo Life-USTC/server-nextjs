@@ -19,6 +19,7 @@ type SnapshotEntry = {
   method?: unknown;
   path?: unknown;
   status?: unknown;
+  expectedStatus?: unknown;
   ok?: unknown;
   screenshot?: unknown;
   response?: unknown;
@@ -150,9 +151,17 @@ function shortSha(sha: string) {
 function resultCell(entry: SnapshotEntry) {
   if (entry.error) return `failed: ${escapeCell(entry.error)}`;
   if (entry.status !== undefined) {
+    const expected = entry.status === entry.expectedStatus;
+    if (expected) return `${escapeCell(entry.status)} expected`;
     return `${escapeCell(entry.status)} ${entry.ok === false ? "failed" : "ok"}`;
   }
   return "ok";
+}
+
+function entryFailed(entry: SnapshotEntry) {
+  if (entry.error) return true;
+  if (entry.ok !== false) return false;
+  return entry.status !== entry.expectedStatus;
 }
 
 function linkToArtifact(label: string, artifactUrl: string, filePath?: string) {
@@ -341,7 +350,7 @@ async function main() {
   const apiEntries = asEntries(api);
   const mcpEntries = asEntries(mcp);
   const failedCount = [...pageEntries, ...apiEntries, ...mcpEntries].filter(
-    (entry) => entry.error || entry.ok === false,
+    entryFailed,
   ).length;
   const workflowLink = options.workflowUrl
     ? `Workflow run: [open](${options.workflowUrl})`
