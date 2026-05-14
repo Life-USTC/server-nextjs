@@ -87,11 +87,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup workspace
-        uses: ./.github/actions/setup-bun-env
-        with:
-          install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
-
       - name: Configure job environment
         shell: bash
         run: |
@@ -110,6 +105,15 @@ jobs:
               printf '%s\n' "${{ inputs.extra-env }}"
             fi
           } >> "$GITHUB_ENV"
+
+      - name: Setup workspace
+        uses: ./.github/actions/setup-bun-env
+        with:
+          install-playwright: ${{ inputs.install-playwright && 'true' || 'false' }}
+
+      - name: Generate Prisma client
+        shell: bash
+        run: bun run prisma:generate
 
       - name: Download artifact
         if: ${{ inputs.download-artifact-name != '' }}

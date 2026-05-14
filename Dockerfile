@@ -22,6 +22,7 @@ COPY --from=install-dev /temp/dev/node_modules node_modules
 COPY . .
 
 ENV NODE_ENV=production
+ENV DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/life_ustc_build
 
 RUN bun run build:release
 
