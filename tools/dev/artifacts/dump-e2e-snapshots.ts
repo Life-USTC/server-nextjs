@@ -9,21 +9,24 @@ const commands = [
 ] as const;
 
 function run(label: string, script: string) {
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<Error | undefined>((resolve) => {
     const child = spawn("bun", ["run", script], {
       cwd: process.cwd(),
       env: process.env,
       stdio: "inherit",
     });
     child.on("exit", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`${label} snapshot failed with exit code ${code}`));
+      if (code === 0) resolve(undefined);
+      else
+        resolve(new Error(`${label} snapshot failed with exit code ${code}`));
     });
   });
 }
 
+const failures: Error[] = [];
 for (const [label, script] of commands) {
-  await run(label, script);
+  const failure = await run(label, script);
+  if (failure) failures.push(failure);
 }
 
 const root =
@@ -37,3 +40,7 @@ await writeJsonFile(path.join(root, "manifest.json"), {
     manifest: path.join(label, "manifest.json"),
   })),
 });
+
+if (failures.length > 0) {
+  throw new Error(failures.map((failure) => failure.message).join("\n"));
+}

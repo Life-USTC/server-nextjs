@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import { type APIRequestContext, chromium } from "@playwright/test";
 import {
+  assertNoSnapshotErrors,
   nowIso,
   relativeFromRoot,
   resetDirectory,
@@ -183,6 +184,7 @@ async function main() {
     count: entries.length,
     entries,
   });
+  assertNoSnapshotErrors("api", entries);
 }
 
 await main();

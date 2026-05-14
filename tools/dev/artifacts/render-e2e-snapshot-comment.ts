@@ -268,12 +268,9 @@ function cardTable(cards: string[], emptyText: string) {
   if (cards.length === 0) return [emptyText];
 
   const lines = ['<table role="presentation">', "<tbody>"];
-  for (let index = 0; index < cards.length; index += 2) {
+  for (const card of cards) {
     lines.push("<tr>");
-    lines.push(`<td width="50%" valign="top">${cards[index]}</td>`);
-    lines.push(
-      `<td width="50%" valign="top">${cards[index + 1] ?? "&nbsp;"}</td>`,
-    );
+    lines.push(`<td width="100%" valign="top">${card}</td>`);
     lines.push("</tr>");
   }
   lines.push("</tbody>", "</table>");
@@ -349,6 +346,10 @@ async function main() {
   const workflowLink = options.workflowUrl
     ? `Workflow run: [open](${options.workflowUrl})`
     : "Workflow run: -";
+  const statusLine =
+    failedCount === 0
+      ? "Result: snapshot capture completed without failed entries."
+      : `Result: snapshot capture recorded ${failedCount} failed entries.`;
   const [apiCards, mcpCards] = await Promise.all([
     responseCards(apiEntries, options),
     responseCards(mcpEntries, options),
@@ -361,7 +362,8 @@ async function main() {
     `Commit: \`${options.commit}\``,
     `Artifact: [e2e-snapshot-artifacts](${options.artifactUrl})`,
     workflowLink,
-    `Summary: ${pageEntries.length} screenshots, ${apiEntries.length} API responses, ${mcpEntries.length} MCP responses, ${failedCount} failed entries.`,
+    statusLine,
+    `Captured: ${pageEntries.length} screenshots, ${apiEntries.length} API responses, ${mcpEntries.length} MCP responses.`,
     "",
     "### Screenshots",
     "",

@@ -2,6 +2,7 @@ import * as path from "node:path";
 import { chromium, expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../seed/dev-seed";
 import {
+  assertNoSnapshotErrors,
   nowIso,
   relativeFromRoot,
   resetDirectory,
@@ -190,6 +191,7 @@ async function main() {
     count: entries.length,
     entries,
   });
+  assertNoSnapshotErrors("pages", entries);
 }
 
 await main();

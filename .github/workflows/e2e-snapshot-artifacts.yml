@@ -88,6 +88,10 @@ jobs:
         shell: bash
         run: bun run verify:e2e -- --minio --migrate
 
+      - name: Seed E2E scenarios
+        shell: bash
+        run: bun run dev:seed-scenarios
+
       - name: Capture E2E snapshots
         id: snapshots
         continue-on-error: true

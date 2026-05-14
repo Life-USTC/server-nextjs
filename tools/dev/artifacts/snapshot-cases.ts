@@ -309,7 +309,10 @@ export const MCP_SNAPSHOT_CASES: McpSnapshotCase[] = [
   },
   {
     name: "get_next_class",
-    arguments: { locale: "zh-cn" },
+    arguments: {
+      locale: "zh-cn",
+      atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
+    },
   },
   {
     name: "list_bus_routes",

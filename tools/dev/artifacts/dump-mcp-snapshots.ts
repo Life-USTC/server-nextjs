@@ -4,6 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { chromium } from "@playwright/test";
 import {
+  assertNoSnapshotErrors,
   nowIso,
   relativeFromRoot,
   resetDirectory,
@@ -261,6 +262,7 @@ async function main() {
     count: entries.length,
     entries,
   });
+  assertNoSnapshotErrors("mcp", entries);
 }
 
 await main();

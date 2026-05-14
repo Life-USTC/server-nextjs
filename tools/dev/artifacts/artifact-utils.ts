@@ -4,6 +4,11 @@ import * as path from "node:path";
 
 export type SnapshotKind = "pages" | "api" | "mcp";
 
+export type SnapshotManifestEntry = {
+  id?: unknown;
+  error?: unknown;
+};
+
 export function resolveSnapshotRoot(
   kind: SnapshotKind,
   env: NodeJS.ProcessEnv = process.env,
@@ -50,4 +55,22 @@ export function nowIso() {
 
 export function relativeFromRoot(filePath: string) {
   return path.relative(process.cwd(), filePath).replaceAll(path.sep, "/");
+}
+
+export function assertNoSnapshotErrors(
+  kind: SnapshotKind,
+  entries: SnapshotManifestEntry[],
+) {
+  const failures = entries.filter((entry) => entry.error);
+  if (failures.length === 0) return;
+
+  const labels = failures
+    .map((entry) => {
+      const id = typeof entry.id === "string" ? entry.id : "unknown";
+      const error =
+        entry.error instanceof Error ? entry.error.message : entry.error;
+      return `${id}: ${String(error)}`;
+    })
+    .join("\n");
+  throw new Error(`${kind} snapshot capture failed:\n${labels}`);
 }
