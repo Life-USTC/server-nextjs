@@ -1,3 +1,10 @@
+## [1.29.1](https://github.com/Life-USTC/server-nextjs/compare/v1.29.0...v1.29.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **e2e:** mark expected snapshot statuses ([aa829b1](https://github.com/Life-USTC/server-nextjs/commit/aa829b1d0f96a29cba3c3b77148ac88223ca2bc8))
+
 # [1.29.0](https://github.com/Life-USTC/server-nextjs/compare/v1.28.1...v1.29.0) (2026-05-11)
 
 
