@@ -34,6 +34,7 @@ jobs:
       upload-artifact-name: playwright-standalone
       upload-artifact-path: .next/standalone
       upload-artifact-no-files-found: error
+      upload-artifact-include-hidden-files: true
 
   test-e2e:
     name: E2E Test (${{ matrix.scope }})

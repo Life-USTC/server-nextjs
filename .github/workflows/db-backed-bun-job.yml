@@ -61,6 +61,10 @@ on:
         required: false
         type: boolean
         default: false
+      upload-artifact-include-hidden-files:
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   run:
@@ -134,6 +138,7 @@ jobs:
           path: ${{ inputs.upload-artifact-path }}
           if-no-files-found: ${{ inputs.upload-artifact-no-files-found }}
           retention-days: ${{ inputs.upload-artifact-retention-days }}
+          include-hidden-files: ${{ inputs.upload-artifact-include-hidden-files }}
 
       - name: Upload artifact (always)
         if: ${{ inputs.upload-artifact-path != '' && inputs.upload-artifact-always && always() }}
@@ -143,3 +148,4 @@ jobs:
           path: ${{ inputs.upload-artifact-path }}
           if-no-files-found: ${{ inputs.upload-artifact-no-files-found }}
           retention-days: ${{ inputs.upload-artifact-retention-days }}
+          include-hidden-files: ${{ inputs.upload-artifact-include-hidden-files }}
