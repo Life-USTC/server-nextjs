@@ -7,6 +7,7 @@ type Options = {
   artifactUrl: string;
   commit: string;
   output: string;
+  screenshotBaseUrl?: string;
   status: string;
   workflowUrl?: string;
 };
@@ -33,7 +34,7 @@ type SnapshotManifest = {
 function usage() {
   return [
     "Usage:",
-    "  bun run tools/dev/artifacts/render-e2e-snapshot-comment.ts --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--workflow-url <url>]",
+    "  bun run tools/dev/artifacts/render-e2e-snapshot-comment.ts --snapshot-dir <dir> --artifact-url <url> --commit <sha> --status <status> --output <file> [--screenshot-base-url <url>] [--workflow-url <url>]",
   ].join("\n");
 }
 
@@ -63,6 +64,9 @@ function parseArgs(argv: string[]): Options {
     } else if (arg === "--output") {
       options.output = readValue(argv, index);
       index += 1;
+    } else if (arg === "--screenshot-base-url") {
+      options.screenshotBaseUrl = readValue(argv, index);
+      index += 1;
     } else if (arg === "--workflow-url") {
       options.workflowUrl = readValue(argv, index);
       index += 1;
@@ -89,6 +93,7 @@ function parseArgs(argv: string[]): Options {
     artifactUrl: options.artifactUrl,
     commit: options.commit,
     output: path.resolve(options.output),
+    screenshotBaseUrl: options.screenshotBaseUrl?.replace(/\/$/, ""),
     status: options.status,
     workflowUrl: options.workflowUrl,
   };
@@ -124,6 +129,14 @@ function escapeCell(value: unknown) {
   return text.replaceAll("|", "\\|").replaceAll("\n", "<br>");
 }
 
+function escapeAttribute(value: unknown) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
 function shortSha(sha: string) {
   return sha.slice(0, 12);
 }
@@ -141,13 +154,43 @@ function linkToArtifact(label: string, artifactUrl: string, filePath?: string) {
   return `[${label}](${artifactUrl})<br><sub>${escapeCell(filePath)}</sub>`;
 }
 
-function pageRows(entries: SnapshotEntry[], artifactUrl: string) {
+function snapshotRelativePath(filePath: string) {
+  return filePath.replace(/^test-results\/e2e-snapshots\//, "");
+}
+
+function encodeUrlPath(filePath: string) {
+  return filePath.split("/").map(encodeURIComponent).join("/");
+}
+
+function screenshotCell(
+  entry: SnapshotEntry,
+  options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
+) {
+  const filePath = asString(entry.screenshot);
+  if (!filePath) return "-";
+
+  if (!options.screenshotBaseUrl) {
+    return linkToArtifact("screenshot.png", options.artifactUrl, filePath);
+  }
+
+  const screenshotUrl = `${options.screenshotBaseUrl}/${encodeUrlPath(snapshotRelativePath(filePath))}`;
+  const label = escapeAttribute(entry.id ?? "screenshot");
+  return [
+    `<a href="${screenshotUrl}"><img src="${screenshotUrl}" width="320" alt="${label} screenshot"></a>`,
+    `<br><sub>[artifact bundle](${options.artifactUrl}) · ${escapeCell(filePath)}</sub>`,
+  ].join("");
+}
+
+function pageRows(
+  entries: SnapshotEntry[],
+  options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
+) {
   const rows = entries.map((entry) =>
     [
       escapeCell(entry.id),
       escapeCell(entry.auth),
       resultCell(entry),
-      linkToArtifact("screenshot.png", artifactUrl, asString(entry.screenshot)),
+      screenshotCell(entry, options),
       escapeCell(entry.durationMs),
     ].join(" | "),
   );
@@ -206,7 +249,7 @@ async function main() {
     "### Screenshots",
     "",
     ...(pageEntries.length > 0
-      ? pageRows(pageEntries, options.artifactUrl)
+      ? pageRows(pageEntries, options)
       : ["No page screenshots were generated."]),
     "",
     "### API Responses",

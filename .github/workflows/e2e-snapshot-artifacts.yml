@@ -2,7 +2,8 @@ name: E2E Snapshot Artifacts
 
 on:
   push:
-    branches: ["**"]
+    branches-ignore:
+      - e2e-snapshot-artifacts
   workflow_dispatch:
 
 jobs:
@@ -32,11 +33,12 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         sha: ${{ fromJson(needs.collect-commits.outputs.shas) }}
     concurrency:
-      group: e2e-snapshot-artifacts-${{ matrix.sha }}
-      cancel-in-progress: true
+      group: e2e-snapshot-artifacts-publisher
+      cancel-in-progress: false
     permissions:
       contents: write
     services:
@@ -126,6 +128,46 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Publish screenshot previews
+        id: previews
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          preview_branch="e2e-snapshot-artifacts"
+          preview_root="$(mktemp -d)"
+          git fetch origin "$preview_branch" || true
+
+          if git rev-parse --verify "origin/$preview_branch" >/dev/null 2>&1; then
+            git worktree add "$preview_root" "origin/$preview_branch"
+          else
+            git worktree add --detach "$preview_root"
+            git -C "$preview_root" switch --orphan "$preview_branch"
+            git -C "$preview_root" rm -rf . >/dev/null 2>&1 || true
+          fi
+
+          rm -rf "$preview_root/${{ matrix.sha }}"
+          mkdir -p "$preview_root/${{ matrix.sha }}"
+
+          if [ -d test-results/e2e-snapshots/pages ]; then
+            find test-results/e2e-snapshots/pages -name screenshot.png -print0 |
+              while IFS= read -r -d '' screenshot; do
+                relative_path="${screenshot#test-results/e2e-snapshots/}"
+                mkdir -p "$preview_root/${{ matrix.sha }}/$(dirname "$relative_path")"
+                cp "$screenshot" "$preview_root/${{ matrix.sha }}/$relative_path"
+              done
+          fi
+
+          git -C "$preview_root" config user.name "github-actions[bot]"
+          git -C "$preview_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$preview_root" add "${{ matrix.sha }}"
+
+          if ! git -C "$preview_root" diff --cached --quiet; then
+            git -C "$preview_root" commit -m "chore: publish e2e screenshots for ${{ matrix.sha }}"
+            git -C "$preview_root" push origin "HEAD:$preview_branch"
+          fi
+
+          echo "base-url=https://raw.githubusercontent.com/${{ github.repository }}/$preview_branch/${{ matrix.sha }}" >> "$GITHUB_OUTPUT"
+
       - name: Render commit comment
         if: ${{ always() }}
         shell: bash
@@ -135,6 +177,7 @@ jobs:
             --artifact-url "${{ steps.upload.outputs.artifact-url }}" \
             --commit "${{ matrix.sha }}" \
             --status "${{ steps.snapshots.outcome }}" \
+            --screenshot-base-url "${{ steps.previews.outputs.base-url }}" \
             --workflow-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
             --output test-results/e2e-snapshot-comment.md
 
