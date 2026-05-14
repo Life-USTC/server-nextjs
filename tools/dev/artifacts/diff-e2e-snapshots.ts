@@ -1,7 +1,8 @@
+import { createHash } from "node:crypto";
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { diffLines } from "diff";
-import { sha256File, writeTextFile } from "./artifact-utils";
+import { writeTextFile } from "./artifact-utils";
 
 type Options = {
   baseline: string;
@@ -57,9 +58,7 @@ function parseArgs(argv: string[]): Options {
 }
 
 async function collectFiles(root: string, dir = root): Promise<string[]> {
-  const entries = await fs
-    .readdir(dir, { withFileTypes: true })
-    .catch(() => []);
+  const entries = await fs.readdir(dir, { withFileTypes: true });
   const files = await Promise.all(
     entries.map(async (entry) => {
       const fullPath = path.join(dir, entry.name);
@@ -75,20 +74,45 @@ function isTextFile(filePath: string) {
   return /\.(json|md|txt|ndjson|log|html|xml|ics)$/i.test(filePath);
 }
 
+function stripVolatileFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripVolatileFields);
+  if (!value || typeof value !== "object") return value;
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== "generatedAt" && key !== "durationMs")
+      .map(([key, entry]) => [key, stripVolatileFields(entry)]),
+  );
+}
+
+async function comparableText(filePath: string) {
+  const text = await fs.readFile(filePath, "utf8");
+  if (!filePath.endsWith(".json")) return text;
+
+  return `${JSON.stringify(stripVolatileFields(JSON.parse(text)), null, 2)}\n`;
+}
+
+async function comparableSha256(filePath: string) {
+  return createHash("sha256")
+    .update(await comparableText(filePath))
+    .digest("hex");
+}
+
 async function describeChangedText(
   baselinePath: string,
   candidatePath: string,
   maxDiffLines: number,
 ) {
   const [left, right] = await Promise.all([
-    fs.readFile(baselinePath, "utf8"),
-    fs.readFile(candidatePath, "utf8"),
+    comparableText(baselinePath),
+    comparableText(candidatePath),
   ]);
   const lines: string[] = [];
   for (const part of diffLines(left, right)) {
     const prefix = part.added ? "+" : part.removed ? "-" : " ";
-    for (const line of part.value.split("\n")) {
-      if (line === "") continue;
+    const partLines = part.value.split("\n");
+    if (partLines.at(-1) === "") partLines.pop();
+    for (const line of partLines) {
       if (part.added || part.removed) {
         lines.push(`${prefix}${line}`);
       }
@@ -131,10 +155,19 @@ async function main() {
       continue;
     }
 
-    const [baselineSha256, candidateSha256] = await Promise.all([
-      sha256File(baselinePath),
-      sha256File(candidatePath),
-    ]);
+    const [baselineSha256, candidateSha256] = isTextFile(file)
+      ? await Promise.all([
+          comparableSha256(baselinePath),
+          comparableSha256(candidatePath),
+        ])
+      : await Promise.all([
+          fs
+            .readFile(baselinePath)
+            .then((bytes) => createHash("sha256").update(bytes).digest("hex")),
+          fs
+            .readFile(candidatePath)
+            .then((bytes) => createHash("sha256").update(bytes).digest("hex")),
+        ]);
     if (baselineSha256 === candidateSha256) continue;
 
     changed.push({

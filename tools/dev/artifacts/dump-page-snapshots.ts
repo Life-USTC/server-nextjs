@@ -1,15 +1,20 @@
 import * as path from "node:path";
-import { chromium, type Page } from "@playwright/test";
+import { chromium, expect, type Page } from "@playwright/test";
 import { DEV_SEED } from "../seed/dev-seed";
 import {
   nowIso,
   relativeFromRoot,
+  resetDirectory,
   resolveSnapshotRoot,
   sanitizeFileSegment,
   sha256File,
   writeJsonFile,
 } from "./artifact-utils";
 import { signInForSnapshot } from "./auth";
+import {
+  cleanupSnapshotOAuthClients,
+  disconnectSnapshotOAuthCleanup,
+} from "./oauth-cleanup";
 import { PAGE_SNAPSHOT_CASES, type PageSnapshotCase } from "./snapshot-cases";
 
 async function resolvePath(page: Page, snapshotCase: PageSnapshotCase) {
@@ -31,9 +36,9 @@ async function resolvePath(page: Page, snapshotCase: PageSnapshotCase) {
 
   if (snapshotCase.resolvePath === "user-id") {
     const response = await page.request.get("/api/me");
-    const body = (await response.json()) as { user?: { id?: string } };
-    if (!body.user?.id) throw new Error("Unable to resolve current user id");
-    return `/u/id/${body.user.id}`;
+    const body = (await response.json()) as { id?: string };
+    if (!body.id) throw new Error("Unable to resolve current user id");
+    return `/u/id/${body.id}`;
   }
 
   const sectionResponse = await page.request.post("/api/sections/match-codes", {
@@ -60,33 +65,82 @@ async function resolvePath(page: Page, snapshotCase: PageSnapshotCase) {
   return `/comments/${commentId}`;
 }
 
+async function waitForSnapshotReady(page: Page) {
+  await page
+    .waitForLoadState("networkidle", { timeout: 2_000 })
+    .catch(() => undefined);
+  await expect(page.locator('[data-slot="skeleton"]:visible')).toHaveCount(0, {
+    timeout: 10_000,
+  });
+  await expect(page.getByText(/加载中|Loading/i)).toHaveCount(0, {
+    timeout: 10_000,
+  });
+}
+
+async function gotoSnapshotPage(
+  page: Page,
+  snapshotCase: PageSnapshotCase,
+  requestedPath: string,
+) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await page.goto(requestedPath, {
+        waitUntil: snapshotCase.waitUntil ?? "domcontentloaded",
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        snapshotCase.auth === "public" ||
+        attempt === 2 ||
+        !message.includes("/signin")
+      ) {
+        throw error;
+      }
+      await signInForSnapshot(page, snapshotCase.auth, requestedPath);
+    }
+  }
+  throw new Error(`Unable to navigate to ${requestedPath}`);
+}
+
 async function main() {
   const baseUrl =
     process.env.PLAYWRIGHT_BASE_URL?.trim() || "http://localhost:3000";
   const root = resolveSnapshotRoot("pages");
+  await cleanupSnapshotOAuthClients();
   const browser = await chromium.launch();
-  const context = await browser.newContext({
-    baseURL: baseUrl,
-    viewport: { width: 1440, height: 1100 },
-  });
 
   const entries: Array<Record<string, unknown>> = [];
+  await resetDirectory(root);
 
   try {
     for (const snapshotCase of PAGE_SNAPSHOT_CASES) {
+      const context = await browser.newContext({
+        baseURL: baseUrl,
+        viewport: { width: 1440, height: 1100 },
+      });
       const page = await context.newPage();
       const startedAt = performance.now();
+      const dir = path.join(root, sanitizeFileSegment(snapshotCase.id));
+      await resetDirectory(dir);
       try {
-        await signInForSnapshot(page, snapshotCase.auth);
+        await signInForSnapshot(
+          page,
+          snapshotCase.auth,
+          snapshotCase.resolvePath ? "/" : snapshotCase.path,
+        );
         const requestedPath = await resolvePath(page, snapshotCase);
-        const response = await page.goto(requestedPath, {
-          waitUntil: snapshotCase.waitUntil ?? "domcontentloaded",
-        });
-        await page.waitForLoadState("networkidle").catch(() => undefined);
+        const response = await gotoSnapshotPage(
+          page,
+          snapshotCase,
+          requestedPath,
+        );
+        await waitForSnapshotReady(page);
 
-        const dir = path.join(root, sanitizeFileSegment(snapshotCase.id));
         const screenshotPath = path.join(dir, "screenshot.png");
-        await page.screenshot({ path: screenshotPath, fullPage: true });
+        await page.screenshot({
+          path: screenshotPath,
+          fullPage: snapshotCase.fullPage ?? true,
+        });
 
         const metadata = {
           id: snapshotCase.id,
@@ -115,23 +169,17 @@ async function main() {
           error: error instanceof Error ? error.message : String(error),
           durationMs: Math.round(performance.now() - startedAt),
         };
-        await writeJsonFile(
-          path.join(
-            root,
-            sanitizeFileSegment(snapshotCase.id),
-            "metadata.json",
-          ),
-          metadata,
-        );
+        await writeJsonFile(path.join(dir, "metadata.json"), metadata);
         entries.push(metadata);
         console.error(`page ${snapshotCase.id}: failed`);
       } finally {
         await page.close();
+        await context.close();
       }
     }
   } finally {
-    await context.close();
     await browser.close();
+    await disconnectSnapshotOAuthCleanup();
   }
 
   await writeJsonFile(path.join(root, "manifest.json"), {

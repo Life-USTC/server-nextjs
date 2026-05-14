@@ -6,11 +6,17 @@ import { chromium } from "@playwright/test";
 import {
   nowIso,
   relativeFromRoot,
+  resetDirectory,
   resolveSnapshotRoot,
   sanitizeFileSegment,
   sha256File,
   writeJsonFile,
 } from "./artifact-utils";
+import {
+  cleanupSnapshotOAuthClients,
+  createSnapshotOAuthClientName,
+  disconnectSnapshotOAuthCleanup,
+} from "./oauth-cleanup";
 import { MCP_SNAPSHOT_CASES } from "./snapshot-cases";
 
 function generateCodeChallenge(codeVerifier: string) {
@@ -34,7 +40,9 @@ function textContentFromResult(result: unknown) {
 }
 
 async function authorizeMcp(baseUrl: string) {
-  const resource = `${baseUrl}/api/mcp`;
+  const publicOrigin = process.env.APP_PUBLIC_ORIGIN?.trim() || baseUrl;
+  const endpoint = `${baseUrl}/api/mcp`;
+  const resource = `${publicOrigin.replace(/\/$/, "")}/api/mcp`;
   const redirectUri = `${baseUrl}/e2e/oauth/callback`;
   const headers = { Origin: baseUrl, Referer: `${baseUrl}/` };
   const browser = await chromium.launch();
@@ -51,7 +59,7 @@ async function authorizeMcp(baseUrl: string) {
 
     const registerRes = await page.request.post("/api/auth/oauth2/register", {
       data: {
-        client_name: `mcp-snapshot-${Date.now()}`,
+        client_name: createSnapshotOAuthClientName(),
         redirect_uris: [redirectUri],
         token_endpoint_auth_method: "none",
         grant_types: ["authorization_code"],
@@ -134,7 +142,7 @@ async function authorizeMcp(baseUrl: string) {
     };
     if (!accessToken) throw new Error("OAuth token response missing token");
 
-    return { accessToken, resource };
+    return { accessToken, endpoint, resource };
   } finally {
     await context.close();
     await browser.close();
@@ -145,8 +153,9 @@ async function main() {
   const baseUrl =
     process.env.PLAYWRIGHT_BASE_URL?.trim() || "http://localhost:3000";
   const root = resolveSnapshotRoot("mcp");
-  const { accessToken, resource } = await authorizeMcp(baseUrl);
-  const transport = new StreamableHTTPClientTransport(new URL(resource), {
+  await cleanupSnapshotOAuthClients();
+  const { accessToken, endpoint, resource } = await authorizeMcp(baseUrl);
+  const transport = new StreamableHTTPClientTransport(new URL(endpoint), {
     requestInit: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
   const mcpClient = new Client({
@@ -154,10 +163,13 @@ async function main() {
     version: "1.0.0",
   });
   const entries: Array<Record<string, unknown>> = [];
+  await resetDirectory(root);
 
   try {
     await mcpClient.connect(transport);
-    const toolsPath = path.join(root, "_tools", "list-tools.json");
+    const toolsDir = path.join(root, "_tools");
+    await resetDirectory(toolsDir);
+    const toolsPath = path.join(toolsDir, "list-tools.json");
     const listed = await mcpClient.listTools();
     await writeJsonFile(toolsPath, listed);
     entries.push({
@@ -171,6 +183,7 @@ async function main() {
     for (const snapshotCase of MCP_SNAPSHOT_CASES) {
       const startedAt = performance.now();
       const dir = path.join(root, sanitizeFileSegment(snapshotCase.name));
+      await resetDirectory(dir);
       try {
         const result = await mcpClient.callTool({
           name: snapshotCase.name,
@@ -220,11 +233,14 @@ async function main() {
     }
   } finally {
     await transport.close();
+    await cleanupSnapshotOAuthClients().catch(() => undefined);
+    await disconnectSnapshotOAuthCleanup();
   }
 
   await writeJsonFile(path.join(root, "manifest.json"), {
     kind: "mcp",
     baseUrl,
+    endpoint,
     resource,
     generatedAt: nowIso(),
     count: entries.length,

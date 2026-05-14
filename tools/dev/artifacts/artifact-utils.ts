@@ -34,6 +34,11 @@ export async function writeTextFile(filePath: string, value: string) {
   await fs.writeFile(filePath, value.endsWith("\n") ? value : `${value}\n`);
 }
 
+export async function resetDirectory(dirPath: string) {
+  await fs.rm(dirPath, { recursive: true, force: true });
+  await fs.mkdir(dirPath, { recursive: true });
+}
+
 export async function sha256File(filePath: string) {
   const bytes = await fs.readFile(filePath);
   return createHash("sha256").update(bytes).digest("hex");

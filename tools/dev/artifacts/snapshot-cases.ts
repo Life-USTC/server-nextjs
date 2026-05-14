@@ -1,4 +1,4 @@
-import { DEV_SEED } from "../seed/dev-seed";
+import { DEV_SEED, DEV_SEED_ANCHOR } from "../seed/dev-seed";
 
 export type SnapshotAuth = "public" | "debug" | "admin";
 
@@ -7,6 +7,7 @@ export type PageSnapshotCase = {
   path: string;
   auth: SnapshotAuth;
   resolvePath?: "teacher-detail" | "user-id" | "comment-detail";
+  fullPage?: boolean;
   waitUntil?: "load" | "domcontentloaded";
   note?: string;
 };
@@ -18,6 +19,10 @@ export type ApiSnapshotCase = {
   auth: SnapshotAuth;
   data?: unknown;
   headers?: Record<string, string>;
+  resolvePath?: {
+    sectionCode: string;
+    target: string;
+  };
   note?: string;
 };
 
@@ -30,7 +35,6 @@ export type McpSnapshotCase = {
 export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
   { id: "home", path: "/", auth: "public" },
   { id: "signin", path: "/signin", auth: "public" },
-  { id: "welcome", path: "/welcome", auth: "debug" },
   { id: "settings", path: "/settings", auth: "debug" },
   { id: "api-docs", path: "/api-docs", auth: "public", waitUntil: "load" },
   { id: "privacy", path: "/privacy", auth: "public" },
@@ -111,7 +115,7 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
   { id: "admin-users", path: "/admin/users", auth: "admin" },
   { id: "admin-bus", path: "/admin/bus", auth: "admin" },
   { id: "admin-moderation", path: "/admin/moderation", auth: "admin" },
-  { id: "admin-oauth", path: "/admin/oauth", auth: "admin" },
+  { id: "admin-oauth", path: "/admin/oauth", auth: "admin", fullPage: false },
   { id: "oauth-device", path: "/oauth/device", auth: "public" },
   {
     id: "oauth-authorize",
@@ -189,16 +193,28 @@ export const API_SNAPSHOT_CASES: ApiSnapshotCase[] = [
     path: "/api/bus/preferences",
     auth: "debug",
   },
-  { id: "comments", method: "GET", path: "/api/comments", auth: "debug" },
-  { id: "todos", method: "GET", path: "/api/todos", auth: "debug" },
-  { id: "homeworks", method: "GET", path: "/api/homeworks", auth: "debug" },
-  { id: "schedules", method: "GET", path: "/api/schedules", auth: "debug" },
   {
-    id: "calendar-subscriptions",
+    id: "comments",
     method: "GET",
-    path: "/api/calendar-subscriptions",
+    path: "/api/comments?targetType=section&targetId=__section_id__",
     auth: "debug",
+    resolvePath: {
+      sectionCode: DEV_SEED.section.code,
+      target: "/api/comments?targetType=section&targetId=__section_id__",
+    },
   },
+  { id: "todos", method: "GET", path: "/api/todos", auth: "debug" },
+  {
+    id: "homeworks",
+    method: "GET",
+    path: "/api/homeworks?sectionId=__section_id__",
+    auth: "debug",
+    resolvePath: {
+      sectionCode: DEV_SEED.section.code,
+      target: "/api/homeworks?sectionId=__section_id__",
+    },
+  },
+  { id: "schedules", method: "GET", path: "/api/schedules", auth: "debug" },
   {
     id: "calendar-subscription-current",
     method: "GET",
@@ -220,7 +236,7 @@ export const API_SNAPSHOT_CASES: ApiSnapshotCase[] = [
   {
     id: "admin-suspensions",
     method: "GET",
-    path: "/api/admin/suspensions?limit=5",
+    path: "/api/admin/suspensions",
     auth: "admin",
   },
 ];
@@ -272,15 +288,27 @@ export const MCP_SNAPSHOT_CASES: McpSnapshotCase[] = [
     name: "list_my_exams",
     arguments: { includeDateUnknown: true, limit: 10, locale: "zh-cn" },
   },
-  { name: "get_my_overview", arguments: { locale: "zh-cn" } },
-  { name: "get_my_7days_timeline", arguments: { locale: "zh-cn" } },
+  {
+    name: "get_my_overview",
+    arguments: {
+      locale: "zh-cn",
+      atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
+    },
+  },
+  {
+    name: "get_my_7days_timeline",
+    arguments: {
+      locale: "zh-cn",
+      atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
+    },
+  },
   { name: "get_my_calendar_subscription", arguments: { locale: "zh-cn" } },
   {
     name: "get_my_dashboard",
-    arguments: { locale: "zh-cn", mode: "compact" },
+    arguments: { locale: "zh-cn", mode: "summary" },
   },
   {
-    name: "get_my_next_class",
+    name: "get_next_class",
     arguments: { locale: "zh-cn" },
   },
   {
@@ -288,8 +316,13 @@ export const MCP_SNAPSHOT_CASES: McpSnapshotCase[] = [
     arguments: { locale: "zh-cn", summary: true },
   },
   {
-    name: "get_next_bus",
-    arguments: { locale: "zh-cn" },
-    note: "Uses the seeded user's preferred shuttle route when present.",
+    name: "get_next_buses",
+    arguments: {
+      locale: "zh-cn",
+      originCampusId: DEV_SEED.bus.originCampusId,
+      destinationCampusId: DEV_SEED.bus.destinationCampusId,
+      atTime: DEV_SEED_ANCHOR.recommendedAtTime,
+      limit: 5,
+    },
   },
 ];

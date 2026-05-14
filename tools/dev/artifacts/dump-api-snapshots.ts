@@ -3,6 +3,7 @@ import { type APIRequestContext, chromium } from "@playwright/test";
 import {
   nowIso,
   relativeFromRoot,
+  resetDirectory,
   resolveSnapshotRoot,
   sanitizeFileSegment,
   sha256File,
@@ -10,7 +11,11 @@ import {
   writeTextFile,
 } from "./artifact-utils";
 import { createAuthedPage } from "./auth";
-import { API_SNAPSHOT_CASES, type SnapshotAuth } from "./snapshot-cases";
+import {
+  API_SNAPSHOT_CASES,
+  type ApiSnapshotCase,
+  type SnapshotAuth,
+} from "./snapshot-cases";
 
 async function requestForAuth(
   requests: Map<SnapshotAuth, APIRequestContext>,
@@ -19,6 +24,48 @@ async function requestForAuth(
   const request = requests.get(auth);
   if (!request) throw new Error(`Missing request context for ${auth}`);
   return request;
+}
+
+async function resolvePath(
+  request: APIRequestContext,
+  snapshotCase: ApiSnapshotCase,
+) {
+  if (!snapshotCase.resolvePath) return snapshotCase.path;
+
+  const response = await request.post("/api/sections/match-codes", {
+    data: { codes: [snapshotCase.resolvePath.sectionCode] },
+  });
+  const body = (await response.json()) as {
+    sections?: Array<{ id?: number; code?: string | null }>;
+  };
+  const sectionId = body.sections?.find(
+    (section) => section.code === snapshotCase.resolvePath?.sectionCode,
+  )?.id;
+  if (!sectionId) throw new Error("Unable to resolve seed section id");
+
+  return snapshotCase.resolvePath.target.replace(
+    "__section_id__",
+    `${sectionId}`,
+  );
+}
+
+function stableResponseHeaders(headers: Record<string, string>) {
+  const volatileHeaders = new Set([
+    "date",
+    "etag",
+    "x-matched-path",
+    "x-middleware-rewrite",
+    "x-nextjs-cache",
+    "x-powered-by",
+    "x-request-id",
+    "x-vercel-cache",
+    "x-vercel-id",
+  ]);
+  return Object.fromEntries(
+    Object.entries(headers)
+      .filter(([key]) => !volatileHeaders.has(key.toLowerCase()))
+      .sort(([left], [right]) => left.localeCompare(right)),
+  );
 }
 
 async function main() {
@@ -32,6 +79,7 @@ async function main() {
   >();
   const requests = new Map<SnapshotAuth, APIRequestContext>();
   const entries: Array<Record<string, unknown>> = [];
+  await resetDirectory(root);
 
   try {
     for (const auth of ["public", "debug", "admin"] as const) {
@@ -47,14 +95,16 @@ async function main() {
     for (const snapshotCase of API_SNAPSHOT_CASES) {
       const startedAt = performance.now();
       const dir = path.join(root, sanitizeFileSegment(snapshotCase.id));
+      await resetDirectory(dir);
       const request = await requestForAuth(requests, snapshotCase.auth);
       try {
+        const requestedPath = await resolvePath(request, snapshotCase);
         const response =
           snapshotCase.method === "GET"
-            ? await request.get(snapshotCase.path, {
+            ? await request.get(requestedPath, {
                 headers: snapshotCase.headers,
               })
-            : await request.post(snapshotCase.path, {
+            : await request.post(requestedPath, {
                 data: snapshotCase.data,
                 headers: snapshotCase.headers,
               });
@@ -70,14 +120,15 @@ async function main() {
           id: snapshotCase.id,
           request: {
             method: snapshotCase.method,
-            path: snapshotCase.path,
+            path: requestedPath,
+            pathTemplate: snapshotCase.path,
             auth: snapshotCase.auth,
             data: snapshotCase.data,
           },
           response: {
             status: response.status(),
             ok: response.ok(),
-            headers: response.headers(),
+            headers: stableResponseHeaders(response.headers()),
             body,
           },
         });
@@ -89,7 +140,8 @@ async function main() {
           id: snapshotCase.id,
           kind: "api",
           method: snapshotCase.method,
-          path: snapshotCase.path,
+          path: requestedPath,
+          pathTemplate: snapshotCase.path,
           auth: snapshotCase.auth,
           status: response.status(),
           ok: response.ok(),
