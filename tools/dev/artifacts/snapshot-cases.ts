@@ -1,0 +1,295 @@
+import { DEV_SEED } from "../seed/dev-seed";
+
+export type SnapshotAuth = "public" | "debug" | "admin";
+
+export type PageSnapshotCase = {
+  id: string;
+  path: string;
+  auth: SnapshotAuth;
+  resolvePath?: "teacher-detail" | "user-id" | "comment-detail";
+  waitUntil?: "load" | "domcontentloaded";
+  note?: string;
+};
+
+export type ApiSnapshotCase = {
+  id: string;
+  method: "GET" | "POST";
+  path: string;
+  auth: SnapshotAuth;
+  data?: unknown;
+  headers?: Record<string, string>;
+  note?: string;
+};
+
+export type McpSnapshotCase = {
+  name: string;
+  arguments: Record<string, unknown>;
+  note?: string;
+};
+
+export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
+  { id: "home", path: "/", auth: "public" },
+  { id: "signin", path: "/signin", auth: "public" },
+  { id: "welcome", path: "/welcome", auth: "debug" },
+  { id: "settings", path: "/settings", auth: "debug" },
+  { id: "api-docs", path: "/api-docs", auth: "public", waitUntil: "load" },
+  { id: "privacy", path: "/privacy", auth: "public" },
+  { id: "terms", path: "/terms", auth: "public" },
+  { id: "mobile-app", path: "/mobile-app", auth: "public" },
+  { id: "markdown-guide", path: "/guides/markdown-support", auth: "public" },
+  { id: "error", path: "/error", auth: "public" },
+  {
+    id: "oauth-callback",
+    path: "/e2e/oauth/callback",
+    auth: "public",
+    note: "Technical callback page captured without OAuth params.",
+  },
+  { id: "bus", path: "/?tab=bus", auth: "public" },
+  { id: "bus-map", path: "/bus-map", auth: "public" },
+  {
+    id: "courses",
+    path: `/courses?search=${encodeURIComponent(DEV_SEED.course.code)}`,
+    auth: "public",
+  },
+  {
+    id: "course-detail",
+    path: `/courses/${DEV_SEED.course.jwId}`,
+    auth: "public",
+  },
+  {
+    id: "sections",
+    path: `/sections?search=${encodeURIComponent(DEV_SEED.section.code)}`,
+    auth: "public",
+  },
+  {
+    id: "section-detail",
+    path: `/sections/${DEV_SEED.section.jwId}`,
+    auth: "public",
+  },
+  {
+    id: "teachers",
+    path: `/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}`,
+    auth: "public",
+  },
+  {
+    id: "teacher-detail",
+    path: "/teachers/__resolved__",
+    auth: "public",
+    resolvePath: "teacher-detail",
+  },
+  { id: "comments-guide", path: "/comments/guide", auth: "public" },
+  {
+    id: "comment-detail",
+    path: "/comments/__resolved__",
+    auth: "debug",
+    resolvePath: "comment-detail",
+  },
+  {
+    id: "user-profile",
+    path: `/u/${DEV_SEED.debugUsername}`,
+    auth: "public",
+  },
+  {
+    id: "user-id",
+    path: "/u/id/__resolved__",
+    auth: "debug",
+    resolvePath: "user-id",
+  },
+  { id: "dashboard", path: "/?tab=overview", auth: "debug" },
+  { id: "dashboard-calendar", path: "/?tab=calendar", auth: "debug" },
+  { id: "dashboard-todos", path: "/?tab=todos", auth: "debug" },
+  { id: "dashboard-homeworks", path: "/?tab=homeworks", auth: "debug" },
+  { id: "dashboard-exams", path: "/?tab=exams", auth: "debug" },
+  { id: "dashboard-comments", path: "/?tab=comments", auth: "debug" },
+  { id: "dashboard-links", path: "/?tab=links", auth: "debug" },
+  {
+    id: "dashboard-subscriptions-sections",
+    path: "/?tab=subscriptions",
+    auth: "debug",
+  },
+  { id: "admin", path: "/admin", auth: "admin" },
+  { id: "admin-users", path: "/admin/users", auth: "admin" },
+  { id: "admin-bus", path: "/admin/bus", auth: "admin" },
+  { id: "admin-moderation", path: "/admin/moderation", auth: "admin" },
+  { id: "admin-oauth", path: "/admin/oauth", auth: "admin" },
+  { id: "oauth-device", path: "/oauth/device", auth: "public" },
+  {
+    id: "oauth-authorize",
+    path: "/oauth/authorize",
+    auth: "public",
+    note: "Expected to render an invalid-request/consent shell without OAuth params.",
+  },
+];
+
+export const API_SNAPSHOT_CASES: ApiSnapshotCase[] = [
+  { id: "metadata", method: "GET", path: "/api/metadata", auth: "public" },
+  { id: "openapi", method: "GET", path: "/api/openapi", auth: "public" },
+  { id: "me-public", method: "GET", path: "/api/me", auth: "public" },
+  { id: "me-debug", method: "GET", path: "/api/me", auth: "debug" },
+  { id: "semesters", method: "GET", path: "/api/semesters", auth: "public" },
+  {
+    id: "current-semester",
+    method: "GET",
+    path: "/api/semesters/current",
+    auth: "public",
+  },
+  {
+    id: "courses-search",
+    method: "GET",
+    path: `/api/courses?search=${encodeURIComponent(DEV_SEED.course.code)}&limit=5`,
+    auth: "public",
+  },
+  {
+    id: "course-detail",
+    method: "GET",
+    path: `/api/courses/${DEV_SEED.course.jwId}`,
+    auth: "public",
+  },
+  {
+    id: "sections-search",
+    method: "GET",
+    path: `/api/sections?search=${encodeURIComponent(DEV_SEED.section.code)}&limit=5`,
+    auth: "public",
+  },
+  {
+    id: "section-detail",
+    method: "GET",
+    path: `/api/sections/${DEV_SEED.section.jwId}`,
+    auth: "public",
+  },
+  {
+    id: "section-schedules",
+    method: "GET",
+    path: `/api/sections/${DEV_SEED.section.jwId}/schedules`,
+    auth: "public",
+  },
+  {
+    id: "section-schedule-groups",
+    method: "GET",
+    path: `/api/sections/${DEV_SEED.section.jwId}/schedule-groups`,
+    auth: "public",
+  },
+  {
+    id: "section-match-codes",
+    method: "POST",
+    path: "/api/sections/match-codes",
+    auth: "public",
+    data: { codes: [DEV_SEED.section.code, "NOT-EXIST-CODE"] },
+  },
+  {
+    id: "teachers-search",
+    method: "GET",
+    path: `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=5`,
+    auth: "public",
+  },
+  { id: "bus", method: "GET", path: "/api/bus", auth: "public" },
+  {
+    id: "bus-preferences",
+    method: "GET",
+    path: "/api/bus/preferences",
+    auth: "debug",
+  },
+  { id: "comments", method: "GET", path: "/api/comments", auth: "debug" },
+  { id: "todos", method: "GET", path: "/api/todos", auth: "debug" },
+  { id: "homeworks", method: "GET", path: "/api/homeworks", auth: "debug" },
+  { id: "schedules", method: "GET", path: "/api/schedules", auth: "debug" },
+  {
+    id: "calendar-subscriptions",
+    method: "GET",
+    path: "/api/calendar-subscriptions",
+    auth: "debug",
+  },
+  {
+    id: "calendar-subscription-current",
+    method: "GET",
+    path: "/api/calendar-subscriptions/current",
+    auth: "debug",
+  },
+  {
+    id: "admin-users",
+    method: "GET",
+    path: "/api/admin/users?limit=5",
+    auth: "admin",
+  },
+  {
+    id: "admin-comments",
+    method: "GET",
+    path: "/api/admin/comments?limit=5",
+    auth: "admin",
+  },
+  {
+    id: "admin-suspensions",
+    method: "GET",
+    path: "/api/admin/suspensions?limit=5",
+    auth: "admin",
+  },
+];
+
+export const MCP_SNAPSHOT_CASES: McpSnapshotCase[] = [
+  { name: "get_my_profile", arguments: {} },
+  { name: "list_my_todos", arguments: {} },
+  {
+    name: "search_courses",
+    arguments: { search: DEV_SEED.course.code, limit: 5, locale: "zh-cn" },
+  },
+  {
+    name: "get_section_by_jw_id",
+    arguments: { jwId: DEV_SEED.section.jwId, locale: "zh-cn" },
+  },
+  {
+    name: "match_section_codes",
+    arguments: {
+      codes: [DEV_SEED.section.code, "NOT-EXIST-CODE"],
+      locale: "zh-cn",
+    },
+  },
+  {
+    name: "list_homeworks_by_section",
+    arguments: {
+      sectionJwId: DEV_SEED.section.jwId,
+      includeDeleted: false,
+      locale: "zh-cn",
+    },
+  },
+  {
+    name: "list_schedules_by_section",
+    arguments: {
+      sectionJwId: DEV_SEED.section.jwId,
+      limit: 5,
+      locale: "zh-cn",
+    },
+  },
+  {
+    name: "list_exams_by_section",
+    arguments: { sectionJwId: DEV_SEED.section.jwId, locale: "zh-cn" },
+  },
+  {
+    name: "list_my_homeworks",
+    arguments: { completed: false, limit: 10, locale: "zh-cn" },
+  },
+  { name: "list_my_schedules", arguments: { limit: 10, locale: "zh-cn" } },
+  {
+    name: "list_my_exams",
+    arguments: { includeDateUnknown: true, limit: 10, locale: "zh-cn" },
+  },
+  { name: "get_my_overview", arguments: { locale: "zh-cn" } },
+  { name: "get_my_7days_timeline", arguments: { locale: "zh-cn" } },
+  { name: "get_my_calendar_subscription", arguments: { locale: "zh-cn" } },
+  {
+    name: "get_my_dashboard",
+    arguments: { locale: "zh-cn", mode: "compact" },
+  },
+  {
+    name: "get_my_next_class",
+    arguments: { locale: "zh-cn" },
+  },
+  {
+    name: "list_bus_routes",
+    arguments: { locale: "zh-cn", summary: true },
+  },
+  {
+    name: "get_next_bus",
+    arguments: { locale: "zh-cn" },
+    note: "Uses the seeded user's preferred shuttle route when present.",
+  },
+];
