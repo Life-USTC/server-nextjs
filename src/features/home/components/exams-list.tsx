@@ -58,13 +58,20 @@ function isExamCompleted(exam: ExamRow, now: dayjs.Dayjs) {
   return examEnd.isBefore(now);
 }
 
-export function ExamsList({ exams }: { exams: ExamRow[] }) {
+export function ExamsList({
+  exams,
+  referenceNow,
+}: {
+  exams: ExamRow[];
+  referenceNow?: string | null;
+}) {
   const t = useTranslations("meDashboard.nav.exams");
   const tSection = useTranslations("sectionDetail");
   const [filter, setFilter] = useState<ExamFilter>("incomplete");
 
   const filteredExams = useMemo(() => {
-    const now = dayjs();
+    const anchoredNow = referenceNow ? dayjs(referenceNow) : null;
+    const now = anchoredNow?.isValid() ? anchoredNow : dayjs();
     if (filter === "completed") {
       return exams.filter((exam) => isExamCompleted(exam, now));
     }
@@ -72,7 +79,7 @@ export function ExamsList({ exams }: { exams: ExamRow[] }) {
       return exams.filter((exam) => !isExamCompleted(exam, now));
     }
     return exams;
-  }, [exams, filter]);
+  }, [exams, filter, referenceNow]);
 
   return (
     <div className="space-y-4">

@@ -33,6 +33,14 @@ import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary"
 import { getPublicOrigin } from "@/lib/site-url";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
+const DATE_ONLY_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function isDateOnlyInput(value: unknown) {
+  return (
+    typeof value === "string" && DATE_ONLY_INPUT_PATTERN.test(value.trim())
+  );
+}
+
 function getCalendarSubscriptionReadPayload(
   subscription: NonNullable<
     Awaited<ReturnType<typeof getUserCalendarSubscription>>
@@ -337,6 +345,9 @@ export function registerCalendarTools(server: McpServer) {
         locale,
         dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
         dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
+        dateFromIsDateOnly: isDateOnlyInput(dateFrom),
+        dateToIsDateOnly: isDateOnlyInput(dateTo),
+        dateToInclusive: true,
       });
       const resolvedMode = resolveMcpMode(mode);
 

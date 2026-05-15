@@ -81,7 +81,7 @@
             "returns": "{ user, currentSemester, subscriptions, nextClass, upcomingDeadlines, upcomingEvents, todos, bus }",
             "notes": [
               "Preferred single-call snapshot for assistant workflows.",
-              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures.",
+              "Overlaps get_my_overview but adds currentSemester, currentSemesterSections, nextClass, merged deadlines, and preferred-bus departures; accepts optional atTime to anchor those time windows instead of using the server clock.",
               "Default mode should stay assistant-compact; request full mode when the caller explicitly needs full nested schedule, room, teacher, or homework payloads.",
               "Summary mode should be materially smaller than default, focusing on counts and the next few actionable items instead of mirroring the full compact snapshot."
             ]
@@ -89,7 +89,10 @@
           {
             "name": "get_next_class",
             "returns": "{ found: Boolean, nextClass, currentSemester }",
-            "notes": ["Focused extract for 'what is my next class?' prompts."]
+            "notes": [
+              "Focused extract for 'what is my next class?' prompts.",
+              "Accepts optional atTime to anchor the lookup instead of using the server clock."
+            ]
           },
           {
             "name": "get_upcoming_deadlines",

@@ -18,6 +18,9 @@ type SnapshotEntry = {
   auth?: unknown;
   method?: unknown;
   path?: unknown;
+  requestedPath?: unknown;
+  pathTemplate?: unknown;
+  finalUrl?: unknown;
   status?: unknown;
   expectedStatus?: unknown;
   ok?: unknown;
@@ -30,6 +33,12 @@ type SnapshotEntry = {
 type SnapshotManifest = {
   count?: unknown;
   entries?: unknown;
+};
+
+type PageTreeNode = {
+  label: string;
+  entries: SnapshotEntry[];
+  children: Map<string, PageTreeNode>;
 };
 
 const MAX_EMBEDDED_JSON_CHARS = 600;
@@ -257,6 +266,105 @@ function finePrint(items: Array<[string, unknown]>) {
   return content ? `<sub>${content}</sub>` : "";
 }
 
+function pageRoute(entry: SnapshotEntry) {
+  const candidates = [entry.finalUrl, entry.requestedPath, entry.pathTemplate];
+  for (const candidate of candidates) {
+    const value = asString(candidate);
+    if (!value) continue;
+    try {
+      const url = new URL(value, "http://snapshot.local");
+      return `${url.pathname}${url.search}`;
+    } catch {
+      return value;
+    }
+  }
+  return asString(entry.id) ?? "/";
+}
+
+function pageRouteSegments(entry: SnapshotEntry) {
+  const route = pageRoute(entry);
+  let url: URL;
+  try {
+    url = new URL(route, "http://snapshot.local");
+  } catch {
+    return [route || "/"];
+  }
+
+  const segments = url.pathname.split("/").filter(Boolean);
+  if (segments.length === 0) segments.push("/");
+
+  if (url.search) {
+    segments.push(url.search);
+  }
+
+  return segments;
+}
+
+function comparePageEntries(a: SnapshotEntry, b: SnapshotEntry) {
+  return pageRoute(a).localeCompare(pageRoute(b), "en");
+}
+
+function createPageTreeNode(label: string): PageTreeNode {
+  return { label, entries: [], children: new Map() };
+}
+
+function buildPageTree(entries: SnapshotEntry[]) {
+  const root = createPageTreeNode("/");
+
+  for (const entry of entries) {
+    const segments = pageRouteSegments(entry);
+    let node = root;
+    for (const segment of segments) {
+      const existing = node.children.get(segment);
+      if (existing) {
+        node = existing;
+        continue;
+      }
+
+      const child = createPageTreeNode(segment);
+      node.children.set(segment, child);
+      node = child;
+    }
+    node.entries.push(entry);
+  }
+
+  return root;
+}
+
+function renderPageTreeNode(
+  node: PageTreeNode,
+  options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
+  depth = 0,
+): string[] {
+  const lines: string[] = [];
+  const entries = [...node.entries].sort(comparePageEntries);
+  const children = [...node.children.values()].sort((a, b) =>
+    a.label.localeCompare(b.label, "en"),
+  );
+
+  if (depth > 0) {
+    const summary = `${escapeHtml(node.label)}${entries.length > 0 ? ` (${entries.length})` : ""}`;
+    lines.push(`<details open><summary>${summary}</summary>`, "");
+  }
+
+  if (entries.length > 0) {
+    lines.push(
+      ...cardTable(pageCards(entries, options), "No page screenshots here."),
+      "",
+    );
+  }
+
+  for (const child of children) {
+    lines.push(...renderPageTreeNode(child, options, depth + 1));
+  }
+
+  if (depth > 0) {
+    lines.push("</details>", "");
+  }
+
+  return lines;
+}
+
 function detailsJson(summary: string, json: string | undefined) {
   if (!json) return "<em>No response JSON captured.</em>";
   const trimmed = json.trimEnd();
@@ -294,6 +402,8 @@ function pageCards(
     const filePath = asString(entry.screenshot);
     return [
       `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
+      "<br>",
+      `<code>${escapeHtml(pageRoute(entry))}</code>`,
       "<br>",
       screenshotCell(entry, options),
       "<br>",
@@ -363,6 +473,7 @@ async function main() {
     responseCards(apiEntries, options),
     responseCards(mcpEntries, options),
   ]);
+  const pageTree = buildPageTree(pageEntries);
 
   const lines = [
     "<!-- life-ustc-e2e-snapshot-artifacts -->",
@@ -377,10 +488,7 @@ async function main() {
     "### Screenshots",
     "",
     ...(pageEntries.length > 0
-      ? cardTable(
-          pageCards(pageEntries, options),
-          "No page screenshots were generated.",
-        )
+      ? renderPageTreeNode(pageTree, options)
       : ["No page screenshots were generated."]),
     "",
     "### API Responses",

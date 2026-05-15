@@ -19,8 +19,9 @@ export async function getAssistantDashboardSnapshot(input: {
   userId: string;
   locale: AppLocale;
   dayLimit?: number;
+  atTime?: Date;
 }) {
-  const now = new Date();
+  const now = input.atTime ?? new Date();
   const dayLimit = input.dayLimit ?? 7;
   const dateTo = new Date(now.getTime() + dayLimit * 24 * 60 * 60 * 1000);
   const currentSemester = await findCurrentSemester(prisma.semester, now);

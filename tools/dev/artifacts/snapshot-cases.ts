@@ -33,6 +33,10 @@ export type McpSnapshotCase = {
   note?: string;
 };
 
+const SNAPSHOT_AT_QUERY = `snapshotAt=${encodeURIComponent(
+  DEV_SEED_ANCHOR.startOfDayAtTime,
+)}`;
+
 export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
   { id: "home", path: "/", auth: "public" },
   { id: "signin", path: "/signin", auth: "public" },
@@ -100,16 +104,44 @@ export const PAGE_SNAPSHOT_CASES: PageSnapshotCase[] = [
     auth: "debug",
     resolvePath: "user-id",
   },
-  { id: "dashboard", path: "/?tab=overview", auth: "debug" },
-  { id: "dashboard-calendar", path: "/?tab=calendar", auth: "debug" },
-  { id: "dashboard-todos", path: "/?tab=todos", auth: "debug" },
-  { id: "dashboard-homeworks", path: "/?tab=homeworks", auth: "debug" },
-  { id: "dashboard-exams", path: "/?tab=exams", auth: "debug" },
-  { id: "dashboard-comments", path: "/?tab=comments", auth: "debug" },
-  { id: "dashboard-links", path: "/?tab=links", auth: "debug" },
+  {
+    id: "dashboard",
+    path: `/?tab=overview&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
+  {
+    id: "dashboard-calendar",
+    path: `/?tab=calendar&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
+  {
+    id: "dashboard-todos",
+    path: `/?tab=todos&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
+  {
+    id: "dashboard-homeworks",
+    path: `/?tab=homeworks&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
+  {
+    id: "dashboard-exams",
+    path: `/?tab=exams&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
+  {
+    id: "dashboard-comments",
+    path: `/?tab=comments&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
+  {
+    id: "dashboard-links",
+    path: `/?tab=links&${SNAPSHOT_AT_QUERY}`,
+    auth: "debug",
+  },
   {
     id: "dashboard-subscriptions-sections",
-    path: "/?tab=subscriptions",
+    path: `/?tab=subscriptions&${SNAPSHOT_AT_QUERY}`,
     auth: "debug",
   },
   { id: "admin", path: "/admin", auth: "admin" },
@@ -312,7 +344,11 @@ export const MCP_SNAPSHOT_CASES: McpSnapshotCase[] = [
   { name: "get_my_calendar_subscription", arguments: { locale: "zh-cn" } },
   {
     name: "get_my_dashboard",
-    arguments: { locale: "zh-cn", mode: "summary" },
+    arguments: {
+      locale: "zh-cn",
+      mode: "summary",
+      atTime: DEV_SEED_ANCHOR.startOfDayAtTime,
+    },
   },
   {
     name: "get_next_class",

@@ -20,6 +20,8 @@ import {
   getSubscriptionsTabData,
   getTodosTabData,
 } from "@/features/home/server/dashboard-tab-data";
+import { parseDateInput } from "@/lib/time/parse-date-input";
+import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,14 @@ type HomeSearchParams = {
   tab?: string;
   dayType?: string;
   calendarSemester?: string;
+  snapshotAt?: string;
 };
+
+function parseSnapshotReferenceTime(value: string | undefined) {
+  if (process.env.E2E_DEBUG_AUTH !== "1" || !value) return undefined;
+  const parsed = parseDateInput(value);
+  return parsed instanceof Date ? parsed : undefined;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("metadata");
@@ -47,6 +56,7 @@ export default async function HomePage({
   if (session?.user?.id) {
     const params = await searchParams;
     const tab = params.tab ?? "overview";
+    const referenceNow = parseSnapshotReferenceTime(params.snapshotAt);
     const parsedCalendarSemester = parseInt(params.calendarSemester ?? "", 10);
     const overviewOptions =
       tab === "calendar" &&
@@ -55,10 +65,11 @@ export default async function HomePage({
         ? {
             calendarSemesterId: parsedCalendarSemester,
             skipLinks: true,
+            referenceNow,
           }
         : tab === "calendar"
-          ? { skipLinks: true }
-          : {};
+          ? { skipLinks: true, referenceNow }
+          : { referenceNow };
 
     const [
       navStats,
@@ -70,7 +81,7 @@ export default async function HomePage({
       todosData,
       busData,
     ] = await Promise.all([
-      getDashboardNavStats(session.user.id),
+      getDashboardNavStats(session.user.id, referenceNow),
       tab === "overview" || tab === "calendar"
         ? getDashboardOverviewData(session.user.id, overviewOptions)
         : Promise.resolve(null),
@@ -104,6 +115,7 @@ export default async function HomePage({
       <HomeView
         searchParams={searchParams}
         navStats={navStats}
+        referenceNow={referenceNow ? toShanghaiIsoString(referenceNow) : null}
         overviewData={overviewData}
         linksData={linksData?.dashboardLinks ?? null}
         homeworksData={homeworksData}

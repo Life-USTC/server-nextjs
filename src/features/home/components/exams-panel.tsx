@@ -25,7 +25,13 @@ type ExamRow = {
   rooms: string;
 };
 
-export async function ExamsPanel({ data }: { data: SubscriptionsTabData }) {
+export async function ExamsPanel({
+  data,
+  referenceNow,
+}: {
+  data: SubscriptionsTabData;
+  referenceNow?: string | null;
+}) {
   const tNav = await getTranslations("meDashboard.nav");
   const tCommon = await getTranslations("common");
 
@@ -95,5 +101,5 @@ export async function ExamsPanel({ data }: { data: SubscriptionsTabData }) {
     );
   }
 
-  return <ExamsList exams={exams} />;
+  return <ExamsList exams={exams} referenceNow={referenceNow} />;
 }
