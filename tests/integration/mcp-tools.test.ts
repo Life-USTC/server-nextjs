@@ -174,6 +174,82 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     ).toBe(true);
   });
 
+  it("list_my_calendar_events treats same-day bare date ranges as full Shanghai days", async () => {
+    const result = await mcp.call<{
+      events?: Array<{ type?: string; at?: string }>;
+    }>("list_my_calendar_events", {
+      dateFrom: SEED_DATE,
+      dateTo: SEED_DATE,
+      locale: "zh-cn",
+    });
+
+    expect(Array.isArray(result.events)).toBe(true);
+    expect(
+      (result.events ?? []).some(
+        (event) => event.type === "schedule" && event.at?.startsWith(SEED_DATE),
+      ),
+    ).toBe(true);
+  });
+
+  it("list_my_calendar_events honors an exact inclusive dateTo bound", async () => {
+    const dueAt = "2026-05-02T21:00:00+08:00";
+    const result = await mcp.call<{
+      events?: Array<{ type?: string; at?: string }>;
+    }>("list_my_calendar_events", {
+      dateFrom: dueAt,
+      dateTo: dueAt,
+      locale: "zh-cn",
+    });
+
+    expect(
+      (result.events ?? []).some(
+        (event) => event.type === "homework_due" && event.at === dueAt,
+      ),
+    ).toBe(true);
+  });
+
+  it("list_my_calendar_events keeps no-time exams visible through their day", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    if (!section) {
+      throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
+    }
+
+    const jwId = 926042900;
+    await prisma.exam.deleteMany({ where: { jwId } });
+
+    try {
+      await prisma.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${SEED_DATE}T00:00:00.000Z`),
+          startTime: null,
+          endTime: null,
+        },
+      });
+
+      const result = await mcp.call<{
+        events?: Array<{ type?: string; at?: string }>;
+      }>("list_my_calendar_events", {
+        dateFrom: `${SEED_DATE}T08:00:00+08:00`,
+        dateTo: `${SEED_DATE}T09:00:00+08:00`,
+        locale: "zh-cn",
+      });
+
+      expect(
+        (result.events ?? []).some(
+          (event) =>
+            event.type === "exam" && event.at === `${SEED_DATE}T00:00:00+08:00`,
+        ),
+      ).toBe(true);
+    } finally {
+      await prisma.exam.deleteMany({ where: { jwId } });
+    }
+  });
+
   it("returns a descriptive error for a nonsense date string", async () => {
     const result = await mcp.call<{
       success?: boolean;
@@ -397,6 +473,26 @@ describe("query_schedules — flexible date filters", () => {
 // ---------------------------------------------------------------------------
 
 describe("get_my_dashboard — default mode compactness", () => {
+  it("atTime anchors nextClass, deadlines, and events", async () => {
+    const dashboard = await mcp.call<{
+      nextClass?: { type?: string; at?: string | null };
+      upcomingDeadlines?: {
+        total?: number;
+        items?: Array<{ type?: string; at?: string | null }>;
+      };
+      upcomingEvents?: { total?: number };
+    }>("get_my_dashboard", {
+      locale: "zh-cn",
+      mode: "summary",
+      atTime: SEED_AT_TIME,
+    });
+
+    expect(dashboard.nextClass?.type).toBe("schedule");
+    expect(dashboard.nextClass?.at?.slice(0, 10)).toBe(SEED_DATE);
+    expect(dashboard.upcomingDeadlines?.total).toBeGreaterThan(0);
+    expect(dashboard.upcomingEvents?.total).toBeGreaterThan(0);
+  });
+
   it("scheduleGroup and roomType are stripped from nextClass payload", async () => {
     const dashboard = await mcp.call<{
       nextClass?: {
@@ -409,7 +505,7 @@ describe("get_my_dashboard — default mode compactness", () => {
       };
       subscriptions?: { currentSemesterSectionsTotal?: number };
       todos?: { incompleteCount?: number };
-    }>("get_my_dashboard", { locale: "zh-cn" });
+    }>("get_my_dashboard", { locale: "zh-cn", atTime: SEED_AT_TIME });
 
     if (dashboard.nextClass?.payload) {
       expect(dashboard.nextClass.payload).not.toHaveProperty("scheduleGroup");
@@ -426,12 +522,14 @@ describe("get_my_dashboard — default mode compactness", () => {
       await mcp.callTool("get_my_dashboard", {
         locale: "zh-cn",
         mode: "default",
+        atTime: SEED_AT_TIME,
       }),
     );
     const sum = JSON.stringify(
       await mcp.callTool("get_my_dashboard", {
         locale: "zh-cn",
         mode: "summary",
+        atTime: SEED_AT_TIME,
       }),
     );
     expect(sum.length).toBeLessThan(def.length);

@@ -41,6 +41,8 @@ export type OverviewDataOptions = {
   calendarSemesterId?: number;
   /** Skip dashboard-links queries when the caller doesn't need them (e.g. calendar tab). */
   skipLinks?: boolean;
+  /** Override the current time for deterministic snapshot and test views. */
+  referenceNow?: Date;
 };
 
 export type DashboardNavStats = {
@@ -53,8 +55,11 @@ export type DashboardNavStats = {
 
 export async function getDashboardNavStats(
   userId: string,
+  referenceDate?: Date,
 ): Promise<DashboardNavStats | null> {
-  const referenceNow = shanghaiDayjs();
+  const referenceNow = referenceDate
+    ? shanghaiDayjs(referenceDate)
+    : shanghaiDayjs();
   const todayStart = referenceNow.startOf("day");
   const tomorrowStart = todayStart.add(1, "day");
   const nowHHmm = referenceNow.hour() * 100 + referenceNow.minute();
@@ -193,7 +198,9 @@ export async function getDashboardOverviewData(
 ): Promise<OverviewData | null> {
   const locale = await getLocale();
   const localizedPrisma = getPrisma(locale);
-  const referenceNow = shanghaiDayjs();
+  const referenceNow = options.referenceNow
+    ? shanghaiDayjs(options.referenceNow)
+    : shanghaiDayjs();
   const referenceDate = referenceNow.toDate();
 
   const [semesters, user] = await Promise.all([

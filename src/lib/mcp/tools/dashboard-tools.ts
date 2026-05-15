@@ -16,6 +16,21 @@ import {
 } from "@/lib/mcp/tools/dashboard-summary";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
+function parseOptionalAtTime(atTime: string | undefined) {
+  if (!atTime) return { ok: true as const, value: undefined };
+  const parsed = parseDateInput(atTime);
+  if (!(parsed instanceof Date)) {
+    return {
+      ok: false as const,
+      result: jsonToolResult({
+        success: false,
+        message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
+      }),
+    };
+  }
+  return { ok: true as const, value: parsed };
+}
+
 export function registerDashboardTools(server: McpServer) {
   server.registerTool(
     "get_my_dashboard",
@@ -26,13 +41,21 @@ export function registerDashboardTools(server: McpServer) {
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
+        atTime: flexDateInputSchema
+          .optional()
+          .describe(
+            "Override the reference time for next class, deadlines, events, current semester, and preferred shuttle. Defaults to now.",
+          ),
       },
     },
-    async ({ locale, mode }, extra) => {
+    async ({ locale, mode, atTime }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
+      const parsedAtTime = parseOptionalAtTime(atTime);
+      if (!parsedAtTime.ok) return parsedAtTime.result;
       const snapshot = await getAssistantDashboardSnapshot({
         userId: getUserId(extra.authInfo),
         locale,
+        atTime: parsedAtTime.value,
       });
       if (resolvedMode === "full") {
         return jsonToolResult(snapshot, { mode: "full" });
@@ -56,12 +79,20 @@ export function registerDashboardTools(server: McpServer) {
       inputSchema: {
         locale: mcpLocaleInputSchema,
         mode: mcpModeInputSchema,
+        atTime: flexDateInputSchema
+          .optional()
+          .describe(
+            "Override the reference time for the next-class lookup. Defaults to now.",
+          ),
       },
     },
-    async ({ locale, mode }, extra) => {
+    async ({ locale, mode, atTime }, extra) => {
+      const parsedAtTime = parseOptionalAtTime(atTime);
+      if (!parsedAtTime.ok) return parsedAtTime.result;
       const snapshot = await getAssistantDashboardSnapshot({
         userId: getUserId(extra.authInfo),
         locale,
+        atTime: parsedAtTime.value,
       });
       return jsonToolResult(
         {

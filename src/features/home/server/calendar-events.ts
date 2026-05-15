@@ -14,6 +14,10 @@ function startOfShanghaiDay(date: Date) {
   return new Date(`${formatShanghaiDate(date)}T00:00:00+08:00`);
 }
 
+function addDays(date: Date, days: number) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
 function toDateTimeFromHHmm(baseDate: Date | null, hhmm: number | null) {
   if (!baseDate) return null;
 
@@ -24,28 +28,81 @@ function toDateTimeFromHHmm(baseDate: Date | null, hhmm: number | null) {
   );
 }
 
+function isWithinExactWindow(
+  {
+    start,
+    end,
+  }: {
+    start: Date | null;
+    end?: Date | null;
+  },
+  windowStart: Date,
+  windowEnd: Date,
+  includeWindowEnd: boolean,
+) {
+  if (!start) return false;
+
+  const startTime = start.getTime();
+  if (Number.isNaN(startTime)) return false;
+
+  if (end) {
+    const endTime = end.getTime();
+    if (Number.isNaN(endTime)) return false;
+    return (
+      endTime > windowStart.getTime() &&
+      (includeWindowEnd
+        ? startTime <= windowEnd.getTime()
+        : startTime < windowEnd.getTime())
+    );
+  }
+
+  return (
+    startTime >= windowStart.getTime() &&
+    (includeWindowEnd
+      ? startTime <= windowEnd.getTime()
+      : startTime < windowEnd.getTime())
+  );
+}
+
 export async function listUserCalendarEvents(
   userId: string,
   {
     locale = DEFAULT_LOCALE,
     dateFrom,
     dateTo,
+    dateFromIsDateOnly = false,
+    dateToIsDateOnly = false,
+    dateToInclusive = false,
   }: {
     locale?: string;
     dateFrom?: Date | null;
     dateTo?: Date | null;
+    dateFromIsDateOnly?: boolean;
+    dateToIsDateOnly?: boolean;
+    dateToInclusive?: boolean;
   } = {},
 ) {
-  const windowStart = dateFrom ?? startOfShanghaiDay(new Date());
+  const windowStart = dateFrom
+    ? dateFromIsDateOnly
+      ? startOfShanghaiDay(dateFrom)
+      : dateFrom
+    : startOfShanghaiDay(new Date());
   const windowEnd =
-    dateTo ?? new Date(windowStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    dateTo && dateToIsDateOnly
+      ? addDays(startOfShanghaiDay(dateTo), 1)
+      : (dateTo ?? addDays(windowStart, 7));
+  const includeWindowEnd = Boolean(
+    dateTo && dateToInclusive && !dateToIsDateOnly,
+  );
+  const calendarDateStart = startOfShanghaiDay(windowStart);
+  const calendarDateEnd = dateTo ?? windowEnd;
   const sectionIds = await getSubscribedSectionIds(userId);
 
   const [schedules, homeworks, exams] = await Promise.all([
     listSubscribedSchedules(userId, {
       locale,
-      dateFrom: windowStart,
-      dateTo: windowEnd,
+      dateFrom: calendarDateStart,
+      dateTo: calendarDateEnd,
       sectionIds,
     }),
     listSubscribedHomeworks(userId, {
@@ -57,8 +114,8 @@ export async function listUserCalendarEvents(
     }),
     listSubscribedExams(userId, {
       locale,
-      dateFrom: windowStart,
-      dateTo: windowEnd,
+      dateFrom: calendarDateStart,
+      dateTo: calendarDateEnd,
       includeDateUnknown: false,
       sectionIds,
     }),
@@ -84,12 +141,14 @@ export async function listUserCalendarEvents(
     orderBy: [{ dueAt: "asc" }, { createdAt: "desc" }],
   });
 
-  return [
+  const events = [
     ...schedules.map((schedule) => {
       const at = toDateTimeFromHHmm(schedule.date, schedule.startTime);
       return {
         type: "schedule" as const,
         at: at ? toShanghaiIsoString(at) : null,
+        filterStart: at,
+        filterEnd: null,
         sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
         payload: schedule,
       };
@@ -99,14 +158,22 @@ export async function listUserCalendarEvents(
       at: homework.submissionDueAt
         ? toShanghaiIsoString(homework.submissionDueAt)
         : null,
+      filterStart: homework.submissionDueAt,
+      filterEnd: null,
       sortKey: homework.submissionDueAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
       payload: homework,
     })),
     ...exams.map((exam) => {
       const at = toDateTimeFromHHmm(exam.examDate, exam.startTime);
+      const filterEnd =
+        exam.examDate && exam.startTime === null
+          ? addDays(startOfShanghaiDay(exam.examDate), 1)
+          : null;
       return {
         type: "exam" as const,
         at: at ? toShanghaiIsoString(at) : null,
+        filterStart: at,
+        filterEnd,
         sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
         payload: exam,
       };
@@ -114,10 +181,29 @@ export async function listUserCalendarEvents(
     ...todos.map((todo) => ({
       type: "todo_due" as const,
       at: todo.dueAt ? toShanghaiIsoString(todo.dueAt) : null,
+      filterStart: todo.dueAt,
+      filterEnd: null,
       sortKey: todo.dueAt?.getTime() ?? Number.MAX_SAFE_INTEGER,
       payload: todo,
     })),
-  ]
+  ];
+
+  return events
+    .filter((event) =>
+      isWithinExactWindow(
+        { start: event.filterStart, end: event.filterEnd },
+        windowStart,
+        windowEnd,
+        includeWindowEnd,
+      ),
+    )
     .sort((a, b) => a.sortKey - b.sortKey)
-    .map(({ sortKey: _sortKey, ...event }) => event);
+    .map(
+      ({
+        filterStart: _filterStart,
+        filterEnd: _filterEnd,
+        sortKey: _sortKey,
+        ...event
+      }) => event,
+    );
 }

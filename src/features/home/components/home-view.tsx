@@ -48,6 +48,7 @@ type HomeViewProps = {
     overviewWeek?: string;
   }>;
   navStats: DashboardNavStats;
+  referenceNow: string | null;
   overviewData: OverviewData | null;
   linksData: DashboardLinkSummary[] | null;
   homeworksData: {
@@ -63,6 +64,7 @@ type HomeViewProps = {
 export async function HomeView({
   searchParams,
   navStats,
+  referenceNow,
   overviewData,
   linksData,
   homeworksData,
@@ -124,7 +126,7 @@ export async function HomeView({
         )}
         {currentTab === "todos" && <TodosPanel todos={todosData ?? []} />}
         {currentTab === "exams" && subscriptionsData && (
-          <ExamsPanel data={subscriptionsData} />
+          <ExamsPanel data={subscriptionsData} referenceNow={referenceNow} />
         )}
         {currentTab === "subscriptions" && subscriptionsData && (
           <SubscriptionsPanel data={subscriptionsData} />

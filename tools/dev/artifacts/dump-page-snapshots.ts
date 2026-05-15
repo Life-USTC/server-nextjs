@@ -18,6 +18,48 @@ import {
 } from "./oauth-cleanup";
 import { PAGE_SNAPSHOT_CASES, type PageSnapshotCase } from "./snapshot-cases";
 
+const MAX_ARTIFACT_SEGMENT_LENGTH = 80;
+
+function sanitizeUriSegment(value: string) {
+  return sanitizeFileSegment(value).slice(0, MAX_ARTIFACT_SEGMENT_LENGTH);
+}
+
+function pageArtifactSegments(uri: string) {
+  let url: URL;
+  try {
+    url = new URL(uri, "http://snapshot.local");
+  } catch {
+    return [sanitizeUriSegment(uri)];
+  }
+
+  const segments = url.pathname
+    .split("/")
+    .filter(Boolean)
+    .map(sanitizeUriSegment);
+  if (segments.length === 0) segments.push("_root");
+
+  const querySegments = [...url.searchParams.entries()].map(([key, value]) =>
+    sanitizeUriSegment(`${key}-${value}`),
+  );
+  if (querySegments.length > 0) {
+    segments.push("_query", ...querySegments);
+  }
+
+  return segments;
+}
+
+function pageArtifactDirectory(
+  root: string,
+  snapshotCase: PageSnapshotCase,
+  uri: string,
+) {
+  return path.join(
+    root,
+    ...pageArtifactSegments(uri),
+    sanitizeUriSegment(snapshotCase.id),
+  );
+}
+
 async function resolvePath(page: Page, snapshotCase: PageSnapshotCase) {
   if (!snapshotCase.resolvePath) return snapshotCase.path;
 
@@ -122,8 +164,7 @@ async function main() {
       });
       const page = await context.newPage();
       const startedAt = performance.now();
-      const dir = path.join(root, sanitizeFileSegment(snapshotCase.id));
-      await resetDirectory(dir);
+      let dir = pageArtifactDirectory(root, snapshotCase, snapshotCase.path);
       try {
         await signInForSnapshot(
           page,
@@ -131,6 +172,8 @@ async function main() {
           snapshotCase.resolvePath ? "/" : snapshotCase.path,
         );
         const requestedPath = await resolvePath(page, snapshotCase);
+        dir = pageArtifactDirectory(root, snapshotCase, requestedPath);
+        await resetDirectory(dir);
         const response = await gotoSnapshotPage(
           page,
           snapshotCase,
@@ -163,6 +206,7 @@ async function main() {
         entries.push(metadata);
         console.log(`page ${snapshotCase.id}: ${metadata.status}`);
       } catch (error) {
+        await resetDirectory(dir);
         const metadata = {
           id: snapshotCase.id,
           kind: "page",
