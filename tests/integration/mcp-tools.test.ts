@@ -23,8 +23,12 @@ let mcp: McpHarness;
 function shanghaiIsoOnSeedDate(hhmm: number, addMinutes = 0) {
   const hours = Math.trunc(hhmm / 100);
   const minutes = hhmm % 100;
-  const date = new Date(`${SEED_DATE}T00:00:00+08:00`);
-  date.setHours(hours, minutes + addMinutes, 0, 0);
+  const date = new Date(
+    Date.parse(
+      `${SEED_DATE}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00+08:00`,
+    ) +
+      addMinutes * 60_000,
+  );
   return date
     .toLocaleString("sv-SE", {
       timeZone: "Asia/Shanghai",
