@@ -401,13 +401,9 @@ async function renderRouteTreeNode(
   if (depth > 0) {
     const entryCount =
       entries.length > 0 ? ` <sub>${entries.length} item(s)</sub>` : "";
-    const headingLevel = Math.min(depth + 3, 6);
-    const heading = `${"#".repeat(headingLevel)} \`${node.label}\`${entryCount}`;
     lines.push(
       "<details open>",
       `<summary><code>${escapeHtml(node.label)}</code>${entryCount}</summary>`,
-      "",
-      heading,
       "",
     );
   }
@@ -560,6 +556,12 @@ function pageCards(
   });
 }
 
+function pageList(cards: string[], emptyText: string) {
+  if (cards.length === 0) return [emptyText];
+
+  return cards.flatMap((card) => [card, ""]);
+}
+
 async function responseRows(
   entries: SnapshotEntry[],
   options: Pick<Options, "snapshotDir">,
@@ -626,7 +628,7 @@ async function main() {
   ].join("<br>");
   const [pageTreeLines, apiTreeLines, mcpCards] = await Promise.all([
     renderRouteTreeNode(buildRouteTree(pageEntries), async (entries) =>
-      cardTable(pageCards(entries, options), "No page screenshots here."),
+      pageList(pageCards(entries, options), "No page screenshots here."),
     ),
     renderRouteTreeNode(buildRouteTree(apiEntries), async (entries) =>
       entryTable(
