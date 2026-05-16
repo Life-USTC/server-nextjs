@@ -15,6 +15,9 @@ import {
   summarizeDashboardSnapshot,
 } from "@/lib/mcp/tools/dashboard-summary";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+import { startOfShanghaiDay } from "@/lib/time/shanghai-format";
+
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function parseOptionalAtTime(atTime: string | undefined) {
   if (!atTime) return { ok: true as const, value: undefined };
@@ -28,7 +31,12 @@ function parseOptionalAtTime(atTime: string | undefined) {
       }),
     };
   }
-  return { ok: true as const, value: parsed };
+  return {
+    ok: true as const,
+    value: DATE_ONLY_PATTERN.test(atTime.trim())
+      ? startOfShanghaiDay(parsed)
+      : parsed,
+  };
 }
 
 export function registerDashboardTools(server: McpServer) {
@@ -124,19 +132,9 @@ export function registerDashboardTools(server: McpServer) {
     },
     async ({ dayLimit, atTime, locale, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
-      let now: Date;
-      if (atTime) {
-        const parsed = parseDateInput(atTime);
-        if (!(parsed instanceof Date)) {
-          return jsonToolResult({
-            success: false,
-            message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-          });
-        }
-        now = parsed;
-      } else {
-        now = new Date();
-      }
+      const parsedAtTime = parseOptionalAtTime(atTime);
+      if (!parsedAtTime.ok) return parsedAtTime.result;
+      const now = parsedAtTime.value ?? new Date();
       const dateTo = new Date(now.getTime() + dayLimit * 24 * 60 * 60 * 1000);
       const events = await listUserCalendarEvents(userId, {
         locale,

@@ -553,8 +553,11 @@ async function responseSnapshotTreeLines(
   return [
     "<ul>",
     "<li>",
-    `<code>${escapeHtml(label)}</code>${artifact}`,
+    `<details><summary><code>${escapeHtml(label)}</code>${artifact}</summary>`,
+    "",
     ...previewJsonBlock(previewJson),
+    "",
+    "</details>",
     "</li>",
     "</ul>",
   ];

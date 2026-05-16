@@ -28,6 +28,10 @@ function toDateTimeFromHHmm(baseDate: Date | null, hhmm: number | null) {
   );
 }
 
+function endOfCalendarDateWindow(windowEnd: Date) {
+  return addDays(startOfShanghaiDay(windowEnd), 1);
+}
+
 function isWithinExactWindow(
   {
     start,
@@ -95,7 +99,7 @@ export async function listUserCalendarEvents(
     dateTo && dateToInclusive && !dateToIsDateOnly,
   );
   const calendarDateStart = startOfShanghaiDay(windowStart);
-  const calendarDateEnd = dateTo ?? windowEnd;
+  const calendarDateEnd = endOfCalendarDateWindow(windowEnd);
   const sectionIds = await getSubscribedSectionIds(userId);
 
   const [schedules, homeworks, exams] = await Promise.all([
@@ -126,7 +130,10 @@ export async function listUserCalendarEvents(
     where: {
       userId,
       completed: false,
-      dueAt: { gte: windowStart, lt: windowEnd },
+      dueAt: {
+        gte: windowStart,
+        ...(includeWindowEnd ? { lte: windowEnd } : { lt: windowEnd }),
+      },
     },
     select: {
       id: true,
@@ -144,11 +151,12 @@ export async function listUserCalendarEvents(
   const events = [
     ...schedules.map((schedule) => {
       const at = toDateTimeFromHHmm(schedule.date, schedule.startTime);
+      const endsAt = toDateTimeFromHHmm(schedule.date, schedule.endTime);
       return {
         type: "schedule" as const,
         at: at ? toShanghaiIsoString(at) : null,
         filterStart: at,
-        filterEnd: null,
+        filterEnd: endsAt,
         sortKey: at?.getTime() ?? Number.MAX_SAFE_INTEGER,
         payload: schedule,
       };
@@ -165,10 +173,15 @@ export async function listUserCalendarEvents(
     })),
     ...exams.map((exam) => {
       const at = toDateTimeFromHHmm(exam.examDate, exam.startTime);
+      const endsAt =
+        exam.endTime === null
+          ? null
+          : toDateTimeFromHHmm(exam.examDate, exam.endTime);
       const filterEnd =
-        exam.examDate && exam.startTime === null
+        endsAt ??
+        (exam.examDate && exam.startTime === null
           ? addDays(startOfShanghaiDay(exam.examDate), 1)
-          : null;
+          : null);
       return {
         type: "exam" as const,
         at: at ? toShanghaiIsoString(at) : null,
