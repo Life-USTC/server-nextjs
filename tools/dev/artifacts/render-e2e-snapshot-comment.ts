@@ -516,12 +516,9 @@ function screenshotTreeLines(
 ) {
   const filePath = asString(entry.screenshot);
   const label = filePath ? path.basename(filePath) : "screenshot";
-  const artifact = filePath
-    ? ` <sub><code>${escapeHtml(snapshotRelativePath(filePath))}</code></sub>`
-    : "";
 
   return [
-    `<details><summary>${treeLine(prefix, true, label)}${artifact}</summary>`,
+    `<details><summary>${treeLine(prefix, true, label)}</summary>`,
     "",
     screenshotPanel(entry, options),
     "",
