@@ -45,6 +45,8 @@ type RouteTreeNode = {
 const MAX_EMBEDDED_JSON_CHARS = 600;
 const SCREENSHOT_WIDTH = 480;
 const IGNORED_PAGE_QUERY_PARAMS = new Set(["snapshotAt"]);
+const PAGE_TABLE_WIDTHS = ["14%", "20%", "18%", "8%", "10%", "10%", "20%"];
+const RESPONSE_TABLE_WIDTHS = ["14%", "8%", "22%", "10%", "28%", "18%"];
 
 function usage() {
   return [
@@ -397,8 +399,17 @@ async function renderRouteTreeNode(
   );
 
   if (depth > 0) {
-    const summary = `${escapeHtml(node.label)}${entries.length > 0 ? ` (${entries.length})` : ""}`;
-    lines.push(`<details open><summary>${summary}</summary>`, "");
+    const entryCount =
+      entries.length > 0 ? ` <sub>${entries.length} item(s)</sub>` : "";
+    const headingLevel = Math.min(depth + 3, 6);
+    const heading = `${"#".repeat(headingLevel)} \`${node.label}\`${entryCount}`;
+    lines.push(
+      "<details open>",
+      `<summary><code>${escapeHtml(node.label)}</code>${entryCount}</summary>`,
+      "",
+      heading,
+      "",
+    );
   }
 
   if (entries.length > 0) {
@@ -457,10 +468,23 @@ function cardTable(cards: string[], emptyText: string) {
   return lines;
 }
 
-function entryTable(headers: string[], rows: string[][], emptyText: string) {
+function entryTable(
+  headers: string[],
+  rows: string[][],
+  emptyText: string,
+  widths: string[] = [],
+) {
   if (rows.length === 0) return [emptyText];
 
-  const lines = ['<table role="presentation" width="100%">', "<thead>", "<tr>"];
+  const lines = ['<table role="presentation" width="100%">'];
+  if (widths.length > 0) {
+    lines.push("<colgroup>");
+    for (const width of widths) {
+      lines.push(`<col width="${escapeAttribute(width)}">`);
+    }
+    lines.push("</colgroup>");
+  }
+  lines.push("<thead>", "<tr>");
   for (const header of headers) {
     lines.push(`<th align="left" valign="top">${escapeHtml(header)}</th>`);
   }
@@ -476,21 +500,13 @@ function entryTable(headers: string[], rows: string[][], emptyText: string) {
   return lines;
 }
 
-function foldedScreenshot(
+function screenshotPanel(
   entry: SnapshotEntry,
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
   const filePath = asString(entry.screenshot);
-  if (!filePath) return "";
-
-  return [
-    "<details>",
-    "<summary>screenshot</summary>",
-    "",
-    screenshotCell(entry, options),
-    "",
-    "</details>",
-  ].join("\n");
+  if (!filePath) return "<em>No screenshot captured.</em>";
+  return screenshotCell(entry, options);
 }
 
 function pageInfoTable(entry: SnapshotEntry) {
@@ -509,6 +525,7 @@ function pageInfoTable(entry: SnapshotEntry) {
       ],
     ],
     "No page metadata captured.",
+    PAGE_TABLE_WIDTHS,
   ).join("\n");
 }
 
@@ -516,9 +533,31 @@ function pageCards(
   entries: SnapshotEntry[],
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  return entries.map((entry) =>
-    [foldedScreenshot(entry, options), "", pageInfoTable(entry)].join("\n"),
-  );
+  return entries.map((entry) => {
+    const summary = [
+      `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
+      `<code>${escapeHtml(displayRoute(entry))}</code>`,
+      finePrint([
+        ["result", resultCell(entry)],
+        ["auth", entry.auth],
+      ]),
+    ]
+      .filter(Boolean)
+      .join(" &nbsp; ");
+    return [
+      `<details><summary>${summary}</summary>`,
+      "",
+      "##### Screenshot",
+      "",
+      screenshotPanel(entry, options),
+      "",
+      "##### Metadata",
+      "",
+      pageInfoTable(entry),
+      "",
+      "</details>",
+    ].join("\n");
+  });
 }
 
 async function responseRows(
@@ -594,6 +633,7 @@ async function main() {
         ["Case", "Method", "URI", "Result", "Response", "Metadata"],
         await responseRows(entries, options),
         "No API response snapshots here.",
+        RESPONSE_TABLE_WIDTHS,
       ),
     ),
     responseCards(mcpEntries, options),
