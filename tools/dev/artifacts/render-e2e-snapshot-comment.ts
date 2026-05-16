@@ -45,10 +45,6 @@ type RouteTreeNode = {
 const MAX_EMBEDDED_JSON_CHARS = 600;
 const SCREENSHOT_WIDTH = 480;
 const IGNORED_PAGE_QUERY_PARAMS = new Set(["snapshotAt"]);
-const TREE_BRANCH = "|-- ";
-const TREE_LAST = "`-- ";
-const TREE_PIPE = "|   ";
-const TREE_BLANK = "    ";
 
 function usage() {
   return [
@@ -398,13 +394,8 @@ function buildRouteTree(entries: SnapshotEntry[]) {
 
 async function renderRouteTreeNode(
   node: RouteTreeNode,
-  renderEntry: (
-    entry: SnapshotEntry,
-    prefix: string,
-    isLast: boolean,
-  ) => Promise<string[]>,
-  prefix = "",
-  connector = "",
+  renderEntry: (entry: SnapshotEntry) => Promise<string[]>,
+  renderEntrySummary: (entry: SnapshotEntry) => string,
   depth = 0,
 ): Promise<string[]> {
   const lines: string[] = [];
@@ -412,54 +403,54 @@ async function renderRouteTreeNode(
   const children = [...node.children.values()].sort((a, b) =>
     a.label.localeCompare(b.label, "en"),
   );
+  const combinedEntry = entries.length === 1 ? entries[0] : undefined;
+  const nestedEntries = combinedEntry ? [] : entries;
 
-  if (depth === 0) {
-    lines.push(`<code>${escapeHtml(node.label)}</code><br>`);
-  } else {
-    lines.push(
-      `<code>${escapeHtml(prefix + connector + node.label)}</code><br>`,
-    );
-  }
+  if (depth === 0) lines.push("<ul>");
+  lines.push("<li>");
+  lines.push(routeNodeSummary(node.label, combinedEntry, renderEntrySummary));
+  if (combinedEntry) lines.push(...(await renderEntry(combinedEntry)));
 
-  const childPrefix =
-    depth === 0
-      ? ""
-      : prefix + (connector === TREE_LAST ? TREE_BLANK : TREE_PIPE);
-  const items: Array<
-    | { kind: "entry"; entry: SnapshotEntry }
-    | { kind: "node"; node: RouteTreeNode }
-  > = [
-    ...entries.map((entry) => ({ kind: "entry" as const, entry })),
-    ...children.map((child) => ({ kind: "node" as const, node: child })),
-  ];
-
-  for (const [index, item] of items.entries()) {
-    const isLast = index === items.length - 1;
-    const connector = isLast ? TREE_LAST : TREE_BRANCH;
-    if (item.kind === "entry") {
-      lines.push(...(await renderEntry(item.entry, childPrefix, isLast)));
-      continue;
+  if (nestedEntries.length > 0 || children.length > 0) {
+    lines.push("<ul>");
+    for (const entry of nestedEntries) {
+      lines.push("<li>");
+      lines.push(entrySummary(entry, renderEntrySummary));
+      lines.push(...(await renderEntry(entry)));
+      lines.push("</li>");
     }
-    lines.push(
-      ...(await renderRouteTreeNode(
-        item.node,
-        renderEntry,
-        childPrefix,
-        connector,
-        depth + 1,
-      )),
-    );
+    for (const child of children) {
+      lines.push(
+        ...(await renderRouteTreeNode(
+          child,
+          renderEntry,
+          renderEntrySummary,
+          depth + 1,
+        )),
+      );
+    }
+    lines.push("</ul>");
   }
 
+  lines.push("</li>");
+  if (depth === 0) lines.push("</ul>");
   return lines;
 }
 
-function treeLine(prefix: string, isLast: boolean, label: unknown) {
-  return `<code>${escapeHtml(prefix + (isLast ? TREE_LAST : TREE_BRANCH) + String(label))}</code>`;
+function routeNodeSummary(
+  label: string,
+  entry: SnapshotEntry | undefined,
+  renderEntrySummary: (entry: SnapshotEntry) => string,
+) {
+  const routeLabel = `<code>${escapeHtml(label)}</code>`;
+  return entry ? `${routeLabel} ${renderEntrySummary(entry)}` : routeLabel;
 }
 
-function childTreePrefix(prefix: string, isLast: boolean) {
-  return prefix + (isLast ? TREE_BLANK : TREE_PIPE);
+function entrySummary(
+  entry: SnapshotEntry,
+  renderEntrySummary: (entry: SnapshotEntry) => string,
+) {
+  return renderEntrySummary(entry);
 }
 
 function previewJsonBlock(json: string | undefined) {
@@ -501,7 +492,6 @@ function entryLabel(entry: SnapshotEntry, fallback: string) {
 
 function pageMetadata(entry: SnapshotEntry) {
   return finePrint([
-    ["uri", displayRoute(entry)],
     ["result", resultCell(entry)],
     ["auth", entry.auth],
     ["title", entry.title],
@@ -512,39 +502,37 @@ function pageMetadata(entry: SnapshotEntry) {
 function screenshotTreeLines(
   entry: SnapshotEntry,
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
-  prefix: string,
 ) {
   const filePath = asString(entry.screenshot);
   const label = filePath ? path.basename(filePath) : "screenshot";
 
   return [
-    `<details><summary>${treeLine(prefix, true, label)}</summary>`,
+    "<ul>",
+    "<li>",
+    `<details><summary>${escapeHtml(label)}</summary>`,
     "",
     screenshotPanel(entry, options),
     "",
     "</details>",
+    "</li>",
+    "</ul>",
   ];
+}
+
+function pageSummary(entry: SnapshotEntry) {
+  return `<strong>${escapeHtml(entryLabel(entry, "page"))}</strong> ${pageMetadata(entry)}`;
 }
 
 async function renderPageEntry(
   entry: SnapshotEntry,
-  prefix: string,
-  isLast: boolean,
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  const lines = [
-    `${treeLine(prefix, isLast, entryLabel(entry, "page"))} ${pageMetadata(entry)}<br>`,
-  ];
-  lines.push(
-    ...screenshotTreeLines(entry, options, childTreePrefix(prefix, isLast)),
-  );
-  return lines;
+  return screenshotTreeLines(entry, options);
 }
 
 function responseMetadata(entry: SnapshotEntry) {
   return finePrint([
-    ["uri", displayRoute(entry)],
-    ["method", entry.method ?? entry.kind],
+    ["method", entry.kind === "api" ? entry.method : undefined],
     ["result", resultCell(entry)],
     ["auth", entry.auth],
     ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
@@ -554,7 +542,6 @@ function responseMetadata(entry: SnapshotEntry) {
 async function responseSnapshotTreeLines(
   entry: SnapshotEntry,
   options: Pick<Options, "snapshotDir">,
-  prefix: string,
 ) {
   const responsePath = asString(entry.response);
   const json = await readSnapshotJson(options.snapshotDir, responsePath);
@@ -564,28 +551,24 @@ async function responseSnapshotTreeLines(
     ? ` <sub><code>${escapeHtml(snapshotRelativePath(responsePath))}</code></sub>`
     : "";
   return [
-    `${treeLine(prefix, true, label)}${artifact}<br>`,
+    "<ul>",
+    "<li>",
+    `<code>${escapeHtml(label)}</code>${artifact}`,
     ...previewJsonBlock(previewJson),
+    "</li>",
+    "</ul>",
   ];
+}
+
+function responseSummary(entry: SnapshotEntry) {
+  return `<strong>${escapeHtml(entryLabel(entry, "response"))}</strong> ${responseMetadata(entry)}`;
 }
 
 async function renderResponseEntry(
   entry: SnapshotEntry,
-  prefix: string,
-  isLast: boolean,
   options: Pick<Options, "snapshotDir">,
 ) {
-  const lines = [
-    `${treeLine(prefix, isLast, entryLabel(entry, "response"))} ${responseMetadata(entry)}<br>`,
-  ];
-  lines.push(
-    ...(await responseSnapshotTreeLines(
-      entry,
-      options,
-      childTreePrefix(prefix, isLast),
-    )),
-  );
-  return lines;
+  return await responseSnapshotTreeLines(entry, options);
 }
 
 async function main() {
@@ -617,18 +600,18 @@ async function main() {
   const [pageTreeLines, apiTreeLines, mcpTreeLines] = await Promise.all([
     renderRouteTreeNode(
       buildRouteTree(pageEntries),
-      async (entry, prefix, isLast) =>
-        renderPageEntry(entry, prefix, isLast, options),
+      async (entry) => renderPageEntry(entry, options),
+      pageSummary,
     ),
     renderRouteTreeNode(
       buildRouteTree(apiEntries),
-      async (entry, prefix, isLast) =>
-        renderResponseEntry(entry, prefix, isLast, options),
+      async (entry) => renderResponseEntry(entry, options),
+      responseSummary,
     ),
     renderRouteTreeNode(
       buildRouteTree(mcpEntries),
-      async (entry, prefix, isLast) =>
-        renderResponseEntry(entry, prefix, isLast, options),
+      async (entry) => renderResponseEntry(entry, options),
+      responseSummary,
     ),
   ]);
 
