@@ -45,6 +45,7 @@ export type TodoItem = {
 
 type TodoListProps = {
   todos: TodoItem[];
+  referenceNow?: string | null;
 };
 
 type TodoFilter = "all" | "incomplete" | "completed";
@@ -63,7 +64,7 @@ async function deleteTodoApi(id: string) {
   if (!res.ok) throw new Error("Failed to delete todo");
 }
 
-export function TodoList({ todos }: TodoListProps) {
+export function TodoList({ todos, referenceNow }: TodoListProps) {
   const t = useTranslations("todos");
   const locale = useLocale();
   const router = useRouter();
@@ -104,7 +105,11 @@ export function TodoList({ todos }: TodoListProps) {
       return optimisticTodos.filter((t) => !t.completed);
     return optimisticTodos;
   }, [filter, optimisticTodos]);
-  const referenceNow = new Date();
+  const referenceDate = useMemo(() => {
+    if (!referenceNow) return new Date();
+    const parsed = new Date(referenceNow);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }, [referenceNow]);
 
   const handleToggle = (todo: TodoItem, nextCompleted?: boolean) => {
     startTransition(async () => {
@@ -201,7 +206,7 @@ export function TodoList({ todos }: TodoListProps) {
         {filteredTodos.map((todo) => {
           const Icon = PriorityIcon[todo.priority];
           const dueLabel = todo.dueAt
-            ? formatSmartDateTime(todo.dueAt, referenceNow, locale)
+            ? formatSmartDateTime(todo.dueAt, referenceDate, locale)
             : null;
           return (
             <Card

@@ -100,6 +100,7 @@ export async function getAssistantDashboardSnapshot(input: {
       locale: input.locale,
       dateFrom: now,
       dateTo,
+      eventWindowMode: "start",
     }),
     prisma.todo.findMany({
       where: {

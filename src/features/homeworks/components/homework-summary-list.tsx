@@ -64,6 +64,7 @@ type HomeworkSummaryListProps = {
     semesterStart: string | null;
     semesterEnd: string | null;
   }>;
+  referenceNow?: string | null;
 };
 
 type HomeworkFilter = "all" | "incomplete" | "completed";
@@ -71,6 +72,7 @@ type HomeworkFilter = "all" | "incomplete" | "completed";
 export function HomeworkSummaryList({
   homeworks,
   sections,
+  referenceNow,
 }: HomeworkSummaryListProps) {
   const t = useTranslations("homeworks");
   const tComments = useTranslations("comments");
@@ -86,6 +88,12 @@ export function HomeworkSummaryList({
     setItems(homeworks);
   }, [homeworks]);
 
+  const referenceDate = useMemo(() => {
+    if (!referenceNow) return new Date();
+    const parsed = new Date(referenceNow);
+    return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  }, [referenceNow]);
+
   const filteredItems = useMemo(() => {
     if (filter === "completed") {
       return items.filter((homework) => Boolean(homework.completion));
@@ -98,7 +106,7 @@ export function HomeworkSummaryList({
 
   const formatDate = (value: string | null) => {
     if (!value) return t("dateTBD");
-    return formatSmartDateTime(value, new Date(), locale);
+    return formatSmartDateTime(value, referenceDate, locale);
   };
 
   const renderTags = (homework: HomeworkSummary) => (

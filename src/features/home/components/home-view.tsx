@@ -122,9 +122,12 @@ export async function HomeView({
           <HomeworksPanel
             homeworkSummaries={homeworksData?.homeworkSummaries ?? []}
             sections={homeworksData?.sections ?? []}
+            referenceNow={referenceNow}
           />
         )}
-        {currentTab === "todos" && <TodosPanel todos={todosData ?? []} />}
+        {currentTab === "todos" && (
+          <TodosPanel todos={todosData ?? []} referenceNow={referenceNow} />
+        )}
         {currentTab === "exams" && subscriptionsData && (
           <ExamsPanel data={subscriptionsData} referenceNow={referenceNow} />
         )}
