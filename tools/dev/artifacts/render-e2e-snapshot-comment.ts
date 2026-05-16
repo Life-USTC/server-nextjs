@@ -28,6 +28,7 @@ type SnapshotEntry = {
   response?: unknown;
   error?: unknown;
   durationMs?: unknown;
+  title?: unknown;
 };
 
 type SnapshotManifest = {
@@ -35,14 +36,15 @@ type SnapshotManifest = {
   entries?: unknown;
 };
 
-type PageTreeNode = {
+type RouteTreeNode = {
   label: string;
   entries: SnapshotEntry[];
-  children: Map<string, PageTreeNode>;
+  children: Map<string, RouteTreeNode>;
 };
 
 const MAX_EMBEDDED_JSON_CHARS = 600;
 const SCREENSHOT_WIDTH = 480;
+const IGNORED_PAGE_QUERY_PARAMS = new Set(["snapshotAt"]);
 
 function usage() {
   return [
@@ -281,8 +283,55 @@ function pageRoute(entry: SnapshotEntry) {
   return asString(entry.id) ?? "/";
 }
 
-function pageRouteSegments(entry: SnapshotEntry) {
-  const route = pageRoute(entry);
+function normalizedRoute(
+  route: string,
+  ignoredParams: Set<string> = new Set(),
+) {
+  try {
+    const url = new URL(route, "http://snapshot.local");
+    const params = [...url.searchParams.entries()].filter(
+      ([key]) => !ignoredParams.has(key),
+    );
+    const search =
+      params.length > 0
+        ? `?${params.map(([key, value]) => `${key}=${value}`).join("&")}`
+        : "";
+    return `${url.pathname}${search}`;
+  } catch {
+    return route;
+  }
+}
+
+function displayRoute(entry: SnapshotEntry) {
+  if (entry.kind === "page") {
+    return normalizedRoute(pageRoute(entry), IGNORED_PAGE_QUERY_PARAMS);
+  }
+  return normalizedRoute(entryRoute(entry));
+}
+
+function treeRoute(entry: SnapshotEntry) {
+  return displayRoute(entry);
+}
+
+function entryRoute(entry: SnapshotEntry) {
+  if (entry.kind === "page") return pageRoute(entry);
+
+  const candidates = [entry.path, entry.requestedPath, entry.pathTemplate];
+  for (const candidate of candidates) {
+    const value = asString(candidate);
+    if (!value) continue;
+    try {
+      const url = new URL(value, "http://snapshot.local");
+      return `${url.pathname}${url.search}`;
+    } catch {
+      return value;
+    }
+  }
+
+  return asString(entry.id) ?? "/";
+}
+
+function routeSegments(route: string) {
   let url: URL;
   try {
     url = new URL(route, "http://snapshot.local");
@@ -293,26 +342,31 @@ function pageRouteSegments(entry: SnapshotEntry) {
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments.length === 0) segments.push("/");
 
-  if (url.search) {
-    segments.push(url.search);
+  const params = [...url.searchParams.entries()];
+  if (params.length > 0) {
+    segments.push(
+      `?${params.map(([key, value]) => `${key}=${value}`).join("&")}`,
+    );
   }
 
   return segments;
 }
 
-function comparePageEntries(a: SnapshotEntry, b: SnapshotEntry) {
-  return pageRoute(a).localeCompare(pageRoute(b), "en");
+function compareRouteEntries(a: SnapshotEntry, b: SnapshotEntry) {
+  const routeComparison = displayRoute(a).localeCompare(displayRoute(b), "en");
+  if (routeComparison !== 0) return routeComparison;
+  return String(a.id ?? "").localeCompare(String(b.id ?? ""), "en");
 }
 
-function createPageTreeNode(label: string): PageTreeNode {
+function createRouteTreeNode(label: string): RouteTreeNode {
   return { label, entries: [], children: new Map() };
 }
 
-function buildPageTree(entries: SnapshotEntry[]) {
-  const root = createPageTreeNode("/");
+function buildRouteTree(entries: SnapshotEntry[]) {
+  const root = createRouteTreeNode("/");
 
   for (const entry of entries) {
-    const segments = pageRouteSegments(entry);
+    const segments = routeSegments(treeRoute(entry));
     let node = root;
     for (const segment of segments) {
       const existing = node.children.get(segment);
@@ -321,7 +375,7 @@ function buildPageTree(entries: SnapshotEntry[]) {
         continue;
       }
 
-      const child = createPageTreeNode(segment);
+      const child = createRouteTreeNode(segment);
       node.children.set(segment, child);
       node = child;
     }
@@ -331,13 +385,13 @@ function buildPageTree(entries: SnapshotEntry[]) {
   return root;
 }
 
-function renderPageTreeNode(
-  node: PageTreeNode,
-  options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
+async function renderRouteTreeNode(
+  node: RouteTreeNode,
+  renderEntries: (entries: SnapshotEntry[]) => Promise<string[]>,
   depth = 0,
-): string[] {
+): Promise<string[]> {
   const lines: string[] = [];
-  const entries = [...node.entries].sort(comparePageEntries);
+  const entries = [...node.entries].sort(compareRouteEntries);
   const children = [...node.children.values()].sort((a, b) =>
     a.label.localeCompare(b.label, "en"),
   );
@@ -348,14 +402,11 @@ function renderPageTreeNode(
   }
 
   if (entries.length > 0) {
-    lines.push(
-      ...cardTable(pageCards(entries, options), "No page screenshots here."),
-      "",
-    );
+    lines.push(...(await renderEntries(entries)), "");
   }
 
   for (const child of children) {
-    lines.push(...renderPageTreeNode(child, options, depth + 1));
+    lines.push(...(await renderRouteTreeNode(child, renderEntries, depth + 1)));
   }
 
   if (depth > 0) {
@@ -381,10 +432,22 @@ function detailsJson(summary: string, json: string | undefined) {
   ].join("\n");
 }
 
+function markdownTableCell(value: string) {
+  return value.replaceAll("|", "\\|").replaceAll("\n", "<br>");
+}
+
+function summaryTable(rows: Array<[string, string]>) {
+  const lines = ["| Field | Value |", "| --- | --- |"];
+  for (const [field, value] of rows) {
+    lines.push(`| ${markdownTableCell(field)} | ${markdownTableCell(value)} |`);
+  }
+  return lines;
+}
+
 function cardTable(cards: string[], emptyText: string) {
   if (cards.length === 0) return [emptyText];
 
-  const lines = ['<table role="presentation">', "<tbody>"];
+  const lines = ['<table role="presentation" width="100%">', "<tbody>"];
   for (const card of cards) {
     lines.push("<tr>");
     lines.push(`<td width="100%" valign="top">${card}</td>`);
@@ -394,30 +457,71 @@ function cardTable(cards: string[], emptyText: string) {
   return lines;
 }
 
+function entryTable(headers: string[], rows: string[][], emptyText: string) {
+  if (rows.length === 0) return [emptyText];
+
+  const lines = ['<table role="presentation" width="100%">', "<thead>", "<tr>"];
+  for (const header of headers) {
+    lines.push(`<th align="left" valign="top">${escapeHtml(header)}</th>`);
+  }
+  lines.push("</tr>", "</thead>", "<tbody>");
+  for (const row of rows) {
+    lines.push("<tr>");
+    for (const cell of row) {
+      lines.push(`<td valign="top">${cell}</td>`);
+    }
+    lines.push("</tr>");
+  }
+  lines.push("</tbody>", "</table>");
+  return lines;
+}
+
+function foldedScreenshot(
+  entry: SnapshotEntry,
+  options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
+) {
+  const filePath = asString(entry.screenshot);
+  if (!filePath) return "";
+
+  return [
+    "<details>",
+    "<summary>screenshot</summary>",
+    "",
+    screenshotCell(entry, options),
+    "",
+    "</details>",
+  ].join("\n");
+}
+
+function pageInfoTable(entry: SnapshotEntry) {
+  const filePath = asString(entry.screenshot);
+  return entryTable(
+    ["Page", "URI", "Title", "Auth", "Result", "Duration", "Artifact"],
+    [
+      [
+        `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
+        `<code>${escapeHtml(displayRoute(entry))}</code>`,
+        escapeHtml(entry.title ?? "-"),
+        escapeHtml(entry.auth ?? "-"),
+        escapeHtml(resultCell(entry)),
+        escapeHtml(entry.durationMs ? `${entry.durationMs}ms` : "-"),
+        filePath ? `<code>${escapeHtml(filePath)}</code>` : "-",
+      ],
+    ],
+    "No page metadata captured.",
+  ).join("\n");
+}
+
 function pageCards(
   entries: SnapshotEntry[],
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  return entries.map((entry) => {
-    const filePath = asString(entry.screenshot);
-    return [
-      `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
-      "<br>",
-      `<code>${escapeHtml(pageRoute(entry))}</code>`,
-      "<br>",
-      screenshotCell(entry, options),
-      "<br>",
-      finePrint([
-        ["auth", entry.auth],
-        ["result", resultCell(entry)],
-        ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
-        ["screenshot", filePath],
-      ]),
-    ].join("");
-  });
+  return entries.map((entry) =>
+    [foldedScreenshot(entry, options), "", pageInfoTable(entry)].join("\n"),
+  );
 }
 
-async function responseCards(
+async function responseRows(
   entries: SnapshotEntry[],
   options: Pick<Options, "snapshotDir">,
 ) {
@@ -427,25 +531,32 @@ async function responseCards(
       const json = await readSnapshotJson(options.snapshotDir, responsePath);
       const previewJson = responsePreviewJson(entry, json);
       const type = entry.method ?? entry.kind;
+      const metadata = finePrint([
+        ["auth", entry.auth],
+        ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
+        ["artifact path", responsePath],
+      ]);
       return [
         `<strong>${escapeHtml(entry.id ?? "response")}</strong>`,
-        "<br>",
+        `<code>${escapeHtml(String(type))}</code>`,
+        `<code>${escapeHtml(displayRoute(entry))}</code>`,
+        finePrint([["result", resultCell(entry)]]) || "-",
         detailsJson(
           entry.kind === "api" ? "response body" : "tool result",
           previewJson,
         ),
-        "<br>",
-        finePrint([
-          ["type", type],
-          ["auth", entry.auth],
-          ["result", resultCell(entry)],
-          ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
-          ["path", entry.path],
-          ["artifact path", responsePath],
-        ]),
-      ].join("");
+        metadata || "-",
+      ];
     }),
   );
+}
+
+async function responseCards(
+  entries: SnapshotEntry[],
+  options: Pick<Options, "snapshotDir">,
+) {
+  const rows = await responseRows(entries, options);
+  return rows.map((row) => row.join("<br>"));
 }
 
 async function main() {
@@ -462,39 +573,54 @@ async function main() {
   const failedCount = [...pageEntries, ...apiEntries, ...mcpEntries].filter(
     entryFailed,
   ).length;
-  const workflowLink = options.workflowUrl
-    ? `Workflow run: [open](${options.workflowUrl})`
-    : "Workflow run: -";
-  const statusLine =
+  const workflowValue = options.workflowUrl
+    ? `[open](${options.workflowUrl})`
+    : "-";
+  const resultText =
     failedCount === 0
-      ? "Result: snapshot capture completed without failed entries."
-      : `Result: snapshot capture recorded ${failedCount} failed entries.`;
-  const [apiCards, mcpCards] = await Promise.all([
-    responseCards(apiEntries, options),
+      ? "snapshot capture completed without failed entries."
+      : `snapshot capture recorded ${failedCount} failed entries.`;
+  const capturedText = [
+    `${pageEntries.length} screenshots`,
+    `${apiEntries.length} API responses`,
+    `${mcpEntries.length} MCP responses`,
+  ].join("<br>");
+  const [pageTreeLines, apiTreeLines, mcpCards] = await Promise.all([
+    renderRouteTreeNode(buildRouteTree(pageEntries), async (entries) =>
+      cardTable(pageCards(entries, options), "No page screenshots here."),
+    ),
+    renderRouteTreeNode(buildRouteTree(apiEntries), async (entries) =>
+      entryTable(
+        ["Case", "Method", "URI", "Result", "Response", "Metadata"],
+        await responseRows(entries, options),
+        "No API response snapshots here.",
+      ),
+    ),
     responseCards(mcpEntries, options),
   ]);
-  const pageTree = buildPageTree(pageEntries);
 
   const lines = [
     "<!-- life-ustc-e2e-snapshot-artifacts -->",
-    `<details><summary>E2E snapshot artifacts for ${shortSha(options.commit)} (${options.status})</summary>`,
+    `<details open><summary>E2E snapshot artifacts for ${shortSha(options.commit)} (${options.status})</summary>`,
     "",
-    `Commit: \`${options.commit}\``,
-    `Artifact: [e2e-snapshot-artifacts](${options.artifactUrl})`,
-    workflowLink,
-    statusLine,
-    `Captured: ${pageEntries.length} screenshots, ${apiEntries.length} API responses, ${mcpEntries.length} MCP responses.`,
+    ...summaryTable([
+      ["Commit", `\`${options.commit}\``],
+      ["Artifact", `[e2e-snapshot-artifacts](${options.artifactUrl})`],
+      ["Workflow run", workflowValue],
+      ["Result", resultText],
+      ["Captured", capturedText],
+    ]),
     "",
     "### Screenshots",
     "",
     ...(pageEntries.length > 0
-      ? renderPageTreeNode(pageTree, options)
+      ? pageTreeLines
       : ["No page screenshots were generated."]),
     "",
     "### API Responses",
     "",
     ...(apiEntries.length > 0
-      ? cardTable(apiCards, "No API response snapshots were generated.")
+      ? apiTreeLines
       : ["No API response snapshots were generated."]),
     "",
     "### MCP Responses",
