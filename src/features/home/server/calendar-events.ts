@@ -43,13 +43,14 @@ function isWithinExactWindow(
   windowStart: Date,
   windowEnd: Date,
   includeWindowEnd: boolean,
+  mode: "overlap" | "start",
 ) {
   if (!start) return false;
 
   const startTime = start.getTime();
   if (Number.isNaN(startTime)) return false;
 
-  if (end) {
+  if (mode === "overlap" && end) {
     const endTime = end.getTime();
     if (Number.isNaN(endTime)) return false;
     return (
@@ -77,6 +78,7 @@ export async function listUserCalendarEvents(
     dateFromIsDateOnly = false,
     dateToIsDateOnly = false,
     dateToInclusive = false,
+    eventWindowMode = "overlap",
   }: {
     locale?: string;
     dateFrom?: Date | null;
@@ -84,6 +86,7 @@ export async function listUserCalendarEvents(
     dateFromIsDateOnly?: boolean;
     dateToIsDateOnly?: boolean;
     dateToInclusive?: boolean;
+    eventWindowMode?: "overlap" | "start";
   } = {},
 ) {
   const windowStart = dateFrom
@@ -208,6 +211,7 @@ export async function listUserCalendarEvents(
         windowStart,
         windowEnd,
         includeWindowEnd,
+        eventWindowMode,
       ),
     )
     .sort((a, b) => a.sortKey - b.sortKey)

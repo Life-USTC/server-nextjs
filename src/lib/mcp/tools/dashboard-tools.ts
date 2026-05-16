@@ -140,6 +140,7 @@ export function registerDashboardTools(server: McpServer) {
         locale,
         dateFrom: now,
         dateTo,
+        eventWindowMode: "start",
       });
       const deadlines = events.filter(
         (event) =>

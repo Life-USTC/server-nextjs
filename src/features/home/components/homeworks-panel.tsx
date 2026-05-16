@@ -17,11 +17,13 @@ import { Link } from "@/i18n/routing";
 type HomeworksPanelProps = {
   homeworkSummaries: HomeworkSummaryItem[];
   sections: SectionOption[];
+  referenceNow?: string | null;
 };
 
 export async function HomeworksPanel({
   homeworkSummaries,
   sections,
+  referenceNow,
 }: HomeworksPanelProps) {
   const t = await getTranslations("myHomeworks");
   const tCommon = await getTranslations("common");
@@ -43,6 +45,10 @@ export async function HomeworksPanel({
   }
 
   return (
-    <HomeworkSummaryList homeworks={homeworkSummaries} sections={sections} />
+    <HomeworkSummaryList
+      homeworks={homeworkSummaries}
+      sections={sections}
+      referenceNow={referenceNow}
+    />
   );
 }

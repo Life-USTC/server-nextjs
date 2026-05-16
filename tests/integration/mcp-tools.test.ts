@@ -511,6 +511,51 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
     }
   });
 
+  it("get_upcoming_deadlines excludes already-started exams", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    if (!section) {
+      throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
+    }
+
+    const jwId = 926042903;
+    await prisma.exam.deleteMany({ where: { jwId } });
+
+    try {
+      await prisma.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${SEED_DATE}T00:00:00.000Z`),
+          startTime: 900,
+          endTime: 1100,
+        },
+      });
+
+      const result = await mcp.call<{
+        deadlines?: Array<{
+          type?: string;
+          payload?: { jwId?: number | null };
+        }>;
+      }>("get_upcoming_deadlines", {
+        locale: "zh-cn",
+        dayLimit: 1,
+        atTime: shanghaiIsoOnSeedDate(1000),
+      });
+
+      expect(
+        (result.deadlines ?? []).some(
+          (deadline) =>
+            deadline.type === "exam" && deadline.payload?.jwId === jwId,
+        ),
+      ).toBe(false);
+    } finally {
+      await prisma.exam.deleteMany({ where: { jwId } });
+    }
+  });
+
   it("get_upcoming_deadlines treats date-only atTime as Shanghai day start", async () => {
     const dueAt = `${SEED_DATE}T06:30:00+08:00`;
     const todo = await prisma.todo.create({
