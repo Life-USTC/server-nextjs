@@ -20,6 +20,20 @@ const SEED_AT_TIME = DEV_SEED_ANCHOR.recommendedAtTime;
 let devUserId: string;
 let mcp: McpHarness;
 
+function shanghaiIsoOnSeedDate(hhmm: number, addMinutes = 0) {
+  const hours = Math.trunc(hhmm / 100);
+  const minutes = hhmm % 100;
+  const date = new Date(`${SEED_DATE}T00:00:00+08:00`);
+  date.setHours(hours, minutes + addMinutes, 0, 0);
+  return date
+    .toLocaleString("sv-SE", {
+      timeZone: "Asia/Shanghai",
+      hour12: false,
+    })
+    .replace(" ", "T")
+    .concat("+08:00");
+}
+
 beforeAll(async () => {
   const user = await prisma.user.findFirst({
     where: { username: DEV_SEED.debugUsername },
@@ -208,6 +222,118 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
     ).toBe(true);
   });
 
+  it("list_my_calendar_events includes todos at an exact inclusive dateTo bound", async () => {
+    const dueAt = `${SEED_DATE}T06:45:00+08:00`;
+    const todo = await prisma.todo.create({
+      data: {
+        userId: devUserId,
+        title: "[integration-test] inclusive todo dueAt",
+        dueAt: new Date(dueAt),
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await mcp.call<{
+        events?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string };
+        }>;
+      }>("list_my_calendar_events", {
+        dateFrom: dueAt,
+        dateTo: dueAt,
+        locale: "zh-cn",
+      });
+
+      expect(
+        (result.events ?? []).some(
+          (event) =>
+            event.type === "todo_due" &&
+            event.at === dueAt &&
+            event.payload?.id === todo.id,
+        ),
+      ).toBe(true);
+    } finally {
+      await prisma.todo.deleteMany({ where: { id: todo.id } });
+    }
+  });
+
+  it("list_my_calendar_events includes timed events overlapping an exact window", async () => {
+    const schedule = await prisma.schedule.findFirst({
+      where: {
+        section: { jwId: DEV_SEED.section.jwId },
+        date: new Date(`${SEED_DATE}T00:00:00.000Z`),
+      },
+      select: { id: true, startTime: true, endTime: true },
+      orderBy: { startTime: "asc" },
+    });
+    if (!schedule) {
+      throw new Error(`Seed schedule for ${SEED_DATE} not found`);
+    }
+
+    const windowStart = shanghaiIsoOnSeedDate(schedule.startTime, 15);
+    const windowEnd = shanghaiIsoOnSeedDate(schedule.startTime, 30);
+    const endsAt = new Date(shanghaiIsoOnSeedDate(schedule.endTime));
+    expect(endsAt.getTime()).toBeGreaterThan(new Date(windowEnd).getTime());
+
+    const result = await mcp.call<{
+      events?: Array<{ type?: string; payload?: { id?: number } }>;
+    }>("list_my_calendar_events", {
+      dateFrom: windowStart,
+      dateTo: windowEnd,
+      locale: "zh-cn",
+    });
+
+    expect(
+      (result.events ?? []).some(
+        (event) =>
+          event.type === "schedule" && event.payload?.id === schedule.id,
+      ),
+    ).toBe(true);
+  });
+
+  it("list_my_calendar_events widens date-backed queries for exact windows", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    if (!section) {
+      throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
+    }
+
+    const jwId = 926042901;
+    await prisma.exam.deleteMany({ where: { jwId } });
+
+    try {
+      await prisma.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${SEED_DATE}T00:00:00.000Z`),
+          startTime: null,
+          endTime: null,
+        },
+      });
+
+      const result = await mcp.call<{
+        events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
+      }>("list_my_calendar_events", {
+        dateFrom: `${SEED_DATE}T00:10:00+08:00`,
+        dateTo: `${SEED_DATE}T00:30:00+08:00`,
+        locale: "zh-cn",
+      });
+
+      expect(
+        (result.events ?? []).some(
+          (event) => event.type === "exam" && event.payload?.jwId === jwId,
+        ),
+      ).toBe(true);
+    } finally {
+      await prisma.exam.deleteMany({ where: { jwId } });
+    }
+  });
+
   it("list_my_calendar_events keeps no-time exams visible through their day", async () => {
     const section = await prisma.section.findUnique({
       where: { jwId: DEV_SEED.section.jwId },
@@ -245,6 +371,47 @@ describe("flexDateInputSchema — bare YYYY-MM-DD accepted by date-filter tools"
             event.type === "exam" && event.at === `${SEED_DATE}T00:00:00+08:00`,
         ),
       ).toBe(true);
+    } finally {
+      await prisma.exam.deleteMany({ where: { jwId } });
+    }
+  });
+
+  it("list_my_calendar_events respects endTime for exams without startTime", async () => {
+    const section = await prisma.section.findUnique({
+      where: { jwId: DEV_SEED.section.jwId },
+      select: { id: true },
+    });
+    if (!section) {
+      throw new Error(`Seed section ${DEV_SEED.section.jwId} not found`);
+    }
+
+    const jwId = 926042902;
+    await prisma.exam.deleteMany({ where: { jwId } });
+
+    try {
+      await prisma.exam.create({
+        data: {
+          jwId,
+          sectionId: section.id,
+          examDate: new Date(`${SEED_DATE}T00:00:00.000Z`),
+          startTime: null,
+          endTime: 1200,
+        },
+      });
+
+      const result = await mcp.call<{
+        events?: Array<{ type?: string; payload?: { jwId?: number | null } }>;
+      }>("list_my_calendar_events", {
+        dateFrom: `${SEED_DATE}T13:00:00+08:00`,
+        dateTo: `${SEED_DATE}T14:00:00+08:00`,
+        locale: "zh-cn",
+      });
+
+      expect(
+        (result.events ?? []).some(
+          (event) => event.type === "exam" && event.payload?.jwId === jwId,
+        ),
+      ).toBe(false);
     } finally {
       await prisma.exam.deleteMany({ where: { jwId } });
     }
@@ -337,6 +504,43 @@ describe("atTime override — time-sensitive tools are anchored to SEED_DATE", (
       if (deadline.at) {
         expect(deadline.at >= SEED_DATE).toBe(true);
       }
+    }
+  });
+
+  it("get_upcoming_deadlines treats date-only atTime as Shanghai day start", async () => {
+    const dueAt = `${SEED_DATE}T06:30:00+08:00`;
+    const todo = await prisma.todo.create({
+      data: {
+        userId: devUserId,
+        title: "[integration-test] early date-only deadline",
+        dueAt: new Date(dueAt),
+      },
+      select: { id: true },
+    });
+
+    try {
+      const result = await mcp.call<{
+        deadlines?: Array<{
+          type?: string;
+          at?: string;
+          payload?: { id?: string };
+        }>;
+      }>("get_upcoming_deadlines", {
+        locale: "zh-cn",
+        dayLimit: 1,
+        atTime: SEED_DATE,
+      });
+
+      expect(
+        (result.deadlines ?? []).some(
+          (deadline) =>
+            deadline.type === "todo_due" &&
+            deadline.at === dueAt &&
+            deadline.payload?.id === todo.id,
+        ),
+      ).toBe(true);
+    } finally {
+      await prisma.todo.deleteMany({ where: { id: todo.id } });
     }
   });
 
