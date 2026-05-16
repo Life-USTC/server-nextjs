@@ -387,6 +387,21 @@ function buildRouteTree(entries: SnapshotEntry[]) {
   return root;
 }
 
+async function renderRouteEntryList(
+  entries: SnapshotEntry[],
+  renderEntries: (entries: SnapshotEntry[]) => Promise<string[]>,
+) {
+  if (entries.length === 0) return [];
+  return [
+    "<ul>",
+    "<li>",
+    ...(await renderEntries(entries)),
+    "</li>",
+    "</ul>",
+    "",
+  ];
+}
+
 async function renderRouteTreeNode(
   node: RouteTreeNode,
   renderEntries: (entries: SnapshotEntry[]) => Promise<string[]>,
@@ -398,27 +413,46 @@ async function renderRouteTreeNode(
     a.label.localeCompare(b.label, "en"),
   );
 
-  if (depth > 0) {
-    const entryCount =
-      entries.length > 0 ? ` <sub>${entries.length} item(s)</sub>` : "";
-    lines.push(
-      "<details open>",
-      `<summary><code>${escapeHtml(node.label)}</code>${entryCount}</summary>`,
-      "",
-    );
+  if (depth === 0) {
+    lines.push(...(await renderRouteEntryList(entries, renderEntries)));
+
+    if (children.length > 0) {
+      lines.push("<ul>");
+      for (const child of children) {
+        lines.push(
+          ...(await renderRouteTreeNode(child, renderEntries, depth + 1)),
+        );
+      }
+      lines.push("</ul>", "");
+    }
+
+    return lines;
   }
+
+  const entryCount =
+    entries.length > 0 ? ` <sub>${entries.length} item(s)</sub>` : "";
+  lines.push(
+    "<li>",
+    "<details open>",
+    `<summary><code>${escapeHtml(node.label)}</code>${entryCount}</summary>`,
+    "",
+  );
 
   if (entries.length > 0) {
-    lines.push(...(await renderEntries(entries)), "");
+    lines.push(...(await renderRouteEntryList(entries, renderEntries)));
   }
 
-  for (const child of children) {
-    lines.push(...(await renderRouteTreeNode(child, renderEntries, depth + 1)));
+  if (children.length > 0) {
+    lines.push("<ul>");
+    for (const child of children) {
+      lines.push(
+        ...(await renderRouteTreeNode(child, renderEntries, depth + 1)),
+      );
+    }
+    lines.push("</ul>", "");
   }
 
-  if (depth > 0) {
-    lines.push("</details>", "");
-  }
+  lines.push("</details>", "</li>");
 
   return lines;
 }
