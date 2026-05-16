@@ -1,3 +1,19 @@
+## [1.29.2](https://github.com/Life-USTC/server-nextjs/compare/v1.29.1...v1.29.2) (2026-05-16)
+
+
+### Bug Fixes
+
+* **e2e:** address calendar snapshot reviews ([69db189](https://github.com/Life-USTC/server-nextjs/commit/69db1891a89e22f906462ea93ffb57d891243a1c))
+* **e2e:** anchor dashboard snapshots ([b3f8747](https://github.com/Life-USTC/server-nextjs/commit/b3f874770af782d5744abbef59d24f7b9d430afa))
+* **e2e:** fold snapshot page entries ([28ccc50](https://github.com/Life-USTC/server-nextjs/commit/28ccc50ff7acf4c8b1bce470b08ff6ae49dbaee1))
+* **e2e:** improve snapshot comment layout ([cc57768](https://github.com/Life-USTC/server-nextjs/commit/cc57768a4e4d58d776b0eb7c622b8ef4c7976977))
+* **e2e:** indent snapshot route tree ([50a1283](https://github.com/Life-USTC/server-nextjs/commit/50a1283237e0619e86d1e166965043c260732c3d))
+* **e2e:** render snapshot artifacts as tree ([eeb5563](https://github.com/Life-USTC/server-nextjs/commit/eeb5563a1ca4dfa0b330fccfc5ddd8169e978a65))
+* **e2e:** simplify screenshot tree labels ([b98b1fc](https://github.com/Life-USTC/server-nextjs/commit/b98b1fca75db8b51585d17e6db79a4a9e4825476))
+* **e2e:** simplify snapshot route layout ([13101dc](https://github.com/Life-USTC/server-nextjs/commit/13101dc1fe162d6ffb28059420266f39cc9d1c7f))
+* **e2e:** stabilize anchored dashboard tabs ([a4edacf](https://github.com/Life-USTC/server-nextjs/commit/a4edacf3b21faac4895a018e259b849a44146b02))
+* **e2e:** use nested lists for snapshot comment ([0a818e7](https://github.com/Life-USTC/server-nextjs/commit/0a818e70218150e20a5a4841233a184586c7c220))
+
 ## [1.29.1](https://github.com/Life-USTC/server-nextjs/compare/v1.29.0...v1.29.1) (2026-05-14)
 
 
