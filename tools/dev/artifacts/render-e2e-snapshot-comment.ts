@@ -45,8 +45,10 @@ type RouteTreeNode = {
 const MAX_EMBEDDED_JSON_CHARS = 600;
 const SCREENSHOT_WIDTH = 480;
 const IGNORED_PAGE_QUERY_PARAMS = new Set(["snapshotAt"]);
-const PAGE_TABLE_WIDTHS = ["14%", "20%", "18%", "8%", "10%", "10%", "20%"];
-const RESPONSE_TABLE_WIDTHS = ["14%", "8%", "22%", "10%", "28%", "18%"];
+const TREE_BRANCH = "|-- ";
+const TREE_LAST = "`-- ";
+const TREE_PIPE = "|   ";
+const TREE_BLANK = "    ";
 
 function usage() {
   return [
@@ -308,15 +310,18 @@ function displayRoute(entry: SnapshotEntry) {
   if (entry.kind === "page") {
     return normalizedRoute(pageRoute(entry), IGNORED_PAGE_QUERY_PARAMS);
   }
+  if (entry.kind === "mcp") return mcpRoute(entry);
   return normalizedRoute(entryRoute(entry));
 }
 
 function treeRoute(entry: SnapshotEntry) {
+  if (entry.kind === "mcp") return "/mcp";
   return displayRoute(entry);
 }
 
 function entryRoute(entry: SnapshotEntry) {
   if (entry.kind === "page") return pageRoute(entry);
+  if (entry.kind === "mcp") return mcpRoute(entry);
 
   const candidates = [entry.path, entry.requestedPath, entry.pathTemplate];
   for (const candidate of candidates) {
@@ -333,6 +338,11 @@ function entryRoute(entry: SnapshotEntry) {
   return asString(entry.id) ?? "/";
 }
 
+function mcpRoute(entry: SnapshotEntry) {
+  const id = asString(entry.id) ?? "response";
+  return `/mcp/${encodeURIComponent(id)}`;
+}
+
 function routeSegments(route: string) {
   let url: URL;
   try {
@@ -342,7 +352,6 @@ function routeSegments(route: string) {
   }
 
   const segments = url.pathname.split("/").filter(Boolean);
-  if (segments.length === 0) segments.push("/");
 
   const params = [...url.searchParams.entries()];
   if (params.length > 0) {
@@ -387,24 +396,15 @@ function buildRouteTree(entries: SnapshotEntry[]) {
   return root;
 }
 
-async function renderRouteEntryList(
-  entries: SnapshotEntry[],
-  renderEntries: (entries: SnapshotEntry[]) => Promise<string[]>,
-) {
-  if (entries.length === 0) return [];
-  return [
-    "<ul>",
-    "<li>",
-    ...(await renderEntries(entries)),
-    "</li>",
-    "</ul>",
-    "",
-  ];
-}
-
 async function renderRouteTreeNode(
   node: RouteTreeNode,
-  renderEntries: (entries: SnapshotEntry[]) => Promise<string[]>,
+  renderEntry: (
+    entry: SnapshotEntry,
+    prefix: string,
+    isLast: boolean,
+  ) => Promise<string[]>,
+  prefix = "",
+  connector = "",
   depth = 0,
 ): Promise<string[]> {
   const lines: string[] = [];
@@ -414,63 +414,64 @@ async function renderRouteTreeNode(
   );
 
   if (depth === 0) {
-    lines.push(...(await renderRouteEntryList(entries, renderEntries)));
+    lines.push(`<code>${escapeHtml(node.label)}</code><br>`);
+  } else {
+    lines.push(
+      `<code>${escapeHtml(prefix + connector + node.label)}</code><br>`,
+    );
+  }
 
-    if (children.length > 0) {
-      lines.push("<ul>");
-      for (const child of children) {
-        lines.push(
-          ...(await renderRouteTreeNode(child, renderEntries, depth + 1)),
-        );
-      }
-      lines.push("</ul>", "");
+  const childPrefix =
+    depth === 0
+      ? ""
+      : prefix + (connector === TREE_LAST ? TREE_BLANK : TREE_PIPE);
+  const items: Array<
+    | { kind: "entry"; entry: SnapshotEntry }
+    | { kind: "node"; node: RouteTreeNode }
+  > = [
+    ...entries.map((entry) => ({ kind: "entry" as const, entry })),
+    ...children.map((child) => ({ kind: "node" as const, node: child })),
+  ];
+
+  for (const [index, item] of items.entries()) {
+    const isLast = index === items.length - 1;
+    const connector = isLast ? TREE_LAST : TREE_BRANCH;
+    if (item.kind === "entry") {
+      lines.push(...(await renderEntry(item.entry, childPrefix, isLast)));
+      continue;
     }
-
-    return lines;
+    lines.push(
+      ...(await renderRouteTreeNode(
+        item.node,
+        renderEntry,
+        childPrefix,
+        connector,
+        depth + 1,
+      )),
+    );
   }
-
-  const entryCount =
-    entries.length > 0 ? ` <sub>${entries.length} item(s)</sub>` : "";
-  lines.push(
-    "<li>",
-    "<details open>",
-    `<summary><code>${escapeHtml(node.label)}</code>${entryCount}</summary>`,
-    "",
-  );
-
-  if (entries.length > 0) {
-    lines.push(...(await renderRouteEntryList(entries, renderEntries)));
-  }
-
-  if (children.length > 0) {
-    lines.push("<ul>");
-    for (const child of children) {
-      lines.push(
-        ...(await renderRouteTreeNode(child, renderEntries, depth + 1)),
-      );
-    }
-    lines.push("</ul>", "");
-  }
-
-  lines.push("</details>", "</li>");
 
   return lines;
 }
 
-function detailsJson(summary: string, json: string | undefined) {
-  if (!json) return "<em>No response JSON captured.</em>";
+function treeLine(prefix: string, isLast: boolean, label: unknown) {
+  return `<code>${escapeHtml(prefix + (isLast ? TREE_LAST : TREE_BRANCH) + String(label))}</code>`;
+}
+
+function childTreePrefix(prefix: string, isLast: boolean) {
+  return prefix + (isLast ? TREE_BLANK : TREE_PIPE);
+}
+
+function previewJsonBlock(json: string | undefined) {
+  if (!json) return ["<em>No response JSON captured.</em>"];
   const trimmed = json.trimEnd();
   const truncated =
     trimmed.length > MAX_EMBEDDED_JSON_CHARS
       ? `${trimmed.slice(0, MAX_EMBEDDED_JSON_CHARS)}\n... truncated ${trimmed.length - MAX_EMBEDDED_JSON_CHARS} chars ...`
       : trimmed;
   return [
-    `<details><summary>${escapeHtml(trimmed.length > MAX_EMBEDDED_JSON_CHARS ? `${summary} preview` : summary)}</summary>`,
-    "",
     `<pre><code class="language-json">${escapeHtml(truncated)}</code></pre>`,
-    "",
-    "</details>",
-  ].join("\n");
+  ];
 }
 
 function markdownTableCell(value: string) {
@@ -485,51 +486,6 @@ function summaryTable(rows: Array<[string, string]>) {
   return lines;
 }
 
-function cardTable(cards: string[], emptyText: string) {
-  if (cards.length === 0) return [emptyText];
-
-  const lines = ['<table role="presentation" width="100%">', "<tbody>"];
-  for (const card of cards) {
-    lines.push("<tr>");
-    lines.push(`<td width="100%" valign="top">${card}</td>`);
-    lines.push("</tr>");
-  }
-  lines.push("</tbody>", "</table>");
-  return lines;
-}
-
-function entryTable(
-  headers: string[],
-  rows: string[][],
-  emptyText: string,
-  widths: string[] = [],
-) {
-  if (rows.length === 0) return [emptyText];
-
-  const lines = ['<table role="presentation" width="100%">'];
-  if (widths.length > 0) {
-    lines.push("<colgroup>");
-    for (const width of widths) {
-      lines.push(`<col width="${escapeAttribute(width)}">`);
-    }
-    lines.push("</colgroup>");
-  }
-  lines.push("<thead>", "<tr>");
-  for (const header of headers) {
-    lines.push(`<th align="left" valign="top">${escapeHtml(header)}</th>`);
-  }
-  lines.push("</tr>", "</thead>", "<tbody>");
-  for (const row of rows) {
-    lines.push("<tr>");
-    for (const cell of row) {
-      lines.push(`<td valign="top">${cell}</td>`);
-    }
-    lines.push("</tr>");
-  }
-  lines.push("</tbody>", "</table>");
-  return lines;
-}
-
 function screenshotPanel(
   entry: SnapshotEntry,
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
@@ -539,99 +495,100 @@ function screenshotPanel(
   return screenshotCell(entry, options);
 }
 
-function pageInfoTable(entry: SnapshotEntry) {
-  const filePath = asString(entry.screenshot);
-  return entryTable(
-    ["Page", "URI", "Title", "Auth", "Result", "Duration", "Artifact"],
-    [
-      [
-        `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
-        `<code>${escapeHtml(displayRoute(entry))}</code>`,
-        escapeHtml(entry.title ?? "-"),
-        escapeHtml(entry.auth ?? "-"),
-        escapeHtml(resultCell(entry)),
-        escapeHtml(entry.durationMs ? `${entry.durationMs}ms` : "-"),
-        filePath ? `<code>${escapeHtml(filePath)}</code>` : "-",
-      ],
-    ],
-    "No page metadata captured.",
-    PAGE_TABLE_WIDTHS,
-  ).join("\n");
+function entryLabel(entry: SnapshotEntry, fallback: string) {
+  return asString(entry.id) ?? fallback;
 }
 
-function pageCards(
-  entries: SnapshotEntry[],
+function pageMetadata(entry: SnapshotEntry) {
+  return finePrint([
+    ["uri", displayRoute(entry)],
+    ["result", resultCell(entry)],
+    ["auth", entry.auth],
+    ["title", entry.title],
+    ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
+  ]);
+}
+
+function screenshotTreeLines(
+  entry: SnapshotEntry,
+  options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
+  prefix: string,
+) {
+  const filePath = asString(entry.screenshot);
+  const label = filePath ? path.basename(filePath) : "screenshot";
+  const artifact = filePath
+    ? ` <sub><code>${escapeHtml(snapshotRelativePath(filePath))}</code></sub>`
+    : "";
+
+  return [
+    `<details><summary>${treeLine(prefix, true, label)}${artifact}</summary>`,
+    "",
+    screenshotPanel(entry, options),
+    "",
+    "</details>",
+  ];
+}
+
+async function renderPageEntry(
+  entry: SnapshotEntry,
+  prefix: string,
+  isLast: boolean,
   options: Pick<Options, "artifactUrl" | "screenshotBaseUrl">,
 ) {
-  return entries.map((entry) => {
-    const summary = [
-      `<strong>${escapeHtml(entry.id ?? "page")}</strong>`,
-      `<code>${escapeHtml(displayRoute(entry))}</code>`,
-      finePrint([
-        ["result", resultCell(entry)],
-        ["auth", entry.auth],
-      ]),
-    ]
-      .filter(Boolean)
-      .join(" &nbsp; ");
-    return [
-      `<details><summary>${summary}</summary>`,
-      "",
-      "##### Screenshot",
-      "",
-      screenshotPanel(entry, options),
-      "",
-      "##### Metadata",
-      "",
-      pageInfoTable(entry),
-      "",
-      "</details>",
-    ].join("\n");
-  });
-}
-
-function pageList(cards: string[], emptyText: string) {
-  if (cards.length === 0) return [emptyText];
-
-  return cards.flatMap((card) => [card, ""]);
-}
-
-async function responseRows(
-  entries: SnapshotEntry[],
-  options: Pick<Options, "snapshotDir">,
-) {
-  return await Promise.all(
-    entries.map(async (entry) => {
-      const responsePath = asString(entry.response);
-      const json = await readSnapshotJson(options.snapshotDir, responsePath);
-      const previewJson = responsePreviewJson(entry, json);
-      const type = entry.method ?? entry.kind;
-      const metadata = finePrint([
-        ["auth", entry.auth],
-        ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
-        ["artifact path", responsePath],
-      ]);
-      return [
-        `<strong>${escapeHtml(entry.id ?? "response")}</strong>`,
-        `<code>${escapeHtml(String(type))}</code>`,
-        `<code>${escapeHtml(displayRoute(entry))}</code>`,
-        finePrint([["result", resultCell(entry)]]) || "-",
-        detailsJson(
-          entry.kind === "api" ? "response body" : "tool result",
-          previewJson,
-        ),
-        metadata || "-",
-      ];
-    }),
+  const lines = [
+    `${treeLine(prefix, isLast, entryLabel(entry, "page"))} ${pageMetadata(entry)}<br>`,
+  ];
+  lines.push(
+    ...screenshotTreeLines(entry, options, childTreePrefix(prefix, isLast)),
   );
+  return lines;
 }
 
-async function responseCards(
-  entries: SnapshotEntry[],
+function responseMetadata(entry: SnapshotEntry) {
+  return finePrint([
+    ["uri", displayRoute(entry)],
+    ["method", entry.method ?? entry.kind],
+    ["result", resultCell(entry)],
+    ["auth", entry.auth],
+    ["duration", entry.durationMs ? `${entry.durationMs}ms` : undefined],
+  ]);
+}
+
+async function responseSnapshotTreeLines(
+  entry: SnapshotEntry,
+  options: Pick<Options, "snapshotDir">,
+  prefix: string,
+) {
+  const responsePath = asString(entry.response);
+  const json = await readSnapshotJson(options.snapshotDir, responsePath);
+  const previewJson = responsePreviewJson(entry, json);
+  const label = responsePath ? path.basename(responsePath) : "response.json";
+  const artifact = responsePath
+    ? ` <sub><code>${escapeHtml(snapshotRelativePath(responsePath))}</code></sub>`
+    : "";
+  return [
+    `${treeLine(prefix, true, label)}${artifact}<br>`,
+    ...previewJsonBlock(previewJson),
+  ];
+}
+
+async function renderResponseEntry(
+  entry: SnapshotEntry,
+  prefix: string,
+  isLast: boolean,
   options: Pick<Options, "snapshotDir">,
 ) {
-  const rows = await responseRows(entries, options);
-  return rows.map((row) => row.join("<br>"));
+  const lines = [
+    `${treeLine(prefix, isLast, entryLabel(entry, "response"))} ${responseMetadata(entry)}<br>`,
+  ];
+  lines.push(
+    ...(await responseSnapshotTreeLines(
+      entry,
+      options,
+      childTreePrefix(prefix, isLast),
+    )),
+  );
+  return lines;
 }
 
 async function main() {
@@ -660,24 +617,27 @@ async function main() {
     `${apiEntries.length} API responses`,
     `${mcpEntries.length} MCP responses`,
   ].join("<br>");
-  const [pageTreeLines, apiTreeLines, mcpCards] = await Promise.all([
-    renderRouteTreeNode(buildRouteTree(pageEntries), async (entries) =>
-      pageList(pageCards(entries, options), "No page screenshots here."),
+  const [pageTreeLines, apiTreeLines, mcpTreeLines] = await Promise.all([
+    renderRouteTreeNode(
+      buildRouteTree(pageEntries),
+      async (entry, prefix, isLast) =>
+        renderPageEntry(entry, prefix, isLast, options),
     ),
-    renderRouteTreeNode(buildRouteTree(apiEntries), async (entries) =>
-      entryTable(
-        ["Case", "Method", "URI", "Result", "Response", "Metadata"],
-        await responseRows(entries, options),
-        "No API response snapshots here.",
-        RESPONSE_TABLE_WIDTHS,
-      ),
+    renderRouteTreeNode(
+      buildRouteTree(apiEntries),
+      async (entry, prefix, isLast) =>
+        renderResponseEntry(entry, prefix, isLast, options),
     ),
-    responseCards(mcpEntries, options),
+    renderRouteTreeNode(
+      buildRouteTree(mcpEntries),
+      async (entry, prefix, isLast) =>
+        renderResponseEntry(entry, prefix, isLast, options),
+    ),
   ]);
 
   const lines = [
     "<!-- life-ustc-e2e-snapshot-artifacts -->",
-    `<details open><summary>E2E snapshot artifacts for ${shortSha(options.commit)} (${options.status})</summary>`,
+    `## E2E snapshot artifacts for ${shortSha(options.commit)} (${options.status})`,
     "",
     ...summaryTable([
       ["Commit", `\`${options.commit}\``],
@@ -702,10 +662,8 @@ async function main() {
     "### MCP Responses",
     "",
     ...(mcpEntries.length > 0
-      ? cardTable(mcpCards, "No MCP response snapshots were generated.")
+      ? mcpTreeLines
       : ["No MCP response snapshots were generated."]),
-    "",
-    "</details>",
   ];
 
   await writeTextFile(options.output, lines.join("\n"));
