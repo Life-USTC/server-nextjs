@@ -21,6 +21,13 @@ import { createHash } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { expect, type Page, test } from "@playwright/test";
+import {
+  DEFAULT_OAUTH_CLIENT_SCOPES,
+  MCP_TOOLS_SCOPE,
+  OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
+  OAUTH_CODE_RESPONSE_TYPE,
+  OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+} from "@/lib/oauth/constants";
 import { signInAsDebugUser } from "../../../../utils/auth";
 import { DEV_SEED, DEV_SEED_ANCHOR } from "../../../../utils/dev-seed";
 import {
@@ -37,6 +44,9 @@ function generateCodeChallenge(codeVerifier: string) {
 }
 
 const REDIRECT_URI = `${PLAYWRIGHT_BASE_URL}/e2e/oauth/callback`;
+const MCP_CLIENT_SCOPES = [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE];
+const MCP_CLIENT_SCOPE = MCP_CLIENT_SCOPES.join(" ");
+const DEFAULT_CLIENT_SCOPE = DEFAULT_OAUTH_CLIENT_SCOPES.join(" ");
 const TRUSTED_BROWSER_ORIGIN = PLAYWRIGHT_BASE_URL.includes("127.0.0.1")
   ? PLAYWRIGHT_BASE_URL.replace("127.0.0.1", "localhost")
   : PLAYWRIGHT_BASE_URL.replace("localhost", "127.0.0.1");
@@ -78,9 +88,9 @@ async function registerPublicClient(request: Page["request"], scope: string) {
     data: {
       client_name: `mcp-e2e-${Date.now()}`,
       redirect_uris: [REDIRECT_URI],
-      token_endpoint_auth_method: "none",
-      grant_types: ["authorization_code"],
-      response_types: ["code"],
+      token_endpoint_auth_method: OAUTH_PUBLIC_CLIENT_AUTH_METHOD,
+      grant_types: [OAUTH_AUTHORIZATION_CODE_GRANT_TYPE],
+      response_types: [OAUTH_CODE_RESPONSE_TYPE],
       scope,
     },
   });
@@ -103,7 +113,7 @@ async function authorizeAndGetCode(
     "/api/auth/oauth2/authorize",
     {
       params: {
-        response_type: "code",
+        response_type: OAUTH_CODE_RESPONSE_TYPE,
         client_id: clientId,
         redirect_uri: REDIRECT_URI,
         scope: options.scope,
@@ -168,7 +178,7 @@ async function issueAccessToken(
 
   const tokenResponse = await request.post("/api/auth/oauth2/token", {
     form: {
-      grant_type: "authorization_code",
+      grant_type: OAUTH_AUTHORIZATION_CODE_GRANT_TYPE,
       client_id: clientId,
       code,
       code_verifier: codeVerifier,
@@ -325,8 +335,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     const resource = `${PLAYWRIGHT_BASE_URL}/api/mcp`;
     await signInAsDebugUser(page, "/");
     const { accessToken } = await issueAccessToken(page, request, {
-      scope: "openid profile mcp:tools",
-      clientScopes: ["openid", "profile", "mcp:tools"],
+      scope: MCP_CLIENT_SCOPE,
+      clientScopes: MCP_CLIENT_SCOPES,
       resource,
     });
 
@@ -362,8 +372,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
 
     await signInAsDebugUser(page, "/");
     const { accessToken } = await issueAccessToken(page, request, {
-      scope: "openid profile mcp:tools",
-      clientScopes: ["openid", "profile", "mcp:tools"],
+      scope: MCP_CLIENT_SCOPE,
+      clientScopes: MCP_CLIENT_SCOPES,
       resource,
     });
 
@@ -404,8 +414,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     await signInAsDebugUser(page, "/");
 
     const { accessToken } = await issueAccessToken(page, request, {
-      scope: "openid profile",
-      clientScopes: ["openid", "profile"],
+      scope: DEFAULT_CLIENT_SCOPE,
+      clientScopes: [...DEFAULT_OAUTH_CLIENT_SCOPES],
       resource,
     });
 
@@ -434,7 +444,7 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
       'error="insufficient_scope"',
     );
     expect(response.headers()["www-authenticate"]).toContain(
-      'scope="mcp:tools"',
+      `scope="${MCP_TOOLS_SCOPE}"`,
     );
     await expect(response.json()).resolves.toEqual({
       error: "insufficient_scope",
@@ -449,8 +459,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     await signInAsDebugUser(page, "/");
 
     const { accessToken } = await issueAccessToken(page, request, {
-      scope: "openid profile mcp:tools",
-      clientScopes: ["openid", "profile", "mcp:tools"],
+      scope: MCP_CLIENT_SCOPE,
+      clientScopes: MCP_CLIENT_SCOPES,
       resource,
       includeResourceInTokenExchange: false,
     });
@@ -496,8 +506,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
     await signInAsDebugUser(page, "/");
 
     const { accessToken } = await issueAccessToken(page, request, {
-      scope: "openid profile mcp:tools",
-      clientScopes: ["openid", "profile", "mcp:tools"],
+      scope: MCP_CLIENT_SCOPE,
+      clientScopes: MCP_CLIENT_SCOPES,
       resource,
       includeResourceInTokenExchange: false,
     });
@@ -529,8 +539,8 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         },
       });
       const { accessToken } = await issueAccessToken(page, request, {
-        scope: "openid profile mcp:tools",
-        clientScopes: ["openid", "profile", "mcp:tools"],
+        scope: MCP_CLIENT_SCOPE,
+        clientScopes: MCP_CLIENT_SCOPES,
         resource,
       });
 
@@ -600,7 +610,6 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
             "get_upcoming_deadlines",
             "list_my_homeworks",
             "set_my_homework_completion",
-            "unset_my_homework_completion",
             "list_my_schedules",
             "list_my_exams",
             "get_my_overview",
@@ -912,37 +921,6 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
         };
         expect(setCompletionFalsePayload.success).toBe(true);
         expect(setCompletionFalsePayload.completion?.completed).toBe(false);
-
-        // Re-mark as completed so unset_my_homework_completion has something to undo
-        const reSetCompletionResult = await mcpClient.callTool({
-          name: "set_my_homework_completion",
-          arguments: {
-            homeworkId: firstHomeworkId,
-            completed: true,
-          },
-        });
-        expect(
-          (
-            parseTextContent(reSetCompletionResult) as {
-              success?: boolean;
-            }
-          ).success,
-        ).toBe(true);
-
-        const unsetCompletionResult = await mcpClient.callTool({
-          name: "unset_my_homework_completion",
-          arguments: {
-            homeworkId: firstHomeworkId,
-          },
-        });
-        const unsetCompletionPayload = parseTextContent(
-          unsetCompletionResult,
-        ) as {
-          success?: boolean;
-          completion?: { completed?: boolean; completedAt?: null };
-        };
-        expect(unsetCompletionPayload.success).toBe(true);
-        expect(unsetCompletionPayload.completion?.completed).toBe(false);
 
         const mySchedulesResult = await mcpClient.callTool({
           name: "list_my_schedules",
@@ -1307,6 +1285,17 @@ test.describe("/api/mcp – MCP Streamable-HTTP transport", () => {
             }
           | undefined;
         await expect(async () => {
+          const preferenceResponse = await page.request.post(
+            "/api/bus/preferences",
+            {
+              data: {
+                preferredOriginCampusId: 1,
+                preferredDestinationCampusId: 4,
+                showDepartedTrips: true,
+              },
+            },
+          );
+          expect(preferenceResponse.status()).toBe(200);
           busResult = await mcpClient.callTool({
             name: "query_bus_timetable",
             arguments: {

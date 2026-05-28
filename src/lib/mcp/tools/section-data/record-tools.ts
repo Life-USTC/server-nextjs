@@ -7,6 +7,7 @@ import {
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
+  parseMcpDateRange,
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
@@ -15,7 +16,6 @@ import {
   buildScheduleListWhere,
   publicScheduleInclude,
 } from "@/lib/schedule-queries";
-import { parseDateInput } from "@/lib/time/parse-date-input";
 import {
   sectionExamInclude,
   sectionNotFoundToolResult,
@@ -68,19 +68,9 @@ export function registerSectionRecordTools(server: McpServer) {
     }) => {
       const localizedPrisma = getPrisma(locale);
       const pagination = normalizePagination({ page, pageSize: limit });
-      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
-      if (!(parsedDateFrom instanceof Date) && dateFrom) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
-      }
-      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
-      if (!(parsedDateTo instanceof Date) && dateTo) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
+      if (!dateRange.ok) {
+        return dateRange.result;
       }
       const where = buildScheduleListWhere({
         sectionId,
@@ -91,8 +81,8 @@ export function registerSectionRecordTools(server: McpServer) {
         roomId,
         roomJwId,
         weekday,
-        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
-        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
+        dateFrom: dateRange.dateFrom,
+        dateTo: dateRange.dateTo,
       });
 
       const [schedules, total] = await Promise.all([
@@ -153,33 +143,17 @@ export function registerSectionRecordTools(server: McpServer) {
         return sectionNotFoundToolResult(sectionJwId, mode);
       }
 
-      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
-      if (parsedDateFrom === undefined && dateFrom) {
-        return jsonToolResult({
-          found: true,
-          section,
-          schedules: [],
-          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
-      }
-      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
-      if (parsedDateTo === undefined && dateTo) {
-        return jsonToolResult({
-          found: true,
-          section,
-          schedules: [],
-          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
+      if (!dateRange.ok) {
+        return dateRange.result;
       }
 
       const dateFilter =
-        parsedDateFrom instanceof Date || parsedDateTo instanceof Date
+        dateRange.dateFrom || dateRange.dateTo
           ? {
               date: {
-                ...(parsedDateFrom instanceof Date
-                  ? { gte: parsedDateFrom }
-                  : {}),
-                ...(parsedDateTo instanceof Date ? { lte: parsedDateTo } : {}),
+                ...(dateRange.dateFrom ? { gte: dateRange.dateFrom } : {}),
+                ...(dateRange.dateTo ? { lte: dateRange.dateTo } : {}),
               },
             }
           : {};

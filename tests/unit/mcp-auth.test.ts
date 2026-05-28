@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MCP_TOOLS_SCOPE } from "@/lib/oauth/constants";
 
 const verifyOAuthAccessTokenMock = vi.fn();
 
@@ -31,10 +32,7 @@ vi.mock("@/lib/mcp/urls", () => ({
     new URL(
       "https://life.example/.well-known/oauth-protected-resource/api/mcp",
     ),
-  getOAuthTokenVerificationIssuers: () => [
-    "https://life.example/api/auth",
-    "https://life.example",
-  ],
+  getOAuthTokenVerificationIssuers: () => ["https://life.example/api/auth"],
 }));
 
 describe("MCP auth", () => {
@@ -43,12 +41,12 @@ describe("MCP auth", () => {
     verifyOAuthAccessTokenMock.mockReset();
   });
 
-  it("accepts canonical and legacy OAuth issuers for JWT access tokens", async () => {
+  it("verifies JWT access tokens against the canonical OAuth issuer", async () => {
     verifyOAuthAccessTokenMock.mockResolvedValue({
       azp: "client-id",
       aud: "https://life.example/api/mcp",
       exp: 1_900_000_000,
-      scope: "mcp:tools",
+      scope: MCP_TOOLS_SCOPE,
       sub: "user-id",
     });
     const { verifyAccessToken } = await import("@/lib/mcp/auth");
@@ -63,7 +61,7 @@ describe("MCP auth", () => {
       expect.objectContaining({
         jwksUrl: "https://life.example/api/auth/jwks",
         verifyOptions: {
-          issuer: ["https://life.example/api/auth", "https://life.example"],
+          issuer: ["https://life.example/api/auth"],
           audience: [
             "https://life.example/api/mcp",
             "https://life.example/api/auth/oauth2/userinfo",
@@ -74,7 +72,7 @@ describe("MCP auth", () => {
     );
     expect(authInfo).toMatchObject({
       clientId: "client-id",
-      scopes: ["mcp:tools"],
+      scopes: [MCP_TOOLS_SCOPE],
       extra: { userId: "user-id" },
     });
   });

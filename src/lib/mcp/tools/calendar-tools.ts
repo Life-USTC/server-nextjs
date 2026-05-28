@@ -22,6 +22,7 @@ import {
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
+  parseMcpDateRange,
   resolveMcpMode,
   sectionCodeSchema,
 } from "@/lib/mcp/tools/_helpers";
@@ -31,15 +32,6 @@ import {
 } from "@/lib/mcp/tools/calendar-summary";
 import { summarizeCalendarEventCollection } from "@/lib/mcp/tools/event-summary";
 import { getPublicOrigin } from "@/lib/site-url";
-import { parseDateInput } from "@/lib/time/parse-date-input";
-
-const DATE_ONLY_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isDateOnlyInput(value: unknown) {
-  return (
-    typeof value === "string" && DATE_ONLY_INPUT_PATTERN.test(value.trim())
-  );
-}
 
 function getCalendarSubscriptionReadPayload(
   subscription: NonNullable<
@@ -327,26 +319,16 @@ export function registerCalendarTools(server: McpServer) {
       },
     },
     async ({ dateFrom, dateTo, locale, mode }, extra) => {
-      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
-      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
-      if (parsedDateFrom === undefined && dateFrom) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
-      }
-      if (parsedDateTo === undefined && dateTo) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
+      if (!dateRange.ok) {
+        return dateRange.result;
       }
       const events = await listUserCalendarEvents(getUserId(extra.authInfo), {
         locale,
-        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
-        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
-        dateFromIsDateOnly: isDateOnlyInput(dateFrom),
-        dateToIsDateOnly: isDateOnlyInput(dateTo),
+        dateFrom: dateRange.dateFrom,
+        dateTo: dateRange.dateTo,
+        dateFromIsDateOnly: dateRange.dateFromIsDateOnly,
+        dateToIsDateOnly: dateRange.dateToIsDateOnly,
         dateToInclusive: true,
       });
       const resolvedMode = resolveMcpMode(mode);

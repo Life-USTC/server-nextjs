@@ -17,6 +17,8 @@ import {
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
+  parseMcpDateRange,
+  parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import {
@@ -25,7 +27,6 @@ import {
   summarizeHomeworkCard,
   summarizeTodoCard,
 } from "@/lib/mcp/tools/event-summary";
-import { parseDateInput } from "@/lib/time/parse-date-input";
 import { toShanghaiIsoString } from "@/lib/time/serialize-date-output";
 
 export function registerMyDataTools(server: McpServer) {
@@ -63,7 +64,7 @@ export function registerMyDataTools(server: McpServer) {
     "set_my_homework_completion",
     {
       description:
-        "Mark a homework as completed or incomplete. Prefer this over unset_my_homework_completion — pass completed: false to revert.",
+        "Mark a homework as completed or incomplete. Pass completed: false to revert to incomplete.",
       inputSchema: {
         homeworkId: z.string().trim().min(1),
         completed: z.boolean(),
@@ -82,6 +83,7 @@ export function registerMyDataTools(server: McpServer) {
         return jsonToolResult({
           success: false,
           message: "Homework not found",
+          hint: "Use list_my_homeworks or list_homeworks_by_section to confirm the homeworkId before updating completion.",
         });
       }
 
@@ -124,49 +126,6 @@ export function registerMyDataTools(server: McpServer) {
   );
 
   server.registerTool(
-    "unset_my_homework_completion",
-    {
-      description:
-        "Revert a completed homework back to incomplete. Equivalent to set_my_homework_completion(completed: false).",
-      inputSchema: {
-        homeworkId: z.string().trim().min(1),
-        mode: mcpModeInputSchema,
-      },
-    },
-    async ({ homeworkId, mode }, extra) => {
-      const resolvedMode = resolveMcpMode(mode);
-      const userId = getUserId(extra.authInfo);
-      const homework = await prisma.homework.findUnique({
-        where: { id: homeworkId },
-        select: { id: true, deletedAt: true },
-      });
-
-      if (!homework || homework.deletedAt) {
-        return jsonToolResult({
-          success: false,
-          message: "Homework not found",
-        });
-      }
-
-      await prisma.homeworkCompletion.deleteMany({
-        where: { userId, homeworkId },
-      });
-
-      return jsonToolResult(
-        {
-          success: true,
-          completion: {
-            homeworkId,
-            completed: false,
-            completedAt: null,
-          },
-        },
-        { mode: resolvedMode },
-      );
-    },
-  );
-
-  server.registerTool(
     "list_my_schedules",
     {
       description:
@@ -183,24 +142,14 @@ export function registerMyDataTools(server: McpServer) {
     async ({ dateFrom, dateTo, weekday, limit, locale, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
-      if (parsedDateFrom === undefined && dateFrom) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
-      }
-      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
-      if (parsedDateTo === undefined && dateTo) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
+      if (!dateRange.ok) {
+        return dateRange.result;
       }
       const schedules = await listSubscribedSchedules(userId, {
         locale,
-        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
-        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
+        dateFrom: dateRange.dateFrom,
+        dateTo: dateRange.dateTo,
         weekday,
         limit,
       });
@@ -229,24 +178,14 @@ export function registerMyDataTools(server: McpServer) {
     ) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const parsedDateFrom = dateFrom ? parseDateInput(dateFrom) : undefined;
-      if (parsedDateFrom === undefined && dateFrom) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateFrom: "${dateFrom}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
-      }
-      const parsedDateTo = dateTo ? parseDateInput(dateTo) : undefined;
-      if (parsedDateTo === undefined && dateTo) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid dateTo: "${dateTo}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const dateRange = parseMcpDateRange({ dateFrom, dateTo });
+      if (!dateRange.ok) {
+        return dateRange.result;
       }
       const exams = await listSubscribedExams(userId, {
         locale,
-        dateFrom: parsedDateFrom instanceof Date ? parsedDateFrom : undefined,
-        dateTo: parsedDateTo instanceof Date ? parsedDateTo : undefined,
+        dateFrom: dateRange.dateFrom,
+        dateTo: dateRange.dateTo,
         includeDateUnknown,
         limit,
       });
@@ -276,58 +215,50 @@ export function registerMyDataTools(server: McpServer) {
       const userId = getUserId(extra.authInfo);
       const user = await getViewerInfo(userId);
       const sectionIds = await getSubscribedSectionIds(userId);
-      const atTimeDate = atTime
-        ? (parseDateInput(atTime) ?? undefined)
-        : undefined;
-      if (atTime && !(atTimeDate instanceof Date)) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const atTimeDate = parseOptionalMcpDate("atTime", atTime);
+      if (!atTimeDate.ok) {
+        return atTimeDate.result;
       }
       const { now, todayStart, tomorrowStart } = getTodayBounds(
-        atTimeDate instanceof Date ? atTimeDate : undefined,
+        atTimeDate.value,
       );
 
-      // Prisma's pg adapter currently emits a driver deprecation warning when
-      // a single request fans out multiple queries concurrently.
-      const pendingTodosCount = await prisma.todo.count({
-        where: {
-          userId,
-          completed: false,
-        },
-      });
-      const pendingHomeworksCount =
+      // Run all count queries concurrently. The pg adapter handles
+      // concurrent queries correctly; the previous sequential pattern
+      // added unnecessary latency to the overview endpoint.
+      const [
+        pendingTodosCount,
+        pendingHomeworksCount,
+        todaySchedulesCount,
+        upcomingExamsCount,
+      ] = await Promise.all([
+        prisma.todo.count({ where: { userId, completed: false } }),
         sectionIds.length > 0
-          ? await prisma.homework.count({
+          ? prisma.homework.count({
               where: {
                 deletedAt: null,
                 sectionId: { in: sectionIds },
                 homeworkCompletions: { none: { userId } },
               },
             })
-          : 0;
-      const todaySchedulesCount =
+          : Promise.resolve(0),
         sectionIds.length > 0
-          ? await prisma.schedule.count({
+          ? prisma.schedule.count({
               where: {
                 sectionId: { in: sectionIds },
-                date: {
-                  gte: todayStart,
-                  lt: tomorrowStart,
-                },
+                date: { gte: todayStart, lt: tomorrowStart },
               },
             })
-          : 0;
-      const upcomingExamsCount =
+          : Promise.resolve(0),
         sectionIds.length > 0
-          ? await prisma.exam.count({
+          ? prisma.exam.count({
               where: {
                 sectionId: { in: sectionIds },
                 examDate: { gte: todayStart },
               },
             })
-          : 0;
+          : Promise.resolve(0),
+      ]);
       const dueTodos = await prisma.todo.findMany({
         where: {
           userId,
@@ -439,18 +370,11 @@ export function registerMyDataTools(server: McpServer) {
     async ({ locale, atTime, mode }, extra) => {
       const resolvedMode = resolveMcpMode(mode);
       const userId = getUserId(extra.authInfo);
-      const atTimeDate = atTime
-        ? (parseDateInput(atTime) ?? undefined)
-        : undefined;
-      if (atTime && !(atTimeDate instanceof Date)) {
-        return jsonToolResult({
-          success: false,
-          message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-        });
+      const atTimeDate = parseOptionalMcpDate("atTime", atTime);
+      if (!atTimeDate.ok) {
+        return atTimeDate.result;
       }
-      const { todayStart } = getTodayBounds(
-        atTimeDate instanceof Date ? atTimeDate : undefined,
-      );
+      const { todayStart } = getTodayBounds(atTimeDate.value);
       const windowEnd = new Date(todayStart);
       windowEnd.setDate(windowEnd.getDate() + 7);
       const events = await listUserCalendarEvents(userId, {

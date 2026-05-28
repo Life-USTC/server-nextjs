@@ -5,7 +5,11 @@ import { getPrisma, prisma } from "@/lib/db/prisma";
 import { compactMcpPayload } from "@/lib/mcp/compact-payload";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
-import { formatShanghaiDate } from "@/lib/time/shanghai-format";
+import {
+  formatShanghaiDate,
+  startOfShanghaiDay,
+} from "@/lib/time/shanghai-format";
+import { isRecord } from "@/lib/utils";
 
 export type Locale = z.infer<typeof localeSchema>;
 export const dateTimeSchema = z.string().datetime({ offset: true });
@@ -58,15 +62,31 @@ export function resolveMcpMode(
   return mode ?? "default";
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function summarizeArray(items: unknown[], limit: number) {
+  const returned = items.length;
   return {
-    total: items.length,
+    total: returned,
+    returned,
+    remaining: Math.max(returned - limit, 0),
+    truncated: returned > limit,
     items: items.slice(0, limit).map(compactMcpPayload),
   };
+}
+
+function getPaginatedTotal(
+  key: string,
+  source: Record<string, unknown>,
+): number | undefined {
+  if (key !== "data") {
+    return undefined;
+  }
+
+  const pagination = source.pagination;
+  if (!isRecord(pagination) || typeof pagination.total !== "number") {
+    return undefined;
+  }
+
+  return pagination.total;
 }
 
 function summarizeMcpPayload(value: unknown): unknown {
@@ -76,7 +96,12 @@ function summarizeMcpPayload(value: unknown): unknown {
   const out: Record<string, unknown> = {};
   for (const [key, v] of Object.entries(value)) {
     if (Array.isArray(v)) {
-      out[key] = summarizeArray(v, key === "events" ? 25 : 10);
+      const sampleLimit = key === "events" ? 25 : 10;
+      const total = getPaginatedTotal(key, value);
+      out[key] = {
+        ...summarizeArray(v, sampleLimit),
+        ...(total !== undefined ? { total } : {}),
+      };
     } else {
       out[key] = compactMcpPayload(v);
     }
@@ -106,6 +131,141 @@ export function jsonToolResult(
   };
 }
 
+export type OptionalFieldDateParseResult =
+  | {
+      ok: true;
+      value: Date | null | undefined;
+    }
+  | {
+      ok: false;
+      result: ReturnType<typeof jsonToolResult>;
+    };
+
+/**
+ * Parse an optional date field for MCP tool mutations.
+ *
+ * - `undefined` → field not provided (skip, return undefined)
+ * - `null`      → explicitly clear the field (return null)
+ * - string     → parse via parseOptionalMcpDate; return error if invalid
+ *
+ * Pass `shouldParse=false` when the field wasn't in the input schema
+ * to short-circuit without parsing.
+ */
+export function parseOptionalFieldDate(
+  fieldName: string,
+  value: string | null | undefined,
+  shouldParse = true,
+): OptionalFieldDateParseResult {
+  if (!shouldParse) {
+    return { ok: true, value: undefined };
+  }
+  if (value === null) {
+    return { ok: true, value: null };
+  }
+
+  const parsed = parseOptionalMcpDate(fieldName, value);
+  if (!parsed.ok) {
+    return parsed;
+  }
+
+  return { ok: true, value: parsed.value ?? null };
+}
+
+type OptionalMcpDateParseOptions = {
+  dateOnlyAsShanghaiStart?: boolean;
+};
+
+type McpDateParseFailure = {
+  ok: false;
+  result: ReturnType<typeof jsonToolResult>;
+};
+
+type OptionalMcpDate =
+  | {
+      ok: true;
+      value?: Date;
+      dateOnly: boolean;
+    }
+  | McpDateParseFailure;
+
+type McpDateRange =
+  | {
+      ok: true;
+      dateFrom?: Date;
+      dateTo?: Date;
+      dateFromIsDateOnly: boolean;
+      dateToIsDateOnly: boolean;
+    }
+  | McpDateParseFailure;
+
+const MCP_DATE_FILTER_USAGE = "Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.";
+const DATE_ONLY_INPUT_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+function isDateOnlyInput(value: unknown) {
+  return (
+    typeof value === "string" && DATE_ONLY_INPUT_PATTERN.test(value.trim())
+  );
+}
+
+export function parseOptionalMcpDate(
+  name: string,
+  value?: string,
+  options: OptionalMcpDateParseOptions = {},
+): OptionalMcpDate {
+  if (!value) {
+    return { ok: true, dateOnly: false };
+  }
+
+  const parsed = parseDateInput(value);
+  if (!(parsed instanceof Date)) {
+    return {
+      ok: false,
+      result: jsonToolResult({
+        success: false,
+        message: `Invalid ${name}: "${value}". ${MCP_DATE_FILTER_USAGE}`,
+      }),
+    };
+  }
+
+  const dateOnly = isDateOnlyInput(value);
+  return {
+    ok: true,
+    value:
+      dateOnly && options.dateOnlyAsShanghaiStart
+        ? startOfShanghaiDay(parsed)
+        : parsed,
+    dateOnly,
+  };
+}
+
+type McpDateRangeInput = {
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export function parseMcpDateRange({
+  dateFrom,
+  dateTo,
+}: McpDateRangeInput): McpDateRange {
+  const parsedDateFrom = parseOptionalMcpDate("dateFrom", dateFrom);
+  if (!parsedDateFrom.ok) {
+    return parsedDateFrom;
+  }
+
+  const parsedDateTo = parseOptionalMcpDate("dateTo", dateTo);
+  if (!parsedDateTo.ok) {
+    return parsedDateTo;
+  }
+
+  return {
+    ok: true,
+    dateFrom: parsedDateFrom.value,
+    dateTo: parsedDateTo.value,
+    dateFromIsDateOnly: parsedDateFrom.dateOnly,
+    dateToIsDateOnly: parsedDateTo.dateOnly,
+  };
+}
+
 export function getUserId(authInfo?: AuthInfo): string {
   const userId = authInfo?.extra?.userId;
   if (typeof userId !== "string" || userId.length === 0) {
@@ -116,7 +276,7 @@ export function getUserId(authInfo?: AuthInfo): string {
 }
 
 export async function getViewerInfo(userId: string) {
-  const user = await prisma.user.findUniqueOrThrow({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -125,6 +285,10 @@ export async function getViewerInfo(userId: string) {
       isAdmin: true,
     },
   });
+
+  if (!user) {
+    throw new Error(`User ${userId} not found`);
+  }
 
   return user;
 }

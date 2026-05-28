@@ -153,8 +153,10 @@ export function registerCourseTools(server: McpServer) {
 
       if (!section) {
         return jsonToolResult({
+          success: false,
           found: false,
           message: `Section ${jwId} was not found`,
+          hint: "Use search_sections to find a valid section jwId, or match_section_codes if you only have a section code.",
         });
       }
 

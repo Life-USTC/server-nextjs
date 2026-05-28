@@ -9,7 +9,8 @@
   "rules": {
     "attached-to-section": "Homework is attached to a section, not a personal user todo.",
     "no-subscription-required": "Creating homework does not require the user to be subscribed to the section first.",
-    "entity-and-completion-separated": "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'."
+    "entity-and-completion-separated": "Homework entity and homework completion state are strictly separated to prevent 'I completed it' from becoming 'the homework was modified'.",
+    "compact-card-list-surface": "In card and list views, the default homework surface only shows title, subtitle (course name when useful plus non-default attribute badges), submission due date, relative due label, and a small completion action. Standard/default homework is not shown as a separate badge. Course/section context, description, homework timestamps, discussion, and secondary actions belong in a centered detail popup that opens on click and closes via outside click or Escape."
   },
   "capabilities": {
     "cross-section-homework-summary": {
@@ -52,7 +53,9 @@
           "homework.isMajor badge",
           "homework.requiresTeam badge",
           "completionStatus (completed/pending)",
-          "filter: incomplete/completed/all"
+          "filter: incomplete/completed/all",
+          "cards/list view mode persisted in browser storage",
+          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, action controls, discussion; desktop places discussion to the right of the details"
         ]
       }
     },
@@ -128,12 +131,14 @@
           "homework.title",
           "homework.description.content",
           "homework.submissionDueAt",
-          "homework.createdAt",
           "homework.submissionStartAt",
-          "homework.publishedAt",
-          "commentCount / comments action",
+          "homework.publishedAt as homework publication date",
+          "inline homework discussion",
           "user completion status",
-          "edit action"
+          "edit action",
+          "cards/list view mode persisted in browser storage",
+          "detail popup order: description, due summary, vertical metadata excluding platform createdAt, edit/completion controls, inline discussion; desktop places discussion to the right of the details",
+          "section cards use a responsive multi-column layout"
         ]
       }
     },
@@ -190,14 +195,6 @@
             "rest_equivalent": "PUT /api/homeworks/[id]/completion",
             "notes": [
               "Pass completed=true to mark as done, completed=false to revert to incomplete."
-            ]
-          },
-          {
-            "name": "unset_my_homework_completion",
-            "returns": "{ success: Boolean, completion: { homeworkId: String, completed: Boolean, completedAt: DateTime? } }",
-            "rest_equivalent": "PUT /api/homeworks/[id]/completion",
-            "notes": [
-              "Dedicated tool to revert a completed homework back to incomplete; equivalent to set_my_homework_completion with completed=false."
             ]
           }
         ]

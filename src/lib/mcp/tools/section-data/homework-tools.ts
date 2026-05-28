@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
+import type { Prisma } from "@/generated/prisma/client";
 import { DEFAULT_LOCALE } from "@/i18n/config";
 import { findActiveSuspension } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma } from "@/lib/db/prisma";
@@ -9,11 +10,11 @@ import {
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
+  parseOptionalFieldDate,
   resolveMcpMode,
   resolveSectionByJwId,
 } from "@/lib/mcp/tools/_helpers";
 import { summarizeHomeworkCard } from "@/lib/mcp/tools/event-summary";
-import { parseDateInput } from "@/lib/time/parse-date-input";
 import { sectionNotFoundToolResult } from "./shared";
 
 const homeworkToolUserSelect = {
@@ -58,6 +59,24 @@ async function getHomeworkItemById(
 
   const [homeworkItem] = await withHomeworkItemState([homework]);
   return homeworkItem ?? null;
+}
+
+function invalidSubmissionWindow(
+  submissionStartAt: Date | null | undefined,
+  submissionDueAt: Date | null | undefined,
+) {
+  if (
+    submissionStartAt &&
+    submissionDueAt &&
+    submissionStartAt.getTime() > submissionDueAt.getTime()
+  ) {
+    return jsonToolResult(
+      { success: false, message: "Submission start must be before due" },
+      { mode: "default" },
+    );
+  }
+
+  return null;
 }
 
 export function registerSectionHomeworkTools(server: McpServer) {
@@ -185,42 +204,36 @@ export function registerSectionHomeworkTools(server: McpServer) {
 
       const { section } = await resolveSectionByJwId(sectionJwId, locale);
       if (!section) {
-        return jsonToolResult(
-          { success: false, message: `Section ${sectionJwId} was not found` },
-          { mode: resolvedMode },
-        );
+        return sectionNotFoundToolResult(sectionJwId, resolvedMode);
       }
 
-      const parsedPublishedAt = parseDateInput(publishedAt);
-      const parsedSubmissionStartAt = parseDateInput(submissionStartAt);
-      const parsedSubmissionDueAt = parseDateInput(submissionDueAt);
-      if (parsedPublishedAt === undefined) {
-        return jsonToolResult(
-          { success: false, message: "Invalid publish date" },
-          { mode: resolvedMode },
-        );
+      const parsedPublishedAt = parseOptionalFieldDate(
+        "publishedAt",
+        publishedAt,
+      );
+      if (!parsedPublishedAt.ok) {
+        return parsedPublishedAt.result;
       }
-      if (parsedSubmissionStartAt === undefined) {
-        return jsonToolResult(
-          { success: false, message: "Invalid submission start" },
-          { mode: resolvedMode },
-        );
+      const parsedSubmissionStartAt = parseOptionalFieldDate(
+        "submissionStartAt",
+        submissionStartAt,
+      );
+      if (!parsedSubmissionStartAt.ok) {
+        return parsedSubmissionStartAt.result;
       }
-      if (parsedSubmissionDueAt === undefined) {
-        return jsonToolResult(
-          { success: false, message: "Invalid submission due" },
-          { mode: resolvedMode },
-        );
+      const parsedSubmissionDueAt = parseOptionalFieldDate(
+        "submissionDueAt",
+        submissionDueAt,
+      );
+      if (!parsedSubmissionDueAt.ok) {
+        return parsedSubmissionDueAt.result;
       }
-      if (
-        parsedSubmissionStartAt &&
-        parsedSubmissionDueAt &&
-        parsedSubmissionStartAt.getTime() > parsedSubmissionDueAt.getTime()
-      ) {
-        return jsonToolResult(
-          { success: false, message: "Submission start must be before due" },
-          { mode: resolvedMode },
-        );
+      const submissionWindowError = invalidSubmissionWindow(
+        parsedSubmissionStartAt.value,
+        parsedSubmissionDueAt.value,
+      );
+      if (submissionWindowError) {
+        return submissionWindowError;
       }
 
       const trimmedDescription = (description ?? "").trim();
@@ -231,9 +244,9 @@ export function registerSectionHomeworkTools(server: McpServer) {
             title,
             isMajor: isMajor === true,
             requiresTeam: requiresTeam === true,
-            publishedAt: parsedPublishedAt,
-            submissionStartAt: parsedSubmissionStartAt,
-            submissionDueAt: parsedSubmissionDueAt,
+            publishedAt: parsedPublishedAt.value,
+            submissionStartAt: parsedSubmissionStartAt.value,
+            submissionDueAt: parsedSubmissionDueAt.value,
             createdById: userId,
             updatedById: userId,
           },
@@ -332,43 +345,36 @@ export function registerSectionHomeworkTools(server: McpServer) {
       const hasSubmissionStartAt = submissionStartAt !== undefined;
       const hasSubmissionDueAt = submissionDueAt !== undefined;
 
-      const parsedPublishedAt = hasPublishedAt
-        ? parseDateInput(publishedAt)
-        : undefined;
-      const parsedSubmissionStartAt = hasSubmissionStartAt
-        ? parseDateInput(submissionStartAt)
-        : undefined;
-      const parsedSubmissionDueAt = hasSubmissionDueAt
-        ? parseDateInput(submissionDueAt)
-        : undefined;
-
-      if (hasPublishedAt && parsedPublishedAt === undefined) {
-        return jsonToolResult(
-          { success: false, message: "Invalid publish date" },
-          { mode: resolvedMode },
-        );
+      const parsedPublishedAt = parseOptionalFieldDate(
+        "publishedAt",
+        publishedAt,
+        hasPublishedAt,
+      );
+      if (!parsedPublishedAt.ok) {
+        return parsedPublishedAt.result;
       }
-      if (hasSubmissionStartAt && parsedSubmissionStartAt === undefined) {
-        return jsonToolResult(
-          { success: false, message: "Invalid submission start" },
-          { mode: resolvedMode },
-        );
+      const parsedSubmissionStartAt = parseOptionalFieldDate(
+        "submissionStartAt",
+        submissionStartAt,
+        hasSubmissionStartAt,
+      );
+      if (!parsedSubmissionStartAt.ok) {
+        return parsedSubmissionStartAt.result;
       }
-      if (hasSubmissionDueAt && parsedSubmissionDueAt === undefined) {
-        return jsonToolResult(
-          { success: false, message: "Invalid submission due" },
-          { mode: resolvedMode },
-        );
+      const parsedSubmissionDueAt = parseOptionalFieldDate(
+        "submissionDueAt",
+        submissionDueAt,
+        hasSubmissionDueAt,
+      );
+      if (!parsedSubmissionDueAt.ok) {
+        return parsedSubmissionDueAt.result;
       }
-      if (
-        parsedSubmissionStartAt &&
-        parsedSubmissionDueAt &&
-        parsedSubmissionStartAt.getTime() > parsedSubmissionDueAt.getTime()
-      ) {
-        return jsonToolResult(
-          { success: false, message: "Submission start must be before due" },
-          { mode: resolvedMode },
-        );
+      const submissionWindowError = invalidSubmissionWindow(
+        parsedSubmissionStartAt.value,
+        parsedSubmissionDueAt.value,
+      );
+      if (submissionWindowError) {
+        return submissionWindowError;
       }
 
       const existing = await prisma.homework.findUnique({
@@ -377,7 +383,11 @@ export function registerSectionHomeworkTools(server: McpServer) {
       });
       if (!existing) {
         return jsonToolResult(
-          { success: false, message: "Homework not found" },
+          {
+            success: false,
+            message: "Homework not found",
+            hint: "Use list_homeworks_by_section or list_my_homeworks to confirm the homeworkId before updating it.",
+          },
           { mode: resolvedMode },
         );
       }
@@ -388,17 +398,18 @@ export function registerSectionHomeworkTools(server: McpServer) {
         );
       }
 
-      const updates: Record<string, unknown> = { updatedById: userId };
+      const updates: Prisma.HomeworkUncheckedUpdateInput = {
+        updatedById: userId,
+      };
       if (title !== undefined) updates.title = title;
       if (isMajor !== undefined) updates.isMajor = isMajor === true;
       if (requiresTeam !== undefined)
         updates.requiresTeam = requiresTeam === true;
-      if (parsedPublishedAt !== undefined)
-        updates.publishedAt = parsedPublishedAt;
-      if (parsedSubmissionStartAt !== undefined)
-        updates.submissionStartAt = parsedSubmissionStartAt;
-      if (parsedSubmissionDueAt !== undefined)
-        updates.submissionDueAt = parsedSubmissionDueAt;
+      if (hasPublishedAt) updates.publishedAt = parsedPublishedAt.value;
+      if (hasSubmissionStartAt)
+        updates.submissionStartAt = parsedSubmissionStartAt.value;
+      if (hasSubmissionDueAt)
+        updates.submissionDueAt = parsedSubmissionDueAt.value;
 
       const wantsDescription = description !== undefined;
       const trimmedDescription = (description ?? "").trim();

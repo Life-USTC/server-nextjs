@@ -28,6 +28,10 @@ import type {
 } from "@modelcontextprotocol/sdk/shared/transport.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 import { createMcpServer } from "@/lib/mcp/server";
+import {
+  DEFAULT_OAUTH_CLIENT_SCOPES,
+  MCP_TOOLS_SCOPE,
+} from "@/lib/oauth/constants";
 
 /**
  * Build a minimal AuthInfo that makes tool handlers believe
@@ -37,7 +41,7 @@ export function makeTestAuthInfo(userId: string): AuthInfo {
   return {
     token: "integration-test-token",
     clientId: "integration-test-client",
-    scopes: ["openid", "profile", "mcp:tools"],
+    scopes: [...DEFAULT_OAUTH_CLIENT_SCOPES, MCP_TOOLS_SCOPE],
     extra: { userId },
   };
 }

@@ -1,14 +1,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import * as z from "zod";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import {
   getUserId,
   jsonToolResult,
   mcpModeInputSchema,
+  parseOptionalFieldDate,
   resolveMcpMode,
   todoPrioritySchema,
 } from "@/lib/mcp/tools/_helpers";
-import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export function registerProfileTools(server: McpServer) {
   server.registerTool(
@@ -22,7 +23,7 @@ export function registerProfileTools(server: McpServer) {
     },
     async ({ mode }, extra) => {
       const userId = getUserId(extra.authInfo);
-      const user = await prisma.user.findUniqueOrThrow({
+      const user = await prisma.user.findUnique({
         where: { id: userId },
         select: {
           id: true,
@@ -34,6 +35,13 @@ export function registerProfileTools(server: McpServer) {
           updatedAt: true,
         },
       });
+
+      if (!user) {
+        return jsonToolResult({
+          success: false,
+          message: "User not found",
+        });
+      }
 
       return jsonToolResult(user, {
         mode: resolveMcpMode(mode),
@@ -122,12 +130,9 @@ export function registerProfileTools(server: McpServer) {
     },
     async ({ title, content, priority, dueAt, mode }, extra) => {
       const userId = getUserId(extra.authInfo);
-      const parsedDueAt = parseDateInput(dueAt);
-      if (parsedDueAt === undefined) {
-        return jsonToolResult({
-          success: false,
-          message: "Invalid due date",
-        });
+      const parsedDueAt = parseOptionalFieldDate("dueAt", dueAt);
+      if (!parsedDueAt.ok) {
+        return parsedDueAt.result;
       }
 
       const todo = await prisma.todo.create({
@@ -137,7 +142,7 @@ export function registerProfileTools(server: McpServer) {
           title,
           content: content?.trim() || null,
           priority,
-          dueAt: parsedDueAt,
+          dueAt: parsedDueAt.value,
         },
       });
 
@@ -190,19 +195,16 @@ export function registerProfileTools(server: McpServer) {
       }
 
       const hasDueAt = dueAt !== undefined;
-      const parsedDueAt = hasDueAt ? parseDateInput(dueAt) : undefined;
-      if (hasDueAt && parsedDueAt === undefined) {
-        return jsonToolResult({
-          success: false,
-          message: "Invalid due date",
-        });
+      const parsedDueAt = parseOptionalFieldDate("dueAt", dueAt, hasDueAt);
+      if (!parsedDueAt.ok) {
+        return parsedDueAt.result;
       }
 
-      const updates: Record<string, unknown> = {};
+      const updates: Prisma.TodoUpdateInput = {};
       if (title !== undefined) updates.title = title;
       if (content !== undefined) updates.content = content?.trim() || null;
       if (priority !== undefined) updates.priority = priority;
-      if (hasDueAt) updates.dueAt = parsedDueAt;
+      if (hasDueAt) updates.dueAt = parsedDueAt.value;
       if (completed !== undefined) updates.completed = completed;
 
       if (Object.keys(updates).length === 0) {

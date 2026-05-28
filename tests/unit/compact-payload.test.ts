@@ -39,6 +39,31 @@ describe("compactMcpPayload", () => {
         (result[0].todos as Record<string, unknown>[])[0],
       ).not.toHaveProperty("extra");
     });
+
+    it("compacts top-level arrays of known records", () => {
+      const input = [
+        {
+          id: "c1",
+          jwId: "J1",
+          code: "CS101",
+          namePrimary: "Intro CS",
+          credit: 3,
+          hours: 48,
+          description: "removed",
+        },
+      ];
+
+      const result = compactMcpPayload(input) as Record<string, unknown>[];
+
+      expect(result[0]).toEqual({
+        id: "c1",
+        jwId: "J1",
+        code: "CS101",
+        namePrimary: "Intro CS",
+        credit: 3,
+        hours: 48,
+      });
+    });
   });
 
   describe("todos", () => {
@@ -460,7 +485,7 @@ describe("compactMcpPayload", () => {
       expect(events[0]).toEqual({ type: "schedule", at: "2024-01-01" });
     });
 
-    it("compacts generic event payloads that look like schedules", () => {
+    it("does not compact generic payloads by structural inference", () => {
       const input = {
         nextClass: {
           type: "schedule",
@@ -487,8 +512,8 @@ describe("compactMcpPayload", () => {
       const result = compactMcpPayload(input) as Record<string, unknown>;
       const nextClass = result.nextClass as Record<string, unknown>;
       const payload = nextClass.payload as Record<string, unknown>;
-      expect(payload).not.toHaveProperty("scheduleGroup");
-      expect(payload).not.toHaveProperty("roomType");
+      expect(payload).toHaveProperty("scheduleGroup");
+      expect(payload).toHaveProperty("roomType");
       expect(payload.room).toEqual({
         id: "r1",
         jwId: "RJ1",

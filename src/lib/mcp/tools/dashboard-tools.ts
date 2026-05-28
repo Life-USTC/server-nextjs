@@ -8,35 +8,18 @@ import {
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
+  parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import {
   compactDashboardSnapshot,
   summarizeDashboardSnapshot,
 } from "@/lib/mcp/tools/dashboard-summary";
-import { parseDateInput } from "@/lib/time/parse-date-input";
-import { startOfShanghaiDay } from "@/lib/time/shanghai-format";
-
-const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function parseOptionalAtTime(atTime: string | undefined) {
-  if (!atTime) return { ok: true as const, value: undefined };
-  const parsed = parseDateInput(atTime);
-  if (!(parsed instanceof Date)) {
-    return {
-      ok: false as const,
-      result: jsonToolResult({
-        success: false,
-        message: `Invalid atTime: "${atTime}". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.`,
-      }),
-    };
-  }
-  return {
-    ok: true as const,
-    value: DATE_ONLY_PATTERN.test(atTime.trim())
-      ? startOfShanghaiDay(parsed)
-      : parsed,
-  };
+  return parseOptionalMcpDate("atTime", atTime, {
+    dateOnlyAsShanghaiStart: true,
+  });
 }
 
 export function registerDashboardTools(server: McpServer) {

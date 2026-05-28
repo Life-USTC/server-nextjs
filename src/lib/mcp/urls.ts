@@ -1,11 +1,6 @@
 import { getBetterAuthBaseUrl, getPublicOrigin } from "@/lib/site-url";
 
-export const MCP_ROUTE_PATH = "/api/mcp";
-export const OAUTH_AUTHORIZATION_PATH = "/api/auth/oauth2/authorize";
-export const OAUTH_REGISTRATION_PATH = "/api/auth/oauth2/register";
-export const OAUTH_TOKEN_PATH = "/api/auth/oauth2/token";
-export const OAUTH_OPENID_CONFIGURATION_PATH =
-  "/.well-known/openid-configuration";
+const MCP_ROUTE_PATH = "/api/mcp";
 
 function uniqueUrls(values: string[]): string[] {
   return [...new Set(values.map((value) => value.replace(/\/$/, "")))];
@@ -18,8 +13,12 @@ function normalizePathname(pathname: string): string {
   return pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
 }
 
+function toUrl(target: URL | string): URL {
+  return new URL(target.toString());
+}
+
 function insertWellKnownPath(target: URL | string, suffix: string): URL {
-  const url = new URL(target.toString());
+  const url = toUrl(target);
   const normalizedPathname = normalizePathname(url.pathname);
   return new URL(
     `/.well-known/${suffix}${normalizedPathname}${url.search}`,
@@ -28,7 +27,7 @@ function insertWellKnownPath(target: URL | string, suffix: string): URL {
 }
 
 function appendWellKnownPath(target: URL | string, suffix: string): URL {
-  const url = new URL(target.toString());
+  const url = toUrl(target);
   const normalizedPathname = normalizePathname(url.pathname);
   return new URL(
     `${normalizedPathname}/.well-known/${suffix}${url.search}`,
@@ -49,11 +48,11 @@ export function getCanonicalOAuthIssuer(): string {
 }
 
 export function getOAuthTokenVerificationIssuers(): string[] {
-  return uniqueUrls([getCanonicalOAuthIssuer(), getPublicOrigin()]);
+  return [getCanonicalOAuthIssuer()];
 }
 
 export function getOAuthRestAudienceUrls(): string[] {
-  return uniqueUrls([getPublicOrigin(), getCanonicalOAuthIssuer()]);
+  return [getCanonicalOAuthIssuer()];
 }
 
 export function getOAuthMcpAudienceUrls(): string[] {
@@ -73,30 +72,22 @@ export function getJwksUrlForOAuthVerification(): string {
   return new URL("/api/auth/jwks", `${getCanonicalOAuthIssuer()}/`).toString();
 }
 
-export function getMcpServerUrl(_request?: Request): URL {
+export function getMcpServerUrl(): URL {
   return new URL(getOAuthMcpResourceUrl());
 }
 
-export function getOAuthIssuerUrl(_request?: Request): URL {
+export function getOAuthIssuerUrl(): URL {
   return new URL(getCanonicalOAuthIssuer());
 }
 
-export function getOAuthAuthorizationServerMetadataUrl(
-  _request?: Request,
-): URL {
+export function getOAuthAuthorizationServerMetadataUrl(): URL {
   return insertWellKnownPath(getOAuthIssuerUrl(), "oauth-authorization-server");
 }
 
-export function getOAuthProtectedResourceMetadataUrl(_request?: Request): URL {
+export function getOAuthProtectedResourceMetadataUrl(): URL {
   return insertWellKnownPath(getMcpServerUrl(), "oauth-protected-resource");
 }
 
-export function getOAuthOpenIdConfigurationUrl(_request?: Request): URL {
+export function getOAuthOpenIdConfigurationUrl(): URL {
   return appendWellKnownPath(getOAuthIssuerUrl(), "openid-configuration");
-}
-
-export function getOAuthOpenIdConfigurationCompatibilityUrl(
-  _request?: Request,
-): URL {
-  return insertWellKnownPath(getOAuthIssuerUrl(), "openid-configuration");
 }
