@@ -2,34 +2,15 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteInput,
+  parseResourceIdParam,
   parseRouteJsonBody,
-  parseRouteParams,
-  unauthorized,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
-import {
-  commentReactionRequestSchema,
-  resourceIdPathParamsSchema,
-} from "@/lib/api/schemas/request-schemas";
-import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
+import { commentReactionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { requireAuth, requireWriteAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
-
-async function parseCommentId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid comment ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
-  return parsed.id;
-}
 
 /**
  * Add one reaction to a comment.
@@ -47,7 +28,7 @@ export async function POST(
   }
   const { userId } = auth;
 
-  const parsed = await parseCommentId(params);
+  const parsed = await parseResourceIdParam(params, "comment");
   if (parsed instanceof Response) {
     return parsed;
   }
@@ -104,21 +85,18 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
-  const parsed = await parseCommentId(params);
+  const parsed = await parseResourceIdParam(params, "comment");
   if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
   const { searchParams } = new URL(request.url);
-  const parsedBody = parseRouteInput(
-    {
-      type: searchParams.get("type"),
-    },
+  const parsedBody = parseRouteSearchParams(
+    searchParams,
     commentReactionRequestSchema,
     "Invalid reaction",
     { logErrors: true },

@@ -5,10 +5,10 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteInput,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
-import { busQueryResponseSchema } from "@/lib/api/schemas";
 import { busQuerySchema } from "@/lib/api/schemas/request-schemas";
+import { busQueryResponseSchema } from "@/lib/api/schemas/response-schemas";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
@@ -21,10 +21,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = parseRouteInput(
-    {
-      versionKey: searchParams.get("versionKey") ?? undefined,
-    },
+  const parsedQuery = parseRouteSearchParams(
+    searchParams,
     busQuerySchema,
     "Invalid bus query",
     { logErrors: true },

@@ -1,10 +1,6 @@
 import { getUserCalendarSubscription } from "@/features/home/server/subscription-read-model";
-import {
-  handleRouteError,
-  jsonResponse,
-  unauthorized,
-} from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +11,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   try {
-    const userId = await resolveApiUserId(request);
-    if (!userId) {
-      return unauthorized();
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth;
+    const { userId } = auth;
 
     const subscription = await getUserCalendarSubscription(userId);
 

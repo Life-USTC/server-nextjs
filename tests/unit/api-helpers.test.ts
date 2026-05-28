@@ -7,6 +7,8 @@ import {
   parseInteger,
   parseIntegerList,
   parseRouteInput,
+  parseRouteQuery,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 
 describe("api helpers", () => {
@@ -66,5 +68,34 @@ describe("api helpers", () => {
     expect(await (result as Response).json()).toEqual({
       error: "Invalid query",
     });
+  });
+
+  it("parses route query params and normalizes pagination", () => {
+    const result = parseRouteQuery(
+      new URLSearchParams("search=math&page=3&limit=250"),
+      z.object({
+        search: z.string().optional(),
+        page: z.string().optional(),
+        limit: z.string().optional(),
+      }),
+      "Invalid query",
+      { pagination: { maxPageSize: 100 } },
+    );
+
+    expect(result).not.toBeInstanceOf(Response);
+    expect(result).toEqual({
+      query: { search: "math", page: "3", limit: "250" },
+      pagination: { page: 3, pageSize: 100, skip: 200 },
+    });
+  });
+
+  it("parses route search params without pagination", () => {
+    const result = parseRouteSearchParams(
+      new URLSearchParams("versionKey=current&unused=value"),
+      z.object({ versionKey: z.string().optional() }),
+      "Invalid query",
+    );
+
+    expect(result).toEqual({ versionKey: "current" });
   });
 });

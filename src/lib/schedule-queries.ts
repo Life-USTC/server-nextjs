@@ -1,4 +1,10 @@
-type IntegerFilter = number | string | null | undefined;
+import type { Prisma } from "@/generated/prisma/client";
+import {
+  applyIntegerFilter,
+  buildJwIdFilter,
+  buildRelatedFilter,
+  type IntegerFilter,
+} from "@/lib/query-filter-helpers";
 
 type ScheduleListFilters = {
   sectionId?: IntegerFilter;
@@ -12,24 +18,6 @@ type ScheduleListFilters = {
   dateFrom?: Date;
   dateTo?: Date;
 };
-
-function parseIntegerFilter(value: IntegerFilter) {
-  if (typeof value === "number") {
-    return Number.isInteger(value) ? value : null;
-  }
-
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(trimmed, 10);
-  return Number.isNaN(parsed) ? null : parsed;
-}
 
 export const publicScheduleInclude = {
   room: {
@@ -70,78 +58,35 @@ export function buildScheduleListWhere(filters: ScheduleListFilters) {
     dateTo,
   } = filters;
 
-  const where: {
-    sectionId?: number;
-    section?: { jwId?: number; code?: string };
-    teachers?: { some: { id?: number; code?: string } };
-    roomId?: number;
-    room?: { jwId?: number };
-    date?: { gte?: Date; lte?: Date };
-    weekday?: number;
-  } = {};
+  const where: Prisma.ScheduleWhereInput = {};
 
-  const parsedSectionId = parseIntegerFilter(sectionId);
-  if (parsedSectionId !== null) {
-    where.sectionId = parsedSectionId;
-  }
+  applyIntegerFilter(where, "sectionId", sectionId);
 
-  const sectionFilter: { jwId?: number; code?: string } = {};
-  const parsedSectionJwId = parseIntegerFilter(sectionJwId);
-  if (parsedSectionJwId !== null) {
-    sectionFilter.jwId = parsedSectionJwId;
-  }
-  const trimmedSectionCode = sectionCode?.trim();
-  if (trimmedSectionCode) {
-    sectionFilter.code = trimmedSectionCode;
-  }
-  if (Object.keys(sectionFilter).length > 0) {
+  const sectionFilter = buildRelatedFilter("jwId", sectionJwId, sectionCode);
+  if (sectionFilter) {
     where.section = sectionFilter;
   }
 
-  const teacherFilter: { id?: number; code?: string } = {};
-  const parsedTeacherId = parseIntegerFilter(teacherId);
-  if (parsedTeacherId !== null) {
-    teacherFilter.id = parsedTeacherId;
-  }
-  const trimmedTeacherCode = teacherCode?.trim();
-  if (trimmedTeacherCode) {
-    teacherFilter.code = trimmedTeacherCode;
-  }
-  if (Object.keys(teacherFilter).length > 0) {
-    where.teachers = {
-      some: teacherFilter,
-    };
+  const teacherFilter = buildRelatedFilter("id", teacherId, teacherCode);
+  if (teacherFilter) {
+    where.teachers = { some: teacherFilter };
   }
 
-  const parsedRoomId = parseIntegerFilter(roomId);
-  if (parsedRoomId !== null) {
-    where.roomId = parsedRoomId;
-  }
+  applyIntegerFilter(where, "roomId", roomId);
 
-  const roomFilter: { jwId?: number } = {};
-  const parsedRoomJwId = parseIntegerFilter(roomJwId);
-  if (parsedRoomJwId !== null) {
-    roomFilter.jwId = parsedRoomJwId;
-  }
-  if (Object.keys(roomFilter).length > 0) {
+  const roomFilter = buildJwIdFilter(roomJwId);
+  if (roomFilter) {
     where.room = roomFilter;
   }
 
-  const dateFilter: { gte?: Date; lte?: Date } = {};
-  if (dateFrom) {
-    dateFilter.gte = dateFrom;
-  }
-  if (dateTo) {
-    dateFilter.lte = dateTo;
-  }
   if (dateFrom || dateTo) {
-    where.date = dateFilter;
+    where.date = {
+      ...(dateFrom && { gte: dateFrom }),
+      ...(dateTo && { lte: dateTo }),
+    };
   }
 
-  const parsedWeekday = parseIntegerFilter(weekday);
-  if (parsedWeekday !== null) {
-    where.weekday = parsedWeekday;
-  }
+  applyIntegerFilter(where, "weekday", weekday);
 
   return where;
 }

@@ -1,3 +1,4 @@
+import type { Dayjs } from "dayjs";
 import { APP_TIME_ZONE } from "@/lib/time/parse-date-input";
 import { shanghaiDayjs } from "@/lib/time/shanghai-dayjs";
 import { isSameDefaultWeek } from "@/shared/lib/date-utils";
@@ -8,10 +9,14 @@ function isZhLocale(locale: string): boolean {
 }
 
 function intlLocale(locale: string): string {
-  const l = locale.replace(/_/g, "-");
-  const low = l.toLowerCase();
-  if (low === "zh-cn" || low.startsWith("zh-") || low === "zh") return "zh-CN";
-  return l.length >= 2 ? l : "en-US";
+  const normalized = locale.replace(/_/g, "-");
+  if (isZhLocale(normalized)) return "zh-CN";
+  return normalized.length >= 2 ? normalized : "en-US";
+}
+
+function formatZhMonthDay(due: Dayjs, includeYear: boolean): string {
+  const monthDay = `${due.month() + 1}月${due.date()}日`;
+  return includeYear ? `${due.year()}年${monthDay}` : monthDay;
 }
 
 /**
@@ -48,10 +53,7 @@ export function formatSmartDateTime(
 
   const sameYear = due.year() === ref.year();
   if (isZh) {
-    if (sameYear) {
-      return `${due.month() + 1}月${due.date()}日 ${time}`;
-    }
-    return `${due.year()}年${due.month() + 1}月${due.date()}日 ${time}`;
+    return `${formatZhMonthDay(due, !sameYear)} ${time}`;
   }
 
   const d = due.toDate();
@@ -72,6 +74,41 @@ export function formatSmartDateTime(
     hour: "numeric",
     minute: "2-digit",
   }).format(d);
+}
+
+/**
+ * Short distance label for deadline surfaces: 今天 / 2周后 / 已逾期.
+ */
+export function formatDueRelativeTime(
+  input: Date | string | number,
+  referenceInput: Date | string | number,
+  locale: string,
+): string {
+  const due = shanghaiDayjs(input);
+  const ref = shanghaiDayjs(referenceInput);
+  const isZh = isZhLocale(locale);
+  if (!due.isValid() || !ref.isValid()) return "";
+
+  if (due.diff(ref, "minute", true) <= 0) {
+    return isZh ? "已逾期" : "Overdue";
+  }
+
+  const dayDiff = due.startOf("day").diff(ref.startOf("day"), "day");
+  if (dayDiff === 0) {
+    return isZh ? "今天" : "Today";
+  }
+
+  const absDayDiff = Math.abs(dayDiff);
+  const formatter = new Intl.RelativeTimeFormat(intlLocale(locale), {
+    numeric: "auto",
+  });
+  if (absDayDiff >= 60) {
+    return formatter.format(Math.round(dayDiff / 30), "month");
+  }
+  if (absDayDiff >= 14) {
+    return formatter.format(Math.round(dayDiff / 7), "week");
+  }
+  return formatter.format(dayDiff, "day");
 }
 
 /**
@@ -106,10 +143,7 @@ export function formatSmartDate(
 
   const sameYear = due.year() === ref.year();
   if (isZh) {
-    if (sameYear) {
-      return `${due.month() + 1}月${due.date()}日`;
-    }
-    return `${due.year()}年${due.month() + 1}月${due.date()}日`;
+    return formatZhMonthDay(due, !sameYear);
   }
 
   const d = due.toDate();

@@ -137,6 +137,17 @@ test.describe("GET /api/courses", () => {
     expect(body.pagination?.page).toBe(1);
   });
 
+  test("limit param controls page size", async ({ request }) => {
+    const response = await request.get("/api/courses?limit=1");
+    expect(response.status()).toBe(200);
+    const body = (await response.json()) as {
+      data?: unknown[];
+      pagination?: { pageSize?: number };
+    };
+    expect(body.data?.length).toBeLessThanOrEqual(1);
+    expect(body.pagination?.pageSize).toBe(1);
+  });
+
   test("detail route returns seed course with sections", async ({
     request,
   }) => {

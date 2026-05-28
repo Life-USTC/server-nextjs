@@ -7,28 +7,19 @@ type SemesterWithDateRange = {
 
 type SemesterFindFirstDelegate = Pick<PrismaClient["semester"], "findFirst">;
 
-const getSemesterStartTime = (semester: SemesterWithDateRange) =>
-  semester.startDate?.getTime() ?? Number.NEGATIVE_INFINITY;
+const startTime = (s: SemesterWithDateRange) =>
+  s.startDate?.getTime() ?? Number.NEGATIVE_INFINITY;
 
-const getSemesterEndTime = (semester: SemesterWithDateRange) =>
-  semester.endDate?.getTime() ?? Number.POSITIVE_INFINITY;
+const endTime = (s: SemesterWithDateRange) =>
+  s.endDate?.getTime() ?? Number.POSITIVE_INFINITY;
 
-const hasStarted = (semester: SemesterWithDateRange, referenceDate: Date) =>
-  !semester.startDate || semester.startDate <= referenceDate;
-
-const hasNotEnded = (semester: SemesterWithDateRange, referenceDate: Date) =>
-  !semester.endDate || semester.endDate >= referenceDate;
-
-const compareMostSpecificCurrentSemester = <
-  TSemester extends SemesterWithDateRange,
->(
+/**
+ * Sort comparator: prefer later start, then earlier end (most specific current semester).
+ */
+const byMostSpecific = <TSemester extends SemesterWithDateRange>(
   a: TSemester,
   b: TSemester,
-) => {
-  const startDiff = getSemesterStartTime(b) - getSemesterStartTime(a);
-  if (startDiff !== 0) return startDiff;
-  return getSemesterEndTime(a) - getSemesterEndTime(b);
-};
+) => startTime(b) - startTime(a) || endTime(a) - endTime(b);
 
 export const buildCurrentSemesterWhere = (
   referenceDate: Date,
@@ -57,23 +48,22 @@ export const selectCurrentSemesterFromList = <
   semesters: TSemester[],
   referenceDate: Date,
 ): TSemester | null => {
+  // 1. Prefer a semester currently in session (started and not yet ended)
   const current = semesters
     .filter(
-      (semester) =>
-        hasStarted(semester, referenceDate) &&
-        hasNotEnded(semester, referenceDate),
+      (s) =>
+        (!s.startDate || s.startDate <= referenceDate) &&
+        (!s.endDate || s.endDate >= referenceDate),
     )
-    .sort(compareMostSpecificCurrentSemester);
+    .sort(byMostSpecific);
   if (current[0]) return current[0];
 
+  // 2. Fall back to the nearest upcoming semester
   const future = semesters
-    .filter((semester) => !hasStarted(semester, referenceDate))
-    .sort((a, b) => {
-      const startDiff = getSemesterStartTime(a) - getSemesterStartTime(b);
-      if (startDiff !== 0) return startDiff;
-      return getSemesterEndTime(a) - getSemesterEndTime(b);
-    });
+    .filter((s) => s.startDate && s.startDate > referenceDate)
+    .sort((a, b) => startTime(a) - startTime(b) || endTime(a) - endTime(b));
   if (future[0]) return future[0];
 
-  return [...semesters].sort(compareMostSpecificCurrentSemester).at(0) ?? null;
+  // 3. Fall back to the most specific semester overall (likely the most recent past)
+  return [...semesters].sort(byMostSpecific).at(0) ?? null;
 };

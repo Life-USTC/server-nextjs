@@ -4,12 +4,8 @@ import {
   listSubscribedHomeworks,
 } from "@/features/home/server/subscription-read-model";
 import { withHomeworkItemState } from "@/features/homeworks/server/homework-item-state";
-import {
-  handleRouteError,
-  jsonResponse,
-  unauthorized,
-} from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { handleRouteError, jsonResponse } from "@/lib/api/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 
 export const dynamic = "force-dynamic";
@@ -20,10 +16,9 @@ export const dynamic = "force-dynamic";
  * @response 401:openApiErrorSchema
  */
 export async function GET(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   try {
     const viewer = await getViewerContext({

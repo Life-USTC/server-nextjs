@@ -1,11 +1,10 @@
 import type { NextRequest } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import {
-  getPagination,
   handleRouteError,
   jsonResponse,
   parseInteger,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { teachersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { ilike, paginatedTeacherQuery } from "@/lib/query-helpers";
@@ -20,22 +19,17 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = parseRouteInput(
-    {
-      departmentId: searchParams.get("departmentId") ?? undefined,
-      search: searchParams.get("search") ?? undefined,
-      page: searchParams.get("page") ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-    },
+  const parsed = parseRouteQuery(
+    searchParams,
     teachersQuerySchema,
     "Invalid teacher query",
     { logErrors: true },
   );
-  if (parsedQuery instanceof Response) {
-    return parsedQuery;
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  const pagination = getPagination(searchParams);
+  const { query: parsedQuery, pagination } = parsed;
   const { departmentId, search } = parsedQuery;
 
   const where: Prisma.TeacherWhereInput = {};
@@ -56,9 +50,14 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await paginatedTeacherQuery(pagination.page, where, {
-      nameCn: "asc",
-    });
+    const result = await paginatedTeacherQuery(
+      pagination.page,
+      pagination.pageSize,
+      where,
+      {
+        nameCn: "asc",
+      },
+    );
     return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch teachers", error);

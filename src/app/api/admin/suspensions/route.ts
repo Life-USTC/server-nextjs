@@ -1,7 +1,7 @@
 import { withAdminRoute } from "@/lib/admin-utils";
 import { jsonResponse, notFound, parseRouteJsonBody } from "@/lib/api/helpers";
 import { adminCreateSuspensionRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
@@ -67,13 +67,13 @@ export async function POST(request: Request) {
       },
     });
 
-    writeAuditLog({
+    fireAuditLog({
       action: "admin_user_suspend",
       userId: admin.userId,
       targetId: userId,
       targetType: "user",
       metadata: { reason: parsedBody.reason ?? null },
-    }).catch(() => {});
+    });
 
     return jsonResponse({ suspension });
   });

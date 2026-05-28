@@ -1,7 +1,12 @@
-import { parseInteger, parseIntegerList } from "@/lib/api/helpers";
+import type { Prisma } from "@/generated/prisma/client";
+import {
+  applyIntegerFilter,
+  buildJwIdFilter,
+  buildRelatedFilter,
+  type IntegerFilter,
+  parseIdsFilter,
+} from "@/lib/query-filter-helpers";
 import { buildSectionSearchWhere, ilike } from "@/lib/query-helpers";
-
-type IntegerFilter = number | string | null | undefined;
 
 type CourseListFilters = {
   search?: string | null;
@@ -24,23 +29,14 @@ type SectionListFilters = {
   search?: string | null;
 };
 
-const parseIntegerFilter = (value: IntegerFilter) => parseInteger(value);
+// IntegerFilter, parseIdsFilter, applyIntegerFilter, buildRelatedFilter, buildJwIdFilter
+// are now exported from @/lib/query-filter-helpers.ts
 
-const parseIdsFilter = (value: number[] | string | null | undefined) => {
-  if (Array.isArray(value)) {
-    return value.filter(Number.isInteger);
-  }
-  return parseIntegerList(value);
-};
-
-export function buildCourseListWhere(filters: CourseListFilters) {
+export function buildCourseListWhere(
+  filters: CourseListFilters,
+): Prisma.CourseWhereInput | undefined {
   const { search, educationLevelId, categoryId, classTypeId } = filters;
-  const where: {
-    OR?: Array<Record<string, unknown>>;
-    educationLevelId?: number;
-    categoryId?: number;
-    classTypeId?: number;
-  } = {};
+  const where: Prisma.CourseWhereInput = {};
 
   if (search) {
     where.OR = [
@@ -50,26 +46,15 @@ export function buildCourseListWhere(filters: CourseListFilters) {
     ];
   }
 
-  const parsedEducationLevelId = parseIntegerFilter(educationLevelId);
-  if (parsedEducationLevelId !== null) {
-    where.educationLevelId = parsedEducationLevelId;
-  }
-
-  const parsedCategoryId = parseIntegerFilter(categoryId);
-  if (parsedCategoryId !== null) {
-    where.categoryId = parsedCategoryId;
-  }
-
-  const parsedClassTypeId = parseIntegerFilter(classTypeId);
-  if (parsedClassTypeId !== null) {
-    where.classTypeId = parsedClassTypeId;
-  }
+  applyIntegerFilter(where, "educationLevelId", educationLevelId);
+  applyIntegerFilter(where, "categoryId", categoryId);
+  applyIntegerFilter(where, "classTypeId", classTypeId);
 
   return Object.keys(where).length > 0 ? where : undefined;
 }
 
 export function buildSectionListQuery(filters: SectionListFilters): {
-  where: Record<string, unknown>;
+  where: Prisma.SectionWhereInput;
   orderBy?: ReturnType<typeof buildSectionSearchWhere>["orderBy"];
 } {
   const {
@@ -85,54 +70,25 @@ export function buildSectionListQuery(filters: SectionListFilters): {
     jwIds,
     search,
   } = filters;
-  const where: Record<string, unknown> = {};
+  const where: Prisma.SectionWhereInput = {};
 
-  const parsedCourseId = parseIntegerFilter(courseId);
-  if (parsedCourseId !== null) {
-    where.courseId = parsedCourseId;
-  }
-  const courseFilter: { jwId?: number } = {};
-  const parsedCourseJwId = parseIntegerFilter(courseJwId);
-  if (parsedCourseJwId !== null) {
-    courseFilter.jwId = parsedCourseJwId;
-  }
-  if (Object.keys(courseFilter).length > 0) {
+  applyIntegerFilter(where, "courseId", courseId);
+  const courseFilter = buildJwIdFilter(courseJwId);
+  if (courseFilter) {
     where.course = courseFilter;
   }
 
-  const parsedSemesterId = parseIntegerFilter(semesterId);
-  if (parsedSemesterId !== null) {
-    where.semesterId = parsedSemesterId;
-  }
-  const semesterFilter: { jwId?: number } = {};
-  const parsedSemesterJwId = parseIntegerFilter(semesterJwId);
-  if (parsedSemesterJwId !== null) {
-    semesterFilter.jwId = parsedSemesterJwId;
-  }
-  if (Object.keys(semesterFilter).length > 0) {
+  applyIntegerFilter(where, "semesterId", semesterId);
+  const semesterFilter = buildJwIdFilter(semesterJwId);
+  if (semesterFilter) {
     where.semester = semesterFilter;
   }
 
-  const parsedCampusId = parseIntegerFilter(campusId);
-  if (parsedCampusId !== null) {
-    where.campusId = parsedCampusId;
-  }
+  applyIntegerFilter(where, "campusId", campusId);
+  applyIntegerFilter(where, "openDepartmentId", departmentId);
 
-  const parsedDepartmentId = parseIntegerFilter(departmentId);
-  if (parsedDepartmentId !== null) {
-    where.openDepartmentId = parsedDepartmentId;
-  }
-
-  const teacherFilter: { id?: number; code?: string } = {};
-  const parsedTeacherId = parseIntegerFilter(teacherId);
-  if (parsedTeacherId !== null) {
-    teacherFilter.id = parsedTeacherId;
-  }
-  const trimmedTeacherCode = teacherCode?.trim();
-  if (trimmedTeacherCode) {
-    teacherFilter.code = trimmedTeacherCode;
-  }
-  if (Object.keys(teacherFilter).length > 0) {
+  const teacherFilter = buildRelatedFilter("id", teacherId, teacherCode);
+  if (teacherFilter) {
     where.teachers = {
       some: teacherFilter,
     };

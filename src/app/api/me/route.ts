@@ -1,10 +1,5 @@
-import {
-  handleRouteError,
-  jsonResponse,
-  notFound,
-  unauthorized,
-} from "@/lib/api/helpers";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { handleRouteError, jsonResponse, notFound } from "@/lib/api/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +11,9 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   try {
-    const userId = await resolveApiUserId(request);
-    if (!userId) {
-      return unauthorized();
-    }
+    const auth = await requireAuth(request);
+    if (auth instanceof Response) return auth;
+    const { userId } = auth;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },

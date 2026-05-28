@@ -6,10 +6,9 @@ import {
   handleRouteError,
   jsonResponse,
   parseRouteJsonBody,
-  unauthorized,
 } from "@/lib/api/helpers";
 import { busPreferenceRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +18,9 @@ export const dynamic = "force-dynamic";
  * @response 401:openApiErrorSchema
  */
 export async function GET(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   try {
     const preference = await getBusPreference(userId);
@@ -40,10 +38,9 @@ export async function GET(request: Request) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const parsedBody = await parseRouteJsonBody(
     request,

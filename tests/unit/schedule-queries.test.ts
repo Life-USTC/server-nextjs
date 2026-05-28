@@ -90,6 +90,8 @@ describe("buildScheduleListWhere", () => {
 
   it("ignores non-integer string inputs without producing a filter", () => {
     expect(buildScheduleListWhere({ sectionId: "abc" })).toEqual({});
+    expect(buildScheduleListWhere({ sectionId: "42x" })).toEqual({});
+    expect(buildScheduleListWhere({ weekday: "1.5" })).toEqual({});
     expect(buildScheduleListWhere({ teacherId: "" })).toEqual({});
     expect(buildScheduleListWhere({ roomId: null })).toEqual({});
     expect(buildScheduleListWhere({ weekday: undefined })).toEqual({});

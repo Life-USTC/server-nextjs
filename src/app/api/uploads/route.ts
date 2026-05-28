@@ -4,6 +4,7 @@ import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/lib/upload-quota";
+import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
 import {
   badRequest,
   handleRouteError,
@@ -11,10 +12,9 @@ import {
   parseInteger,
   parseRouteJsonBody,
   payloadTooLarge,
-  unauthorized,
 } from "@/lib/api/helpers";
 import { uploadCreateRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { buildUploadKey, getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 
@@ -26,21 +26,14 @@ function parseFileSize(value: unknown) {
   return parseInteger(value);
 }
 
-function normalizeContentType(value: unknown) {
-  if (typeof value !== "string") return "application/octet-stream";
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : "application/octet-stream";
-}
-
 /**
  * List uploads of current user.
  * @response uploadsListResponseSchema
  */
 export async function GET(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   try {
     const now = new Date();
@@ -96,10 +89,9 @@ export async function GET(request: Request) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const parsedBody = await parseRouteJsonBody(
     request,

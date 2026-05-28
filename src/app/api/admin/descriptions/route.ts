@@ -1,9 +1,8 @@
 import { withAdminRoute } from "@/lib/admin-utils";
 import {
-  getPagination,
   getRequestSearchParams,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { adminDescriptionsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -22,28 +21,24 @@ export async function GET(request: Request) {
     "Failed to fetch descriptions moderation queue",
     async () => {
       const searchParams = getRequestSearchParams(request);
-      const parsedQuery = parseRouteInput(
-        {
-          targetType: searchParams.get("targetType") ?? undefined,
-          hasContent: searchParams.get("hasContent") ?? undefined,
-          search: searchParams.get("search") ?? undefined,
-          limit: searchParams.get("limit") ?? undefined,
-        },
+      const parsed = parseRouteQuery(
+        searchParams,
         adminDescriptionsQuerySchema,
         "Invalid descriptions moderation query",
-        { logErrors: true },
+        {
+          logErrors: true,
+          pagination: { defaultPageSize: 50, maxPageSize: 200 },
+        },
       );
-      if (parsedQuery instanceof Response) {
-        return parsedQuery;
+      if (parsed instanceof Response) {
+        return parsed;
       }
 
+      const { query: parsedQuery, pagination } = parsed;
       const targetType = parsedQuery.targetType ?? "all";
       const hasContent = parsedQuery.hasContent ?? "withContent";
       const search = parsedQuery.search?.trim() ?? "";
-      const { pageSize: limit } = getPagination(searchParams, {
-        defaultPageSize: 50,
-        maxPageSize: 200,
-      });
+      const { pageSize: limit } = pagination;
 
       const targetTypeWhere =
         targetType === "section"

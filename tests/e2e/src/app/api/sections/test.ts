@@ -55,6 +55,17 @@ test("section list item has teachers array", async ({ request }) => {
   expect(Array.isArray(section?.teachers)).toBe(true);
 });
 
+test("section limit param controls page size", async ({ request }) => {
+  const response = await request.get("/api/sections?limit=1");
+  expect(response.status()).toBe(200);
+  const body = (await response.json()) as {
+    data?: unknown[];
+    pagination?: { pageSize?: number };
+  };
+  expect(body.data?.length).toBeLessThanOrEqual(1);
+  expect(body.pagination?.pageSize).toBe(1);
+});
+
 test("/api/sections 可按 teacherId 过滤到 seed 班级", async ({ request }) => {
   const teacherResponse = await request.get(
     `/api/teachers?search=${encodeURIComponent(DEV_SEED.teacher.nameCn)}&limit=5`,

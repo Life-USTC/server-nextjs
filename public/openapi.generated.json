@@ -159,25 +159,6 @@
     "/.well-known/oauth-protected-resource/api/mcp": {
       "get": {
         "operationId": "get-.well-known-oauth-protected-resource-api-mcp",
-        "summary": "",
-        "description": "",
-        "tags": [
-          "Api"
-        ],
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      },
-      "options": {
-        "operationId": "options-.well-known-oauth-protected-resource-api-mcp",
         "summary": "Canonical RFC 9728 protected resource metadata for MCP.",
         "description": "",
         "tags": [
@@ -187,7 +168,18 @@
         "responses": {
           "200": {
             "description": "Response 200"
-          },
+          }
+        }
+      },
+      "options": {
+        "operationId": "options-.well-known-oauth-protected-resource-api-mcp",
+        "summary": "",
+        "description": "",
+        "tags": [
+          "Api"
+        ],
+        "parameters": [],
+        "responses": {
           "204": {
             "description": "Response 204"
           }

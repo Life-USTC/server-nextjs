@@ -8,16 +8,16 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteInput,
   parseRouteJsonBody,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import {
   descriptionsQuerySchema,
   descriptionUpsertRequestSchema,
 } from "@/lib/api/schemas/request-schemas";
 import {
+  fireAuditLog,
   getAuditRequestMetadata,
-  writeAuditLog,
 } from "@/lib/audit/write-audit-log";
 import { requireWriteAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
@@ -32,11 +32,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = parseRouteInput(
-    {
-      targetType: searchParams.get("targetType"),
-      targetId: searchParams.get("targetId") ?? "",
-    },
+  const parsedQuery = parseRouteSearchParams(
+    searchParams,
     descriptionsQuerySchema,
     "Invalid target",
   );
@@ -139,14 +136,14 @@ export async function POST(request: Request) {
     });
 
     if (result.updated) {
-      writeAuditLog({
+      fireAuditLog({
         action: "description_edit",
         userId,
         targetId: result.id,
         targetType: "description",
         metadata: { targetType, content: content.slice(0, 200) },
         ...getAuditRequestMetadata(request),
-      }).catch(() => {});
+      });
     }
 
     return jsonResponse({ id: result.id, updated: result.updated });

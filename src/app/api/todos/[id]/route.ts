@@ -1,36 +1,19 @@
+import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseResourceIdParam,
   parseRouteJsonBody,
-  parseRouteParams,
-  unauthorized,
 } from "@/lib/api/helpers";
-import {
-  resourceIdPathParamsSchema,
-  todoUpdateRequestSchema,
-} from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { todoUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
-
-async function parseTodoId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid todo ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-  return parsed.id;
-}
 
 /**
  * Update one todo.
@@ -43,16 +26,15 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseTodoId(params);
+  const parsed = await parseResourceIdParam(params, "todo");
   if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
 
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const parsedBody = await parseRouteJsonBody(
     request,
@@ -83,7 +65,7 @@ export async function PATCH(
       return forbidden();
     }
 
-    const updates: Record<string, unknown> = {};
+    const updates: Prisma.TodoUpdateInput = {};
     if (parsedBody.title !== undefined) updates.title = parsedBody.title;
     if (Object.hasOwn(parsedBody, "content")) {
       updates.content = parsedBody.content?.trim() || null;
@@ -116,16 +98,15 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseTodoId(params);
+  const parsed = await parseResourceIdParam(params, "todo");
   if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
 
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   try {
     const todo = await prisma.todo.findUnique({

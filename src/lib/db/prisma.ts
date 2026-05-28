@@ -1,6 +1,11 @@
 import { format as formatLogArgs } from "node:util";
 import { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { createPrismaAdapter } from "@/lib/db/prisma-adapter";
+import {
+  getPrismaQueryDebugMode,
+  getPrismaSlowQueryThresholdMs,
+  shouldEnablePrismaQueryLogging,
+} from "@/lib/db/prisma-query-logging";
 import { shouldLog } from "@/lib/log/app-logger";
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
 
@@ -10,35 +15,6 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 const QUERY_LOG_TEXT_LIMIT = 2_000;
-
-function getPrismaDebugValue() {
-  return process.env.PRISMA_QUERY_DEBUG?.trim().toLowerCase();
-}
-
-function isPrismaQueryDebugEnabled() {
-  const value = getPrismaDebugValue();
-  return value === "1" || value === "true" || value === "yes";
-}
-
-function isPrismaQueryVerbose() {
-  return getPrismaDebugValue() === "verbose";
-}
-
-function getPrismaSlowQueryThresholdMs() {
-  const raw = process.env.PRISMA_SLOW_QUERY_MS?.trim();
-  if (!raw) return null;
-
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-}
-
-function shouldEnablePrismaQueryLogging() {
-  return (
-    isPrismaQueryDebugEnabled() ||
-    isPrismaQueryVerbose() ||
-    getPrismaSlowQueryThresholdMs() != null
-  );
-}
 
 function compactQueryText(value: string) {
   const compact = value.replace(/\s+/g, " ").trim();
@@ -73,9 +49,10 @@ function logPrismaQueryEvent(
 
 function logPrismaQuery(event: Prisma.QueryEvent) {
   const slowThresholdMs = getPrismaSlowQueryThresholdMs();
+  const debugMode = getPrismaQueryDebugMode();
   const isSlow = slowThresholdMs != null && event.duration >= slowThresholdMs;
 
-  if (!isSlow && !isPrismaQueryDebugEnabled() && !isPrismaQueryVerbose()) {
+  if (!isSlow && debugMode === "off") {
     return;
   }
 
@@ -85,7 +62,7 @@ function logPrismaQuery(event: Prisma.QueryEvent) {
     durationMs: event.duration,
     target: event.target,
     query: compactQueryText(event.query),
-    ...(isPrismaQueryVerbose()
+    ...(debugMode === "verbose"
       ? { params: compactQueryText(event.params) }
       : {}),
   });

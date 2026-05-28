@@ -1,39 +1,20 @@
-import { NextResponse } from "next/server";
+import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   forbidden,
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteInput,
+  parseResourceIdParam,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
-import {
-  homeworkUpdateRequestSchema,
-  resourceIdPathParamsSchema,
-} from "@/lib/api/schemas/request-schemas";
+import { homeworkUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { requireWriteAuth } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
 
 export const dynamic = "force-dynamic";
-
-async function parseHomeworkId(
-  params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = parseRouteInput(
-    raw,
-    resourceIdPathParamsSchema,
-    "Invalid homework ID",
-  );
-  if (parsed instanceof Response) {
-    return badRequest("Invalid homework ID");
-  }
-
-  return parsed.id;
-}
 
 /**
  * Update one homework.
@@ -46,8 +27,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseHomeworkId(params);
-  if (parsed instanceof NextResponse) {
+  const parsed = await parseResourceIdParam(params, "homework");
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
@@ -114,8 +95,8 @@ export async function PATCH(
       return forbidden("Homework deleted");
     }
 
-    const updates: Record<string, unknown> = {
-      updatedById: userId,
+    const updates: Prisma.HomeworkUpdateInput = {
+      updatedBy: { connect: { id: userId } },
     };
 
     if (title !== undefined) updates.title = title;
@@ -132,7 +113,17 @@ export async function PATCH(
     if (submissionDueAt !== undefined)
       updates.submissionDueAt = submissionDueAt;
 
-    if (Object.keys(updates).length === 1) {
+    // Only count user-provided fields; `updatedBy` is always present.
+    const userFieldCount = [
+      title !== undefined,
+      parsedBody.isMajor !== undefined,
+      parsedBody.requiresTeam !== undefined,
+      hasPublishedAt,
+      hasSubmissionStartAt,
+      hasSubmissionDueAt,
+    ].filter(Boolean).length;
+
+    if (userFieldCount === 0) {
       return badRequest("No changes");
     }
 
@@ -157,8 +148,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseHomeworkId(params);
-  if (parsed instanceof NextResponse) {
+  const parsed = await parseResourceIdParam(params, "homework");
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
