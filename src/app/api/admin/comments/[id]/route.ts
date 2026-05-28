@@ -2,32 +2,15 @@ import type { CommentStatus } from "@/generated/prisma/client";
 import { withAdminRoute } from "@/lib/admin-utils";
 import {
   jsonResponse,
+  notFound,
+  parseResourceIdParam,
   parseRouteJsonBody,
-  parseRouteParams,
 } from "@/lib/api/helpers";
-import {
-  adminModerateCommentRequestSchema,
-  resourceIdPathParamsSchema,
-} from "@/lib/api/schemas/request-schemas";
-import { writeAuditLog } from "@/lib/audit/write-audit-log";
+import { adminModerateCommentRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { fireAuditLog } from "@/lib/audit/write-audit-log";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
-
-async function parseCommentId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid comment ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
-  return parsed.id;
-}
 
 /**
  * Moderate one comment.
@@ -41,7 +24,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   return withAdminRoute("Failed to update comment", async (admin) => {
-    const parsed = await parseCommentId(params);
+    const parsed = await parseResourceIdParam(params, "comment");
     if (parsed instanceof Response) {
       return parsed;
     }
@@ -53,6 +36,14 @@ export async function PATCH(
     );
     if (parsedBody instanceof Response) {
       return parsedBody;
+    }
+
+    const existing = await prisma.comment.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!existing) {
+      return notFound();
     }
 
     const { status, moderationNote } = parsedBody;
@@ -67,13 +58,13 @@ export async function PATCH(
       },
     });
 
-    writeAuditLog({
+    fireAuditLog({
       action: "admin_comment_moderate",
       userId: admin.userId,
       targetId: id,
       targetType: "comment",
       metadata: { status, moderationNote: moderationNote ?? null },
-    }).catch(() => {});
+    });
 
     return jsonResponse({ comment: updated });
   });

@@ -23,9 +23,8 @@ export function toShanghaiDateTimeLocalValue(
   value: string | Date | null | undefined,
 ): string {
   if (!value) return "";
-  const parsed =
-    value instanceof Date ? value : (parseDateInput(value) ?? undefined);
-  if (!(parsed instanceof Date)) return "";
+  const parsed = value instanceof Date ? value : parseDateInput(value);
+  if (!parsed) return "";
   return shanghaiDayjs(parsed).format(APP_DATETIME_LOCAL_FORMAT);
 }
 

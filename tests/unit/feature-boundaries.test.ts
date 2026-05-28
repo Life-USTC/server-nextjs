@@ -20,6 +20,10 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
   return files.flat();
 }
 
+function isMissingPathError(error: unknown) {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
 describe("feature import boundaries", () => {
   it("keeps dashboard feature code independent from the app layer", async () => {
     const featureRoot = path.join(process.cwd(), "src/features");
@@ -42,7 +46,7 @@ describe("feature import boundaries", () => {
       .stat(legacyDashboardRoot)
       .then(() => collectSourceFiles(legacyDashboardRoot))
       .catch((error: unknown) => {
-        if (error && typeof error === "object" && "code" in error) {
+        if (isMissingPathError(error)) {
           return [];
         }
         throw error;

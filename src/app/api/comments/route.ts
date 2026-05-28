@@ -5,16 +5,16 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteInput,
   parseRouteJsonBody,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import {
   commentCreateRequestSchema,
   commentsQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
 import {
+  fireAuditLog,
   getAuditRequestMetadata,
-  writeAuditLog,
 } from "@/lib/audit/write-audit-log";
 import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
@@ -30,13 +30,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = parseRouteInput(
-    {
-      targetType: searchParams.get("targetType"),
-      targetId: searchParams.get("targetId") ?? undefined,
-      sectionId: searchParams.get("sectionId") ?? undefined,
-      teacherId: searchParams.get("teacherId") ?? undefined,
-    },
+  const parsedQuery = parseRouteSearchParams(
+    searchParams,
     commentsQuerySchema,
     "Invalid target",
   );
@@ -139,6 +134,7 @@ export async function POST(request: Request) {
   const targetType = parsedBody.targetType;
   const content = parsedBody.body;
 
+  // Use schema-parsed values directly — Zod already validated the enum/boolean.
   const visibility = parsedBody.visibility ?? "public";
   const isAnonymous = parsedBody.isAnonymous === true;
 
@@ -154,9 +150,14 @@ export async function POST(request: Request) {
       sectionId: parsedBody.sectionId,
       targetType,
       teacherId: parsedBody.teacherId,
+      // Verify target entity exists to prevent orphan comments on deleted targets.
+      verifyExistence: true,
     });
     if (!target) {
       return badRequest("Invalid target");
+    }
+    if (!target.verified) {
+      return notFound("Target not found");
     }
 
     let parentId: string | null = null;
@@ -224,14 +225,14 @@ export async function POST(request: Request) {
       });
     }
 
-    writeAuditLog({
+    fireAuditLog({
       action: "comment_create",
       userId,
       targetId: comment.id,
       targetType: "comment",
       metadata: { body: content.slice(0, 200) },
       ...getAuditRequestMetadata(request),
-    }).catch(() => {});
+    });
 
     return jsonResponse({ id: comment.id });
   } catch (error) {

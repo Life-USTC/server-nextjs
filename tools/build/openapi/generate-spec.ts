@@ -8,7 +8,8 @@
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import * as path from "node:path";
 import { z } from "zod";
-import * as apiSchemas from "../../../src/lib/api/schemas";
+import * as requestSchemas from "../../../src/lib/api/schemas/request-schemas";
+import * as responseSchemas from "../../../src/lib/api/schemas/response-schemas";
 import { OPENAPI_SPEC_RELATIVE_PATH } from "../../../src/lib/openapi/spec";
 
 const ROOT = new URL("../../..", import.meta.url).pathname;
@@ -66,7 +67,10 @@ const generatorConfigSchema = z.object({
 
 const allSchemas: Record<string, z.ZodTypeAny> = {};
 
-for (const [name, value] of Object.entries(apiSchemas)) {
+for (const [name, value] of Object.entries({
+  ...requestSchemas,
+  ...responseSchemas,
+})) {
   if (value && typeof value === "object" && "_def" in value) {
     allSchemas[name] = value as z.ZodTypeAny;
   }
@@ -192,7 +196,7 @@ function extractJsDocAnnotations(
   while (responseMatch !== null) {
     if (responseMatch[1] !== undefined) {
       // Matched @response STATUS or @response STATUS:SCHEMA
-      const status = Number.parseInt(responseMatch[1], 10);
+      const status = Number(responseMatch[1]);
       annotations.responses.push({
         status,
         schemaName: responseMatch[2] ?? null,
@@ -213,7 +217,9 @@ function extractJsDocAnnotations(
 function buildDefaultResponses(source: string, method: string) {
   if (
     method === "OPTIONS" &&
-    /createDiscovery(?:Metadata|Redirect)Route\(/.test(source)
+    /create(?:OAuthDiscovery|Discovery(?:Metadata|Redirect))Route\(/.test(
+      source,
+    )
   ) {
     return {
       "204": {

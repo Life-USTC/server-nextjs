@@ -4,7 +4,11 @@ import {
 } from "@/lib/course-section-query-filters";
 import { findCurrentSemester } from "@/lib/current-semester";
 import { getPrisma, prisma } from "@/lib/db/prisma";
-import { findClosestMatches } from "@/lib/fuzzy-match";
+import {
+  extractCodePrefixes,
+  findClosestMatches,
+  normalizeFuzzyValue,
+} from "@/lib/fuzzy-match";
 import {
   courseDetailInclude,
   courseInclude,
@@ -124,33 +128,10 @@ export async function findSectionCodeMatches(
   });
 
   const matchedCodes = sections.map((section) => section.code);
-  const unmatchedCodes = codes.filter((code) => !matchedCodes.includes(code));
-  const normalizedChunks = (value: string) =>
-    value
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, "")
-      .match(/[A-Z0-9]+/g) ?? [];
+  const matchedCodeSet = new Set(matchedCodes);
+  const unmatchedCodes = codes.filter((code) => !matchedCodeSet.has(code));
   const unmatchedCodePrefixes = new Map(
-    unmatchedCodes.map((code) => {
-      const chunks = normalizedChunks(code);
-      const significantChunks = chunks.filter(
-        (chunk) => chunk.length >= 4 || (chunk.length >= 3 && /\d/.test(chunk)),
-      );
-      const lookupChunks =
-        significantChunks.length > 0 ? significantChunks : chunks;
-      const prefixes = Array.from(
-        new Set(
-          lookupChunks
-            .map((chunk) =>
-              chunk.slice(0, Math.min(6, Math.max(3, chunk.length))),
-            )
-            .filter((chunk) => chunk.length >= 3),
-        ),
-      ).slice(0, 6);
-
-      return [code, prefixes] as const;
-    }),
+    unmatchedCodes.map((code) => [code, extractCodePrefixes(code)] as const),
   );
   const batchedPrefixes = Array.from(
     new Set(Array.from(unmatchedCodePrefixes.values()).flat()),
@@ -174,7 +155,7 @@ export async function findSectionCodeMatches(
   const normalizedSemesterCodes: Array<{ code: string; normalized: string }> =
     semesterCodes.map((code: string) => ({
       code,
-      normalized: code.trim().toUpperCase().replace(/\s+/g, ""),
+      normalized: normalizeFuzzyValue(code),
     }));
   const prefixMatches = new Map<string, string[]>(
     batchedPrefixes.map((prefix) => [

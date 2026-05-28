@@ -41,6 +41,10 @@ import { assertApiContract } from "../../../../_shared/api-contract";
 
 const ROUTE_PATH = "/api/users/[userId]/calendar.ics";
 
+function unfoldICalendar(text: string) {
+  return text.replace(/\r?\n[ \t]/g, "");
+}
+
 test.describe("GET /api/users/[userId]/calendar.ics", () => {
   test("contract", async ({ request }) => {
     await assertApiContract(request, { routePath: ROUTE_PATH });
@@ -114,17 +118,18 @@ test.describe("GET /api/users/[userId]/calendar.ics", () => {
         expect(response.headers()["content-type"]).toContain("text/calendar");
 
         const body = await response.text();
+        const unfoldedBody = unfoldICalendar(body);
         expect(body.trim().length).toBeGreaterThan(0);
-        expect(body).toContain("BEGIN:VCALENDAR");
+        expect(unfoldedBody).toContain("BEGIN:VCALENDAR");
 
         // Seed data should include homework, todos, and exam events
-        expect(body).toContain(DEV_SEED.homeworks.title);
-        expect(body).toContain(DEV_SEED.todos.dueTodayTitle);
-        expect(body).toContain(`${DEV_SEED.course.nameCn} - 期中考试`);
+        expect(unfoldedBody).toContain(DEV_SEED.homeworks.title);
+        expect(unfoldedBody).toContain(DEV_SEED.todos.dueTodayTitle);
+        expect(unfoldedBody).toContain(`${DEV_SEED.course.nameCn} - 期中考试`);
 
         // Completed todos and deleted homework must not appear
-        expect(body).not.toContain(DEV_SEED.todos.completedTitle);
-        expect(body).not.toContain("已删除作业");
+        expect(unfoldedBody).not.toContain(DEV_SEED.todos.completedTitle);
+        expect(unfoldedBody).not.toContain("已删除作业");
       } finally {
         await page.request.post("/api/calendar-subscriptions", {
           data: { sectionIds: originalIds },

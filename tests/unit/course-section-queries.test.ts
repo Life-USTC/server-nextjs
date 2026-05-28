@@ -123,6 +123,90 @@ describe("course and section query helpers", () => {
     expect(result.orderBy).toEqual({ semester: { jwId: "desc" } });
   });
 
+  it("builds advanced section search aliases", () => {
+    const result = buildSectionListQuery({
+      search:
+        "coursecode:MATH sectioncode:SEC campus:west credit:3.5 dept:CS semester:fall category:core edulevel:ug type:lab sortby:campus order:DESC leftover",
+    });
+
+    expect(result.where.AND).toEqual(
+      expect.arrayContaining([
+        {
+          course: {
+            code: {
+              contains: "MATH",
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          code: {
+            contains: "SEC",
+            mode: "insensitive",
+          },
+        },
+        {
+          campus: {
+            nameCn: {
+              contains: "west",
+              mode: "insensitive",
+            },
+          },
+        },
+        { credits: 3.5 },
+        {
+          openDepartment: {
+            nameCn: {
+              contains: "CS",
+              mode: "insensitive",
+            },
+          },
+        },
+        {
+          course: {
+            educationLevel: {
+              nameCn: {
+                contains: "ug",
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+        {
+          course: {
+            classType: {
+              nameCn: {
+                contains: "lab",
+                mode: "insensitive",
+              },
+            },
+          },
+        },
+        {
+          OR: expect.arrayContaining([
+            {
+              course: {
+                nameCn: {
+                  contains: "leftover",
+                  mode: "insensitive",
+                },
+              },
+            },
+          ]),
+        },
+      ]),
+    );
+    expect(result.orderBy).toEqual({ campus: { nameCn: "desc" } });
+  });
+
+  it("ignores inexact section credit search values", () => {
+    const result = buildSectionListQuery({
+      search: "credits:3abc",
+    });
+
+    expect(result.where).toEqual({});
+  });
+
   it("accepts numeric id arrays for section filters", () => {
     expect(
       buildSectionListQuery({

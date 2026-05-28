@@ -1,10 +1,9 @@
 import type { NextRequest } from "next/server";
 import {
   buildPaginatedResponse,
-  getPagination,
   handleRouteError,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { schedulesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { getPrisma, prisma } from "@/lib/db/prisma";
@@ -16,6 +15,17 @@ import { parseDateInput } from "@/lib/time/parse-date-input";
 import { formatTime } from "@/shared/lib/time-utils";
 export const dynamic = "force-dynamic";
 
+function parseScheduleDateParam(name: "dateFrom" | "dateTo", value?: string) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = parseDateInput(value);
+  return parsed instanceof Date
+    ? parsed
+    : handleRouteError("Invalid schedule query", `Invalid ${name}`, 400);
+}
+
 /**
  * List schedules with filters and pagination.
  * @params schedulesQuerySchema
@@ -25,30 +35,17 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const parsedQuery = parseRouteInput(
-      {
-        sectionId: searchParams.get("sectionId") ?? undefined,
-        sectionJwId: searchParams.get("sectionJwId") ?? undefined,
-        sectionCode: searchParams.get("sectionCode") ?? undefined,
-        teacherId: searchParams.get("teacherId") ?? undefined,
-        teacherCode: searchParams.get("teacherCode") ?? undefined,
-        roomId: searchParams.get("roomId") ?? undefined,
-        roomJwId: searchParams.get("roomJwId") ?? undefined,
-        dateFrom: searchParams.get("dateFrom") ?? undefined,
-        dateTo: searchParams.get("dateTo") ?? undefined,
-        weekday: searchParams.get("weekday") ?? undefined,
-        page: searchParams.get("page") ?? undefined,
-        limit: searchParams.get("limit") ?? undefined,
-      },
+    const parsed = parseRouteQuery(
+      searchParams,
       schedulesQuerySchema,
       "Invalid schedule query",
       { logErrors: true },
     );
-    if (parsedQuery instanceof Response) {
-      return parsedQuery;
+    if (parsed instanceof Response) {
+      return parsed;
     }
 
-    const pagination = getPagination(searchParams);
+    const { query: parsedQuery, pagination } = parsed;
     const {
       sectionId,
       sectionJwId,
@@ -62,29 +59,13 @@ export async function GET(request: NextRequest) {
       weekday,
     } = parsedQuery;
 
-    let parsedDateFrom: Date | undefined;
-    if (dateFrom) {
-      const nextDateFrom = parseDateInput(dateFrom);
-      if (!(nextDateFrom instanceof Date)) {
-        return handleRouteError(
-          "Invalid schedule query",
-          "Invalid dateFrom",
-          400,
-        );
-      }
-      parsedDateFrom = nextDateFrom;
+    const parsedDateFrom = parseScheduleDateParam("dateFrom", dateFrom);
+    if (parsedDateFrom instanceof Response) {
+      return parsedDateFrom;
     }
-    let parsedDateTo: Date | undefined;
-    if (dateTo) {
-      const nextDateTo = parseDateInput(dateTo);
-      if (!(nextDateTo instanceof Date)) {
-        return handleRouteError(
-          "Invalid schedule query",
-          "Invalid dateTo",
-          400,
-        );
-      }
-      parsedDateTo = nextDateTo;
+    const parsedDateTo = parseScheduleDateParam("dateTo", dateTo);
+    if (parsedDateTo instanceof Response) {
+      return parsedDateTo;
     }
     const whereClause = buildScheduleListWhere({
       sectionId,

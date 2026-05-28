@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import type { z } from "zod";
+import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
 import { logRouteFailure } from "@/lib/log/app-logger";
 import { serializeDatesDeep } from "@/lib/time/serialize-date-output";
 import { parseInteger, parseIntegerList } from "./request-integers";
@@ -15,7 +16,7 @@ export type PaginatedResponse<T> = {
   };
 };
 
-export type PaginationInput = {
+type PaginationInput = {
   page?: number | string | null;
   pageSize?: number | string | null;
   defaultPage?: number;
@@ -23,7 +24,7 @@ export type PaginationInput = {
   maxPageSize?: number;
 };
 
-type GetPaginationOptions = Pick<
+type PaginationOptions = Pick<
   PaginationInput,
   "defaultPage" | "defaultPageSize" | "maxPageSize"
 > & {
@@ -33,6 +34,10 @@ type GetPaginationOptions = Pick<
 
 type ParseRouteOptions = {
   logErrors?: boolean;
+};
+
+type ParseRouteQueryOptions = ParseRouteOptions & {
+  pagination?: PaginationOptions;
 };
 
 /**
@@ -49,22 +54,6 @@ export function normalizePagination(input: PaginationInput = {}) {
     pageSize,
     skip: (page - 1) * pageSize,
   };
-}
-
-/**
- * Parse pagination from URL search params using the shared normalizer.
- */
-export function getPagination(
-  searchParams: URLSearchParams,
-  options: GetPaginationOptions = {},
-) {
-  return normalizePagination({
-    page: searchParams.get(options.pageParam ?? "page"),
-    pageSize: searchParams.get(options.pageSizeParam ?? "limit"),
-    defaultPage: options.defaultPage,
-    defaultPageSize: options.defaultPageSize,
-    maxPageSize: options.maxPageSize ?? 100,
-  });
 }
 
 /**
@@ -169,6 +158,60 @@ export function parseRouteInput<TSchema extends z.ZodTypeAny>(
   return parsed.data;
 }
 
+function searchParamsInput<TSchema extends z.ZodObject>(
+  searchParams: URLSearchParams,
+  schema: TSchema,
+) {
+  return Object.fromEntries(
+    Object.keys(schema.shape).map((key) => [
+      key,
+      searchParams.get(key) ?? undefined,
+    ]),
+  );
+}
+
+export function parseRouteSearchParams<TSchema extends z.ZodObject>(
+  searchParams: URLSearchParams,
+  schema: TSchema,
+  message: string,
+  options?: ParseRouteOptions,
+): z.output<TSchema> | Response {
+  return parseRouteInput(
+    searchParamsInput(searchParams, schema),
+    schema,
+    message,
+    options,
+  );
+}
+
+export function parseRouteQuery<TSchema extends z.ZodObject>(
+  searchParams: URLSearchParams,
+  schema: TSchema,
+  message: string,
+  options?: ParseRouteQueryOptions,
+):
+  | {
+      query: z.output<TSchema>;
+      pagination: ReturnType<typeof normalizePagination>;
+    }
+  | Response {
+  const query = parseRouteSearchParams(searchParams, schema, message, options);
+  if (query instanceof Response) {
+    return query;
+  }
+
+  return {
+    query,
+    pagination: normalizePagination({
+      page: searchParams.get(options?.pagination?.pageParam ?? "page"),
+      pageSize: searchParams.get(options?.pagination?.pageSizeParam ?? "limit"),
+      defaultPage: options?.pagination?.defaultPage,
+      defaultPageSize: options?.pagination?.defaultPageSize,
+      maxPageSize: options?.pagination?.maxPageSize,
+    }),
+  };
+}
+
 export async function parseRouteParams<TSchema extends z.ZodTypeAny>(
   params: Promise<unknown>,
   schema: TSchema,
@@ -199,6 +242,26 @@ export async function parseRouteJsonBody<TSchema extends z.ZodTypeAny>(
     ...options,
     logErrors: options?.logErrors ?? true,
   });
+}
+
+/**
+ * Parse a `[id]` path param using the canonical resourceIdPathParamsSchema.
+ * Replaces duplicated parseCommentId / parseHomeworkId / parseTodoId / parseUploadId helpers.
+ */
+export async function parseResourceIdParam(
+  params: Promise<{ id: string }>,
+  label: string,
+): Promise<string | Response> {
+  const parsed = await parseRouteParams(
+    params,
+    resourceIdPathParamsSchema,
+    `Invalid ${label} ID`,
+  );
+  if (parsed instanceof Response) {
+    return parsed;
+  }
+
+  return parsed.id;
 }
 
 export { parseInteger, parseIntegerList };

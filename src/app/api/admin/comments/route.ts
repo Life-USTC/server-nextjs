@@ -1,10 +1,9 @@
 import type { CommentStatus } from "@/generated/prisma/client";
 import { withAdminRoute } from "@/lib/admin-utils";
 import {
-  getPagination,
   getRequestSearchParams,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { adminCommentsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -22,24 +21,22 @@ const STATUS_FILTERS = ["active", "softbanned", "deleted"] as const;
 export async function GET(request: Request) {
   return withAdminRoute("Failed to fetch moderation queue", async () => {
     const searchParams = getRequestSearchParams(request);
-    const parsedQuery = parseRouteInput(
-      {
-        status: searchParams.get("status") ?? undefined,
-        limit: searchParams.get("limit") ?? undefined,
-      },
+    const parsed = parseRouteQuery(
+      searchParams,
       adminCommentsQuerySchema,
       "Invalid moderation query",
-      { logErrors: true },
+      {
+        logErrors: true,
+        pagination: { defaultPageSize: 50, maxPageSize: 200 },
+      },
     );
-    if (parsedQuery instanceof Response) {
-      return parsedQuery;
+    if (parsed instanceof Response) {
+      return parsed;
     }
 
+    const { query: parsedQuery, pagination } = parsed;
     const status = parsedQuery.status ?? "";
-    const { pageSize: limit } = getPagination(searchParams, {
-      defaultPageSize: 50,
-      maxPageSize: 200,
-    });
+    const { pageSize: limit } = pagination;
 
     const now = new Date();
     const where =

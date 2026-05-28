@@ -3,7 +3,7 @@ import {
   badRequest,
   handleRouteError,
   parseIntegerList,
-  parseRouteInput,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import { sectionsCalendarQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -19,11 +19,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const parsedQuery = parseRouteInput(
-      {
-        sectionIds: searchParams.get("sectionIds") ?? "",
-      },
+    const parsedQuery = parseRouteSearchParams(
+      request.nextUrl.searchParams,
       sectionsCalendarQuerySchema,
       "sectionIds parameter is required",
       { logErrors: true },

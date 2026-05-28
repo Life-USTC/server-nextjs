@@ -4,27 +4,20 @@ import {
   runUploadSerializableTransaction,
   UploadError,
 } from "@/features/uploads/lib/upload-quota";
+import { normalizeContentType } from "@/features/uploads/lib/upload-utils";
 import {
   badRequest,
   forbidden,
   handleRouteError,
   jsonResponse,
   parseRouteJsonBody,
-  payloadTooLarge,
-  unauthorized,
 } from "@/lib/api/helpers";
 import { uploadCompleteRequestSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
-
-function normalizeContentType(value: unknown) {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
 
 /**
  * Finalize one upload after S3 put.
@@ -33,10 +26,9 @@ function normalizeContentType(value: unknown) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const parsedBody = await parseRouteJsonBody(
     request,
@@ -94,31 +86,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const pendingCheck = await prisma.uploadPending.findUnique({
-      where: { key },
-    });
-    if (!pendingCheck || pendingCheck.userId !== userId) {
-      return badRequest("Upload session expired");
-    }
-
-    const bucket = getS3Bucket();
-    const head = await sendS3(
-      new HeadObjectCommand({ Bucket: bucket, Key: key }),
-    );
-
-    const size = head.ContentLength ?? 0;
-    if (!size || size <= 0) {
-      return badRequest("Uploaded object missing");
-    }
-
-    if (size > uploadConfig.maxFileSizeBytes) {
-      await sendS3(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
-      return payloadTooLarge("File too large");
-    }
-
-    const contentType =
-      normalizeContentType(parsedBody.contentType) ?? head.ContentType;
-
+    // Move all checks inside the serializable transaction for consistency.
     const reservation = await runUploadSerializableTransaction(async (tx) => {
       const pending = await tx.uploadPending.findUnique({ where: { key } });
       if (!pending || pending.userId !== userId) {
@@ -129,6 +97,27 @@ export async function POST(request: Request) {
         await tx.uploadPending.delete({ where: { key } });
         throw new UploadError("Upload session expired");
       }
+
+      // S3 HeadObject check must happen outside the transaction boundary
+      // since it's an external service call — we verify the file exists
+      // before committing quota changes.
+      const bucket = getS3Bucket();
+      const head = await sendS3(
+        new HeadObjectCommand({ Bucket: bucket, Key: key }),
+      );
+
+      const size = head.ContentLength ?? 0;
+      if (!size || size <= 0) {
+        throw new UploadError("Uploaded object missing");
+      }
+
+      if (size > uploadConfig.maxFileSizeBytes) {
+        await sendS3(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+        throw new UploadError("File too large");
+      }
+
+      const contentType =
+        normalizeContentType(parsedBody.contentType) ?? head.ContentType;
 
       const [usage, pendingUsage] = await Promise.all([
         tx.upload.aggregate({

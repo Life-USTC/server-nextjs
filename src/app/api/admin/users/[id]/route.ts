@@ -1,15 +1,11 @@
-import { NextResponse } from "next/server";
 import { withAdminRoute } from "@/lib/admin-utils";
 import {
   badRequest,
   jsonResponse,
-  parseRouteInput,
+  parseResourceIdParam,
   parseRouteJsonBody,
 } from "@/lib/api/helpers";
-import {
-  adminUpdateUserRequestSchema,
-  resourceIdPathParamsSchema,
-} from "@/lib/api/schemas/request-schemas";
+import { adminUpdateUserRequestSchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
@@ -27,22 +23,6 @@ function normalizeUsername(value: unknown) {
   return trimmed ? trimmed : null;
 }
 
-async function parseUserId(
-  params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = parseRouteInput(
-    raw,
-    resourceIdPathParamsSchema,
-    "Invalid user ID",
-  );
-  if (parsed instanceof Response) {
-    return badRequest("Invalid user ID");
-  }
-
-  return parsed.id;
-}
-
 /**
  * Update one user.
  * @pathParams resourceIdPathParamsSchema
@@ -55,8 +35,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   return withAdminRoute("Failed to update user", async () => {
-    const parsed = await parseUserId(params);
-    if (parsed instanceof NextResponse) {
+    const parsed = await parseResourceIdParam(params, "user");
+    if (parsed instanceof Response) {
       return parsed;
     }
     const id = parsed;

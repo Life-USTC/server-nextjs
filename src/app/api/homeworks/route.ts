@@ -5,8 +5,8 @@ import {
   jsonResponse,
   notFound,
   parseInteger,
-  parseRouteInput,
   parseRouteJsonBody,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import {
   homeworkCreateRequestSchema,
@@ -16,6 +16,7 @@ import { requireWriteAuth, resolveApiUserId } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
 import { getPrisma, prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -26,12 +27,8 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = parseRouteInput(
-    {
-      sectionId: searchParams.get("sectionId") ?? undefined,
-      sectionIds: searchParams.get("sectionIds") ?? undefined,
-      includeDeleted: searchParams.get("includeDeleted") ?? undefined,
-    },
+  const parsedQuery = parseRouteSearchParams(
+    searchParams,
     homeworksQuerySchema,
     "Invalid homework query",
     { logErrors: true },
@@ -85,6 +82,11 @@ export async function GET(request: Request) {
       deletedBy: {
         select: { id: true, name: true, username: true, image: true },
       },
+      _count: {
+        select: {
+          comments: { where: { status: { not: "deleted" } } },
+        },
+      },
       ...(viewer.userId
         ? {
             homeworkCompletions: {
@@ -118,30 +120,13 @@ export async function GET(request: Request) {
         take: 50,
       }),
     ]);
-    const homeworkIds = homeworks.map((homework) => homework.id);
-    const commentCountRows =
-      homeworkIds.length > 0
-        ? await prisma.comment.groupBy({
-            by: ["homeworkId"],
-            where: {
-              homeworkId: { in: homeworkIds },
-              status: { not: "deleted" },
-            },
-            _count: { _all: true },
-          })
-        : [];
-    const commentCounts = new Map(
-      commentCountRows.flatMap((row) =>
-        row.homeworkId ? [[row.homeworkId, row._count._all] as const] : [],
-      ),
-    );
 
     const responseHomeworks = homeworks.map((homework) => {
-      const { homeworkCompletions, ...rest } = homework;
+      const { homeworkCompletions, _count, ...rest } = homework;
       return {
         ...rest,
         completion: homeworkCompletions?.[0] ?? null,
-        commentCount: commentCounts.get(homework.id) ?? 0,
+        commentCount: _count.comments,
       };
     });
 

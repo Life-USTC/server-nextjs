@@ -10,6 +10,14 @@ import { logAppEvent } from "@/lib/log/app-logger";
 
 export const dynamic = "force-dynamic";
 
+function resolveVisitTarget(
+  schema: typeof dashboardLinkVisitQuerySchema,
+  slug: FormDataEntryValue | string | null,
+) {
+  const parsed = schema.safeParse({ slug });
+  return parsed.success ? resolveDashboardLinkBySlug(parsed.data.slug) : null;
+}
+
 /**
  * Redirect to one dashboard link without side effects.
  * @params dashboardLinkVisitQuerySchema
@@ -17,12 +25,10 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const parsedQuery = dashboardLinkVisitQuerySchema.safeParse({
-    slug: searchParams.get("slug"),
-  });
-  const target = parsedQuery.success
-    ? resolveDashboardLinkBySlug(parsedQuery.data.slug)
-    : null;
+  const target = resolveVisitTarget(
+    dashboardLinkVisitQuerySchema,
+    searchParams.get("slug"),
+  );
 
   if (!target) {
     return NextResponse.redirect(new URL("/", request.url));
@@ -38,12 +44,10 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   const formData = await request.formData();
-  const parsedBody = dashboardLinkVisitRequestSchema.safeParse({
-    slug: formData.get("slug"),
-  });
-  const target = parsedBody.success
-    ? resolveDashboardLinkBySlug(parsedBody.data.slug)
-    : null;
+  const target = resolveVisitTarget(
+    dashboardLinkVisitRequestSchema,
+    formData.get("slug"),
+  );
 
   if (!target) {
     return NextResponse.redirect(new URL("/", request.url), 303);

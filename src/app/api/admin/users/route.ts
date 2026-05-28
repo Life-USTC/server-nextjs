@@ -3,10 +3,9 @@ import { ADMIN_USERS_PAGE_SIZE } from "@/app/admin/users/constants";
 import { withAdminRoute } from "@/lib/admin-utils";
 import {
   buildPaginatedResponse,
-  getPagination,
   getRequestSearchParams,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { adminUsersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -23,24 +22,23 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   return withAdminRoute("Failed to fetch users", async () => {
     const searchParams = getRequestSearchParams(request);
-    const parsedQuery = parseRouteInput(
-      {
-        search: searchParams.get("search") ?? undefined,
-        page: searchParams.get("page") ?? undefined,
-        limit: searchParams.get("limit") ?? undefined,
-      },
+    const parsed = parseRouteQuery(
+      searchParams,
       adminUsersQuerySchema,
       "Invalid user query",
-      { logErrors: true },
+      {
+        logErrors: true,
+        pagination: {
+          defaultPageSize: ADMIN_USERS_PAGE_SIZE,
+          maxPageSize: 100,
+        },
+      },
     );
-    if (parsedQuery instanceof Response) {
-      return parsedQuery;
+    if (parsed instanceof Response) {
+      return parsed;
     }
 
-    const pagination = getPagination(searchParams, {
-      defaultPageSize: ADMIN_USERS_PAGE_SIZE,
-      maxPageSize: 100,
-    });
+    const { query: parsedQuery, pagination } = parsed;
     const search = parsedQuery.search ?? "";
     const where = search
       ? {

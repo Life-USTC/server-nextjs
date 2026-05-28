@@ -1,45 +1,23 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { sanitizeFilename } from "@/features/uploads/lib/upload-utils";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
   notFound,
+  parseResourceIdParam,
   parseRouteJsonBody,
-  parseRouteParams,
-  unauthorized,
 } from "@/lib/api/helpers";
+import { uploadRenameRequestSchema } from "@/lib/api/schemas/request-schemas";
 import {
-  resourceIdPathParamsSchema,
-  uploadRenameRequestSchema,
-} from "@/lib/api/schemas/request-schemas";
-import {
+  fireAuditLog,
   getAuditRequestMetadata,
-  writeAuditLog,
 } from "@/lib/audit/write-audit-log";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { getS3Bucket, sendS3 } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
-
-async function parseUploadId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid upload ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
-  return parsed.id;
-}
-
-function sanitizeFilename(filename: string) {
-  return filename.trim();
-}
 
 /**
  * Rename one upload.
@@ -54,12 +32,11 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
-  const parsed = await parseUploadId(context.params);
+  const parsed = await parseResourceIdParam(context.params, "upload");
   if (parsed instanceof Response) {
     return parsed;
   }
@@ -125,12 +102,11 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
-  const parsed = await parseUploadId(context.params);
+  const parsed = await parseResourceIdParam(context.params, "upload");
   if (parsed instanceof Response) {
     return parsed;
   }
@@ -146,20 +122,32 @@ export async function DELETE(
       return notFound();
     }
 
-    await sendS3(
-      new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: upload.key }),
-    );
-
+    // Delete DB record first, then S3 object.
+    // If S3 cleanup fails, the record is gone and the orphaned S3 object
+    // is harmless (no DB reference points to it). A reverse order would
+    // leave a DB record pointing at a missing S3 object.
     await prisma.upload.delete({ where: { id: upload.id } });
 
-    writeAuditLog({
+    try {
+      await sendS3(
+        new DeleteObjectCommand({ Bucket: getS3Bucket(), Key: upload.key }),
+      );
+    } catch (s3Error) {
+      // S3 cleanup failure is non-critical — the DB record is already gone.
+      handleRouteError(
+        "S3 object cleanup failed after upload deletion",
+        s3Error,
+      );
+    }
+
+    fireAuditLog({
       action: "upload_delete",
       userId,
       targetId: upload.id,
       targetType: "upload",
       metadata: { key: upload.key, size: upload.size },
       ...getAuditRequestMetadata(request),
-    }).catch(() => {});
+    });
 
     return jsonResponse({
       deletedId: upload.id,

@@ -1,9 +1,8 @@
 import type { NextRequest } from "next/server";
 import {
-  getPagination,
   handleRouteError,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { sectionsQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { buildSectionListQuery } from "@/lib/course-section-queries";
@@ -19,31 +18,17 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = parseRouteInput(
-    {
-      courseId: searchParams.get("courseId") ?? undefined,
-      courseJwId: searchParams.get("courseJwId") ?? undefined,
-      semesterId: searchParams.get("semesterId") ?? undefined,
-      semesterJwId: searchParams.get("semesterJwId") ?? undefined,
-      campusId: searchParams.get("campusId") ?? undefined,
-      departmentId: searchParams.get("departmentId") ?? undefined,
-      teacherId: searchParams.get("teacherId") ?? undefined,
-      teacherCode: searchParams.get("teacherCode") ?? undefined,
-      search: searchParams.get("search") ?? undefined,
-      ids: searchParams.get("ids") ?? undefined,
-      jwIds: searchParams.get("jwIds") ?? undefined,
-      page: searchParams.get("page") ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-    },
+  const parsed = parseRouteQuery(
+    searchParams,
     sectionsQuerySchema,
     "Invalid section query",
     { logErrors: true },
   );
-  if (parsedQuery instanceof Response) {
-    return parsedQuery;
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  const pagination = getPagination(searchParams);
+  const { query: parsedQuery, pagination } = parsed;
   const {
     courseId,
     courseJwId,
@@ -72,7 +57,12 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const result = await paginatedSectionQuery(pagination.page, where, orderBy);
+    const result = await paginatedSectionQuery(
+      pagination.page,
+      pagination.pageSize,
+      where,
+      orderBy,
+    );
     return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch sections", error);

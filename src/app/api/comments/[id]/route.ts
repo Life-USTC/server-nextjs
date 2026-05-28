@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import {
   buildCommentNodes,
   type CommentNode,
@@ -9,17 +8,14 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
-  parseRouteInput,
+  parseResourceIdParam,
   parseRouteJsonBody,
   unauthorized,
 } from "@/lib/api/helpers";
+import { commentUpdateRequestSchema } from "@/lib/api/schemas/request-schemas";
 import {
-  commentUpdateRequestSchema,
-  resourceIdPathParamsSchema,
-} from "@/lib/api/schemas/request-schemas";
-import {
+  fireAuditLog,
   getAuditRequestMetadata,
-  writeAuditLog,
 } from "@/lib/audit/write-audit-log";
 import { resolveApiUserId } from "@/lib/auth/helpers";
 import { getViewerContext } from "@/lib/auth/viewer-context";
@@ -36,22 +32,6 @@ function findComment(nodes: CommentNode[], id: string): CommentNode | null {
   return null;
 }
 
-async function parseCommentId(
-  params: Promise<{ id: string }>,
-): Promise<string | NextResponse> {
-  const raw = await params;
-  const parsed = parseRouteInput(
-    raw,
-    resourceIdPathParamsSchema,
-    "Invalid comment ID",
-  );
-  if (parsed instanceof Response) {
-    return badRequest("Invalid comment ID");
-  }
-
-  return parsed.id;
-}
-
 /**
  * Get one comment thread by comment ID.
  * @pathParams resourceIdPathParamsSchema
@@ -62,70 +42,74 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseCommentId(params);
-  if (parsed instanceof NextResponse) {
+  const parsed = await parseResourceIdParam(params, "comment");
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
 
   try {
-    const comment = await prisma.comment.findUnique({
-      where: { id },
-      select: {
-        sectionId: true,
-        courseId: true,
-        teacherId: true,
-        sectionTeacherId: true,
-        rootId: true,
-        id: true,
-        homework: {
-          select: {
-            id: true,
-            title: true,
-            section: {
-              select: { jwId: true, code: true },
-            },
-          },
-        },
-        sectionTeacher: {
-          select: {
-            sectionId: true,
-            teacherId: true,
-            section: {
-              select: {
-                jwId: true,
-                code: true,
-                course: {
-                  select: { jwId: true, nameCn: true },
-                },
+    const viewerUserId = await resolveApiUserId(request);
+
+    // Fetch the anchor comment and the viewer context in parallel.
+    const [comment, viewer] = await Promise.all([
+      prisma.comment.findUnique({
+        where: { id },
+        select: {
+          sectionId: true,
+          courseId: true,
+          teacherId: true,
+          sectionTeacherId: true,
+          rootId: true,
+          id: true,
+          homework: {
+            select: {
+              id: true,
+              title: true,
+              section: {
+                select: { jwId: true, code: true },
               },
             },
-            teacher: {
-              select: { nameCn: true },
+          },
+          sectionTeacher: {
+            select: {
+              sectionId: true,
+              teacherId: true,
+              section: {
+                select: {
+                  jwId: true,
+                  code: true,
+                  course: {
+                    select: { jwId: true, nameCn: true },
+                  },
+                },
+              },
+              teacher: {
+                select: { nameCn: true },
+              },
             },
           },
+          section: {
+            select: { jwId: true, code: true },
+          },
+          course: {
+            select: { jwId: true, nameCn: true },
+          },
+          teacher: {
+            select: { nameCn: true },
+          },
         },
-        section: {
-          select: { jwId: true, code: true },
-        },
-        course: {
-          select: { jwId: true, nameCn: true },
-        },
-        teacher: {
-          select: { nameCn: true },
-        },
-      },
-    });
+      }),
+      getViewerContext({
+        includeAdmin: false,
+        userId: viewerUserId,
+      }),
+    ]);
 
     if (!comment) {
       return notFound();
     }
 
-    const viewerUserId = await resolveApiUserId(request);
-    const viewer = await getViewerContext({
-      includeAdmin: false,
-      userId: viewerUserId,
-    });
     const threadKey = comment.rootId ?? comment.id;
 
     const threadComments = await prisma.comment.findMany({
@@ -221,8 +205,8 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseCommentId(params);
-  if (parsed instanceof NextResponse) {
+  const parsed = await parseResourceIdParam(params, "comment");
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
@@ -235,16 +219,10 @@ export async function PATCH(
     return parsedBody;
   }
 
+  // Use schema-parsed values directly — Zod already validated enums/booleans.
   const content = parsedBody.body;
-
-  const visibility =
-    typeof parsedBody.visibility === "string"
-      ? parsedBody.visibility
-      : undefined;
-  const isAnonymous =
-    typeof parsedBody.isAnonymous === "boolean"
-      ? parsedBody.isAnonymous
-      : undefined;
+  const visibility = parsedBody.visibility;
+  const isAnonymous = parsedBody.isAnonymous;
 
   const hasAttachmentUpdate = Array.isArray(parsedBody.attachmentIds);
   const attachmentIds = hasAttachmentUpdate
@@ -367,14 +345,14 @@ export async function PATCH(
 
     const { roots } = buildCommentNodes([updatedComment], viewer);
 
-    writeAuditLog({
+    fireAuditLog({
       action: "comment_edit",
       userId,
       targetId: id,
       targetType: "comment",
       metadata: { body: content?.slice(0, 200) },
       ...getAuditRequestMetadata(request),
-    }).catch(() => {});
+    });
 
     return jsonResponse({ success: true, comment: roots[0] });
   } catch (error) {
@@ -392,8 +370,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseCommentId(params);
-  if (parsed instanceof NextResponse) {
+  const parsed = await parseResourceIdParam(params, "comment");
+  if (parsed instanceof Response) {
     return parsed;
   }
   const id = parsed;
@@ -425,13 +403,13 @@ export async function DELETE(
       },
     });
 
-    writeAuditLog({
+    fireAuditLog({
       action: "comment_delete",
       userId,
       targetId: id,
       targetType: "comment",
       ...getAuditRequestMetadata(request),
-    }).catch(() => {});
+    });
 
     return jsonResponse({ success: true });
   } catch (error) {

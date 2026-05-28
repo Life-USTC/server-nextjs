@@ -7,12 +7,14 @@ import {
   homeworkCreateRequestSchema,
   localeUpdateRequestSchema,
   matchSectionCodesRequestSchema,
-  meResponseSchema,
-  openApiErrorSchema,
   schedulesQuerySchema,
   sectionsQuerySchema,
   uploadCreateRequestSchema,
-} from "@/lib/api/schemas";
+} from "@/lib/api/schemas/request-schemas";
+import {
+  meResponseSchema,
+  openApiErrorSchema,
+} from "@/lib/api/schemas/response-schemas";
 
 describe("matchSectionCodesRequestSchema", () => {
   it("accepts valid payload", () => {
@@ -161,7 +163,7 @@ describe("other request schemas", () => {
     );
   });
 
-  it("re-exports response schemas from the compatibility barrel", () => {
+  it("validates shared response schemas", () => {
     expect(
       meResponseSchema.safeParse({
         id: "user_1",

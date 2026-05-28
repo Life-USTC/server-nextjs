@@ -138,50 +138,75 @@ export const apiClient = {
     apiRequest<T>("PATCH", path, options),
 };
 
+const API_ERROR_MESSAGE_KEYS = ["error", "message", "detail"] as const;
+
+function trimmedMessage(value: string | undefined): string | null {
+  return value?.trim() || null;
+}
+
+function normalizeStringMessage(value: unknown): string | null | undefined {
+  if (typeof value !== "string" || !value) {
+    return undefined;
+  }
+  return trimmedMessage(value);
+}
+
+function asErrorRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function firstStringMessage(
+  record: Record<string, unknown>,
+  keys: readonly string[] = API_ERROR_MESSAGE_KEYS,
+): string | null | undefined {
+  for (const key of keys) {
+    const message = normalizeStringMessage(record[key]);
+    if (message !== undefined) {
+      return message;
+    }
+  }
+
+  return undefined;
+}
+
+function firstRecordMessage(
+  value: unknown,
+  keys: readonly string[] = API_ERROR_MESSAGE_KEYS,
+): string | null | undefined {
+  const record = asErrorRecord(value);
+  return record ? firstStringMessage(record, keys) : undefined;
+}
+
 export function extractApiErrorMessage(errorBody: unknown): string | null {
   if (typeof errorBody === "string") {
-    return errorBody.trim() || null;
+    return trimmedMessage(errorBody);
   }
   if (errorBody instanceof Error) {
-    return errorBody.message?.trim() || null;
+    return trimmedMessage(errorBody.message);
   }
-  if (!errorBody || typeof errorBody !== "object") {
+
+  const anyBody = asErrorRecord(errorBody);
+  if (!anyBody) {
     return null;
   }
 
-  const anyBody = errorBody as Record<string, unknown>;
-
-  const direct =
-    (typeof anyBody.error === "string" && anyBody.error) ||
-    (typeof anyBody.message === "string" && anyBody.message) ||
-    (typeof anyBody.detail === "string" && anyBody.detail);
-  if (direct) {
-    return direct.trim() || null;
+  const direct = firstStringMessage(anyBody);
+  if (direct !== undefined) {
+    return direct;
   }
 
-  const nestedError = anyBody.error;
-  if (nestedError && typeof nestedError === "object") {
-    const nested = nestedError as Record<string, unknown>;
-    const nestedDirect =
-      (typeof nested.error === "string" && nested.error) ||
-      (typeof nested.message === "string" && nested.message) ||
-      (typeof nested.detail === "string" && nested.detail);
-    if (nestedDirect) {
-      return nestedDirect.trim() || null;
-    }
+  const nestedDirect = firstRecordMessage(anyBody.error);
+  if (nestedDirect !== undefined) {
+    return nestedDirect;
   }
 
   const errors = anyBody.errors;
   if (Array.isArray(errors) && errors.length > 0) {
-    const first = errors[0];
-    if (first && typeof first === "object") {
-      const firstObj = first as Record<string, unknown>;
-      const firstMessage =
-        (typeof firstObj.message === "string" && firstObj.message) ||
-        (typeof firstObj.error === "string" && firstObj.error);
-      if (firstMessage) {
-        return firstMessage.trim() || null;
-      }
+    const firstMessage = firstRecordMessage(errors[0], ["message", "error"]);
+    if (firstMessage !== undefined) {
+      return firstMessage;
     }
   }
 

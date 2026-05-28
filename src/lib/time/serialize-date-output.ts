@@ -1,8 +1,5 @@
 import { formatShanghaiTimestamp } from "@/lib/time/shanghai-format";
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+import { isRecord } from "@/lib/utils";
 
 export function toShanghaiIsoString(date: Date): string {
   return formatShanghaiTimestamp(date);

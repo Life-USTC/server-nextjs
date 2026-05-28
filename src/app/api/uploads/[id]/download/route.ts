@@ -1,37 +1,16 @@
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
+import { buildContentDisposition } from "@/features/uploads/lib/upload-utils";
 import {
   handleRouteError,
   notFound,
-  parseRouteParams,
-  unauthorized,
+  parseResourceIdParam,
 } from "@/lib/api/helpers";
-import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { getS3Bucket, getS3SignedUrl } from "@/lib/storage/s3";
 
 export const dynamic = "force-dynamic";
-
-async function parseUploadId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid upload ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
-  return parsed.id;
-}
-
-function buildContentDisposition(filename: string) {
-  const safeName = filename.replace(/"/g, "'");
-  return `attachment; filename="${safeName}"`;
-}
 
 /**
  * Redirect to signed URL for one upload.
@@ -44,12 +23,11 @@ export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
-  const parsed = await parseUploadId(context.params);
+  const parsed = await parseResourceIdParam(context.params, "upload");
   if (parsed instanceof Response) {
     return parsed;
   }

@@ -45,4 +45,16 @@ describe("formatSmartDate", () => {
     const due = new Date("2026-03-22T08:00:00+08:00");
     expect(formatSmartDate(due, ref, "en-us")).toBe("Sunday");
   });
+
+  it("omits year when same year but not same week (zh)", () => {
+    const ref = new Date("2026-03-17T10:00:00+08:00");
+    const due = new Date("2026-04-20T15:30:00+08:00");
+    expect(formatSmartDate(due, ref, "zh-cn")).toBe("4月20日");
+  });
+
+  it("includes year when different from reference year (zh)", () => {
+    const ref = new Date("2026-03-17T10:00:00+08:00");
+    const due = new Date("2025-12-01T09:00:00+08:00");
+    expect(formatSmartDate(due, ref, "zh-cn")).toBe("2025年12月1日");
+  });
 });

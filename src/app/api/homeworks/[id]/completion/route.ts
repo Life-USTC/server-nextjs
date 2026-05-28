@@ -2,33 +2,14 @@ import {
   handleRouteError,
   jsonResponse,
   notFound,
+  parseResourceIdParam,
   parseRouteJsonBody,
-  parseRouteParams,
-  unauthorized,
 } from "@/lib/api/helpers";
-import {
-  homeworkCompletionRequestSchema,
-  resourceIdPathParamsSchema,
-} from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { homeworkCompletionRequestSchema } from "@/lib/api/schemas/request-schemas";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
-
-async function parseHomeworkId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid homework ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
-  return parsed.id;
-}
 
 /**
  * Update completion state for one homework.
@@ -41,7 +22,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const parsed = await parseHomeworkId(params);
+  const parsed = await parseResourceIdParam(params, "homework");
   if (parsed instanceof Response) {
     return parsed;
   }
@@ -55,10 +36,9 @@ export async function PUT(
     return parsedBody;
   }
 
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   try {
     const homework = await prisma.homework.findUnique({

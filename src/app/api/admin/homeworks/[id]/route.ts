@@ -1,24 +1,12 @@
 import { withAdminRoute } from "@/lib/admin-utils";
-import { jsonResponse, notFound, parseRouteParams } from "@/lib/api/helpers";
-import { resourceIdPathParamsSchema } from "@/lib/api/schemas/request-schemas";
+import {
+  jsonResponse,
+  notFound,
+  parseResourceIdParam,
+} from "@/lib/api/helpers";
 import { prisma } from "@/lib/db/prisma";
 
 export const dynamic = "force-dynamic";
-
-async function parseHomeworkId(
-  params: Promise<{ id: string }>,
-): Promise<string | Response> {
-  const parsed = await parseRouteParams(
-    params,
-    resourceIdPathParamsSchema,
-    "Invalid homework ID",
-  );
-  if (parsed instanceof Response) {
-    return parsed;
-  }
-
-  return parsed.id;
-}
 
 /**
  * Soft delete one homework (admin).
@@ -31,7 +19,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   return withAdminRoute("Failed to delete homework (admin)", async (admin) => {
-    const parsed = await parseHomeworkId(params);
+    const parsed = await parseResourceIdParam(params, "homework");
     if (parsed instanceof Response) {
       return parsed;
     }

@@ -1,9 +1,8 @@
 import type { NextRequest } from "next/server";
 import {
-  getPagination,
   handleRouteError,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { coursesQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { buildCourseListWhere } from "@/lib/course-section-queries";
@@ -19,24 +18,17 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const parsedQuery = parseRouteInput(
-    {
-      search: searchParams.get("search") ?? undefined,
-      educationLevelId: searchParams.get("educationLevelId") ?? undefined,
-      categoryId: searchParams.get("categoryId") ?? undefined,
-      classTypeId: searchParams.get("classTypeId") ?? undefined,
-      page: searchParams.get("page") ?? undefined,
-      limit: searchParams.get("limit") ?? undefined,
-    },
+  const parsed = parseRouteQuery(
+    searchParams,
     coursesQuerySchema,
     "Invalid course query",
     { logErrors: true },
   );
-  if (parsedQuery instanceof Response) {
-    return parsedQuery;
+  if (parsed instanceof Response) {
+    return parsed;
   }
 
-  const pagination = getPagination(searchParams);
+  const { query: parsedQuery, pagination } = parsed;
   const { search, educationLevelId, categoryId, classTypeId } = parsedQuery;
   const where = buildCourseListWhere({
     search,
@@ -46,7 +38,11 @@ export async function GET(request: NextRequest) {
   });
 
   try {
-    const result = await paginatedCourseQuery(pagination.page, where);
+    const result = await paginatedCourseQuery(
+      pagination.page,
+      pagination.pageSize,
+      where,
+    );
     return jsonResponse(result);
   } catch (error) {
     return handleRouteError("Failed to fetch courses", error);

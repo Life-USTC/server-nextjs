@@ -1,10 +1,9 @@
 import type { NextRequest } from "next/server";
 import {
   buildPaginatedResponse,
-  getPagination,
   handleRouteError,
   jsonResponse,
-  parseRouteInput,
+  parseRouteQuery,
 } from "@/lib/api/helpers";
 import { semestersQuerySchema } from "@/lib/api/schemas/request-schemas";
 import { prisma } from "@/lib/db/prisma";
@@ -20,19 +19,16 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const parsedQuery = parseRouteInput(
-      {
-        page: searchParams.get("page") ?? undefined,
-        limit: searchParams.get("limit") ?? undefined,
-      },
+    const parsed = parseRouteQuery(
+      searchParams,
       semestersQuerySchema,
       "Invalid semester query",
       { logErrors: true },
     );
-    if (parsedQuery instanceof Response) {
-      return parsedQuery;
+    if (parsed instanceof Response) {
+      return parsed;
     }
-    const { page, pageSize, skip } = getPagination(searchParams);
+    const { page, pageSize, skip } = parsed.pagination;
 
     const [semesters, total] = await Promise.all([
       prisma.semester.findMany({

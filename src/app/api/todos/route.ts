@@ -1,18 +1,19 @@
+import type { Prisma } from "@/generated/prisma/client";
 import {
   badRequest,
   handleRouteError,
   jsonResponse,
-  parseRouteInput,
   parseRouteJsonBody,
-  unauthorized,
+  parseRouteSearchParams,
 } from "@/lib/api/helpers";
 import {
   todoCreateRequestSchema,
   todosQuerySchema,
 } from "@/lib/api/schemas/request-schemas";
-import { resolveApiUserId } from "@/lib/auth/helpers";
+import { requireAuth } from "@/lib/auth/helpers";
 import { prisma } from "@/lib/db/prisma";
 import { parseDateInput } from "@/lib/time/parse-date-input";
+
 export const dynamic = "force-dynamic";
 
 /**
@@ -22,19 +23,13 @@ export const dynamic = "force-dynamic";
  * @response 401:openApiErrorSchema
  */
 export async function GET(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const { searchParams } = new URL(request.url);
-  const parsedQuery = parseRouteInput(
-    {
-      completed: searchParams.get("completed") ?? undefined,
-      priority: searchParams.get("priority") ?? undefined,
-      dueBefore: searchParams.get("dueBefore") ?? undefined,
-      dueAfter: searchParams.get("dueAfter") ?? undefined,
-    },
+  const parsedQuery = parseRouteSearchParams(
+    searchParams,
     todosQuerySchema,
     "Invalid todo query",
     { logErrors: true },
@@ -43,14 +38,20 @@ export async function GET(request: Request) {
     return parsedQuery;
   }
 
-  const where: Record<string, unknown> = { userId };
+  const where: Prisma.TodoWhereInput = { userId };
   if (parsedQuery.completed === "true") where.completed = true;
   else if (parsedQuery.completed === "false") where.completed = false;
   if (parsedQuery.priority) where.priority = parsedQuery.priority;
   if (parsedQuery.dueBefore || parsedQuery.dueAfter) {
-    const dueAtFilter: Record<string, Date> = {};
-    if (parsedQuery.dueBefore) dueAtFilter.lt = new Date(parsedQuery.dueBefore);
-    if (parsedQuery.dueAfter) dueAtFilter.gte = new Date(parsedQuery.dueAfter);
+    const dueAtFilter: Prisma.TodoWhereInput["dueAt"] = {};
+    if (parsedQuery.dueBefore) {
+      const parsed = parseDateInput(parsedQuery.dueBefore);
+      if (parsed) dueAtFilter.lt = parsed;
+    }
+    if (parsedQuery.dueAfter) {
+      const parsed = parseDateInput(parsedQuery.dueAfter);
+      if (parsed) dueAtFilter.gte = parsed;
+    }
     where.dueAt = dueAtFilter;
   }
 
@@ -73,10 +74,9 @@ export async function GET(request: Request) {
  * @response 400:openApiErrorSchema
  */
 export async function POST(request: Request) {
-  const userId = await resolveApiUserId(request);
-  if (!userId) {
-    return unauthorized();
-  }
+  const auth = await requireAuth(request);
+  if (auth instanceof Response) return auth;
+  const { userId } = auth;
 
   const parsedBody = await parseRouteJsonBody(
     request,
@@ -87,9 +87,13 @@ export async function POST(request: Request) {
     return parsedBody;
   }
 
-  const dueAt = parseDateInput(parsedBody.dueAt);
-  if (dueAt === undefined) {
-    return badRequest("Invalid due date");
+  const dueAtRaw = parsedBody.dueAt;
+  let dueAt: Date | null | undefined;
+  if (dueAtRaw !== undefined) {
+    dueAt = parseDateInput(dueAtRaw);
+    if (dueAt === undefined) {
+      return badRequest("Invalid due date");
+    }
   }
 
   try {
@@ -99,7 +103,7 @@ export async function POST(request: Request) {
         title: parsedBody.title,
         content: parsedBody.content?.trim() || null,
         priority: parsedBody.priority ?? "medium",
-        dueAt,
+        ...(dueAt !== undefined && { dueAt }),
       },
     });
 
