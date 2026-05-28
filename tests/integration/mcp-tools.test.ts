@@ -669,17 +669,15 @@ describe("list_schedules_by_section — date range filter", () => {
 
   it("returns error message for invalid dateFrom", async () => {
     const result = await mcp.call<{
-      found?: boolean;
+      success?: boolean;
       message?: string;
-      schedules?: unknown[];
     }>("list_schedules_by_section", {
       sectionJwId: DEV_SEED.section.jwId,
       dateFrom: "yesterday",
       locale: "zh-cn",
     });
 
-    expect(result.found).toBe(true);
-    expect(result.schedules).toHaveLength(0);
+    expect(result.success).toBe(false);
     expect(result.message).toContain("yesterday");
   });
 });
@@ -718,6 +716,23 @@ describe("query_schedules — flexible date filters", () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toContain("yesterday");
+  });
+});
+
+describe("course and section lookup errors", () => {
+  it("get_section_by_jw_id returns a recovery hint when the jwId is missing", async () => {
+    const result = await mcp.call<{
+      found?: boolean;
+      message?: string;
+      hint?: string;
+    }>("get_section_by_jw_id", {
+      jwId: 999999999,
+      locale: "zh-cn",
+    });
+
+    expect(result.found).toBe(false);
+    expect(result.message).toContain("999999999");
+    expect(result.hint).toContain("search_sections");
   });
 });
 
@@ -803,6 +818,24 @@ describe("get_next_buses — default mode drops repeated campus objects", () => 
     });
 
     expect(result.totalRoutes).toBeGreaterThan(0);
+  });
+
+  it("rejects invalid atTime with the shared MCP date message", async () => {
+    const result = await mcp.call<{ success?: boolean; message?: string }>(
+      "get_next_buses",
+      {
+        locale: "zh-cn",
+        originCampusId: DEV_SEED.bus.originCampusId,
+        destinationCampusId: DEV_SEED.bus.destinationCampusId,
+        atTime: "not-a-date",
+      },
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      message:
+        'Invalid atTime: "not-a-date". Use YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS+08:00.',
+    });
   });
 
   it("departure items omit originCampus and destinationCampus", async () => {

@@ -14,6 +14,7 @@ import {
   jsonToolResult,
   mcpLocaleInputSchema,
   mcpModeInputSchema,
+  parseOptionalMcpDate,
   resolveMcpMode,
 } from "@/lib/mcp/tools/_helpers";
 import { summarizeBusDeparture } from "@/lib/mcp/tools/event-summary";
@@ -279,11 +280,16 @@ export function registerBusTools(server: McpServer) {
       extra,
     ) => {
       const resolvedMode = resolveMcpMode(mode);
+      const parsedAtTime = parseOptionalMcpDate("atTime", atTime);
+      if (!parsedAtTime.ok) {
+        return parsedAtTime.result;
+      }
+
       const result = await getNextBusDepartures({
         locale,
         originCampusId,
         destinationCampusId,
-        atTime,
+        atTime: parsedAtTime.value?.toISOString(),
         dayType,
         includeDeparted,
         limit,

@@ -6,22 +6,8 @@ type BusDeparture = NonNullable<
   Awaited<ReturnType<typeof getNextBusDepartures>>
 >["departures"][number];
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function pick<
-  T extends Record<string, unknown>,
-  const K extends readonly (keyof T)[],
->(value: T, keys: K): Pick<T, K[number]> {
-  const out = {} as Pick<T, K[number]>;
-  for (const key of keys) {
-    if (Object.hasOwn(value, key) && value[key] !== undefined) {
-      out[key] = value[key];
-    }
-  }
-  return out;
-}
+import { pick } from "@/lib/mcp/compact-payload";
+import { isRecord } from "@/lib/utils";
 
 export function summarizeSectionCard(value: unknown) {
   if (!isRecord(value)) return value;
