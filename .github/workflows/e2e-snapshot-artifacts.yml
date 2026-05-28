@@ -19,11 +19,10 @@ jobs:
         id: commits
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            shas="$(jq -c --arg sha "$GITHUB_SHA" '[.commits[].id] | if length == 0 then [$sha] else . end' "$GITHUB_EVENT_PATH")"
-          else
-            shas="$(jq -c --arg sha "$GITHUB_SHA" '[$sha]' <<< '{}')"
-          fi
+          # Always snapshot the workflow commit only. Replaying every commit from a
+          # multi-commit push breaks when intermediate commits have stale tooling
+          # paths or transient build failures that the head commit has already fixed.
+          shas="$(jq -c --arg sha "$GITHUB_SHA" '[$sha]' <<< '{}')"
           echo "shas=$shas" >> "$GITHUB_OUTPUT"
 
   comment-artifacts:
