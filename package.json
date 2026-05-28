@@ -53,6 +53,7 @@
     "start": "next start",
     "test": "vitest run",
     "test:e2e": "playwright test --reporter=list",
+    "test:e2e:bootstrap": "bun run verify:e2e",
     "test:e2e:benchmark": "bun run tools/dev/benchmark/e2e-workers.ts",
     "test:perf": "bun run tools/dev/benchmark/route-perf.ts",
     "test:e2e:headed": "playwright test --headed",
