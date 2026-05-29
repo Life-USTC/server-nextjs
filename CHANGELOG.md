@@ -1,3 +1,18 @@
+# [1.30.0](https://github.com/Life-USTC/server-nextjs/compare/v1.29.3...v1.30.0) (2026-05-29)
+
+
+### Bug Fixes
+
+* **ci:** restore e2e bootstrap and head-only snapshots ([d7bd9b6](https://github.com/Life-USTC/server-nextjs/commit/d7bd9b6e374125b726865f10c042702fb4685533))
+* **mcp:** simplify calendar feed redaction guard ([cf865fa](https://github.com/Life-USTC/server-nextjs/commit/cf865fa216e43fd017a846e4a9b0ddfcd4ce1f12))
+* **testing:** stabilize bus seed and page snapshots ([84269e0](https://github.com/Life-USTC/server-nextjs/commit/84269e0c539fbc232978f2f474edb6c627c3e7ec))
+
+
+### Features
+
+* **mcp:** improve compact results and recovery hints ([af5c72d](https://github.com/Life-USTC/server-nextjs/commit/af5c72d6ea956361f878ac4fed9cad066dd7ddfe))
+* **ui:** polish dashboards, mobile lists, and detail flows ([c04344b](https://github.com/Life-USTC/server-nextjs/commit/c04344bc154f77c5ae78d2a71dd7575014a08ee4))
+
 ## [1.29.3](https://github.com/Life-USTC/server-nextjs/compare/v1.29.2...v1.29.3) (2026-05-18)
 
 
