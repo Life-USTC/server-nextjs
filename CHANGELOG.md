@@ -1,3 +1,10 @@
+## [1.30.2](https://github.com/Life-USTC/server-nextjs/compare/v1.30.1...v1.30.2) (2026-06-01)
+
+
+### Reverts
+
+* Revert "fix(openapi): harden generated client contract" ([bc0a574](https://github.com/Life-USTC/server-nextjs/commit/bc0a5746ab54cfd33b6f7ecbdf3932872c488a22))
+
 ## [1.30.1](https://github.com/Life-USTC/server-nextjs/compare/v1.30.0...v1.30.1) (2026-06-01)
 
 
