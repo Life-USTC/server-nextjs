@@ -319,8 +319,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -404,7 +403,7 @@
     },
     "/api/admin/descriptions": {
       "get": {
-        "operationId": "listAdminDescriptions",
+        "operationId": "getDescription",
         "summary": "List descriptions for moderation review.",
         "description": "",
         "tags": [
@@ -451,8 +450,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -515,8 +513,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -717,8 +714,7 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -726,8 +722,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -1253,8 +1248,7 @@
             "in": "query",
             "name": "sectionId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -1262,8 +1256,7 @@
             "in": "query",
             "name": "teacherId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -1326,8 +1319,7 @@
             "in": "query",
             "name": "sectionId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -1335,8 +1327,7 @@
             "in": "query",
             "name": "teacherId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -1663,8 +1654,7 @@
             "in": "query",
             "name": "educationLevelId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -1672,8 +1662,7 @@
             "in": "query",
             "name": "categoryId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -1681,8 +1670,7 @@
             "in": "query",
             "name": "classTypeId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -1690,8 +1678,7 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -1699,8 +1686,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -1742,8 +1728,7 @@
             "in": "path",
             "name": "jwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": true,
             "example": "123"
@@ -2017,8 +2002,7 @@
             "in": "query",
             "name": "sectionId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2079,8 +2063,7 @@
             "in": "query",
             "name": "sectionId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2627,8 +2610,7 @@
             "in": "query",
             "name": "sectionId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2636,8 +2618,7 @@
             "in": "query",
             "name": "sectionJwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2654,8 +2635,7 @@
             "in": "query",
             "name": "teacherId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2672,8 +2652,7 @@
             "in": "query",
             "name": "roomId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2681,8 +2660,7 @@
             "in": "query",
             "name": "roomJwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2690,8 +2668,7 @@
             "in": "query",
             "name": "weekday",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2719,8 +2696,7 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2728,8 +2704,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -2771,8 +2746,7 @@
             "in": "query",
             "name": "courseId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2780,8 +2754,7 @@
             "in": "query",
             "name": "courseJwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2789,8 +2762,7 @@
             "in": "query",
             "name": "semesterId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2798,8 +2770,7 @@
             "in": "query",
             "name": "semesterJwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2807,8 +2778,7 @@
             "in": "query",
             "name": "campusId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2816,8 +2786,7 @@
             "in": "query",
             "name": "departmentId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2825,8 +2794,7 @@
             "in": "query",
             "name": "teacherId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2867,8 +2835,7 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -2876,8 +2843,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -2919,8 +2885,7 @@
             "in": "path",
             "name": "jwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": true,
             "example": "123"
@@ -2963,8 +2928,7 @@
             "in": "path",
             "name": "jwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": true,
             "example": "123"
@@ -3008,8 +2972,7 @@
             "in": "path",
             "name": "jwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": true,
             "example": "123"
@@ -3053,8 +3016,7 @@
             "in": "path",
             "name": "jwId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": true,
             "example": "123"
@@ -3184,8 +3146,7 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -3193,8 +3154,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -3269,8 +3229,7 @@
             "in": "query",
             "name": "departmentId",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -3286,8 +3245,7 @@
             "in": "query",
             "name": "page",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           },
@@ -3295,8 +3253,7 @@
             "in": "query",
             "name": "limit",
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             },
             "required": false
           }
@@ -4809,198 +4766,7 @@
         ],
         "additionalProperties": false
       },
-      "adminHomeworksResponseSchema": {
-        "type": "object",
-        "properties": {
-          "homeworks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "submissionDueAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-                  "nullable": true
-                },
-                "createdAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "updatedAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                },
-                "deletedAt": {
-                  "type": "string",
-                  "format": "date-time",
-                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$",
-                  "nullable": true
-                },
-                "section": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991
-                    },
-                    "jwId": {
-                      "type": "integer",
-                      "minimum": -9007199254740991,
-                      "maximum": 9007199254740991,
-                      "nullable": true
-                    },
-                    "code": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "course": {
-                      "type": "object",
-                      "properties": {
-                        "jwId": {
-                          "type": "integer",
-                          "minimum": -9007199254740991,
-                          "maximum": 9007199254740991
-                        },
-                        "code": {
-                          "type": "string"
-                        },
-                        "nameCn": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "jwId",
-                        "code",
-                        "nameCn"
-                      ],
-                      "additionalProperties": false
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "jwId",
-                    "code",
-                    "course"
-                  ],
-                  "additionalProperties": false,
-                  "nullable": true
-                },
-                "createdBy": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "username": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "image": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "username",
-                    "image"
-                  ],
-                  "additionalProperties": false,
-                  "nullable": true
-                },
-                "updatedBy": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "username": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "image": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "username",
-                    "image"
-                  ],
-                  "additionalProperties": false,
-                  "nullable": true
-                },
-                "deletedBy": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "name": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "username": {
-                      "type": "string",
-                      "nullable": true
-                    },
-                    "image": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "username",
-                    "image"
-                  ],
-                  "additionalProperties": false,
-                  "nullable": true
-                }
-              },
-              "required": [
-                "id",
-                "title",
-                "submissionDueAt",
-                "createdAt",
-                "updatedAt",
-                "deletedAt",
-                "section",
-                "createdBy",
-                "updatedBy",
-                "deletedBy"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "homeworks"
-        ],
-        "additionalProperties": false
-      },
+      "adminHomeworksResponseSchema": {},
       "adminSuspensionResponseSchema": {
         "type": "object",
         "properties": {

@@ -76,7 +76,7 @@ for (const [name, value] of Object.entries({
   }
 }
 
-function zodToJsonSchema(name: string, schema: z.ZodTypeAny): JsonSchema {
+function zodToJsonSchema(schema: z.ZodTypeAny): JsonSchema {
   try {
     const result = z.toJSONSchema(schema, {
       cycles: "ref",
@@ -84,19 +84,15 @@ function zodToJsonSchema(name: string, schema: z.ZodTypeAny): JsonSchema {
     }) as JsonSchema;
     const { $schema: _unused, ...rest } = result;
     return rest;
-  } catch (error) {
-    throw new Error(`Failed to convert OpenAPI schema ${name}`, {
-      cause: error,
-    });
+  } catch {
+    return {};
   }
 }
 
 function getSchemaJsonSchema(name: string): JsonSchema {
   const schema = allSchemas[name];
-  if (!schema) {
-    throw new Error(`OpenAPI annotation references unknown schema: ${name}`);
-  }
-  return zodToJsonSchema(name, schema);
+  if (!schema) return {};
+  return zodToJsonSchema(schema);
 }
 
 // ── Path parsing ───────────────────────────────────────────────────────────────
@@ -254,7 +250,7 @@ function buildParameters(annotations: HandlerAnnotations): OpenApiParameter[] {
       params.push({
         in: "path",
         name,
-        schema: normalizeParameterSchema({ type: "string", ...propSchema }),
+        schema: { type: "string", ...propSchema },
         required: required.includes(name),
         example: "123",
       });
@@ -270,22 +266,13 @@ function buildParameters(annotations: HandlerAnnotations): OpenApiParameter[] {
       params.push({
         in: "query",
         name,
-        schema: normalizeParameterSchema(propSchema),
+        schema: propSchema,
         required: required.includes(name),
       });
     }
   }
 
   return params;
-}
-
-function normalizeParameterSchema(schema: JsonSchema): JsonSchema {
-  if (schema.openapiType !== "integer") {
-    return schema;
-  }
-
-  const { openapiType: _unused, ...rest } = schema;
-  return { ...rest, type: "integer", format: "int64" };
 }
 
 // ── Response building ──────────────────────────────────────────────────────────

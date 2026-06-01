@@ -172,11 +172,7 @@ function rewriteOperationId(
     return method === "get" ? "getBusPreferences" : "setBusPreferences";
   }
 
-  if (
-    !isAdmin &&
-    resource === "descriptions" &&
-    resourceSegments.length === 1
-  ) {
+  if (resource === "descriptions" && resourceSegments.length === 1) {
     return method === "get" ? "getDescription" : "upsertDescription";
   }
 
