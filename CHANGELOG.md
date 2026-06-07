@@ -1,3 +1,15 @@
+# [1.32.0](https://github.com/Life-USTC/server-nextjs/compare/v1.31.0...v1.32.0) (2026-06-07)
+
+
+### Bug Fixes
+
+* **observability:** address review feedback ([6fb110b](https://github.com/Life-USTC/server-nextjs/commit/6fb110b5aed61ee5d09891743385ad30e6a3f407))
+
+
+### Features
+
+* **observability:** add production telemetry ([72d264d](https://github.com/Life-USTC/server-nextjs/commit/72d264d7c2dfbe8b753d553b0139a1eaed2029e1))
+
 # [1.31.0](https://github.com/Life-USTC/server-nextjs/compare/v1.30.4...v1.31.0) (2026-06-06)
 
 
