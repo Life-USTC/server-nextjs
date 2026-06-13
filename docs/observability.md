@@ -7,27 +7,21 @@ high-cardinality resource IDs.
 
 ## Log Storage
 
-Structured app logs are always emitted to the app process stdout/stderr. When
-`APP_LOG_DIR` is configured, server-side logs are also appended as JSON Lines to
-`APP_LOG_DIR/app-YYYY-MM-DD.log`.
-
-Docker Compose sets `APP_LOG_DIR=/var/log/life-ustc` and mounts
-`APP_LOG_HOST_DIR` there:
-
-- production default: `./logs/app`
-- Docker dev default: `./logs/app-dev`
-
-Create the host directory before starting Compose and make it writable by the
-container user. If Docker auto-creates the bind mount as root and the app cannot
-write to it, stdout/stderr logging still works and the app emits one
-`app.log_file_write_failed` message.
-
-Caddy access logs remain separate from the app log file.
+Structured app logs are emitted to `console.info`/`console.warn`/`console.error`.
+Cloudflare Workers production logs are collected through Cloudflare observability.
 
 ## Request Tracing
 
 - Caddy access logs remain the edge source of truth for every HTTP request.
-- Next.js REST routes propagate `x-request-id` and `x-request-start-ms`.
+- Cloudflare Workers production enables logs and trace sampling in
+  `wrangler.jsonc`.
+- HTML page responses include `x-request-id` and emit `page.request.finish`
+  logs with route, status, duration, and response size when available.
+- Dashboard page loads emit `dashboard.load.finish` logs with tab, signed-in
+  state, subscription count, status, duration, and request id.
+- Signed dashboard stages emit `dashboard.load.stage` logs with stage, tab,
+  subscription count, status, duration, and request id.
+- SvelteKit REST routes propagate `x-request-id` and `x-request-start-ms`.
 - REST route logs use normalized route templates such as `/api/todos/:id`.
 - MCP transport logs include JSON-RPC method summaries, tool names, argument
   keys, status, duration, and registered tool count.
@@ -71,22 +65,19 @@ OAuth, audit, and storage:
 ## Readiness
 
 `/api/readiness` returns internal dependency status for DB reachability, storage
-configuration, and process uptime. It is readable from localhost, with
+configuration, and deployment checks. It is readable from localhost, with
 `READINESS_BEARER_TOKEN`, or with `METRICS_BEARER_TOKEN`.
 
-Use readiness for operator diagnostics. Keep Docker health checks shallow so a
-transient dependency issue does not restart an otherwise healthy process.
+Use readiness for operator diagnostics.
 
 ## Alerts
 
 Recommended critical alerts:
 
 - Public blackbox probe failure for `https://life-ustc.tiankaima.dev`.
-- App container unhealthy or restarting.
+- Cloudflare Worker error spike.
 - Sustained REST 5xx rate from `life_ustc_api_errors_total`.
-- Caddy upstream `502` or `504` spike.
 - Database readiness failure.
-- Disk usage above 85%.
 
 Recommended warning alerts:
 
@@ -95,7 +86,6 @@ Recommended warning alerts:
 - MCP auth rejection spike.
 - Storage operation error spike.
 - Audit write error spike.
-- Memory pressure or sustained swap growth.
 
 ## Dashboards
 
@@ -106,4 +96,3 @@ At minimum, Grafana should show:
 - OAuth token requests by grant type/status.
 - Audit write success/error counts.
 - Storage operation success/error counts and latency.
-- Host CPU, memory, swap, disk, and container restart state.

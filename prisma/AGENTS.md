@@ -12,7 +12,8 @@ migrations/      Migration history
 ## Generated Output
 
 ```
-src/generated/prisma/  → DO NOT EDIT
+src/generated/prisma/       → Cloudflare app client, DO NOT EDIT
+src/generated/prisma-node/  → Node/Bun tool client, DO NOT EDIT
 ```
 
 ## Imports
@@ -57,7 +58,7 @@ Start Postgres first for local migration work:
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgres
-bun run prisma:migrate  # Create migration
+bun run prisma migrate dev # Create migration
 bun run build:artifacts # Generate client + OpenAPI
 # Update seed scenarios
 # Update E2E tests

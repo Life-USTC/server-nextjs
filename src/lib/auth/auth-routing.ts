@@ -65,6 +65,16 @@ function isOAuthCallbackContinuation(url: URL): boolean {
   return hasState && hasResult;
 }
 
+function isNonPageRequestPath(pathname: string): boolean {
+  return (
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/.well-known/") ||
+    pathname.startsWith("/_app/") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml"
+  );
+}
+
 export function shouldRedirectIncompleteProfileToWelcome({
   pathname,
   url,
@@ -80,9 +90,14 @@ export function shouldRedirectIncompleteProfileToWelcome({
     return false;
   }
 
+  if (isNonPageRequestPath(pathname)) {
+    return false;
+  }
+
   if (
     pathname === "/welcome" ||
     pathname === "/signin" ||
+    pathname === "/signout" ||
     pathname.startsWith("/oauth/") ||
     isOAuthCallbackContinuation(url)
   ) {

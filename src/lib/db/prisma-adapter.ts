@@ -1,9 +1,17 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { getOptionalTrimmedEnv } from "@/env";
+import { getOptionalTrimmedEnv } from "@/app-env";
+import { getCloudflareHyperdriveConnectionString } from "@/lib/cloudflare/runtime-env";
 import { logAppEvent } from "@/lib/log/app-logger";
 
+function getRuntimeDatabaseUrl() {
+  return (
+    getCloudflareHyperdriveConnectionString() ??
+    getOptionalTrimmedEnv("DATABASE_URL")
+  );
+}
+
 export function createPrismaAdapter(
-  connectionString = getOptionalTrimmedEnv("DATABASE_URL"),
+  connectionString = getRuntimeDatabaseUrl(),
 ) {
   if (!connectionString) {
     throw new Error("DATABASE_URL is required to initialize Prisma");

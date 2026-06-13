@@ -1,15 +1,17 @@
 # tools/
 
-Build, seed, import scripts.
+Build, seed, import, E2E, and snapshot scripts.
 
 ## Structure
 
 ```
 shared/              Helper code
 build/openapi/       OpenAPI generation
-dev/check/           Convention checks
+dev/check.ts         Convention checks
+dev/e2e.ts           E2E infra, standalone runtime, and MinIO helperdev/artifacts/snapshots/
+                     Visual snapshot capture and report workflow
 dev/seed/            Dev seed data
-production/load/     Production imports
+load/                Static data imports
 ```
 
 ## Prisma in Scripts
@@ -38,7 +40,7 @@ Start local infra first when a script needs DB/storage:
 ```bash
 docker compose -f docker-compose.dev.yml up -d
 bun run dev:seed-scenarios  # Create
-bun run dev:reset-scenarios # Clean
+bun run dev:reset-scenarios # Clean via the shared seed entrypoint
 ```
 
 Seed data:
@@ -49,12 +51,14 @@ Seed data:
 ## Import
 
 ```bash
-bun tools/production/load/load-from-static.ts
+bun run load:static
+DATABASE_URL=... docker compose -f docker-compose.load.yml run --rm static-loader
 ```
 
 - Import from SQLite snapshot
 - Preserve JW facts
 - Bus import via `src/features/bus/lib/bus-import.ts`
+- Loader Docker runtime only accepts `DATABASE_URL`; pass import choices as CLI flags such as `--skip-bus`.
 
 ## OpenAPI
 
@@ -67,7 +71,7 @@ bun run build:artifacts  # Generate + postprocess
 Default path for tool changes:
 
 ```bash
-bun run verify:fast  # Most edits
+bun run verify:commit # Most edits
 bun run verify:full  # Shared tooling, seed flows, or integration-sensitive edits
 ```
 

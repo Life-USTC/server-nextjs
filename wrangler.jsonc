@@ -1,0 +1,53 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "life-ustc-server-cf",
+  "main": ".svelte-kit/cloudflare/_worker.js",
+  "compatibility_date": "2026-06-08",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "NODE_ENV": "production",
+    "APP_PUBLIC_ORIGIN": "https://cf.life-ustc.tiankaima.dev",
+    "S3_BUCKET": "life-ustc",
+    "AWS_REGION": "auto",
+    "AWS_ENDPOINT_URL_S3": "https://3488b7b4f9cb9b6088c87dc44e88859e.r2.cloudflarestorage.com"
+  },
+  "assets": {
+    "directory": ".svelte-kit/cloudflare",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true,
+      "head_sampling_rate": 0.1
+    }
+  },
+  "routes": [
+    {
+      "pattern": "cf.life-ustc.tiankaima.dev",
+      "zone_name": "tiankaima.dev",
+      "custom_domain": true
+    }
+  ],
+  "placement": {
+    "mode": "smart"
+  },
+  "alias": {
+    "kysely": "./src/lib/cloudflare/kysely-worker-shim.ts",
+    "@better-auth/kysely-adapter/dist/bun-sqlite-dialect-DzNwOpKv.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
+    "@better-auth/kysely-adapter/dist/d1-sqlite-dialect-C2B7YsIT.mjs": "./src/lib/cloudflare/empty-optional-module.ts",
+    "@better-auth/kysely-adapter/dist/node-sqlite-dialect.mjs": "./src/lib/cloudflare/empty-optional-module.ts"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "84d80963a096419cb1f1c9846f164bf1"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "R2_UPLOADS",
+      "bucket_name": "life-ustc"
+    }
+  ]
+}
